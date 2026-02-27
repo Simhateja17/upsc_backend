@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 
 /* ─── Data Arrays ─── */
@@ -90,6 +91,7 @@ function StepHeader({ step, label }: { step: number; label: string }) {
 /* ─── Page Component ─── */
 
 export default function MockTestsPage() {
+  const router = useRouter();
   const [selectedSource, setSelectedSource] = useState('daily-mcq');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedExamMode, setSelectedExamMode] = useState('mains');
@@ -690,7 +692,9 @@ export default function MockTestsPage() {
               </div>
 
               {/* Generate Test Button */}
-              <button style={{
+              <button
+                onClick={() => router.push('/dashboard/mock-tests/attempt')}
+                style={{
                 width: '100%',
                 background: 'linear-gradient(90deg, #FDC700, #FF8904, #FF6900)',
                 border: 'none',
@@ -704,7 +708,7 @@ export default function MockTestsPage() {
                 letterSpacing: '0.02em',
                 marginBottom: 'clamp(14px, 1.1vw, 20px)',
               }}>
-                Generate Test
+                🚀 Generate Test
               </button>
 
               {/* Bottom info */}

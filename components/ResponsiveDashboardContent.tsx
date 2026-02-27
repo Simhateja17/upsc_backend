@@ -135,6 +135,23 @@ const ResponsiveDashboardContent = () => {
             />
             <span>Schedule</span>
           </button>
+
+          {/* Generate Test Button */}
+          <Link href="/dashboard/practice-test">
+            <button
+              className="px-[clamp(1.25rem,1.46vw,1.75rem)] rounded-[20px] font-inter font-medium text-white border-2 flex items-center gap-2 hover:opacity-90 transition-opacity"
+              style={{
+                height: 'clamp(38px,2.03vw,39px)',
+                fontSize: 'clamp(14px,0.78vw,15px)',
+                background: 'linear-gradient(135deg, #FDC700 0%, #FF8904 100%)',
+                borderColor: '#FDC700',
+                boxShadow: '0px 4px 17.1px 0px rgba(253, 199, 0, 0.3) inset',
+              }}
+            >
+              <span>🚀</span>
+              <span>Generate Test</span>
+            </button>
+          </Link>
         </div>
 
         {/* Today's Trio Section */}
