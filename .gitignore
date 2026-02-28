@@ -1,0 +1,20 @@
+node_modules
+dist
+
+# Keep environment variables out of version control
+.env
+.env.local
+
+# Prisma
+/src/generated/prisma
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
