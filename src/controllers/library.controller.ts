@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { getSignedUrl, STORAGE_BUCKETS } from "../config/storage";
 
 /**
  * GET /api/library/subjects
@@ -95,17 +96,29 @@ export const getDownloadUrl = async (req: Request, res: Response, next: NextFunc
       return res.status(404).json({ status: "error", message: "No materials found for this chapter" });
     }
 
-    res.json({
-      status: "success",
-      data: materials.map(m => ({
-        id: m.id,
-        title: m.title,
-        type: m.type,
-        fileUrl: m.fileUrl,
-        fileSize: m.fileSize,
-        pageCount: m.pageCount,
-      })),
-    });
+    // Generate signed download URLs for materials that are in Supabase Storage
+    const materialsWithUrls = await Promise.all(
+      materials.map(async (m) => {
+        let downloadUrl = m.fileUrl;
+        if (m.fileUrl && !m.fileUrl.startsWith("http")) {
+          try {
+            downloadUrl = await getSignedUrl(STORAGE_BUCKETS.STUDY_MATERIALS, m.fileUrl, 3600);
+          } catch {
+            downloadUrl = m.fileUrl;
+          }
+        }
+        return {
+          id: m.id,
+          title: m.title,
+          type: m.type,
+          fileUrl: downloadUrl,
+          fileSize: m.fileSize,
+          pageCount: m.pageCount,
+        };
+      })
+    );
+
+    res.json({ status: "success", data: materialsWithUrls });
   } catch (error) {
     next(error);
   }

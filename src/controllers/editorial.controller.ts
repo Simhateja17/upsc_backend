@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { summarizeEditorial } from "../services/editorialSummarizer";
 
 /**
  * GET /api/editorials/today
@@ -138,15 +139,8 @@ export const summarize = async (req: Request, res: Response, next: NextFunction)
       return res.status(404).json({ status: "error", message: "Editorial not found" });
     }
 
-    // If already has AI summary, return it
-    if (editorial.aiSummary) {
-      return res.json({ status: "success", data: { summary: editorial.aiSummary } });
-    }
-
-    // In production, call AI service. For now, generate a placeholder.
-    const summary = `Key Points from "${editorial.title}":\n\n1. This editorial discusses important aspects of ${editorial.category}.\n2. The analysis covers recent developments and their implications for UPSC aspirants.\n3. Key constitutional and policy dimensions are examined.\n\nRelevance for UPSC: This topic is relevant for ${editorial.category} in GS Papers.`;
-
-    await prisma.editorial.update({ where: { id: id as string }, data: { aiSummary: summary } });
+    // Use AI summarization service (returns cached if already summarized)
+    const summary = await summarizeEditorial(editorial.id);
 
     res.json({ status: "success", data: { summary } });
   } catch (error) {

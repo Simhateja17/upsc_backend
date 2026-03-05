@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { generateMCQQuestions } from "../services/questionGenerator";
 
 /**
  * GET /api/mock-tests/subjects
@@ -103,29 +104,71 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
       },
     });
 
-    const subjectList = subject && subject !== "All Subjects" ? [subject] : ["History", "Geography", "Indian Polity", "Economy"];
-    const difficultyList = difficulty === "mixed" ? ["Easy", "Moderate", "Hard"] : [difficulty || "Moderate"];
+    const targetSubject = subject && subject !== "All Subjects" ? subject : "General Studies";
 
-    for (let i = 1; i <= count; i++) {
-      const qSubject = subjectList[Math.floor(Math.random() * subjectList.length)];
-      const qDifficulty = difficultyList[Math.floor(Math.random() * difficultyList.length)];
+    // Try to source from PYQ bank first, then AI-generate the rest
+    let pyqQuestions: any[] = [];
+    if (source === "pyq" || source === "mixed") {
+      const pyqWhere: any = { status: "approved" };
+      if (subject && subject !== "All Subjects") {
+        pyqWhere.subject = { contains: subject, mode: "insensitive" };
+      }
+      pyqQuestions = await prisma.pYQQuestion.findMany({
+        where: pyqWhere,
+        take: source === "pyq" ? count : Math.ceil(count / 2),
+        orderBy: { createdAt: "desc" },
+      });
+    }
 
+    const aiCount = count - pyqQuestions.length;
+    let aiQuestions: any[] = [];
+
+    if (aiCount > 0) {
+      // Generate AI questions
+      aiQuestions = await generateMCQQuestions({
+        subject: targetSubject,
+        difficulty: difficulty || "medium",
+        count: aiCount,
+        examMode: examMode || "prelims",
+      });
+    }
+
+    // Combine and save questions
+    let questionNum = 1;
+
+    for (const pyq of pyqQuestions) {
       await prisma.mockTestQuestion.create({
         data: {
           mockTestId: mockTest.id,
-          questionNum: i,
-          questionText: `Sample ${qSubject} question ${i}: Which of the following statements about ${qSubject.toLowerCase()} is/are correct?\n\n1. Statement A related to ${qSubject}\n2. Statement B related to ${qSubject}\n3. Statement C related to ${qSubject}`,
-          subject: qSubject,
-          category: qSubject,
-          difficulty: qDifficulty,
-          options: [
-            { id: "A", text: "1 and 2 only" },
-            { id: "B", text: "2 and 3 only" },
-            { id: "C", text: "1 and 3 only" },
-            { id: "D", text: "1, 2 and 3" },
+          questionNum: questionNum++,
+          questionText: pyq.questionText,
+          subject: pyq.subject,
+          category: pyq.subject,
+          difficulty: pyq.difficulty,
+          options: pyq.options as any,
+          correctOption: pyq.correctOption || "A",
+          explanation: pyq.explanation || "",
+        },
+      });
+    }
+
+    for (const q of aiQuestions) {
+      await prisma.mockTestQuestion.create({
+        data: {
+          mockTestId: mockTest.id,
+          questionNum: questionNum++,
+          questionText: q.questionText,
+          subject: q.subject || targetSubject,
+          category: q.category || q.subject || targetSubject,
+          difficulty: q.difficulty || difficulty || "Medium",
+          options: q.options || [
+            { id: "A", text: "Option A" },
+            { id: "B", text: "Option B" },
+            { id: "C", text: "Option C" },
+            { id: "D", text: "Option D" },
           ],
-          correctOption: ["A", "B", "C", "D"][Math.floor(Math.random() * 4)],
-          explanation: `This is the explanation for question ${i}. The correct answer requires understanding of key concepts in ${qSubject}.`,
+          correctOption: q.correctOption || "A",
+          explanation: q.explanation || "",
         },
       });
     }

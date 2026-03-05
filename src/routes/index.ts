@@ -9,6 +9,8 @@ import studyPlannerRoutes from "./studyPlanner.routes";
 import videoRoutes from "./video.routes";
 import libraryRoutes from "./library.routes";
 import pricingRoutes from "./pricing.routes";
+import mentorshipRoutes from "./mentorship.routes";
+import adminRoutes from "./admin.routes";
 
 const router = Router();
 
@@ -55,8 +57,13 @@ router.use("/videos", videoRoutes);
 // Library routes
 router.use("/library", libraryRoutes);
 
-// Pricing & Mentorship routes
+// Pricing routes
 router.use("/pricing", pricingRoutes);
-router.use("/mentorship", pricingRoutes);
+
+// Mentorship routes (separate from pricing)
+router.use("/mentorship", mentorshipRoutes);
+
+// Admin routes
+router.use("/admin", adminRoutes);
 
 export default router;

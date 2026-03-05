@@ -16,6 +16,7 @@ model User {
   lastName      String?  @map("last_name")
   phone         String?
   avatarUrl     String?  @map("avatar_url")
+  role          String   @default("user") // user, admin
   isActive      Boolean  @default(true) @map("is_active")
   emailVerified Boolean  @default(false) @map("email_verified")
   createdAt     DateTime @default(now()) @map("created_at")
@@ -34,6 +35,8 @@ model User {
   weeklyGoals       WeeklyGoal[]
   mentorQuestions   MentorQuestion[]
   mentorBookings    MentorBooking[]
+  pyqUploads        PYQUpload[]
+  seenMcqQuestions  UserSeenMCQ[]
 
   @@map("users")
 }
@@ -521,4 +524,65 @@ model Testimonial {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("testimonials")
+}
+
+// ==================== PYQ QUESTION BANK ====================
+
+model PYQQuestion {
+  id            String   @id @default(uuid())
+  year          Int
+  paper         String   // GS-I, GS-II, GS-III, GS-IV, CSAT
+  questionNum   Int?     @map("question_num")
+  questionText  String   @map("question_text")
+  subject       String   // Polity, History, Geography, Economy, etc.
+  topic         String?
+  difficulty    String   @default("Medium") // Easy, Medium, Hard
+  options       Json     // [{label: "A", text: "..."}, ...]
+  correctOption String?  @map("correct_option") // A, B, C, D
+  explanation   String?
+  sourceFile    String?  @map("source_file")
+  status        String   @default("draft") // draft, approved, rejected
+  duplicateOfId String?  @map("duplicate_of_id")
+  uploadId      String?  @map("upload_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  upload      PYQUpload?   @relation(fields: [uploadId], references: [id], onDelete: SetNull)
+  duplicateOf PYQQuestion? @relation("PYQDuplicates", fields: [duplicateOfId], references: [id], onDelete: SetNull)
+  duplicates  PYQQuestion[] @relation("PYQDuplicates")
+  seenBy      UserSeenMCQ[]
+
+  @@index([subject, status])
+  @@index([year, paper])
+  @@map("pyq_questions")
+}
+
+model PYQUpload {
+  id             String   @id @default(uuid())
+  fileName       String   @map("file_name")
+  fileUrl        String   @map("file_url")
+  year           Int
+  paper          String
+  status         String   @default("processing") // processing, parsed, reviewed, completed
+  totalExtracted Int      @default(0) @map("total_extracted")
+  totalApproved  Int      @default(0) @map("total_approved")
+  uploadedById   String   @map("uploaded_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  uploadedBy User          @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  questions  PYQQuestion[]
+
+  @@map("pyq_uploads")
+}
+
+model UserSeenMCQ {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  pyqQuestionId String   @map("pyq_question_id")
+  seenAt        DateTime @default(now()) @map("seen_at")
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question PYQQuestion @relation(fields: [pyqQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pyqQuestionId])
+  @@map("user_seen_mcqs")
 }

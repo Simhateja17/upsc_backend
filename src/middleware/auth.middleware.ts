@@ -17,6 +17,7 @@ declare global {
         email: string;
         firstName?: string | null;
         lastName?: string | null;
+        role?: string;
       };
     }
   }
@@ -64,6 +65,7 @@ export const authenticate = async (
         email: true,
         firstName: true,
         lastName: true,
+        role: true,
       },
     });
 

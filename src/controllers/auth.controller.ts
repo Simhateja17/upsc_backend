@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { createClient } from "@supabase/supabase-js";
 import prisma from "../config/database";
+import { sendWelcomeEmail } from "../services/emailService";
 
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
@@ -115,6 +116,11 @@ export const signup = async (
       },
     });
 
+    // Send welcome email (async, don't block response)
+    sendWelcomeEmail(email, firstName || "").catch((err) =>
+      console.error("Welcome email failed:", err)
+    );
+
     // If email confirmation is required, session will be null
     // In that case, we still return success but without session
     if (!authData.session) {
@@ -144,6 +150,7 @@ export const signup = async (
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          role: user.role,
         },
         session: {
           accessToken: authData.session.access_token,
@@ -235,6 +242,7 @@ export const login = async (
           firstName: user.firstName,
           lastName: user.lastName,
           avatarUrl: user.avatarUrl,
+          role: user.role,
         },
         session: {
           accessToken: authData.session.access_token,
@@ -305,6 +313,7 @@ export const getMe = async (
           phone: user.phone,
           avatarUrl: user.avatarUrl,
           emailVerified: user.emailVerified,
+          role: user.role,
           createdAt: user.createdAt,
         },
       },
@@ -324,11 +333,13 @@ export const logout = async (
   next: NextFunction
 ) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.split(" ")[1];
-      
-      // Sign out from Supabase
+    // Use admin client to revoke the user's session server-side
+    if (supabaseAdmin && req.user) {
+      await supabaseAdmin.auth.admin.signOut(
+        req.headers.authorization?.split(" ")[1] || "",
+        "local"
+      );
+    } else {
       await supabase.auth.signOut();
     }
 
