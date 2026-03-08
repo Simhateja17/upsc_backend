@@ -33,7 +33,7 @@ const DashboardHeader = () => {
   };
 
   // Get display name
-  const displayName = user 
+  const displayName = user
     ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email?.split('@')[0] || 'User'
     : 'Guest';
 
@@ -79,71 +79,78 @@ const DashboardHeader = () => {
         </Link>
 
         {/* User Profile Section */}
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative flex-shrink-0" ref={dropdownRef}>
+          {/* Poojitha's conic-gradient border pill */}
           <div
-            onClick={() => setShowDropdown(!showDropdown)}
-            className="flex items-center gap-[clamp(0.5rem,0.8vw,1rem)] px-[clamp(0.75rem,1.2vw,1.5rem)] py-[clamp(0.5rem,0.6vw,0.75rem)] rounded-[36px] min-w-[clamp(180px,11.6vw,223px)] h-[clamp(48px,2.97vw,57px)] cursor-pointer hover:opacity-90 transition-opacity"
+            className="rounded-[36px]"
             style={{
-              background: 'linear-gradient(85.13deg, rgba(30, 40, 117, 0.5) 2.96%, rgba(30, 40, 117, 0.5) 96.14%)',
-              border: '1px solid #B19E66',
-              boxShadow: '0px 16px 64px 0px rgba(104, 1, 255, 0.12)',
+              padding: '1px',
+              background: 'conic-gradient(from 0deg, #B19E66 14%, rgba(255,255,255,0.04) 35%, #FFFFFF 65%, rgba(255,255,255,0.07) 85%, #B19E66 100%)',
+              minWidth: 'clamp(180px,11.6vw,223px)',
+              height: 'clamp(48px,2.97vw,57px)',
             }}
           >
-            {/* User Avatar */}
-            <div 
-              className="w-[clamp(35px,2.6vw,50px)] h-[clamp(32px,2.3vw,45px)] flex-shrink-0 rounded-full flex items-center justify-center text-white font-semibold"
-              style={{ 
-                background: user?.avatarUrl ? `url(${user.avatarUrl}) center/cover` : '#6366F1',
-                fontSize: 'clamp(12px, 0.9vw, 16px)'
+            {/* Inner gradient pill - clickable to open dropdown */}
+            <div
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="flex items-center gap-[clamp(0.5rem,0.8vw,1rem)] px-[clamp(0.75rem,1.2vw,1.5rem)] py-[clamp(0.5rem,0.6vw,0.75rem)] rounded-[35px] w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
+              style={{
+                background: 'linear-gradient(180deg, #1E2875 0%, #1E2875 100%)',
+                boxShadow: '0px 16px 64px 0px rgba(104, 1, 255, 0.12)',
               }}
             >
-              {!user?.avatarUrl && initials}
-            </div>
-
-            {/* User Info */}
-            <div className="flex flex-col justify-center flex-1 min-w-0">
+              {/* Real User Avatar */}
               <div
-                className="text-white font-poppins font-medium leading-[100%] truncate"
+                className="w-[clamp(35px,2.6vw,50px)] h-[clamp(32px,2.3vw,45px)] flex-shrink-0 rounded-full flex items-center justify-center text-white font-semibold"
                 style={{
-                  fontSize: 'clamp(14px, 1.02vw, 19.58px)',
+                  background: user?.avatarUrl ? `url(${user.avatarUrl}) center/cover` : '#6366F1',
+                  fontSize: 'clamp(12px, 0.9vw, 16px)',
                 }}
               >
-                {isLoading ? 'Loading...' : displayName}
+                {!user?.avatarUrl && initials}
               </div>
-              <div
-                className="text-white font-poppins font-medium leading-[100%] truncate mt-[clamp(2px,0.3vw,4px)]"
-                style={{
-                  fontSize: 'clamp(9px, 0.6vw, 11.52px)',
-                }}
-              >
-                {isAuthenticated ? 'UPSC Aspirant' : 'Guest'}
-              </div>
-            </div>
 
-            {/* Dropdown Arrow */}
-            <div className={`flex-shrink-0 transition-transform ${showDropdown ? 'rotate-180' : ''}`}>
-              <svg
-                width={`clamp(10px, 0.68vw, 13px)`}
-                height={`clamp(6px, 0.37vw, 7.13px)`}
-                viewBox="0 0 13 8"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-[clamp(10px,0.68vw,13px)] h-auto"
-              >
-                <path
-                  d="M1 1L6.5 6.5L12 1"
-                  stroke="white"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              {/* Real User Info */}
+              <div className="flex flex-col justify-center flex-1 min-w-0">
+                <div
+                  className="text-white font-poppins font-medium leading-[100%] truncate"
+                  style={{ fontSize: 'clamp(14px, 1.02vw, 19.58px)' }}
+                >
+                  {isLoading ? 'Loading...' : displayName}
+                </div>
+                <div
+                  className="text-white font-poppins font-medium leading-[100%] truncate mt-[clamp(2px,0.3vw,4px)]"
+                  style={{ fontSize: 'clamp(9px, 0.6vw, 11.52px)' }}
+                >
+                  {isAuthenticated ? 'UPSC Aspirant' : 'Guest'}
+                </div>
+              </div>
+
+              {/* Dropdown Arrow */}
+              <div className={`flex-shrink-0 transition-transform ${showDropdown ? 'rotate-180' : ''}`}>
+                <svg
+                  width={`clamp(10px, 0.68vw, 13px)`}
+                  height={`clamp(6px, 0.37vw, 7.13px)`}
+                  viewBox="0 0 13 8"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-[clamp(10px,0.68vw,13px)] h-auto"
+                >
+                  <path
+                    d="M1 1L6.5 6.5L12 1"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
 
           {/* Dropdown Menu */}
           {showDropdown && (
-            <div 
+            <div
               className="absolute right-0 top-full mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
               style={{
                 background: '#1E2939',
@@ -185,15 +192,15 @@ const DashboardHeader = () => {
                 </>
               ) : (
                 <>
-                  <Link 
-                    href="/login?tab=login" 
+                  <Link
+                    href="/login?tab=login"
                     className="block px-4 py-3 text-white hover:bg-[#374151] transition-colors text-sm"
                     onClick={() => setShowDropdown(false)}
                   >
                     Login
                   </Link>
-                  <Link 
-                    href="/login?tab=signup" 
+                  <Link
+                    href="/login?tab=signup"
                     className="block px-4 py-3 text-white hover:bg-[#374151] transition-colors text-sm"
                     onClick={() => setShowDropdown(false)}
                   >

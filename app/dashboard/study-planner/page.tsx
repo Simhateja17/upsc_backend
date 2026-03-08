@@ -411,6 +411,15 @@ export default function StudyPlannerPage() {
             </div>
 
             {/* ── Two Cards Side by Side ── */}
+            <div
+              style={{
+                borderRadius: '10px',
+                border: '0.8px solid #E5E7EB',
+                background: '#FFFFFF',
+                boxShadow: '0px 1px 2px -1px #0000001A, 0px 1px 3px 0px #0000001A',
+                padding: '24px',
+              }}
+            >
             <div className="flex" style={{ gap: '16px' }}>
 
               {/* Left Card: Build Your Study Plan */}
@@ -603,11 +612,6 @@ export default function StudyPlannerPage() {
                   width: '360px',
                   minWidth: '280px',
                   flexShrink: 0,
-                  borderRadius: '10px',
-                  border: '0.8px solid #E5E7EB',
-                  background: '#FFFFFF',
-                  boxShadow: '0px 1px 2px -1px #0000001A, 0px 1px 3px 0px #0000001A',
-                  padding: '24px',
                 }}
               >
                 {/* Tasks List or Empty State */}
@@ -692,14 +696,14 @@ export default function StudyPlannerPage() {
                 </div>
               </div>
             </div>
+            </div>
 
-            {/* ── Bottom Row: 3 Cards ── */}
-            <div className="grid grid-cols-3 gap-4 mt-4">
+            {/* ── Bottom Row: Syllabus Coverage + Weekly Goals + Planner Sync ── */}
+            <div className="flex gap-4 mt-4">
               
-                   {/* Card 1: Syllabus Coverage */}
+              {/* Card 1: Syllabus Coverage */}
               <div
-                className="bg-white rounded-[16px] border-[0.8px] border-[#E5E7EB] p-6 shadow-[0px_1px_2px_-1px_#0000001A,0px_1px_3px_0px_#0000001A]"
-                style={{ height: '230px' }}
+                className="bg-white rounded-[16px] border-[0.8px] border-[#E5E7EB] p-6 shadow-[0px_1px_2px_-1px_#0000001A,0px_1px_3px_0px_#0000001A] flex-1"
               >
                 <div className="flex items-center gap-2 mb-4">
                   <img src="/image-removebg-preview%20(60)%201.png" alt="Syllabus" style={{ width: '24px', height: '24px' }} />
@@ -731,8 +735,7 @@ export default function StudyPlannerPage() {
 
               {/* Card 2: Weekly Goals */}
               <div
-                className="bg-white rounded-[16px] border-[0.8px] border-[#E5E7EB] p-6 shadow-[0px_1px_2px_-1px_#0000001A,0px_1px_3px_0px_#0000001A]"
-                style={{ height: '230px' }}
+                className="bg-white rounded-[16px] border-[0.8px] border-[#E5E7EB] p-6 shadow-[0px_1px_2px_-1px_#0000001A,0px_1px_3px_0px_#0000001A] flex-1"
               >
                 <div className="flex items-center gap-2 mb-4">
                   {/* Target Icon */}
@@ -766,10 +769,10 @@ export default function StudyPlannerPage() {
                 </div>
               </div>
 
-              {/* Card 3: Planner Sync */}
+              {/* Card 3: Planner Sync — fixed width matches "Your Plan is Empty" above */}
               <div
                 className="bg-white rounded-[16px] border-[0.8px] border-[#E5E7EB] shadow-[0px_1px_2px_-1px_#0000001A,0px_1px_3px_0px_#0000001A] flex flex-col justify-between"
-                style={{ height: '230px', padding: '24px' }}
+                style={{ width: '360px', minWidth: '280px', flexShrink: 0, padding: '24px' }}
               >
                 <div>
                     <div className="flex items-center gap-2 mb-4">

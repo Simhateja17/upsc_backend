@@ -67,8 +67,12 @@ const PerformanceStatsWidget = () => {
     <div className="w-full space-y-[clamp(12px,0.83vw,16px)]">
       {/* Performance Stats Card */}
       <div
+        className="rounded-[clamp(16px,1.04vw,20px)]"
         style={{
-          padding: '0 0 clamp(12px,0.83vw,16px) 0',
+          background: '#ffffff',
+          border: '0.8px solid #E5E7EB',
+          boxShadow: '0px 4px 12px 0px #00000026',
+          padding: 'clamp(20px,1.29vw,24.8px) clamp(20px,1.25vw,24px)',
         }}
       >
         {/* Header */}
@@ -82,10 +86,10 @@ const PerformanceStatsWidget = () => {
             className="font-arimo text-[#101828]"
             style={{
               fontWeight: 700,
-              fontSize: '21px',
+              fontSize: '17px',
               lineHeight: '24px',
               letterSpacing: '0px',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
             }}
           >
             Your Performance Stats
@@ -532,9 +536,9 @@ const PerformanceStatsWidget = () => {
           boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 3px 10px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06)',
         }}
       >
-        <div className="flex items-center gap-[clamp(6px,0.42vw,8px)] mb-[clamp(12px,0.83vw,16px)]">
-          <img src="/c.png" alt="Calendar" className="w-[clamp(18px,1.09vw,21px)] h-[clamp(20px,1.25vw,24px)]" />
-          <h3 className="font-inter font-semibold text-white" style={{ fontSize: 'clamp(13px,0.78vw,15px)', lineHeight: '1.2' }}>
+        <div className="flex items-center gap-[clamp(8px,0.52vw,10px)] mb-[clamp(12px,0.83vw,16px)]">
+          <img src="/calendar.png" alt="Calendar" className="w-[clamp(28px,1.82vw,35px)] h-[clamp(28px,1.82vw,35px)]" style={{ objectFit: 'contain', opacity: 1, filter: 'brightness(0) invert(1)' }} />
+          <h3 className="font-inter font-bold text-white" style={{ fontSize: 'clamp(18px,1.35vw,26px)', lineHeight: '1.2' }}>
             Upcoming Test
           </h3>
         </div>

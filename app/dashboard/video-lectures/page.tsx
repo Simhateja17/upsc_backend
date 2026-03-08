@@ -221,50 +221,8 @@ export default function VideoLecturesPage() {
       </div>
 
       {/* ============================================================ */}
-      {/*  SECTION 2: CATEGORY FILTER BAR — full viewport width         */}
+      {/*  SECTION 3: BROWSE BY SUBJECT                                  */}
       {/* ============================================================ */}
-      <div
-        style={{
-          background: '#F9FAFB',
-          borderTop: '1px solid #E5E7EB',
-          borderBottom: '1px solid #E5E7EB',
-          padding: 'clamp(12px, 1.2vw, 16px) 0',
-          marginBottom: 'clamp(40px, 4vw, 60px)',
-        }}
-      >
-        <div
-          className="flex items-center gap-2"
-          style={{
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            padding: '0 clamp(16px, 2vw, 30px)',
-            justifyContent: 'center',
-          }}
-        >
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className="font-arimo font-bold whitespace-nowrap"
-              style={{
-                padding: 'clamp(8px, 0.75vw, 10px) clamp(16px, 1.5vw, 20px)',
-                borderRadius: '26843500px',
-                background: selectedCategory === cat ? '#162456' : '#F3F4F6',
-                color: selectedCategory === cat ? '#FFFFFF' : '#364153',
-                outline: selectedCategory === cat ? 'none' : 'none',
-                fontSize: 'clamp(12px, 1.05vw, 14px)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                flexShrink: 0,
-              }}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Centered content wrapper — Sections 3–6 */}
       <div
@@ -275,9 +233,7 @@ export default function VideoLecturesPage() {
           paddingBottom: 'clamp(60px, 6vw, 100px)',
         }}
       >
-        {/* ============================================================ */}
-        {/*  SECTION 3: BROWSE BY SUBJECT                                  */}
-        {/* ============================================================ */}
+        {/* SECTION 3: BROWSE BY SUBJECT */}
         <div style={{ marginBottom: 'clamp(40px, 4vw, 60px)' }}>
           {/* Super heading */}
           <div

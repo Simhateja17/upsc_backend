@@ -140,26 +140,26 @@ export default function EvaluatingPage() {
           borderRadius: '16px',
           background: '#FFFFFF',
           boxShadow: '0px 8px 10px -6px #0000001A, 0px 20px 25px -5px #0000001A',
-          padding: '48px 48px 48px 48px',
+          padding: '32px 40px 32px 40px',
         }}
       >
         {/* Header */}
-        <div className="flex flex-col items-center mb-6">
+        <div className="flex flex-col items-center mb-4">
           <img
             src="/eval-header.png"
             alt="Evaluating"
-            style={{ width: '80px', height: '80px', objectFit: 'contain', marginBottom: '16px' }}
+            style={{ width: '64px', height: '64px', objectFit: 'contain', marginBottom: '12px' }}
           />
           <h1
             style={{
               fontFamily: 'Arimo',
               fontWeight: 700,
-              fontSize: '30px',
-              lineHeight: '36px',
+              fontSize: '26px',
+              lineHeight: '32px',
               letterSpacing: '0px',
               color: '#1E2939',
               textAlign: 'center',
-              marginBottom: '8px',
+              marginBottom: '6px',
             }}
           >
             Evaluating Your Answer
@@ -168,11 +168,11 @@ export default function EvaluatingPage() {
             style={{
               fontFamily: 'Arimo',
               fontWeight: 400,
-              fontSize: '16px',
-              lineHeight: '24px',
+              fontSize: '15px',
+              lineHeight: '22px',
               color: '#4A5565',
               textAlign: 'center',
-              marginBottom: '4px',
+              marginBottom: '2px',
             }}
           >
             Analyzing with UPSC examiner&apos;s lens
@@ -181,8 +181,8 @@ export default function EvaluatingPage() {
             style={{
               fontFamily: 'Arimo',
               fontWeight: 400,
-              fontSize: '14px',
-              lineHeight: '20px',
+              fontSize: '13px',
+              lineHeight: '18px',
               color: '#6A7282',
               textAlign: 'center',
             }}
@@ -199,21 +199,21 @@ export default function EvaluatingPage() {
         )}
 
         {/* Steps */}
-        <div className="flex flex-col gap-0 mb-6">
+        <div className="flex flex-col gap-0 mb-4">
           {STEPS.map((step, idx) => {
             const done = isStepDone(step);
             const active = isStepActive(step, idx);
             return (
               <div key={step.id}>
-                <div className="flex items-center justify-between py-4">
+                <div className="flex items-center justify-between py-3">
                   {/* Left: icon + text */}
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <img
                       src={step.icon}
                       alt={step.title}
                       style={{
-                        width: '40px',
-                        height: '40px',
+                        width: '36px',
+                        height: '36px',
                         objectFit: 'contain',
                         opacity: done || active ? 1 : 0.4,
                         transition: 'opacity 0.4s',
@@ -224,8 +224,8 @@ export default function EvaluatingPage() {
                         style={{
                           fontFamily: 'Arimo',
                           fontWeight: 700,
-                          fontSize: '16px',
-                          lineHeight: '24px',
+                          fontSize: '15px',
+                          lineHeight: '20px',
                           color: '#17223E',
                         }}
                       >
@@ -235,8 +235,8 @@ export default function EvaluatingPage() {
                         style={{
                           fontFamily: 'Arimo',
                           fontWeight: 400,
-                          fontSize: '14px',
-                          lineHeight: '20px',
+                          fontSize: '13px',
+                          lineHeight: '18px',
                           color: '#17223E',
                         }}
                       >
@@ -284,18 +284,18 @@ export default function EvaluatingPage() {
             borderRadius: '10px',
             borderLeft: '4px solid #FDC700',
             background: '#FEFCE8',
-            padding: '24px 34px',
+            padding: '18px 28px',
           }}
         >
           {/* Timer row */}
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <img src="/eval-timer.png" alt="Timer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <img src="/eval-timer.png" alt="Timer" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
             <span
               style={{
                 fontFamily: 'DM Sans',
                 fontWeight: 700,
-                fontSize: '15px',
-                lineHeight: '22.75px',
+                fontSize: '14px',
+                lineHeight: '20px',
                 color: '#101828',
               }}
             >
@@ -305,7 +305,7 @@ export default function EvaluatingPage() {
 
           {/* Progress bar */}
           <div
-            className="mx-auto mb-4"
+            className="mx-auto mb-3"
             style={{
               width: '362px',
               height: '5px',
@@ -327,11 +327,11 @@ export default function EvaluatingPage() {
 
           {/* While you wait text */}
           <p
-            className="text-center mb-3"
+            className="text-center mb-2"
             style={{
               fontFamily: 'Arimo',
-              fontSize: '14px',
-              lineHeight: '22.75px',
+              fontSize: '13px',
+              lineHeight: '18px',
               color: '#364153',
             }}
           >
@@ -346,8 +346,8 @@ export default function EvaluatingPage() {
               fontFamily: 'Arimo',
               fontWeight: 400,
               fontStyle: 'italic',
-              fontSize: '12px',
-              lineHeight: '16px',
+              fontSize: '11px',
+              lineHeight: '15px',
               color: '#6A7282',
             }}
           >
