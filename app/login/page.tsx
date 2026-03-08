@@ -1,7 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useAuth } from '@/contexts/AuthContext';
 
 const featureCards = [
   { label: 'AI Mains Evaluation',   icon: '/icon-ai-mains.png' },
@@ -14,9 +16,108 @@ const featureCards = [
 
 const avatarColors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
 
-export default function LoginPage() {
-  const [activeTab, setActiveTab] = useState<'login' | 'signup' | 'success'>('login');
+function LoginPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login, signup, loginWithGoogle, isAuthenticated, isLoading: authLoading } = useAuth();
+
+  // Get initial tab from URL query param
+  const tabParam = searchParams.get('tab');
+  const initialTab = tabParam === 'signup' ? 'signup' : 'login';
+
+  const [activeTab, setActiveTab] = useState<'login' | 'signup' | 'success'>(initialTab);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Login form state
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+
+  // Signup form state
+  const [signupFirstName, setSignupFirstName] = useState('');
+  const [signupLastName, setSignupLastName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPhone, setSignupPhone] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, authLoading, router]);
+
+  // Update tab when URL changes
+  useEffect(() => {
+    if (tabParam === 'signup') {
+      setActiveTab('signup');
+    } else if (tabParam === 'login') {
+      setActiveTab('login');
+    }
+  }, [tabParam]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      await login({ email: loginEmail, password: loginPassword });
+      router.push('/dashboard');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!agreedToTerms) {
+      setError('Please agree to the Terms of Service and Privacy Policy');
+      return;
+    }
+
+    if (signupPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await signup({
+        email: signupEmail,
+        password: signupPassword,
+        firstName: signupFirstName,
+        lastName: signupLastName,
+        phone: signupPhone || undefined,
+      });
+      setActiveTab('success');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Signup failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    try {
+      setError(null);
+      await loginWithGoogle();
+      // Browser redirects to Google — execution stops here
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to initialize Google login');
+    }
+  };
+
+  const goToDashboard = () => {
+    router.push('/dashboard');
+  };
 
   return (
     <div className="flex w-full min-h-screen" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -100,7 +201,7 @@ export default function LoginPage() {
                 color: '#99A1AF',
               }}
             >
-              Trusted by 2,400+ Aspirants 🔥
+              Trusted by 2,400+ Aspirants
             </span>
           </div>
 
@@ -300,7 +401,7 @@ export default function LoginPage() {
           >
             {/* Log In — active tab */}
             <button
-              onClick={() => setActiveTab('login')}
+              onClick={() => { setActiveTab('login'); setError(null); }}
               style={{
                 flex: 1,
                 height: 45.6,
@@ -325,7 +426,7 @@ export default function LoginPage() {
 
             {/* Sign Up Free — inactive tab */}
             <button
-              onClick={() => setActiveTab('signup')}
+              onClick={() => { setActiveTab('signup'); setError(null); }}
               style={{
                 flex: 1,
                 height: 45.6,
@@ -354,6 +455,24 @@ export default function LoginPage() {
         <div
           className="flex flex-col"
         >
+
+        {/* Error message */}
+        {error && (
+          <div
+            style={{
+              background: '#FEE2E2',
+              border: '1px solid #EF4444',
+              borderRadius: 8,
+              padding: '12px 16px',
+              marginBottom: 16,
+              color: '#DC2626',
+              fontSize: 14,
+              fontFamily: 'Inter',
+            }}
+          >
+            {error}
+          </div>
+        )}
 
         {/* ── SUCCESS SCREEN ── */}
         {activeTab === 'success' && (
@@ -460,6 +579,7 @@ export default function LoginPage() {
 
             {/* Go to Dashboard button */}
             <button
+              onClick={goToDashboard}
               style={{
                 width: '100%',
                 height: 52,
@@ -483,7 +603,7 @@ export default function LoginPage() {
 
         {/* ── SIGNUP FORM ── */}
         {activeTab === 'signup' && (
-          <>
+          <form onSubmit={handleSignup}>
             {/* Heading */}
             <h1
               style={{
@@ -516,6 +636,8 @@ export default function LoginPage() {
 
             {/* Sign up with Google */}
             <button
+              type="button"
+              onClick={handleGoogleAuth}
               style={{
                 width: '100%',
                 height: 45.6,
@@ -557,7 +679,14 @@ export default function LoginPage() {
                   <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="3" stroke="#99A1AF" strokeWidth="1.2" fill="none"/><path d="M1 13c0-3 2.5-5 6-5s6 2 6 5" stroke="#99A1AF" strokeWidth="1.2" strokeLinecap="round" fill="none"/></svg>
                   </span>
-                  <input type="text" placeholder="Rahul" style={{ width: '100%', height: 45.6, paddingLeft: 36, paddingRight: 16, borderRadius: 14, border: '0.8px solid #D1D5DC', background: '#FFFFFF', fontFamily: 'Inter', fontWeight: 400, fontSize: 14, color: '#0A0A0A', outline: 'none', boxSizing: 'border-box' }} />
+                  <input 
+                    type="text" 
+                    placeholder="Rahul" 
+                    value={signupFirstName}
+                    onChange={(e) => setSignupFirstName(e.target.value)}
+                    required
+                    style={{ width: '100%', height: 45.6, paddingLeft: 36, paddingRight: 16, borderRadius: 14, border: '0.8px solid #D1D5DC', background: '#FFFFFF', fontFamily: 'Inter', fontWeight: 400, fontSize: 14, color: '#0A0A0A', outline: 'none', boxSizing: 'border-box' }} 
+                  />
                 </div>
               </div>
               {/* Last Name */}
@@ -569,7 +698,13 @@ export default function LoginPage() {
                   <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="3" stroke="#99A1AF" strokeWidth="1.2" fill="none"/><path d="M1 13c0-3 2.5-5 6-5s6 2 6 5" stroke="#99A1AF" strokeWidth="1.2" strokeLinecap="round" fill="none"/></svg>
                   </span>
-                  <input type="text" placeholder="Sharma" style={{ width: '100%', height: 45.6, paddingLeft: 36, paddingRight: 16, borderRadius: 14, border: '0.8px solid #D1D5DC', background: '#FFFFFF', fontFamily: 'Inter', fontWeight: 400, fontSize: 14, color: '#0A0A0A', outline: 'none', boxSizing: 'border-box' }} />
+                  <input 
+                    type="text" 
+                    placeholder="Sharma" 
+                    value={signupLastName}
+                    onChange={(e) => setSignupLastName(e.target.value)}
+                    style={{ width: '100%', height: 45.6, paddingLeft: 36, paddingRight: 16, borderRadius: 14, border: '0.8px solid #D1D5DC', background: '#FFFFFF', fontFamily: 'Inter', fontWeight: 400, fontSize: 14, color: '#0A0A0A', outline: 'none', boxSizing: 'border-box' }} 
+                  />
                 </div>
               </div>
             </div>
@@ -583,7 +718,14 @@ export default function LoginPage() {
                 <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4l6 5 6-5M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z" stroke="#99A1AF" strokeWidth="1.2" strokeLinejoin="round" fill="none"/></svg>
                 </span>
-                <input type="email" placeholder="yourname@gmail.com" style={{ width: '100%', height: 45.6, paddingLeft: 40, paddingRight: 16, borderRadius: 14, border: '0.8px solid #D1D5DC', background: '#FFFFFF', fontFamily: 'Inter', fontWeight: 400, fontSize: 14, color: '#0A0A0A', outline: 'none', boxSizing: 'border-box' }} />
+                <input 
+                  type="email" 
+                  placeholder="yourname@gmail.com" 
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                  required
+                  style={{ width: '100%', height: 45.6, paddingLeft: 40, paddingRight: 16, borderRadius: 14, border: '0.8px solid #D1D5DC', background: '#FFFFFF', fontFamily: 'Inter', fontWeight: 400, fontSize: 14, color: '#0A0A0A', outline: 'none', boxSizing: 'border-box' }} 
+                />
               </div>
             </div>
 
@@ -597,7 +739,13 @@ export default function LoginPage() {
                 <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="4" y="1" width="8" height="14" rx="2" stroke="#99A1AF" strokeWidth="1.2" fill="none"/><circle cx="8" cy="12" r="0.8" fill="#99A1AF"/></svg>
                 </span>
-                <input type="tel" placeholder="+91 9876543210" style={{ width: '100%', height: 45.6, paddingLeft: 40, paddingRight: 16, borderRadius: 14, border: '0.8px solid #D1D5DC', background: '#FFFFFF', fontFamily: 'Inter', fontWeight: 400, fontSize: 14, color: '#0A0A0A', outline: 'none', boxSizing: 'border-box' }} />
+                <input 
+                  type="tel" 
+                  placeholder="+91 9876543210" 
+                  value={signupPhone}
+                  onChange={(e) => setSignupPhone(e.target.value)}
+                  style={{ width: '100%', height: 45.6, paddingLeft: 40, paddingRight: 16, borderRadius: 14, border: '0.8px solid #D1D5DC', background: '#FFFFFF', fontFamily: 'Inter', fontWeight: 400, fontSize: 14, color: '#0A0A0A', outline: 'none', boxSizing: 'border-box' }} 
+                />
               </div>
             </div>
 
@@ -610,16 +758,33 @@ export default function LoginPage() {
                 <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
                   <Image src="/icon-lock.png" alt="" width={16} height={16} style={{ objectFit: 'contain' }} />
                 </span>
-                <input type="password" placeholder="Create a strong password" style={{ width: '100%', height: 45.6, paddingLeft: 40, paddingRight: 40, borderRadius: 14, border: '0.8px solid #D1D5DC', background: '#FFFFFF', fontFamily: 'Inter', fontWeight: 400, fontSize: 14, color: '#0A0A0A', outline: 'none', boxSizing: 'border-box' }} />
-                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', display: 'flex', cursor: 'pointer' }}>
+                <input 
+                  type={showPassword ? 'text' : 'password'} 
+                  placeholder="Create a strong password" 
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  style={{ width: '100%', height: 45.6, paddingLeft: 40, paddingRight: 40, borderRadius: 14, border: '0.8px solid #D1D5DC', background: '#FFFFFF', fontFamily: 'Inter', fontWeight: 400, fontSize: 14, color: '#0A0A0A', outline: 'none', boxSizing: 'border-box' }} 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', display: 'flex', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+                >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="#99A1AF" strokeWidth="1.2" fill="none"/><circle cx="8" cy="8" r="2" stroke="#99A1AF" strokeWidth="1.2" fill="none"/></svg>
-                </span>
+                </button>
               </div>
             </div>
 
             {/* Terms checkbox */}
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 14 }}>
-              <input type="checkbox" style={{ marginTop: 3, accentColor: '#155DFC', flexShrink: 0, width: 14, height: 14 }} />
+              <input 
+                type="checkbox" 
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                style={{ marginTop: 3, accentColor: '#155DFC', flexShrink: 0, width: 14, height: 14 }} 
+              />
               <span style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 12, lineHeight: '19.5px', color: '#4A5565' }}>
                 I agree to the{' '}
                 <Link href="#" style={{ fontWeight: 600, color: '#155DFC', textDecoration: 'none' }}>Terms of Service</Link>
@@ -632,14 +797,15 @@ export default function LoginPage() {
 
             {/* Create Free Account button */}
             <button
-              onClick={() => setActiveTab('success')}
+              type="submit"
+              disabled={isLoading}
               style={{
                 width: '100%',
                 height: 44,
                 borderRadius: 9999,
-                background: '#0F1C2E',
+                background: isLoading ? '#6B7280' : '#0F1C2E',
                 border: 'none',
-                cursor: 'pointer',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
                 fontFamily: 'Inter',
                 fontWeight: 600,
                 fontSize: 14,
@@ -649,358 +815,397 @@ export default function LoginPage() {
                 marginBottom: 12,
               }}
             >
-              Create Free Account →
+              {isLoading ? 'Creating Account...' : 'Create Free Account →'}
             </button>
 
             {/* Already have account */}
             <div style={{ textAlign: 'center', fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: '20px', color: '#0A0A0A' }}>
               Already have an account?{' '}
-              <button onClick={() => setActiveTab('login')} style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, color: '#155DFC', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <button 
+                type="button"
+                onClick={() => { setActiveTab('login'); setError(null); }} 
+                style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, color: '#155DFC', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
                 Login →
               </button>
             </div>
-          </>
+          </form>
         )}
 
         {/* ── LOGIN FORM ── */}
-        {activeTab === 'login' && (<>
-          {/* Heading */}
-          <div style={{ marginBottom: 8 }}>
-            <h1
+        {activeTab === 'login' && (
+          <form onSubmit={handleLogin}>
+            {/* Heading */}
+            <div style={{ marginBottom: 8 }}>
+              <h1
+                style={{
+                  fontFamily: 'Inter',
+                  fontWeight: 700,
+                  fontStyle: 'italic',
+                  fontSize: 36,
+                  lineHeight: '40px',
+                  color: '#0A0A0A',
+                  margin: 0,
+                  letterSpacing: 0,
+                }}
+              >
+                Welcome{' '}
+                <span style={{ color: '#D97706', fontStyle: 'italic', fontWeight: 700 }}>back</span>{' '}
+              </h1>
+            </div>
+            <p
               style={{
                 fontFamily: 'Inter',
-                fontWeight: 700,
-                fontStyle: 'italic',
-                fontSize: 36,
-                lineHeight: '40px',
-                color: '#0A0A0A',
-                margin: 0,
-                letterSpacing: 0,
+                fontWeight: 400,
+                fontSize: 14,
+                lineHeight: '20px',
+                color: '#6A7282',
+                marginBottom: 24,
+                marginTop: 0,
               }}
             >
-              Welcome{' '}
-              <span style={{ color: '#D97706', fontStyle: 'italic', fontWeight: 700 }}>back</span>{' '}
-              👋
-            </h1>
-          </div>
-          <p
-            style={{
-              fontFamily: 'Inter',
-              fontWeight: 400,
-              fontSize: 14,
-              lineHeight: '20px',
-              color: '#6A7282',
-              marginBottom: 24,
-              marginTop: 0,
-            }}
-          >
-            Sign in to continue your UPSC preparation
-          </p>
+              Sign in to continue your UPSC preparation
+            </p>
 
-          {/* Continue with Google */}
-          <button
-            style={{
-              width: '100%',
-              height: 45.6,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              borderRadius: 10,
-              border: '0.8px solid #D1D5DC',
-              background: '#FFFFFF',
-              cursor: 'pointer',
-              marginBottom: 20,
-            }}
-          >
-            {/* Google icon */}
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M19.6 10.23c0-.68-.06-1.36-.18-2H10v3.78h5.4a4.6 4.6 0 01-2 3.02v2.5h3.24C18.36 15.9 19.6 13.3 19.6 10.23z" fill="#4285F4" />
-              <path d="M10 20c2.7 0 4.97-.9 6.62-2.44l-3.24-2.5c-.9.6-2.05.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H1.07v2.58A9.99 9.99 0 0010 20z" fill="#34A853" />
-              <path d="M4.41 11.9A6.01 6.01 0 014.1 10c0-.66.12-1.3.31-1.9V5.52H1.07A9.99 9.99 0 000 10c0 1.61.38 3.14 1.07 4.48l3.34-2.58z" fill="#FBBC05" />
-              <path d="M10 3.98c1.47 0 2.78.5 3.82 1.5l2.87-2.87C14.96.9 12.7 0 10 0A9.99 9.99 0 001.07 5.52l3.34 2.58C5.2 5.74 7.4 3.98 10 3.98z" fill="#EA4335" />
-            </svg>
-            <span
+            {/* Continue with Google */}
+            <button
+              type="button"
+              onClick={handleGoogleAuth}
               style={{
+                width: '100%',
+                height: 45.6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                borderRadius: 10,
+                border: '0.8px solid #D1D5DC',
+                background: '#FFFFFF',
+                cursor: 'pointer',
+                marginBottom: 20,
+              }}
+            >
+              {/* Google icon */}
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M19.6 10.23c0-.68-.06-1.36-.18-2H10v3.78h5.4a4.6 4.6 0 01-2 3.02v2.5h3.24C18.36 15.9 19.6 13.3 19.6 10.23z" fill="#4285F4" />
+                <path d="M10 20c2.7 0 4.97-.9 6.62-2.44l-3.24-2.5c-.9.6-2.05.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H1.07v2.58A9.99 9.99 0 0010 20z" fill="#34A853" />
+                <path d="M4.41 11.9A6.01 6.01 0 014.1 10c0-.66.12-1.3.31-1.9V5.52H1.07A9.99 9.99 0 000 10c0 1.61.38 3.14 1.07 4.48l3.34-2.58z" fill="#FBBC05" />
+                <path d="M10 3.98c1.47 0 2.78.5 3.82 1.5l2.87-2.87C14.96.9 12.7 0 10 0A9.99 9.99 0 001.07 5.52l3.34 2.58C5.2 5.74 7.4 3.98 10 3.98z" fill="#EA4335" />
+              </svg>
+              <span
+                style={{
+                  fontFamily: 'Inter',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  lineHeight: '20px',
+                  color: '#0A0A0A',
+                }}
+              >
+                Continue with Google
+              </span>
+            </button>
+
+            {/* OR WITH EMAIL divider */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+                marginBottom: 20,
+              }}
+            >
+              <div style={{ flex: 1, height: 1, background: '#D1D5DC' }} />
+              <span
+                style={{
+                  fontFamily: 'Inter',
+                  fontWeight: 400,
+                  fontSize: 12,
+                  lineHeight: '16px',
+                  letterSpacing: '0.6px',
+                  textTransform: 'uppercase',
+                  color: '#99A1AF',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Or with email
+              </span>
+              <div style={{ flex: 1, height: 1, background: '#D1D5DC' }} />
+            </div>
+
+            {/* Email field */}
+            <div style={{ marginBottom: 16 }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontFamily: 'Inter',
+                  fontWeight: 600,
+                  fontSize: 12,
+                  lineHeight: '16px',
+                  letterSpacing: '0.3px',
+                  textTransform: 'uppercase',
+                  color: '#364153',
+                  marginBottom: 6,
+                }}
+              >
+                Email Address
+              </label>
+              <div
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: 14,
+                    color: '#99A1AF',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 4l6 5 6-5M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z" stroke="#99A1AF" strokeWidth="1.2" strokeLinejoin="round" fill="none" />
+                  </svg>
+                </span>
+                <input
+                  type="email"
+                  placeholder="yourname@gmail.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    height: 45.6,
+                    paddingTop: 12,
+                    paddingBottom: 12,
+                    paddingLeft: 40,
+                    paddingRight: 16,
+                    borderRadius: 10,
+                    border: '0.8px solid #D1D5DC',
+                    background: '#FFFFFF',
+                    fontFamily: 'Inter',
+                    fontWeight: 400,
+                    fontSize: 14,
+                    color: '#0A0A0A',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Password field */}
+            <div style={{ marginBottom: 8 }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontFamily: 'Inter',
+                  fontWeight: 600,
+                  fontSize: 12,
+                  lineHeight: '16px',
+                  letterSpacing: '0.3px',
+                  textTransform: 'uppercase',
+                  color: '#364153',
+                  marginBottom: 6,
+                }}
+              >
+                Password
+              </label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: 14,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Image src="/icon-lock.png" alt="" width={16} height={16} style={{ objectFit: 'contain' }} />
+                </span>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    height: 45.6,
+                    paddingTop: 12,
+                    paddingBottom: 12,
+                    paddingLeft: 40,
+                    paddingRight: 40,
+                    borderRadius: 10,
+                    border: '0.8px solid #D1D5DC',
+                    background: '#FFFFFF',
+                    fontFamily: 'Inter',
+                    fontWeight: 400,
+                    fontSize: 14,
+                    color: '#0A0A0A',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: 14,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#99A1AF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: 0,
+                  }}
+                >
+                  {showPassword ? (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="#99A1AF" strokeWidth="1.2" fill="none" />
+                      <circle cx="8" cy="8" r="2" stroke="#99A1AF" strokeWidth="1.2" fill="none" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M2 2l12 12M6.5 6.6a2 2 0 002.8 2.8M4.2 4.3C2.8 5.3 2 7 2 8s2.5 5 6 5c1.3 0 2.5-.4 3.5-1M6 3.2C6.6 3 7.3 3 8 3c3.5 0 6 3 6 5 0 .9-.4 1.8-1 2.6" stroke="#99A1AF" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Forgot password */}
+            <div style={{ textAlign: 'right', marginBottom: 20 }}>
+              <Link
+                href="#"
+                style={{
+                  fontFamily: 'Inter',
+                  fontWeight: 600,
+                  fontSize: 12,
+                  lineHeight: '16px',
+                  color: '#155DFC',
+                  textDecoration: 'none',
+                }}
+              >
+                Forgot password?
+              </Link>
+            </div>
+
+            {/* Log In button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              style={{
+                width: '100%',
+                height: 44,
+                borderRadius: 10,
+                background: isLoading ? '#6B7280' : '#0F1C2E',
+                border: 'none',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
                 fontFamily: 'Inter',
                 fontWeight: 600,
                 fontSize: 14,
                 lineHeight: '20px',
-                color: '#0A0A0A',
+                color: '#FFFFFF',
+                marginBottom: 14,
               }}
             >
-              Continue with Google
-            </span>
-          </button>
+              {isLoading ? 'Logging in...' : 'Log In to My Account'}
+              {!isLoading && <Image src="/icon-login-arrow.png" alt="" width={18} height={18} style={{ objectFit: 'contain' }} />}
+            </button>
 
-          {/* OR WITH EMAIL divider */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
-              marginBottom: 20,
-            }}
-          >
-            <div style={{ flex: 1, height: 1, background: '#D1D5DC' }} />
-            <span
+            {/* New Here — gradient CTA button */}
+            <button
+              type="button"
+              onClick={() => { setActiveTab('signup'); setError(null); }}
               style={{
-                fontFamily: 'Inter',
-                fontWeight: 400,
-                fontSize: 12,
-                lineHeight: '16px',
-                letterSpacing: '0.6px',
-                textTransform: 'uppercase',
-                color: '#99A1AF',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Or with email
-            </span>
-            <div style={{ flex: 1, height: 1, background: '#D1D5DC' }} />
-          </div>
-
-          {/* Email field */}
-          <div style={{ marginBottom: 16 }}>
-            <label
-              style={{
-                display: 'block',
-                fontFamily: 'Inter',
-                fontWeight: 600,
-                fontSize: 12,
-                lineHeight: '16px',
-                letterSpacing: '0.3px',
-                textTransform: 'uppercase',
-                color: '#364153',
-                marginBottom: 6,
-              }}
-            >
-              Email Address
-            </label>
-            <div
-              style={{
-                position: 'relative',
+                width: '100%',
+                height: 44,
+                borderRadius: 14,
+                background: 'linear-gradient(90deg, #FF6900 0%, #F0B100 100%)',
+                border: 'none',
+                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                marginBottom: 14,
               }}
             >
+              <Image src="/icon-sparkle.png" alt="" width={20} height={20} style={{ objectFit: 'contain' }} />
               <span
                 style={{
-                  position: 'absolute',
-                  left: 14,
-                  color: '#99A1AF',
-                  display: 'flex',
-                  alignItems: 'center',
+                  fontFamily: 'Inter',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  lineHeight: '28px',
+                  letterSpacing: 0,
+                  textAlign: 'center',
+                  color: '#101828',
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M2 4l6 5 6-5M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z" stroke="#99A1AF" strokeWidth="1.2" strokeLinejoin="round" fill="none" />
-                </svg>
+                New Here Create A Free Account
               </span>
-              <input
-                type="email"
-                placeholder="yourname@gmail.com"
-                style={{
-                  width: '100%',
-                  height: 45.6,
-                  paddingTop: 12,
-                  paddingBottom: 12,
-                  paddingLeft: 40,
-                  paddingRight: 16,
-                  borderRadius: 10,
-                  border: '0.8px solid #D1D5DC',
-                  background: '#FFFFFF',
-                  fontFamily: 'Inter',
-                  fontWeight: 400,
-                  fontSize: 14,
-                  color: '#0A0A0A',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-          </div>
+            </button>
 
-          {/* Password field */}
-          <div style={{ marginBottom: 8 }}>
-            <label
+            {/* Login with OTP button — no background */}
+            <button
+              type="button"
               style={{
-                display: 'block',
+                width: '100%',
+                height: 44,
+                borderRadius: 14,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
                 fontFamily: 'Inter',
                 fontWeight: 600,
-                fontSize: 12,
-                lineHeight: '16px',
-                letterSpacing: '0.3px',
-                textTransform: 'uppercase',
-                color: '#364153',
-                marginBottom: 6,
-              }}
-            >
-              Password
-            </label>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <span
-                style={{
-                  position: 'absolute',
-                  left: 14,
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <Image src="/icon-lock.png" alt="" width={16} height={16} style={{ objectFit: 'contain' }} />
-              </span>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Enter your password"
-                style={{
-                  width: '100%',
-                  height: 45.6,
-                  paddingTop: 12,
-                  paddingBottom: 12,
-                  paddingLeft: 40,
-                  paddingRight: 40,
-                  borderRadius: 10,
-                  border: '0.8px solid #D1D5DC',
-                  background: '#FFFFFF',
-                  fontFamily: 'Inter',
-                  fontWeight: 400,
-                  fontSize: 14,
-                  color: '#0A0A0A',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: 14,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#99A1AF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: 0,
-                }}
-              >
-                {showPassword ? (
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="#99A1AF" strokeWidth="1.2" fill="none" />
-                    <circle cx="8" cy="8" r="2" stroke="#99A1AF" strokeWidth="1.2" fill="none" />
-                  </svg>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M2 2l12 12M6.5 6.6a2 2 0 002.8 2.8M4.2 4.3C2.8 5.3 2 7 2 8s2.5 5 6 5c1.3 0 2.5-.4 3.5-1M6 3.2C6.6 3 7.3 3 8 3c3.5 0 6 3 6 5 0 .9-.4 1.8-1 2.6" stroke="#99A1AF" strokeWidth="1.2" strokeLinecap="round" fill="none" />
-                  </svg>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Forgot password */}
-          <div style={{ textAlign: 'right', marginBottom: 20 }}>
-            <Link
-              href="#"
-              style={{
-                fontFamily: 'Inter',
-                fontWeight: 600,
-                fontSize: 12,
-                lineHeight: '16px',
-                color: '#155DFC',
-                textDecoration: 'none',
-              }}
-            >
-              Forgot password?
-            </Link>
-          </div>
-
-          {/* Log In button */}
-          <button
-            style={{
-              width: '100%',
-              height: 44,
-              borderRadius: 10,
-              background: '#0F1C2E',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              fontFamily: 'Inter',
-              fontWeight: 600,
-              fontSize: 14,
-              lineHeight: '20px',
-              color: '#FFFFFF',
-              marginBottom: 14,
-            }}
-          >
-            Log In to My Account
-            <Image src="/icon-login-arrow.png" alt="" width={18} height={18} style={{ objectFit: 'contain' }} />
-          </button>
-
-          {/* New Here — gradient CTA button */}
-          <button
-            style={{
-              width: '100%',
-              height: 44,
-              borderRadius: 14,
-              background: 'linear-gradient(90deg, #FF6900 0%, #F0B100 100%)',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              marginBottom: 14,
-            }}
-          >
-            <Image src="/icon-sparkle.png" alt="" width={20} height={20} style={{ objectFit: 'contain' }} />
-            <span
-              style={{
-                fontFamily: 'Inter',
-                fontWeight: 700,
                 fontSize: 14,
-                lineHeight: '28px',
-                letterSpacing: 0,
-                textAlign: 'center',
-                color: '#101828',
+                lineHeight: '20px',
+                color: '#4C6FFF',
               }}
             >
-              New Here Create A Free Account
-            </span>
-          </button>
-
-          {/* Login with OTP button — no background */}
-          <button
-            style={{
-              width: '100%',
-              height: 44,
-              borderRadius: 14,
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              fontFamily: 'Inter',
-              fontWeight: 600,
-              fontSize: 14,
-              lineHeight: '20px',
-              color: '#4C6FFF',
-            }}
-          >
-            <Image src="/icon-otp.png" alt="" width={18} height={18} style={{ objectFit: 'contain' }} />
-            Login with OTP Instead
-            <Image src="/icon-login-arrow.png" alt="" width={18} height={18} style={{ objectFit: 'contain', filter: 'brightness(0) saturate(100%) invert(27%) sepia(97%) saturate(2500%) hue-rotate(217deg) brightness(102%)' }} />
-          </button>
-          </>)}
+              <Image src="/icon-otp.png" alt="" width={18} height={18} style={{ objectFit: 'contain' }} />
+              Login with OTP Instead
+              <Image src="/icon-login-arrow.png" alt="" width={18} height={18} style={{ objectFit: 'contain', filter: 'brightness(0) saturate(100%) invert(27%) sepia(97%) saturate(2500%) hue-rotate(217deg) brightness(102%)' }} />
+            </button>
+          </form>
+        )}
         </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback for Suspense
+function LoginPageFallback() {
+  return (
+    <div className="flex w-full min-h-screen items-center justify-center" style={{ background: '#F9FAFB' }}>
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+// Export with Suspense wrapper
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

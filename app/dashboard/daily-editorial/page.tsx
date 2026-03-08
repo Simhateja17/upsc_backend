@@ -1,80 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { editorialService } from '@/lib/services';
 
-/* ------------------------------------------------------------------ */
-/*  Sample data                                                        */
-/* ------------------------------------------------------------------ */
-const newsCards = [
-  {
-    id: 1,
-    tags: [
-      { label: 'GS Paper II', color: '#1E40AF', bg: '#DBEAFE' },
-      { label: 'Polity', color: '#7C3AED', bg: '#EDE9FE' },
-      { label: 'Prelims Focus', color: '#EA580C', bg: '#FFF7ED' },
-    ],
-    readTime: 8,
-    title: 'Panchayati Raj at the Crossroads: Devolution, Democracy, and the 3F Challenge',
-    description:
-      'The editorial examines the persistent gap between constitutional promise and ground reality in local governance \u2014 30 years after the 73rd Amendment.',
-    saved: false,
-    read: false,
-  },
-  {
-    id: 2,
-    tags: [
-      { label: 'GS II', color: '#1E40AF', bg: '#DBEAFE' },
-      { label: "Int'l Relations", color: '#EA580C', bg: '#FFF7ED' },
-      { label: 'High Yield', color: '#16A34A', bg: '#F0FDF4' },
-    ],
-    readTime: 8,
-    title: 'The India-Middle East-Europe Corridor: Geopolitics of Infrastructure',
-    description:
-      "With the IMEC project gaining momentum, India\u2019s strategic calculation balances trade interests against regional geopolitical sensitivities.",
-    saved: false,
-    read: false,
-  },
-  {
-    id: 3,
-    tags: [
-      { label: 'GS III', color: '#1E40AF', bg: '#DBEAFE' },
-      { label: 'Environment', color: '#16A34A', bg: '#F0FDF4' },
-    ],
-    readTime: 8,
-    title: 'Climate Finance Gap: Why COP29 Pledges Fall Short',
-    description:
-      "Developed nations' $300 billion climate finance commitment is less than a third of what vulnerable nations actually need.",
-    saved: false,
-    read: false,
-  },
-  {
-    id: 4,
-    tags: [
-      { label: 'GS III', color: '#1E40AF', bg: '#DBEAFE' },
-      { label: 'Technology', color: '#7C3AED', bg: '#EDE9FE' },
-    ],
-    readTime: 8,
-    title: "India's Semiconductor Push: PLI Scheme Progress",
-    description:
-      'Two years into the India Semiconductor Mission, chip fab projects are progressing but talent pipeline gaps threaten long-term viability.',
-    saved: false,
-    read: false,
-  },
-  {
-    id: 5,
-    tags: [
-      { label: 'GS II', color: '#1E40AF', bg: '#DBEAFE' },
-      { label: 'Judiciary', color: '#DC2626', bg: '#FEF2F2' },
-    ],
-    readTime: 8,
-    title: 'Judicial Backlog: New Bill Proposes Reforms',
-    description:
-      'Government introduces measures to address the 5-crore pending cases crisis through alternate dispute resolution mechanisms.',
-    saved: false,
-    read: false,
-  },
-];
+interface EditorialCard {
+  id: string;
+  title: string;
+  summary: string | null;
+  source: string;
+  category: string;
+  tags: string[];
+  isRead: boolean;
+  isSaved: boolean;
+}
+
+const categoryColors: Record<string, { color: string; bg: string }> = {
+  'Polity': { color: '#7C3AED', bg: '#EDE9FE' },
+  'Economy': { color: '#EA580C', bg: '#FFF7ED' },
+  'Environment': { color: '#16A34A', bg: '#F0FDF4' },
+  'Technology': { color: '#7C3AED', bg: '#EDE9FE' },
+  'Judiciary': { color: '#DC2626', bg: '#FEF2F2' },
+  'International Relations': { color: '#EA580C', bg: '#FFF7ED' },
+};
 
 const subjects = [
   { emoji: '\uD83C\uDF3E', label: 'Agriculture', bg: '#DBEAFE', border: '#BFDBFE' },
@@ -85,11 +33,11 @@ const subjects = [
   { emoji: '\uD83C\uDFDB', label: 'Polity', bg: '#F3E8FF', border: '#DDD6FE' },
 ];
 
-const learningStats = [
-  { icon: '/dark.png', label: 'Editorials read', value: '142 / 210', color: '#047857' },
-  { icon: '/tatal.png', label: 'Total reading time', value: '28.5 hrs', color: '#1D4ED8' },
-  { icon: '/light.png', label: "This week's target", value: '78%', color: '#16A34A' },
-  { icon: '/longeset.png', label: 'Longest streak', value: '21 days', color: '#7C3AED' },
+const defaultLearningStats = [
+  { icon: '/dark.png', label: 'Editorials read', value: '0', color: '#047857' },
+  { icon: '/tatal.png', label: 'Total reading time', value: '0 hrs', color: '#1D4ED8' },
+  { icon: '/light.png', label: "This week's target", value: '0%', color: '#16A34A' },
+  { icon: '/longeset.png', label: 'Longest streak', value: '0 days', color: '#7C3AED' },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -110,11 +58,70 @@ function getCalendarDays(year: number, month: number) {
 export default function DailyEditorialPage() {
   const [activeNewspaper, setActiveNewspaper] = useState<'hindu' | 'express'>('hindu');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [calMonth, setCalMonth] = useState(1); // Feb = 1 (0-indexed)
-  const [calYear, setCalYear] = useState(2026);
+  const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
+  const [calYear, setCalYear] = useState(() => new Date().getFullYear());
+  const [editorials, setEditorials] = useState<EditorialCard[]>([]);
+  const [learningStats, setLearningStats] = useState(defaultLearningStats);
+  const [loading, setLoading] = useState(true);
+  const [summarizing, setSummarizing] = useState<string | null>(null);
+
+  useEffect(() => {
+    const source = activeNewspaper === 'hindu' ? 'The Hindu' : 'Indian Express';
+    setLoading(true);
+    editorialService.getToday(source)
+      .then(res => {
+        if (res.data && Array.isArray(res.data)) {
+          setEditorials(res.data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [activeNewspaper]);
+
+  useEffect(() => {
+    editorialService.getStats()
+      .then(res => {
+        if (res.data) {
+          const d = res.data;
+          setLearningStats([
+            { icon: '/dark.png', label: 'Editorials read', value: `${d.totalRead || 0}`, color: '#047857' },
+            { icon: '/tatal.png', label: 'Total saved', value: `${d.totalSaved || 0}`, color: '#1D4ED8' },
+            { icon: '/light.png', label: "This week's target", value: `${d.weeklyTarget ? Math.round((d.weeklyRead / d.weeklyTarget) * 100) : 0}%`, color: '#16A34A' },
+            { icon: '/longeset.png', label: 'Current streak', value: `${d.streak || 0} days`, color: '#7C3AED' },
+          ]);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSave = async (id: string) => {
+    try {
+      const res = await editorialService.toggleSave(id);
+      setEditorials(prev => prev.map(e => e.id === id ? { ...e, isSaved: res.data?.saved ?? !e.isSaved } : e));
+    } catch {}
+  };
+
+  const handleMarkRead = async (id: string) => {
+    try {
+      await editorialService.markRead(id);
+      setEditorials(prev => prev.map(e => e.id === id ? { ...e, isRead: true } : e));
+    } catch {}
+  };
+
+  const handleSummarize = async (id: string) => {
+    setSummarizing(id);
+    try {
+      const res = await editorialService.summarize(id);
+      if (res.data?.summary) {
+        alert(res.data.summary);
+      }
+    } catch {}
+    setSummarizing(null);
+  };
 
   const calDays = getCalendarDays(calYear, calMonth);
-  const today = 12; // highlight the 12th
+  const now = new Date();
+  const today = now.getMonth() === calMonth && now.getFullYear() === calYear ? now.getDate() : -1;
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const dayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -323,7 +330,13 @@ export default function DailyEditorialPage() {
 
           {/* News cards */}
           <div className="flex flex-col" style={{ gap: 'clamp(14px, 1.5vw, 20px)' }}>
-            {newsCards.map((card) => (
+            {loading ? (
+              <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900"></div></div>
+            ) : editorials.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">No editorials available for today. Check back later.</div>
+            ) : editorials.map((card) => {
+              const tagList = card.tags?.length > 0 ? card.tags : [card.category];
+              return (
               <div
                 key={card.id}
                 style={{
@@ -331,38 +344,41 @@ export default function DailyEditorialPage() {
                   borderRadius: '14px',
                   padding: 'clamp(18px, 2vw, 28px)',
                   boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1)',
+                  opacity: card.isRead ? 0.7 : 1,
                 }}
               >
-                {/* Tags row + read time */}
+                {/* Tags row + source */}
                 <div className="flex items-center justify-between" style={{ marginBottom: 'clamp(8px, 0.9vw, 12px)' }}>
                   <div className="flex items-center flex-wrap" style={{ gap: 'clamp(6px, 0.6vw, 8px)' }}>
-                    {card.tags.map((tag) => (
+                    {tagList.map((tag) => {
+                      const colors = categoryColors[tag] || { color: '#1E40AF', bg: '#DBEAFE' };
+                      return (
                       <span
-                        key={tag.label}
+                        key={tag}
                         className="font-arimo font-medium"
                         style={{
                           fontSize: 'clamp(11px, 0.9vw, 13px)',
                           lineHeight: '1',
                           padding: 'clamp(4px, 0.45vw, 6px) clamp(8px, 0.9vw, 12px)',
                           borderRadius: '6px',
-                          background: tag.bg,
-                          color: tag.color,
+                          background: colors.bg,
+                          color: colors.color,
                         }}
                       >
-                        {tag.label}
+                        {tag}
                       </span>
-                    ))}
+                      );
+                    })}
                   </div>
                   <div
                     className="flex items-center gap-1 font-arimo shrink-0"
                     style={{ color: '#6A7282', fontSize: 'clamp(12px, 0.97vw, 13px)' }}
                   >
-                    {/* Clock icon */}
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                       <circle cx="12" cy="12" r="10" stroke="#6A7282" strokeWidth="1.5"/>
                       <path d="M12 6V12L16 14" stroke="#6A7282" strokeWidth="1.5" strokeLinecap="round"/>
                     </svg>
-                    {card.readTime} min
+                    {card.source}
                   </div>
                 </div>
 
@@ -389,7 +405,7 @@ export default function DailyEditorialPage() {
                     marginBottom: 'clamp(10px, 1.2vw, 16px)',
                   }}
                 >
-                  {card.description}
+                  {card.summary || 'Click to read the full editorial analysis.'}
                 </p>
 
                 {/* Divider */}
@@ -398,46 +414,50 @@ export default function DailyEditorialPage() {
                 {/* Action buttons */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center" style={{ gap: 'clamp(6px, 0.75vw, 10px)' }}>
-                    {/* Save button */}
                     <button
+                      onClick={() => handleSave(card.id)}
                       className="flex items-center gap-2 font-arimo"
                       style={{
                         padding: 'clamp(6px, 0.75vw, 10px) clamp(12px, 1.2vw, 16px)',
                         borderRadius: '26843500px',
                         border: '0.8px solid #DBEAFE',
-                        background: '#EFF6FF',
+                        background: card.isSaved ? '#DBEAFE' : '#EFF6FF',
                         color: '#1C398E',
                         fontSize: 'clamp(12px, 1.05vw, 14px)',
                         cursor: 'pointer',
                       }}
                     >
                       <img src="/paper.png" alt="Save" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
-                      Save
+                      {card.isSaved ? 'Saved' : 'Save'}
                     </button>
 
-                    {/* Mark read button */}
                     <button
+                      onClick={() => handleMarkRead(card.id)}
                       className="flex items-center gap-2 font-arimo"
                       style={{
                         padding: 'clamp(6px, 0.75vw, 10px) clamp(12px, 1.2vw, 16px)',
                         borderRadius: '26843500px',
                         border: '0.8px solid #DBEAFE',
-                        background: '#EFF6FF',
-                        color: '#1C398E',
+                        background: card.isRead ? '#F0FDF4' : '#EFF6FF',
+                        color: card.isRead ? '#16A34A' : '#1C398E',
                         fontSize: 'clamp(12px, 1.05vw, 14px)',
                         cursor: 'pointer',
                       }}
                     >
-                      {/* Circle icon */}
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="#1C398E" strokeWidth="1.5"/>
+                        {card.isRead ? (
+                          <path d="M20 6L9 17L4 12" stroke="#16A34A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        ) : (
+                          <circle cx="12" cy="12" r="10" stroke="#1C398E" strokeWidth="1.5"/>
+                        )}
                       </svg>
-                      Mark read
+                      {card.isRead ? 'Read' : 'Mark read'}
                     </button>
                   </div>
 
-                  {/* Summarize button */}
                   <button
+                    onClick={() => handleSummarize(card.id)}
+                    disabled={summarizing === card.id}
                     className="flex items-center gap-2 font-arimo font-bold"
                     style={{
                       padding: 'clamp(8px, 0.75vw, 10px) clamp(14px, 1.5vw, 20px)',
@@ -446,14 +466,16 @@ export default function DailyEditorialPage() {
                       color: '#FFD272',
                       fontSize: 'clamp(12px, 1.05vw, 14px)',
                       cursor: 'pointer',
+                      opacity: summarizing === card.id ? 0.6 : 1,
                     }}
                   >
                     <img src="/summaruze.png" alt="Summarize" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
-                    Summarize with Jeet AI
+                    {summarizing === card.id ? 'Summarizing...' : 'Summarize with Jeet AI'}
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

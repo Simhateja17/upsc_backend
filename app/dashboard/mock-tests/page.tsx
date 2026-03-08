@@ -1,61 +1,59 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Sidebar from '@/components/Sidebar';
+import { mockTestService, dashboardService } from '@/lib/services';
 
-/* ─── Data Arrays ─── */
-
-const questionSources = [
-  { id: 'daily-mcq', icon: '/99k.png', label: 'Daily MCQ', description: 'Fresh from 10 curated daily picks' },
-  { id: 'practice-pyq', icon: '/88k.png', label: 'Practice PYQ', description: 'UPSC papers 2010 - 2024' },
-  { id: 'subject-wise', icon: '/77k.png', label: 'Subject-wise', description: 'Deep-dive and one subject' },
-  { id: 'mixed-bag', icon: '/66k.png', label: 'Mixed Bag', description: 'Random cross-subject mix' },
-  { id: 'full-length', icon: '/55k.png', label: 'Full Length Test', description: 'Complete 100-Q simulation', pro: true },
-];
-
-const subjects = [
-  { id: 'all', emoji: '🌐', label: 'All Topics', count: null },
-  { id: 'history', emoji: '📜', label: 'History', count: 340 },
-  { id: 'geography', emoji: '🗺️', label: 'Geography', count: 280 },
-  { id: 'polity', emoji: '🏛️', label: 'Polity', count: 310 },
-  { id: 'economy', emoji: '💰', label: 'Economy', count: 250 },
-  { id: 'science-tech', emoji: '🔬', label: 'Science & Tech', count: 220 },
-  { id: 'environment', emoji: '🌿', label: 'Environment', count: 190 },
-  { id: 'current-affairs', emoji: '📰', label: 'Current Affairs', count: 410 },
-  { id: 'art-culture', emoji: '🎨', label: 'Art & Culture', count: 160 },
-  { id: 'international-relations', emoji: '🌍', label: 'International Relations', count: 130 },
-  { id: 'security-defence', emoji: '🛡️', label: 'Security & Defence', count: 95 },
-];
+/* ─── Fallback Data Arrays (used while API loads or on error) ─── */
 
 const prelimsPaperTypes = [
   { id: 'gs1', icon: '/2k.png', label: 'GS Paper I', description: 'General Studies — History, Geography, Polity, Economy, Science', isDefault: true },
   { id: 'csat', icon: '/3k.png', label: 'CSAT', description: 'Aptitude · Comprehension · Logical Reasoning' },
 ];
 
-const examModes = [
+const fallbackQuestionSources = [
+  { id: 'daily-mcq', emoji: '📝', label: 'Daily MCQ', description: 'Fresh questions every day based on current affairs' },
+  { id: 'practice-pyq', emoji: '📚', label: 'Practice PYQ', description: 'Previous year questions sorted by topic & year' },
+  { id: 'subject-wise', emoji: '🎯', label: 'Subject-wise', description: 'Deep dive into specific UPSC subjects' },
+  { id: 'mixed-bag', emoji: '🎲', label: 'Mixed Bag', description: 'Random questions across all subjects' },
+  { id: 'full-length', emoji: '🏅', label: 'Full Length Test', description: 'Complete exam simulation experience', pro: true },
+];
+
+const fallbackSubjects = [
+  { id: 'all', label: 'All Subjects', count: null },
+  { id: 'history', label: 'History', count: 348 },
+  { id: 'geography', label: 'Geography', count: 398 },
+  { id: 'polity', label: 'Polity', count: 348 },
+  { id: 'economy', label: 'Economy', count: 368 },
+];
+
+const fallbackExamModes = [
   { id: 'prelims', label: 'Prelims', description: 'Objective MCQs · 2 hour format' },
   { id: 'mains', label: 'Mains', description: 'Analytical & descriptive questions' },
 ];
 
-const mainsPaperTypes = [
-  { id: 'gs1', icon: '/2k.png', label: 'GS Paper I', description: 'Indian Heritage, History, Geography & Society', isDefault: true },
-  { id: 'gs2', icon: '/2k.png', label: 'GS Paper II', description: 'Governance, Constitution, Polity & IR' },
+const fallbackMainsPaperTypes = [
+  { id: 'gs1', label: 'GS Paper I', description: 'Indian Heritage, History, Geography & Society' },
+  { id: 'gs2', label: 'GS Paper II', description: 'Governance, Constitution, Polity & IR' },
+  { id: 'gs3', label: 'GS Paper III', description: 'Technology, Economic Dev, Biodiversity & Security' },
+  { id: 'gs4', label: 'GS Paper IV', description: 'Ethics, Integrity & Aptitude' },
 ];
 
-const optionalSubjects = [
+const fallbackOptionalSubjects = [
   'Public Administration', 'Geography', 'History', 'Sociology',
   'Political Science', 'Philosophy', 'Economics', 'Anthropology',
   'Psychology', 'Law',
 ];
 
-const difficulties = [
+const fallbackDifficulties = [
   { id: 'easy', emoji: '🌱', label: 'Easy', description: 'Foundation level' },
   { id: 'medium', emoji: '⚡', label: 'Medium', description: 'Exam standard' },
   { id: 'hard', emoji: '🔥', label: 'Hard', description: 'Advanced level' },
   { id: 'mixed', emoji: '🎯', label: 'Mixed', description: 'All difficulty levels' },
 ];
 
-const benchmarks = [
+const fallbackBenchmarks = [
   { emoji: '🏆', label: 'Rank 1-100 avg 82%+', color: '#3B82F6', width: '82%' },
   { emoji: '✅', label: 'Cutoff clearers 60+ daily', color: '#16A34A', width: '60%' },
   { emoji: '📊', label: 'Your streak top 18%', color: '#F97316', width: '45%' },
@@ -107,6 +105,88 @@ export default function MockTestsPage() {
   const [selectedOptional, setSelectedOptional] = useState<string | null>(null);
   const [questionCount, setQuestionCount] = useState(5);
   const [selectedDifficulty, setSelectedDifficulty] = useState('medium');
+
+  /* ─── API State ─── */
+  const [subjects, setSubjects] = useState(fallbackSubjects);
+  const [questionSources, setQuestionSources] = useState(fallbackQuestionSources);
+  const [examModes, setExamModes] = useState(fallbackExamModes);
+  const [mainsPaperTypes, setMainsPaperTypes] = useState(fallbackMainsPaperTypes);
+  const [optionalSubjects, setOptionalSubjects] = useState(fallbackOptionalSubjects);
+  const [difficulties, setDifficulties] = useState(fallbackDifficulties);
+  const [benchmarks, setBenchmarks] = useState(fallbackBenchmarks);
+  const [practiceStats, setPracticeStats] = useState<{ completed: number; remaining: number; streak: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  /* ─── Load subjects, config, and practice stats from API ─── */
+  useEffect(() => {
+    let cancelled = false;
+    async function loadData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [subjectsRes, configRes, statsRes] = await Promise.all([
+          mockTestService.getSubjects(),
+          mockTestService.getConfig(),
+          dashboardService.getPracticeStats(),
+        ]);
+
+        if (cancelled) return;
+
+        if (subjectsRes.data) {
+          setSubjects(subjectsRes.data);
+        }
+        if (configRes.data) {
+          const cfg = configRes.data;
+          if (cfg.questionSources) setQuestionSources(cfg.questionSources);
+          if (cfg.examModes) setExamModes(cfg.examModes);
+          if (cfg.mainsPaperTypes) setMainsPaperTypes(cfg.mainsPaperTypes);
+          if (cfg.optionalSubjects) setOptionalSubjects(cfg.optionalSubjects);
+          if (cfg.difficulties) setDifficulties(cfg.difficulties);
+          if (cfg.benchmarks) setBenchmarks(cfg.benchmarks);
+        }
+        if (statsRes.data) {
+          setPracticeStats(statsRes.data);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          console.error('Failed to load mock test config:', err);
+          setError(err.message || 'Failed to load configuration');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    loadData();
+    return () => { cancelled = true; };
+  }, []);
+
+  /* ─── Generate Test Handler ─── */
+  const handleGenerateTest = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const config = {
+        source: selectedSource,
+        subject: selectedSubject,
+        examMode: selectedExamMode,
+        paperType: selectedExamMode === 'mains' ? selectedPaperType : undefined,
+        questionCount,
+        difficulty: selectedDifficulty,
+      };
+      const res = await mockTestService.generate(config);
+      const testId = res.data?.testId || res.data?.id;
+      if (!testId) {
+        throw new Error('No test ID returned from server');
+      }
+      router.push(`/dashboard/mock-tests/attempt?testId=${testId}`);
+    } catch (err: any) {
+      console.error('Failed to generate test:', err);
+      setError(err.message || 'Failed to generate test. Please try again.');
+      setGenerating(false);
+    }
+  };
 
   const estimatedMinutes = Math.ceil(questionCount * 1.6);
 
@@ -310,6 +390,15 @@ export default function MockTestsPage() {
               </button>
             </div>
 
+              <p style={{ fontFamily: 'var(--font-inter), Inter, sans-serif', fontSize: 'clamp(13px, 0.85vw, 15px)', lineHeight: 1.6, color: '#CBD5E1' }}>
+                {practiceStats ? (
+                  <>
+                    You&apos;ve completed <span style={{ color: '#16A34A', fontWeight: 700 }}>{practiceStats.completed} questions</span> today — <span style={{ color: '#16A34A', fontWeight: 700 }}>{practiceStats.remaining} remaining</span> on free tier
+                  </>
+                ) : (
+                  <>Start practicing to track your daily progress.</>
+                )}
+              </p>
           </div>
 
         {/* ── Two Column Layout: Steps + Test Summary ── */}
@@ -440,111 +529,59 @@ export default function MockTestsPage() {
             </div>
           </div>
 
-            {/* Focus on a Specific Topic */}
+          {/* ── Loading Spinner ── */}
+          {loading && (
             <div style={{
-              background: '#F0EFFF',
-              borderRadius: '16px',
-              padding: '24px',
+              ...cardStyle,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 'clamp(40px, 3vw, 60px)',
+              gap: '12px',
             }}>
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '16px',
+                width: '24px',
+                height: '24px',
+                border: '3px solid #E5E7EB',
+                borderTopColor: '#17223E',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+              }} />
+              <span style={{
+                fontFamily: 'var(--font-inter), Inter, sans-serif',
+                fontSize: 'clamp(13px, 0.85vw, 15px)',
+                color: '#6B7280',
               }}>
-                <span style={{ fontSize: '18px', lineHeight: '28px' }}>📌</span>
-                <span style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  lineHeight: '20px',
-                  letterSpacing: '0.7px',
-                  textTransform: 'uppercase' as const,
-                  color: '#312C85',
-                }}>
-                  Focus on a Specific Topic (Optional)
-                </span>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                {subjects.map(subj => {
-                  const isSelected = selectedSubject === subj.id;
-                  return (
-                    <button
-                      key={subj.id}
-                      onClick={() => setSelectedSubject(subj.id)}
-                      style={{
-                        background: isSelected ? '#312C85' : '#FFFFFF',
-                        color: isSelected ? '#FFFFFF' : '#101828',
-                        border: 'none',
-                        borderRadius: '999px',
-                        padding: '8px 16px',
-                        fontFamily: 'Inter, sans-serif',
-                        fontWeight: 500,
-                        fontSize: '14px',
-                        lineHeight: '20px',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      <span style={{ fontSize: '14px' }}>{subj.emoji}</span>
-                      {subj.label}
-                      {subj.count !== null && (
-                        <span style={{
-                          fontWeight: 500,
-                          fontSize: '14px',
-                          color: isSelected ? 'rgba(255,255,255,0.7)' : '#101828',
-                        }}>{subj.count}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                Loading configuration...
+              </span>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
+          )}
 
-            {/* Mains: Optional Subject */}
-            {selectedExamMode === 'mains' && (
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  color: '#17223E',
-                  marginBottom: '12px',
-                }}>
-                  Optional Subject
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {optionalSubjects.map(opt => {
-                    const isSelected = selectedOptional === opt;
-                    return (
-                      <button
-                        key={opt}
-                        onClick={() => setSelectedOptional(isSelected ? null : opt)}
-                        style={{
-                          background: isSelected ? '#17223E' : '#FFF',
-                          color: isSelected ? '#FFF' : '#374151',
-                          border: isSelected ? '1.5px solid #17223E' : '1.5px solid #E5E7EB',
-                          borderRadius: '999px',
-                          padding: '6px 16px',
-                          fontFamily: 'Inter, sans-serif',
-                          fontWeight: 600,
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+          {/* ── Error Banner ─── */}
+          {error && (
+            <div style={{
+              ...cardStyle,
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: 'clamp(14px, 1vw, 20px)',
+            }}>
+              <span style={{ fontSize: '18px' }}>⚠️</span>
+              <span style={{
+                fontFamily: 'var(--font-inter), Inter, sans-serif',
+                fontSize: 'clamp(13px, 0.85vw, 15px)',
+                color: '#991B1B',
+              }}>
+                {error}
+              </span>
+            </div>
+          )}
 
-          {/* ── Step 2: Question Source ── */}
+          {/* ── Step 1: Question Source ── */}
+          {!loading && (
           <div style={cardStyle}>
                 <StepHeader step={2} label="Question Source" />
                 <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 'clamp(8px, 0.6vw, 12px)', overflowX: 'auto' }}>
@@ -567,7 +604,7 @@ export default function MockTestsPage() {
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    {src.pro && (
+                    {(src as any).pro && (
                       <span style={{
                         position: 'absolute',
                         top: 'clamp(8px, 0.6vw, 12px)',
@@ -593,18 +630,192 @@ export default function MockTestsPage() {
                       {src.description}
                     </div>
                   </button>
-                  );
-                })}
+                );
+              })}
+            </div>
+          </div>
+          )}
+
+          {/* ── Step 2: Subject Filter ── */}
+          {!loading && (
+          <div style={cardStyle}>
+            <StepHeader step={2} label="Subject Filter" />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(8px, 0.55vw, 10px)', marginBottom: 'clamp(12px, 1vw, 16px)' }}>
+              {subjects.map(subj => {
+                const isSelected = selectedSubject === subj.id;
+                return (
+                  <button
+                    key={subj.id}
+                    onClick={() => setSelectedSubject(subj.id)}
+                    style={{
+                      background: isSelected ? '#17223E' : '#FFF',
+                      color: isSelected ? '#FFF' : '#374151',
+                      border: isSelected ? '1.5px solid #17223E' : '1.5px solid #E5E7EB',
+                      borderRadius: '999px',
+                      padding: 'clamp(6px, 0.45vw, 8px) clamp(14px, 1vw, 20px)',
+                      fontFamily: 'var(--font-inter), Inter, sans-serif',
+                      fontWeight: 600,
+                      fontSize: 'clamp(12px, 0.8vw, 14px)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    {subj.label}
+                    {subj.count !== null && (
+                      <span style={{ opacity: 0.7, fontWeight: 500, fontSize: 'clamp(11px, 0.7vw, 13px)' }}>{subj.count}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{
+              background: '#17223E',
+              color: '#FFF',
+              borderRadius: '12px',
+              padding: 'clamp(10px, 0.75vw, 14px) clamp(16px, 1.2vw, 22px)',
+              fontFamily: 'var(--font-inter), Inter, sans-serif',
+              fontSize: 'clamp(12px, 0.78vw, 14px)',
+              fontWeight: 500,
+            }}>
+              Scroll to explore all subjects →
+            </div>
+          </div>
+          )}
+
+          {/* ── Step 3: Exam Mode ── */}
+          {!loading && (
+          <div style={cardStyle}>
+            <StepHeader step={3} label="Exam Mode" />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(10px, 0.8vw, 14px)', marginBottom: 'clamp(14px, 1.1vw, 20px)' }}>
+              {examModes.map(mode => {
+                const isSelected = selectedExamMode === mode.id;
+                const isMains = mode.id === 'mains';
+                return (
+                  <button
+                    key={mode.id}
+                    onClick={() => setSelectedExamMode(mode.id)}
+                    style={{
+                      flex: '1 1 clamp(200px, 20vw, 280px)',
+                      background: isMains && isSelected ? '#17223E' : isSelected ? '#EFF6FF' : '#FFF',
+                      border: isMains && isSelected ? '2px solid #FDC700' : isSelected ? '2px solid #155DFC' : '1.5px solid #E5E7EB',
+                      borderRadius: '14px',
+                      padding: 'clamp(16px, 1.3vw, 24px)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      color: isMains && isSelected ? '#FFF' : '#101828',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{ fontFamily: 'var(--font-inter), Inter, sans-serif', fontWeight: 700, fontSize: 'clamp(15px, 1vw, 18px)', marginBottom: '4px' }}>
+                      {mode.label}
+                    </div>
+                    <div style={{
+                      fontFamily: 'var(--font-inter), Inter, sans-serif',
+                      fontSize: 'clamp(12px, 0.78vw, 14px)',
+                      color: isMains && isSelected ? '#CBD5E1' : '#6B7280',
+                    }}>
+                      {mode.description}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Conditional: Mains selected */}
+            {selectedExamMode === 'mains' && (
+              <>
+                {/* Paper Type */}
+                <div style={{ marginBottom: 'clamp(14px, 1.1vw, 20px)' }}>
+                  <div style={{
+                    fontFamily: 'var(--font-inter), Inter, sans-serif',
+                    fontWeight: 700,
+                    fontSize: 'clamp(13px, 0.85vw, 15px)',
+                    color: '#17223E',
+                    marginBottom: 'clamp(10px, 0.8vw, 14px)',
+                  }}>
+                    Select paper type
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(10px, 0.8vw, 14px)' }}>
+                    {mainsPaperTypes.map(paper => {
+                      const isSelected = selectedPaperType === paper.id;
+                      return (
+                        <button
+                          key={paper.id}
+                          onClick={() => setSelectedPaperType(paper.id)}
+                          style={{
+                            flex: '1 1 clamp(180px, 18vw, 220px)',
+                            background: isSelected ? '#EFF6FF' : '#FFF',
+                            border: isSelected ? '2px solid #155DFC' : '1.5px solid #E5E7EB',
+                            borderRadius: '12px',
+                            padding: 'clamp(12px, 1vw, 18px)',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <div style={{ fontFamily: 'var(--font-inter), Inter, sans-serif', fontWeight: 700, fontSize: 'clamp(13px, 0.85vw, 15px)', color: '#101828', marginBottom: '3px' }}>
+                            {paper.label}
+                          </div>
+                          <div style={{ fontFamily: 'var(--font-inter), Inter, sans-serif', fontSize: 'clamp(11px, 0.7vw, 12px)', color: '#6B7280', lineHeight: 1.4 }}>
+                            {paper.description}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
 
-              {/* ── Step 3: Number of Questions ── */}
-              <div style={cardStyle}>
-                <StepHeader step={3} label="Number of Questions" />
+                {/* Optional Subject */}
+                <div>
+                  <div style={{
+                    fontFamily: 'var(--font-inter), Inter, sans-serif',
+                    fontWeight: 700,
+                    fontSize: 'clamp(13px, 0.85vw, 15px)',
+                    color: '#17223E',
+                    marginBottom: 'clamp(10px, 0.8vw, 14px)',
+                  }}>
+                    Optional Subject
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(6px, 0.45vw, 10px)' }}>
+                    {optionalSubjects.map(opt => {
+                      const isSelected = selectedOptional === opt;
+                      return (
+                        <button
+                          key={opt}
+                          onClick={() => setSelectedOptional(isSelected ? null : opt)}
+                          style={{
+                            background: isSelected ? '#17223E' : '#FFF',
+                            color: isSelected ? '#FFF' : '#374151',
+                            border: isSelected ? '1.5px solid #17223E' : '1.5px solid #E5E7EB',
+                            borderRadius: '999px',
+                            padding: 'clamp(5px, 0.4vw, 7px) clamp(12px, 0.9vw, 18px)',
+                            fontFamily: 'var(--font-inter), Inter, sans-serif',
+                            fontWeight: 600,
+                            fontSize: 'clamp(12px, 0.78vw, 13px)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          )}
 
-                {/* Counter Section */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          {/* ── Step 4: Number of Questions ── */}
+          {!loading && (
+          <div style={cardStyle}>
+            <StepHeader step={4} label="Number of Questions" />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(4px, 0.4vw, 8px)', marginBottom: 'clamp(16px, 1.2vw, 22px)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(18px, 1.5vw, 28px)' }}>
                 <button
                   onClick={() => setQuestionCount(c => Math.max(1, c - 1))}
                   style={{
@@ -830,16 +1041,18 @@ export default function MockTestsPage() {
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
-                }}>
-                  Unlock
-                </button>
-              </div>
-              </div>
+              }}>
+                Unlock
+              </button>
+            </div>
+          </div>
+          )}
 
-              {/* ── Step 4: Difficulty ── */}
-              <div style={cardStyle}>
-                <StepHeader step={4} label="Difficulty" />
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(10px, 0.8vw, 14px)' }}>
+          {/* ── Step 5: Difficulty ── */}
+          {!loading && (
+          <div style={cardStyle}>
+            <StepHeader step={5} label="Difficulty" />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(10px, 0.8vw, 14px)' }}>
               {difficulties.map(diff => {
                 const isSelected = selectedDifficulty === diff.id;
                 return (
@@ -869,6 +1082,7 @@ export default function MockTestsPage() {
               })}
             </div>
           </div>
+          )}
 
         </div>
 
@@ -896,7 +1110,7 @@ export default function MockTestsPage() {
                 </span>
               </div>
 
-              {/* 2×3 Info Grid */}
+              {/* 2x3 Info Grid */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
@@ -979,10 +1193,11 @@ export default function MockTestsPage() {
 
               {/* Generate Test Button */}
               <button
-                onClick={() => router.push('/dashboard/mock-tests/attempt')}
+                onClick={handleGenerateTest}
+                disabled={generating || loading}
                 style={{
                 width: '100%',
-                background: 'linear-gradient(90deg, #FDC700, #FF8904, #FF6900)',
+                background: generating ? '#9CA3AF' : 'linear-gradient(90deg, #FDC700, #FF8904, #FF6900)',
                 border: 'none',
                 borderRadius: '14px',
                 padding: 'clamp(12px, 1vw, 16px)',
@@ -990,11 +1205,31 @@ export default function MockTestsPage() {
                 fontWeight: 800,
                 fontSize: 'clamp(14px, 0.95vw, 17px)',
                 color: '#FFF',
-                cursor: 'pointer',
+                cursor: generating || loading ? 'not-allowed' : 'pointer',
                 letterSpacing: '0.02em',
                 marginBottom: 'clamp(14px, 1.1vw, 20px)',
+                opacity: generating || loading ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
               }}>
-                🚀 Generate Test
+                {generating ? (
+                  <>
+                    <div style={{
+                      width: '18px',
+                      height: '18px',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      borderTopColor: '#FFF',
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite',
+                    }} />
+                    Generating...
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                  </>
+                ) : (
+                  '🚀 Generate Test'
+                )}
               </button>
 
               {/* Bottom info */}

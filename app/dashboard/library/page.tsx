@@ -1,277 +1,43 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { libraryService, pricingService } from '@/lib/services';
 
 /* ------------------------------------------------------------------ */
-/*  Data                                                               */
+/*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-const subjects = [
-  { name: 'Indian Polity', emoji: '\uD83C\uDFDB\uFE0F', pdfs: 23, tag: 'UPDATED', tagColor: '#155DFC' },
-  { name: 'History', emoji: '\uD83D\uDCDC', pdfs: 18, tag: 'LIVE', tagColor: '#16A34A' },
-  { name: 'Geography', emoji: '\uD83C\uDF0D', pdfs: 15, tag: 'LIVE', tagColor: '#16A34A' },
-  { name: 'Indian Economy', emoji: '\uD83D\uDCCA', pdfs: 12, tag: 'NEW', tagColor: '#16A34A' },
-  { name: 'Environment', emoji: '\uD83C\uDF3F', pdfs: 20, tag: 'ALERT', tagColor: '#DC2626' },
-  { name: 'Science & Technology', emoji: '\uD83D\uDD2C', pdfs: 14, tag: 'NEW', tagColor: '#16A34A' },
-  { name: 'Art & Culture', emoji: '\uD83C\uDFA8', pdfs: 10, tag: 'LIVE', tagColor: '#16A34A' },
-  { name: 'Current Affairs', emoji: '\uD83D\uDCF0', pdfs: 45, tag: 'ALERT', tagColor: '#DC2626' },
-];
+const SUBJECT_ICONS: Record<string, string> = {
+  'polity': '\uD83C\uDFDB\uFE0F',
+  'history': '\uD83D\uDCDC',
+  'geography': '\uD83C\uDF0D',
+  'economy': '\uD83D\uDCCA',
+  'environment': '\uD83C\uDF3F',
+  'science': '\uD83D\uDD2C',
+  'art': '\uD83C\uDFA8',
+  'culture': '\uD83C\uDFA8',
+  'current': '\uD83D\uDCF0',
+  'ethics': '\u2696\uFE0F',
+  'security': '\uD83D\uDEE1\uFE0F',
+};
 
-const comingSoon = [
+function subjectIcon(name: string): string {
+  const lower = name.toLowerCase();
+  for (const [key, icon] of Object.entries(SUBJECT_ICONS)) {
+    if (lower.includes(key)) return icon;
+  }
+  return '\uD83D\uDCDA';
+}
+
+const COMING_SOON_SUBJECTS = [
   'International Relations',
   'Essay Module',
   'Ethics GS-IV',
   'Internal Security',
   'Social Issues',
-  'Monthly Digest Arch...',
+  'Monthly Digest Archive',
 ];
 
-interface ChapterInfo {
-  title: string;
-  pages: number;
-  size: string;
-}
-
-const subjectData: Record<string, {
-  fullName: string;
-  description: string;
-  tags: string[];
-  totalPages: string;
-  chapters: Record<string, ChapterInfo[]>;
-}> = {
-  'Indian Polity': {
-    fullName: 'Indian Polity & Constitution',
-    description: 'Covers everything from Constitution, Parliament, Judiciary and\nDPSP \u2014 aligned with Laxmikanth and UPSC PYQs.',
-    tags: ['Polity', 'Mains GS-II', 'Laxmikanth', 'PYQ-Included'],
-    totalPages: '400+',
-    chapters: {
-      Notes: [
-        { title: 'Constitution', pages: 45, size: '+7 MB' },
-        { title: 'Parliament & Legislature \u2014 Complete Notes', pages: 38, size: '+7 MB' },
-        { title: 'Supreme Court & Judicial Review', pages: 29, size: '+7 MB' },
-        { title: 'President, Governor & Executive Powers', pages: 32, size: '+7 MB' },
-        { title: 'DPSP & Fundamental Duties', pages: 24, size: '+7 MB' },
-      ],
-      Roadmaps: [
-        { title: 'Polity Complete Preparation Roadmap', pages: 18, size: '+3 MB' },
-        { title: 'Laxmikanth Chapter-wise Reading Strategy', pages: 22, size: '+4 MB' },
-        { title: 'Parliament & Legislation Practice Framework', pages: 15, size: '+3 MB' },
-        { title: 'Judiciary & Constitutional Bodies Study Plan', pages: 20, size: '+4 MB' },
-        { title: 'Polity Revision & Mock Test Schedule', pages: 12, size: '+2 MB' },
-      ],
-      'PYQ Notes': [
-        { title: 'Polity PYQ Trend Analysis (2015\u20132024)', pages: 35, size: '+6 MB' },
-        { title: 'Parliament & Legislature PYQ Compilation', pages: 28, size: '+5 MB' },
-        { title: 'Judiciary & Courts PYQ Analysis', pages: 22, size: '+4 MB' },
-        { title: 'Executive & President PYQ Breakdown', pages: 19, size: '+3 MB' },
-        { title: 'Fundamental Rights & DPSP PYQ Notes', pages: 25, size: '+5 MB' },
-      ],
-    },
-  },
-  'History': {
-    fullName: 'History \u2014 Ancient, Medieval & Modern',
-    description: 'From Harappan civilization to Indian Independence \u2014\ncovering ancient, medieval, and modern India comprehensively.',
-    tags: ['History', 'Mains GS-I', 'Spectrum', 'PYQ-Included'],
-    totalPages: '350+',
-    chapters: {
-      Notes: [
-        { title: 'Ancient India & Harappan Civilization', pages: 42, size: '+7 MB' },
-        { title: 'Vedic Period & Buddhism', pages: 35, size: '+6 MB' },
-        { title: 'Medieval India \u2014 Delhi Sultanate', pages: 38, size: '+7 MB' },
-        { title: 'Mughal Empire & Administration', pages: 40, size: '+7 MB' },
-        { title: 'Modern India \u2014 British Rule', pages: 44, size: '+8 MB' },
-      ],
-      Roadmaps: [
-        { title: 'History Complete Preparation Roadmap', pages: 20, size: '+3 MB' },
-        { title: 'Ancient India Reading Strategy', pages: 16, size: '+3 MB' },
-        { title: 'Medieval India Study Framework', pages: 18, size: '+3 MB' },
-        { title: 'Modern India \u2014 Spectrum-based Plan', pages: 22, size: '+4 MB' },
-        { title: 'History Revision & Timeline Sheets', pages: 14, size: '+2 MB' },
-      ],
-      'PYQ Notes': [
-        { title: 'Ancient India PYQ Analysis (2015\u20132024)', pages: 30, size: '+5 MB' },
-        { title: 'Medieval India PYQ Compilation', pages: 25, size: '+4 MB' },
-        { title: 'Modern India PYQ Trend Breakdown', pages: 35, size: '+6 MB' },
-        { title: 'Art & Architecture PYQ Notes', pages: 18, size: '+3 MB' },
-        { title: 'Freedom Movement PYQ Analysis', pages: 28, size: '+5 MB' },
-      ],
-    },
-  },
-  'Geography': {
-    fullName: 'Geography \u2014 Physical & Indian',
-    description: 'Physical geography, Indian climate, rivers, soils,\nand resources \u2014 mapped to GC Leong and NCERT.',
-    tags: ['Geography', 'Mains GS-I', 'GC Leong', 'NCERT-Backed'],
-    totalPages: '320+',
-    chapters: {
-      Notes: [
-        { title: 'Physical Geography of India', pages: 40, size: '+7 MB' },
-        { title: 'Indian Climate & Monsoon', pages: 34, size: '+6 MB' },
-        { title: 'Drainage Systems & Rivers', pages: 28, size: '+5 MB' },
-        { title: 'Soil Types & Agriculture', pages: 32, size: '+6 MB' },
-        { title: 'Mineral & Energy Resources', pages: 26, size: '+5 MB' },
-      ],
-      Roadmaps: [
-        { title: 'Geography Complete Study Roadmap', pages: 18, size: '+3 MB' },
-        { title: 'Map-based Learning Strategy', pages: 15, size: '+3 MB' },
-        { title: 'Climate & Monsoon Deep Dive Plan', pages: 16, size: '+3 MB' },
-        { title: 'Indian Agriculture Study Framework', pages: 20, size: '+4 MB' },
-        { title: 'Geography Revision Checklist', pages: 12, size: '+2 MB' },
-      ],
-      'PYQ Notes': [
-        { title: 'Physical Geography PYQ Analysis', pages: 28, size: '+5 MB' },
-        { title: 'Climate & Monsoon PYQ Compilation', pages: 22, size: '+4 MB' },
-        { title: 'Rivers & Drainage PYQ Breakdown', pages: 20, size: '+4 MB' },
-        { title: 'Agriculture & Soil PYQ Notes', pages: 24, size: '+4 MB' },
-        { title: 'Resource Geography PYQ Analysis', pages: 18, size: '+3 MB' },
-      ],
-    },
-  },
-  'Indian Economy': {
-    fullName: 'Indian Economy \u2014 Macro & Micro',
-    description: 'GDP, monetary policy, fiscal policy, agriculture and\nindustry \u2014 aligned with Ramesh Singh and Economic Survey.',
-    tags: ['Economy', 'Mains GS-III', 'Ramesh Singh', 'Budget-Updated'],
-    totalPages: '280+',
-    chapters: {
-      Notes: [
-        { title: 'Indian Economy Basics & GDP', pages: 36, size: '+6 MB' },
-        { title: 'Monetary Policy & RBI', pages: 30, size: '+5 MB' },
-        { title: 'Fiscal Policy & Budget', pages: 34, size: '+6 MB' },
-        { title: 'Agriculture & Food Security', pages: 28, size: '+5 MB' },
-        { title: 'Industry & Infrastructure', pages: 32, size: '+6 MB' },
-      ],
-      Roadmaps: [
-        { title: 'Economy Complete Preparation Roadmap', pages: 18, size: '+3 MB' },
-        { title: 'Budget Analysis Study Guide', pages: 14, size: '+2 MB' },
-        { title: 'Banking & Finance Framework', pages: 16, size: '+3 MB' },
-        { title: 'Economic Survey Reading Strategy', pages: 20, size: '+4 MB' },
-        { title: 'Economy Revision & Data Sheets', pages: 12, size: '+2 MB' },
-      ],
-      'PYQ Notes': [
-        { title: 'Economy PYQ Trend Analysis (2015\u20132024)', pages: 32, size: '+5 MB' },
-        { title: 'Monetary & Fiscal Policy PYQs', pages: 24, size: '+4 MB' },
-        { title: 'Agriculture & Rural Economy PYQs', pages: 20, size: '+4 MB' },
-        { title: 'Industry & Infrastructure PYQs', pages: 22, size: '+4 MB' },
-        { title: 'External Sector & Trade PYQ Notes', pages: 18, size: '+3 MB' },
-      ],
-    },
-  },
-  'Environment': {
-    fullName: 'Environment & Ecology',
-    description: 'Ecology, biodiversity, climate change, environmental laws\nand conservation \u2014 updated with latest policies.',
-    tags: ['Environment', 'Mains GS-III', 'Shankar IAS', 'Updated-2025'],
-    totalPages: '360+',
-    chapters: {
-      Notes: [
-        { title: 'Ecology & Biodiversity', pages: 38, size: '+7 MB' },
-        { title: 'Climate Change & Agreements', pages: 34, size: '+6 MB' },
-        { title: 'Environmental Laws & Policies', pages: 30, size: '+5 MB' },
-        { title: 'Forest & Wildlife Conservation', pages: 36, size: '+6 MB' },
-        { title: 'Pollution & Waste Management', pages: 28, size: '+5 MB' },
-      ],
-      Roadmaps: [
-        { title: 'Environment Complete Study Roadmap', pages: 18, size: '+3 MB' },
-        { title: 'Biodiversity Hotspots & Species Guide', pages: 22, size: '+4 MB' },
-        { title: 'Climate Agreements Timeline', pages: 14, size: '+2 MB' },
-        { title: 'Environmental Law Study Framework', pages: 16, size: '+3 MB' },
-        { title: 'Environment Revision Checklist', pages: 12, size: '+2 MB' },
-      ],
-      'PYQ Notes': [
-        { title: 'Ecology & Biodiversity PYQ Analysis', pages: 30, size: '+5 MB' },
-        { title: 'Climate Change PYQ Compilation', pages: 24, size: '+4 MB' },
-        { title: 'Environmental Laws PYQ Breakdown', pages: 20, size: '+4 MB' },
-        { title: 'Conservation & Wildlife PYQs', pages: 26, size: '+5 MB' },
-        { title: 'Pollution & Waste PYQ Notes', pages: 18, size: '+3 MB' },
-      ],
-    },
-  },
-  'Science & Technology': {
-    fullName: 'Science & Technology',
-    description: 'Space, nuclear, biotech, IT and defence technology \u2014\ncovering all emerging tech topics for UPSC.',
-    tags: ['Sci & Tech', 'Mains GS-III', 'Current-Heavy', 'ISRO-Updated'],
-    totalPages: '260+',
-    chapters: {
-      Notes: [
-        { title: 'Space Technology & ISRO', pages: 32, size: '+6 MB' },
-        { title: 'Nuclear Energy & Policy', pages: 26, size: '+5 MB' },
-        { title: 'Biotechnology & Genetics', pages: 30, size: '+5 MB' },
-        { title: 'IT & Emerging Technologies', pages: 28, size: '+5 MB' },
-        { title: 'Defence Technology', pages: 24, size: '+4 MB' },
-      ],
-      Roadmaps: [
-        { title: 'Science & Tech Preparation Roadmap', pages: 16, size: '+3 MB' },
-        { title: 'Space & ISRO Study Guide', pages: 14, size: '+2 MB' },
-        { title: 'Biotech & Health Tech Framework', pages: 18, size: '+3 MB' },
-        { title: 'Emerging Tech Tracker Strategy', pages: 12, size: '+2 MB' },
-        { title: 'S&T Revision & Quick Reference', pages: 10, size: '+2 MB' },
-      ],
-      'PYQ Notes': [
-        { title: 'Space Technology PYQ Analysis', pages: 22, size: '+4 MB' },
-        { title: 'Nuclear & Energy PYQ Compilation', pages: 18, size: '+3 MB' },
-        { title: 'Biotechnology PYQ Breakdown', pages: 20, size: '+4 MB' },
-        { title: 'IT & Digital India PYQ Notes', pages: 16, size: '+3 MB' },
-        { title: 'Defence & Security Tech PYQs', pages: 14, size: '+2 MB' },
-      ],
-    },
-  },
-  'Art & Culture': {
-    fullName: 'Art & Culture of India',
-    description: 'Architecture, dance, music, paintings and religious\nmovements \u2014 aligned with Nitin Singhania.',
-    tags: ['Art & Culture', 'Mains GS-I', 'Nitin Singhania', 'Visual-Notes'],
-    totalPages: '220+',
-    chapters: {
-      Notes: [
-        { title: 'Indian Architecture', pages: 30, size: '+6 MB' },
-        { title: 'Classical Dance Forms', pages: 24, size: '+5 MB' },
-        { title: 'Indian Music & Theatre', pages: 22, size: '+4 MB' },
-        { title: 'Painting Traditions', pages: 26, size: '+5 MB' },
-        { title: 'Religious Movements & Philosophy', pages: 28, size: '+5 MB' },
-      ],
-      Roadmaps: [
-        { title: 'Art & Culture Complete Roadmap', pages: 16, size: '+3 MB' },
-        { title: 'Architecture Timeline Guide', pages: 14, size: '+2 MB' },
-        { title: 'Dance & Music Quick Reference', pages: 12, size: '+2 MB' },
-        { title: 'Painting Schools Study Framework', pages: 14, size: '+2 MB' },
-        { title: 'Religion & Philosophy Revision', pages: 16, size: '+3 MB' },
-      ],
-      'PYQ Notes': [
-        { title: 'Architecture PYQ Analysis', pages: 20, size: '+4 MB' },
-        { title: 'Dance & Music PYQ Compilation', pages: 16, size: '+3 MB' },
-        { title: 'Painting & Sculpture PYQs', pages: 14, size: '+2 MB' },
-        { title: 'Religious Movements PYQ Notes', pages: 18, size: '+3 MB' },
-        { title: 'UNESCO Heritage Sites PYQs', pages: 12, size: '+2 MB' },
-      ],
-    },
-  },
-  'Current Affairs': {
-    fullName: 'Current Affairs \u2014 Monthly & Weekly',
-    description: 'Union budget, G20, landmark judgments, new legislation\nand international treaties \u2014 updated weekly.',
-    tags: ['Current Affairs', 'All GS Papers', 'Weekly-Updated', 'Exam-Critical'],
-    totalPages: '900+',
-    chapters: {
-      Notes: [
-        { title: 'Union Budget 2025 Analysis', pages: 48, size: '+8 MB' },
-        { title: 'India\u2019s G20 Presidency Review', pages: 36, size: '+6 MB' },
-        { title: 'Supreme Court Landmark Judgments', pages: 42, size: '+7 MB' },
-        { title: 'New Legislation & Amendments', pages: 38, size: '+7 MB' },
-        { title: 'International Treaties & Summits', pages: 34, size: '+6 MB' },
-      ],
-      Roadmaps: [
-        { title: 'Current Affairs Monthly Reading Plan', pages: 20, size: '+3 MB' },
-        { title: 'Budget & Economy Current Tracker', pages: 16, size: '+3 MB' },
-        { title: 'International Affairs Weekly Guide', pages: 18, size: '+3 MB' },
-        { title: 'Legislation & Judiciary Tracker', pages: 14, size: '+2 MB' },
-        { title: 'Current Affairs Revision Strategy', pages: 12, size: '+2 MB' },
-      ],
-      'PYQ Notes': [
-        { title: 'Current Affairs-based PYQ Trends', pages: 38, size: '+6 MB' },
-        { title: 'Economy Current Affairs PYQs', pages: 30, size: '+5 MB' },
-        { title: 'Polity Current Affairs PYQs', pages: 28, size: '+5 MB' },
-        { title: 'International Relations PYQs', pages: 24, size: '+4 MB' },
-        { title: 'Science & Environment PYQs', pages: 22, size: '+4 MB' },
-      ],
-    },
-  },
-};
 
 const features = [
   { emoji: '\uD83C\uDFAF', bg: '#FEE2E2', title: 'UPSC-First Approach', desc: 'Every line written from the examiner\u2019s lens. No fluff \u2014 only what earns marks in Prelims and Mains.' },
@@ -296,37 +62,89 @@ const bottomStats = [
   { number: '100', suffix: '%', label: 'ALWAYS FREE', suffixColor: '#101828' },
 ];
 
-const testimonials = [
-  {
-    initials: 'PR',
-    name: 'Priya Rajan',
-    credential: 'UPSC Prelims 2024 Cleared \u2014 Delhi',
-    quote: 'The polity notes from Rise with Jeet IAS were my go-to during Prelims revision. Clear, concise, and perfectly aligned with Laxmikanth. I saved months of note-making.',
-  },
-  {
-    initials: 'AK',
-    name: 'Ankit Kumar',
-    credential: 'UPSC Mains 2024 \u2014 Bihar',
-    quote: 'I relied entirely on the free PDFs and YouTube lectures for my Mains preparation. The PYQ analysis helped me understand exactly what UPSC expects.',
-  },
-  {
-    initials: 'SM',
-    name: 'Sneha Mishra',
-    credential: 'UPSC Mains 2025 \u2014 MP',
-    quote: 'The weekly current affairs updates and synced notes made my preparation so much more efficient. Best free resource for UPSC aspirants.',
-  },
-];
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 export default function LibraryPage() {
-  const [selectedSubject, setSelectedSubject] = useState('Indian Polity');
+  const [selectedSubject, setSelectedSubject] = useState('');
   const [activeTab, setActiveTab] = useState('Notes');
+  const [apiSubjects, setApiSubjects] = useState<any[]>([]);
+  const [apiChapters, setApiChapters] = useState<Record<string, any[]>>({});
+  const [loadingChapters, setLoadingChapters] = useState(false);
+  const [downloadingChapter, setDownloadingChapter] = useState<string | null>(null);
+  const [apiTestimonials, setApiTestimonials] = useState<any[]>([]);
 
-  const currentData = subjectData[selectedSubject];
-  const currentSubject = subjects.find((s) => s.name === selectedSubject)!;
+  const selectedApiSubject = apiSubjects.find(s => s.name === selectedSubject) ?? null;
+
+  // Fetch subjects and testimonials on mount
+  useEffect(() => {
+    libraryService.getSubjects()
+      .then((res: any) => {
+        const data = res.data?.subjects || res.data || [];
+        if (Array.isArray(data) && data.length > 0) {
+          setApiSubjects(data);
+          setSelectedSubject((prev) => prev || data[0].name);
+        }
+      })
+      .catch(() => {});
+
+    pricingService.getTestimonials()
+      .then((res: any) => {
+        const items = res?.data ?? [];
+        setApiTestimonials(Array.isArray(items) ? items : []);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Fetch chapters when a subject is selected
+  useEffect(() => {
+    const apiSubject = apiSubjects.find(s => s.name === selectedSubject);
+    if (!apiSubject?.id) return;
+
+    setLoadingChapters(true);
+    libraryService.getChapters(apiSubject.id)
+      .then((res: any) => {
+        const data = res.data?.chapters || res.data || [];
+        if (Array.isArray(data)) {
+          setApiChapters((prev) => ({ ...prev, [selectedSubject]: data }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingChapters(false));
+  }, [selectedSubject, apiSubjects]);
+
+  // Handle PDF download via API
+  const handleDownload = async (chapter: any) => {
+    const chapterId = chapter._id || chapter.id;
+    if (!chapterId) return;
+    setDownloadingChapter(chapterId);
+    try {
+      const res: any = await libraryService.getDownloadUrl(chapterId);
+      const url = res.data?.url || res.data?.downloadUrl || res.data;
+      if (url && typeof url === 'string') {
+        window.open(url, '_blank');
+      }
+    } catch {
+      // Download not available
+    } finally {
+      setDownloadingChapter(null);
+    }
+  };
+
   const tabs = ['Notes', 'Roadmaps', 'PYQ Notes'] as const;
+
+  const getChaptersForTab = (tab: string) => {
+    const apiChapterList = apiChapters[selectedSubject];
+    if (apiChapterList && apiChapterList.length > 0) {
+      const filtered = apiChapterList.filter(
+        (c: any) => c.category === tab || c.type === tab
+      );
+      if (filtered.length > 0) return filtered;
+      if (tab === 'Notes') return apiChapterList;
+    }
+    return [];
+  };
 
   return (
     <div
@@ -493,17 +311,21 @@ export default function LibraryPage() {
                   color: '#FFFFFF',
                 }}
               >
-                8 Active &middot; 6 Coming Soon
+                {apiSubjects.length} Active &middot; {COMING_SOON_SUBJECTS.length} Coming Soon
               </div>
             </div>
 
             {/* Active subjects list */}
             <div style={{ padding: 'clamp(8px, 0.8vw, 12px)' }}>
-              {subjects.map((subject) => {
+              {apiSubjects.length === 0 ? (
+                <div className="font-arimo" style={{ padding: '12px 16px', color: '#9CA3AF', fontSize: '13px' }}>
+                  Loading subjects...
+                </div>
+              ) : apiSubjects.map((subject) => {
                 const isSelected = selectedSubject === subject.name;
                 return (
                   <button
-                    key={subject.name}
+                    key={subject.id}
                     onClick={() => { setSelectedSubject(subject.name); setActiveTab('Notes'); }}
                     className="w-full"
                     style={{
@@ -522,7 +344,7 @@ export default function LibraryPage() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 0.8vw, 12px)', minWidth: 0 }}>
-                      <span style={{ fontSize: 'clamp(18px, 1.6vw, 22px)', flexShrink: 0 }}>{subject.emoji}</span>
+                      <span style={{ fontSize: 'clamp(18px, 1.6vw, 22px)', flexShrink: 0 }}>{subjectIcon(subject.name)}</span>
                       <div style={{ minWidth: 0 }}>
                         <div
                           className="font-arimo font-bold"
@@ -542,24 +364,26 @@ export default function LibraryPage() {
                             color: isSelected ? '#94A3B8' : '#6A7282',
                           }}
                         >
-                          {subject.pdfs} PDFs
+                          {subject.pdfCount ?? subject.chapterCount ?? 0} PDFs
                         </div>
                       </div>
                     </div>
-                    <div
-                      className="font-arimo font-bold"
-                      style={{
-                        fontSize: 'clamp(9px, 0.75vw, 11px)',
-                        color: '#FFFFFF',
-                        background: subject.tagColor,
-                        borderRadius: '4px',
-                        padding: 'clamp(2px, 0.3vw, 4px) clamp(6px, 0.6vw, 8px)',
-                        flexShrink: 0,
-                        letterSpacing: '0.3px',
-                      }}
-                    >
-                      {subject.tag}
-                    </div>
+                    {(subject.tags?.[0]) && (
+                      <div
+                        className="font-arimo font-bold"
+                        style={{
+                          fontSize: 'clamp(9px, 0.75vw, 11px)',
+                          color: '#FFFFFF',
+                          background: '#16A34A',
+                          borderRadius: '4px',
+                          padding: 'clamp(2px, 0.3vw, 4px) clamp(6px, 0.6vw, 8px)',
+                          flexShrink: 0,
+                          letterSpacing: '0.3px',
+                        }}
+                      >
+                        {subject.tags[0].toUpperCase()}
+                      </div>
+                    )}
                   </button>
                 );
               })}
@@ -583,7 +407,7 @@ export default function LibraryPage() {
               >
                 COMING SOON
               </div>
-              {comingSoon.map((item) => (
+              {COMING_SOON_SUBJECTS.map((item) => (
                 <div
                   key={item}
                   style={{
@@ -640,7 +464,7 @@ export default function LibraryPage() {
                     lineHeight: 1.2,
                   }}
                 >
-                  {currentData.fullName}
+                  {selectedApiSubject?.name ?? selectedSubject}
                 </h2>
                 <p
                   className="font-arimo"
@@ -651,7 +475,7 @@ export default function LibraryPage() {
                     whiteSpace: 'pre-line',
                   }}
                 >
-                  {currentData.description}
+                  {selectedApiSubject?.description ?? ''}
                 </p>
               </div>
 
@@ -670,7 +494,7 @@ export default function LibraryPage() {
               >
                 <div className="flex flex-col items-center">
                   <div className="font-arimo font-bold" style={{ fontSize: 'clamp(20px, 2vw, 28px)', color: '#101828', lineHeight: 1.2 }}>
-                    {currentSubject.pdfs}
+                    {selectedApiSubject?.pdfCount ?? 0}
                   </div>
                   <div className="font-arimo" style={{ fontSize: 'clamp(10px, 0.82vw, 12px)', color: '#6A7282' }}>
                     PDFs
@@ -679,10 +503,10 @@ export default function LibraryPage() {
                 <div style={{ width: '1px', height: 'clamp(24px, 2.5vw, 36px)', background: '#E5E7EB' }} />
                 <div className="flex flex-col items-center">
                   <div className="font-arimo font-bold" style={{ fontSize: 'clamp(20px, 2vw, 28px)', color: '#C68A0B', lineHeight: 1.2 }}>
-                    {currentData.totalPages}
+                    {selectedApiSubject?.chapterCount ?? 0}
                   </div>
                   <div className="font-arimo" style={{ fontSize: 'clamp(10px, 0.82vw, 12px)', color: '#6A7282' }}>
-                    Pages
+                    Chapters
                   </div>
                 </div>
               </div>
@@ -697,7 +521,7 @@ export default function LibraryPage() {
                 flexWrap: 'wrap',
               }}
             >
-              {currentData.tags.map((tag) => (
+              {(selectedApiSubject?.tags ?? []).map((tag: string) => (
                 <span
                   key={tag}
                   className="font-arimo"
@@ -716,7 +540,7 @@ export default function LibraryPage() {
               <div className="flex" style={{ gap: 'clamp(20px, 2.5vw, 36px)' }}>
                 {tabs.map((tab) => {
                   const isActive = activeTab === tab;
-                  const count = currentData.chapters[tab]?.length ?? 0;
+                  const count = getChaptersForTab(tab).length;
                   return (
                     <button
                       key={tab}
@@ -772,9 +596,19 @@ export default function LibraryPage() {
 
             {/* Chapter cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1vw, 14px)' }}>
-              {(currentData.chapters[activeTab] ?? []).map((chapter, idx) => (
+              {loadingChapters && (
+                <div className="font-arimo" style={{ textAlign: 'center', padding: '20px', color: '#6A7282' }}>
+                  Loading chapters...
+                </div>
+              )}
+              {getChaptersForTab(activeTab).map((chapter: any, idx: number) => {
+                const chapterId = chapter._id || chapter.id;
+                const chapterTitle = chapter.title || chapter.name || '';
+                const chapterPages = chapter.pages || 0;
+                const chapterSize = chapter.size || '';
+                return (
                 <div
-                  key={chapter.title}
+                  key={chapterTitle + idx}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -828,7 +662,7 @@ export default function LibraryPage() {
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      {chapter.title}
+                      {chapterTitle}
                     </div>
                     <div
                       className="font-arimo"
@@ -837,7 +671,7 @@ export default function LibraryPage() {
                         color: '#6A7282',
                       }}
                     >
-                      {chapter.pages} pages | {chapter.size}
+                      {chapterPages} pages{chapterSize ? ` | ${chapterSize}` : ''}
                     </div>
                   </div>
 
@@ -845,6 +679,7 @@ export default function LibraryPage() {
                   <div className="flex items-center" style={{ gap: 'clamp(6px, 0.6vw, 10px)', flexShrink: 0 }}>
                     <button
                       className="font-arimo font-bold"
+                      onClick={() => chapterId && handleDownload(chapter)}
                       style={{
                         fontSize: 'clamp(12px, 1.05vw, 14px)',
                         background: '#FFD274',
@@ -857,13 +692,15 @@ export default function LibraryPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
+                        opacity: downloadingChapter === chapterId ? 0.6 : 1,
                       }}
                     >
                       <img src="/bbook.png" alt="read" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
-                      Read
+                      {downloadingChapter === chapterId ? 'Opening...' : 'Read'}
                     </button>
                     <button
                       className="font-arimo font-bold"
+                      onClick={() => chapterId && handleDownload(chapter)}
                       style={{
                         fontSize: 'clamp(12px, 1.05vw, 14px)',
                         background: '#17223E',
@@ -876,14 +713,16 @@ export default function LibraryPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
+                        opacity: downloadingChapter === chapterId ? 0.6 : 1,
                       }}
                     >
                       <img src="/get pdf.png" alt="get pdf" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
-                      Get PDF
+                      {downloadingChapter === chapterId ? 'Loading...' : 'Get PDF'}
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1149,85 +988,84 @@ export default function LibraryPage() {
           </div>
 
           {/* Testimonial cards */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 'clamp(14px, 1.5vw, 24px)',
-            }}
-          >
-            {testimonials.map((t) => (
-              <div
-                key={t.initials}
-                style={{
-                  background: 'linear-gradient(135deg, #FEFCE8 0%, #FFF7ED 100%)',
-                  borderRadius: '16px',
-                  padding: 'clamp(18px, 2vw, 24px)',
-                  border: '1px solid #FFF085',
-                }}
-              >
-                {/* Stars */}
-                <div style={{ marginBottom: 'clamp(10px, 1vw, 14px)', display: 'flex', gap: '2px' }}>
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1" />
-                    </svg>
-                  ))}
-                </div>
-
-                {/* Quote */}
-                <p
-                  className="font-arimo italic"
-                  style={{
-                    fontSize: 'clamp(12px, 1.05vw, 14px)',
-                    lineHeight: 'clamp(18px, 1.8vw, 24px)',
-                    color: '#374151',
-                    marginBottom: 'clamp(16px, 1.6vw, 22px)',
-                  }}
-                >
-                  &ldquo;{t.quote}&rdquo;
-                </p>
-
-                {/* Avatar + name */}
-                <div className="flex items-center" style={{ gap: 'clamp(10px, 1vw, 14px)' }}>
+          {apiTestimonials.length > 0 && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 'clamp(14px, 1.5vw, 24px)',
+              }}
+            >
+              {apiTestimonials.slice(0, 3).map((t) => {
+                const initials = t.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+                return (
                   <div
-                    className="flex items-center justify-center font-arimo font-bold"
+                    key={t.id}
                     style={{
-                      width: 'clamp(36px, 3.2vw, 44px)',
-                      height: 'clamp(36px, 3.2vw, 44px)',
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #1C398E 0%, #1447E6 100%)',
-                      color: '#FFFFFF',
-                      fontSize: 'clamp(12px, 1.05vw, 14px)',
-                      flexShrink: 0,
+                      background: 'linear-gradient(135deg, #FEFCE8 0%, #FFF7ED 100%)',
+                      borderRadius: '16px',
+                      padding: 'clamp(18px, 2vw, 24px)',
+                      border: '1px solid #FFF085',
                     }}
                   >
-                    {t.initials}
-                  </div>
-                  <div>
-                    <div
-                      className="font-arimo font-bold"
+                    {/* Stars */}
+                    <div style={{ marginBottom: 'clamp(10px, 1vw, 14px)', display: 'flex', gap: '2px' }}>
+                      {Array.from({ length: t.rating ?? 5 }).map((_: unknown, i: number) => (
+                        <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1" />
+                        </svg>
+                      ))}
+                    </div>
+
+                    {/* Quote */}
+                    <p
+                      className="font-arimo italic"
                       style={{
-                        fontSize: 'clamp(13px, 1.12vw, 15px)',
-                        color: '#101828',
+                        fontSize: 'clamp(12px, 1.05vw, 14px)',
+                        lineHeight: 'clamp(18px, 1.8vw, 24px)',
+                        color: '#374151',
+                        marginBottom: 'clamp(16px, 1.6vw, 22px)',
                       }}
                     >
-                      {t.name}
-                    </div>
-                    <div
-                      className="font-arimo"
-                      style={{
-                        fontSize: 'clamp(11px, 0.9vw, 13px)',
-                        color: '#6A7282',
-                      }}
-                    >
-                      {t.credential}
+                      &ldquo;{t.content}&rdquo;
+                    </p>
+
+                    {/* Avatar + name */}
+                    <div className="flex items-center" style={{ gap: 'clamp(10px, 1vw, 14px)' }}>
+                      <div
+                        className="flex items-center justify-center font-arimo font-bold"
+                        style={{
+                          width: 'clamp(36px, 3.2vw, 44px)',
+                          height: 'clamp(36px, 3.2vw, 44px)',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #1C398E 0%, #1447E6 100%)',
+                          color: '#FFFFFF',
+                          fontSize: 'clamp(12px, 1.05vw, 14px)',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {initials}
+                      </div>
+                      <div>
+                        <div
+                          className="font-arimo font-bold"
+                          style={{ fontSize: 'clamp(13px, 1.12vw, 15px)', color: '#101828' }}
+                        >
+                          {t.name}
+                        </div>
+                        <div
+                          className="font-arimo"
+                          style={{ fontSize: 'clamp(11px, 0.9vw, 13px)', color: '#6A7282' }}
+                        >
+                          {t.title}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ============================================================ */}

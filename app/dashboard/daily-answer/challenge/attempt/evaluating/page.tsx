@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-
-const TOTAL_SECONDS = 60;
+import { dailyAnswerService } from '@/lib/services';
 
 const STEPS = [
   {
@@ -11,35 +10,35 @@ const STEPS = [
     icon: '/eval-structural.png',
     title: 'Structural Analysis',
     subtitle: 'Checking introduction-body-conclusion flow',
-    completesAt: 10,
+    key: 'structural',
   },
   {
     id: 2,
     icon: '/eval-content.png',
     title: 'Content Depth Assessment',
     subtitle: 'Evaluating conceptual clarity and dimensions',
-    completesAt: 22,
+    key: 'content',
   },
   {
     id: 3,
     icon: '/eval-balance.png',
     title: 'Balance & Perspective Check',
     subtitle: 'Ensuring multi-dimensional viewpoint',
-    completesAt: 34,
+    key: 'balance',
   },
   {
     id: 4,
     icon: '/eval-fact.png',
     title: 'Fact & Example Validation',
     subtitle: 'Cross-referencing with latest data',
-    completesAt: 46,
+    key: 'fact',
   },
   {
     id: 5,
     icon: '/eval-pillar.png',
     title: '6-Pillar Rubric Scoring',
     subtitle: 'Direct   Demand   Structure   Substantiation',
-    completesAt: 58,
+    key: 'scoring',
   },
 ];
 
@@ -67,38 +66,66 @@ const SpinnerIcon = () => (
 export default function EvaluatingPage() {
   const router = useRouter();
   const [elapsed, setElapsed] = useState(0);
-
+  const [status, setStatus] = useState<string>('evaluating');
+  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const navigatedRef = useRef(false);
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Poll evaluation status every 3 seconds
   useEffect(() => {
-    if (elapsed >= TOTAL_SECONDS) {
-      if (!navigatedRef.current) {
-        navigatedRef.current = true;
-        router.push('/dashboard/daily-answer/challenge/attempt/results');
-      }
-      return;
-    }
-    const timer = setInterval(() => {
-      setElapsed((prev) => {
-        if (prev + 1 >= TOTAL_SECONDS) {
-          clearInterval(timer);
-          return TOTAL_SECONDS;
+    const poll = async () => {
+      try {
+        const res = await dailyAnswerService.getEvaluationStatus();
+        const data = res.data;
+
+        if (data?.status) {
+          setStatus(data.status);
         }
-        return prev + 1;
-      });
+        if (data?.completedSteps) {
+          setCompletedSteps(data.completedSteps);
+        }
+
+        if (data?.status === 'completed' && !navigatedRef.current) {
+          navigatedRef.current = true;
+          if (pollRef.current) clearInterval(pollRef.current);
+          router.push('/dashboard/daily-answer/challenge/attempt/results');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Error checking evaluation status');
+      }
+    };
+
+    // Initial call
+    poll();
+
+    // Poll every 3 seconds
+    pollRef.current = setInterval(poll, 3000);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [router]);
+
+  // Elapsed timer for display
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsed((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, [elapsed, router]);
+  }, []);
 
-  const secondsRemaining = TOTAL_SECONDS - elapsed;
-  const progressPercent = (elapsed / TOTAL_SECONDS) * 100;
+  const ESTIMATED_SECONDS = 60;
+  const secondsRemaining = Math.max(0, ESTIMATED_SECONDS - elapsed);
+  const progressPercent = Math.min(100, (elapsed / ESTIMATED_SECONDS) * 100);
 
   const isStepDone = (step: typeof STEPS[0]) =>
-    elapsed >= step.completesAt;
+    completedSteps.includes(step.key);
 
   const isStepActive = (step: typeof STEPS[0], idx: number) => {
-    const prevDone = idx === 0 ? true : elapsed >= STEPS[idx - 1].completesAt;
-    return prevDone && !isStepDone(step);
+    if (isStepDone(step)) return false;
+    if (idx === 0) return !isStepDone(step);
+    return isStepDone(STEPS[idx - 1]) && !isStepDone(step);
   };
 
   return (
@@ -163,6 +190,13 @@ export default function EvaluatingPage() {
             This usually takes 30-60 seconds
           </p>
         </div>
+
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-[10px] text-red-700 text-center" style={{ fontSize: '14px' }}>
+            {error}
+          </div>
+        )}
 
         {/* Steps */}
         <div className="flex flex-col gap-0 mb-6">
@@ -265,7 +299,7 @@ export default function EvaluatingPage() {
                 color: '#101828',
               }}
             >
-              {secondsRemaining} Seconds Remaining
+              {secondsRemaining > 0 ? `${secondsRemaining} Seconds Remaining` : 'Almost done...'}
             </span>
           </div>
 

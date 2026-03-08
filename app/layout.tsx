@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Manrope, Roboto, Poppins, Arimo, Tinos, Fahkwang } from 'next/font/google'
 import './globals.css'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -58,7 +59,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${manrope.variable} ${roboto.variable} ${poppins.variable} ${arimo.variable} ${tinos.variable} ${fahkwang.variable}`}>{children}</body>
+      <body className={`${inter.variable} ${manrope.variable} ${roboto.variable} ${poppins.variable} ${arimo.variable} ${tinos.variable} ${fahkwang.variable}`}>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   )
 }

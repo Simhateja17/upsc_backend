@@ -3,12 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import DashboardPreview from '@/components/DashboardPreview';
+import { dailyAnswerService } from '@/lib/services';
 
 export default function DailyAnswerAttemptPage() {
     const router = useRouter();
     const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes
     const [isActive, setIsActive] = useState(false);
+    const [answerText, setAnswerText] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
@@ -37,16 +40,34 @@ export default function DailyAnswerAttemptPage() {
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
+    const handleSubmit = async () => {
+        if (!answerText.trim()) {
+            setSubmitError('Please write your answer before submitting.');
+            return;
+        }
+
+        setSubmitting(true);
+        setSubmitError(null);
+
+        try {
+            await dailyAnswerService.submitText(answerText);
+            router.push('/dashboard/daily-answer/challenge/attempt/evaluating');
+        } catch (err: any) {
+            setSubmitError(err.message || 'Failed to submit answer. Please try again.');
+            setSubmitting(false);
+        }
+    };
+
     return (
         <div className="flex min-h-screen bg-[#F8F9FC] font-sans justify-center">
-            
+
             <main className="flex-1 max-w-[1200px]">
 
                     {/* Main Content Area - Centered Card */}
                     <div className="p-10 flex flex-col items-center w-full">
-                        
+
                         {/* Timer Card Section */}
-                        <div 
+                        <div
                             className="bg-white rounded-[16px] flex flex-col items-center justify-center mb-6"
                             style={{
                                 width: '909px',
@@ -69,7 +90,7 @@ export default function DailyAnswerAttemptPage() {
                             </div>
 
                             {/* Timer Circle */}
-                            <div 
+                            <div
                                 className="rounded-full border-4 border-[#101828] flex items-center justify-center mb-4"
                                 style={{
                                     width: '112px',
@@ -102,7 +123,7 @@ export default function DailyAnswerAttemptPage() {
                             {/* Buttons Row */}
                             <div className="flex gap-4">
                                 {/* Start Timer Button */}
-                                <button 
+                                <button
                                     onClick={toggleTimer}
                                     className="flex items-center justify-center gap-2 text-white font-bold transition-transform hover:scale-105"
                                     style={{
@@ -119,7 +140,7 @@ export default function DailyAnswerAttemptPage() {
 
                                  {/* Reset Button */}
                                  <button
-                                    onClick={resetTimer} 
+                                    onClick={resetTimer}
                                     className="flex items-center justify-center gap-2 bg-white border border-[#D1D5DB] text-[#374151] font-bold transition-transform hover:scale-105"
                                     style={{
                                         width: '96px',
@@ -134,23 +155,66 @@ export default function DailyAnswerAttemptPage() {
                             </div>
                         </div>
 
-                        {/* Bottom Card Container (Wrapping Upload & Submit) */}
-                        <div 
+                        {/* Bottom Card Container (Wrapping Text Area, Upload & Submit) */}
+                        <div
                             className="bg-white rounded-[16px] flex flex-col items-center pt-[68px] pb-8 mb-8"
                             style={{
                                 width: '909px',
-                                minHeight: '600px', // Enough to hold upload box + button
+                                minHeight: '600px',
                                 boxShadow: '0px 1px 3px 0px #0000001A, 0px 1px 2px -1px #0000001A'
                             }}
                         >
+                            {/* Text Answer Area */}
+                            <div className="w-full px-[134px] mb-8">
+                                <label
+                                    htmlFor="answer-text"
+                                    style={{
+                                        fontFamily: 'Arimo',
+                                        fontWeight: 700,
+                                        fontSize: '16px',
+                                        color: '#101828',
+                                        display: 'block',
+                                        marginBottom: '8px'
+                                    }}
+                                >
+                                    Type your answer
+                                </label>
+                                <textarea
+                                    id="answer-text"
+                                    value={answerText}
+                                    onChange={(e) => {
+                                        setAnswerText(e.target.value);
+                                        if (submitError) setSubmitError(null);
+                                    }}
+                                    placeholder="Write your answer here..."
+                                    className="w-full rounded-[10px] border border-[#D1D5DB] bg-[#F9FAFB] p-4 text-[#101828] font-arimo focus:outline-none focus:ring-2 focus:ring-[#17223E] focus:border-transparent resize-vertical"
+                                    style={{
+                                        minHeight: '200px',
+                                        fontSize: '15px',
+                                        lineHeight: '24px',
+                                    }}
+                                />
+                                <p className="mt-2 text-right text-[#6A7282]" style={{ fontSize: '13px' }}>
+                                    {answerText.trim().split(/\s+/).filter(Boolean).length} words
+                                </p>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="w-full px-[134px] mb-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-1 h-px bg-[#E5E7EB]"></div>
+                                    <span className="text-[#6A7282] font-arimo" style={{ fontSize: '13px' }}>OR upload handwritten answer</span>
+                                    <div className="flex-1 h-px bg-[#E5E7EB]"></div>
+                                </div>
+                            </div>
+
                             {/* Check Dotted Box for Upload */}
-                            <div 
+                            <div
                                 className="bg-[#F9FAFB] rounded-[16px] flex flex-col items-center justify-center mb-8 relative"
                                 style={{
-                                    width: '639.81px', 
-                                    height: '427.2px',
+                                    width: '639.81px',
+                                    height: '300px',
                                     border: '1px dashed #17223E',
-                                    // padding: '40px' // Removed fixed padding to let flex center content
                                 }}
                             >
                                 {/* Upload Icon */}
@@ -170,7 +234,7 @@ export default function DailyAnswerAttemptPage() {
                                 }}>
                                     Drop your answer script here
                                 </h3>
-                                
+
                                 <p style={{
                                     fontFamily: 'Arimo',
                                     fontWeight: 400,
@@ -193,7 +257,7 @@ export default function DailyAnswerAttemptPage() {
                                 </div>
 
                                 {/* Browse Files Button */}
-                                <button 
+                                <button
                                     className="bg-white border border-[#D1D5DB] text-[#111827] font-bold rounded-[10px] hover:bg-gray-50 transition-colors"
                                     style={{
                                         width: '156px',
@@ -205,10 +269,18 @@ export default function DailyAnswerAttemptPage() {
                                 </button>
                             </div>
 
+                            {/* Error Message */}
+                            {submitError && (
+                                <div className="mb-4 px-6 py-3 bg-red-50 border border-red-200 rounded-[10px] text-red-700 font-arimo" style={{ width: '640px', fontSize: '14px' }}>
+                                    {submitError}
+                                </div>
+                            )}
+
                             {/* Submit Button */}
-                            <button 
-                                onClick={() => router.push('/dashboard/daily-answer/challenge/attempt/evaluating')}
-                                className="flex items-center justify-center gap-2 text-white font-bold transition-transform hover:scale-105 mb-4"
+                            <button
+                                onClick={handleSubmit}
+                                disabled={submitting}
+                                className="flex items-center justify-center gap-2 text-white font-bold transition-transform hover:scale-105 mb-4 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                                 style={{
                                     width: '640px',
                                     height: '56px',
@@ -218,8 +290,17 @@ export default function DailyAnswerAttemptPage() {
                                     boxShadow: '0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -4px rgba(0, 0, 0, 0.1)'
                                 }}
                             >
-                                <img src="/Icon%20(13).png" alt="" style={{ width: '24px', height: '24px' }} />
-                                Submit Answer for Evaluation
+                                {submitting ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                        Submitting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <img src="/Icon%20(13).png" alt="" style={{ width: '24px', height: '24px' }} />
+                                        Submit Answer for Evaluation
+                                    </>
+                                )}
                             </button>
 
                             {/* Footer Feedback Text */}

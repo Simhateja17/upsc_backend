@@ -1,14 +1,61 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { dailyAnswerService } from '@/lib/services';
 
+interface AnswerData {
+  id: string;
+  title: string;
+  paper: string;
+  subject: string;
+  marks: number;
+  wordLimit: number;
+  timeLimit: number;
+  attempted: boolean;
+  attemptCount: number;
+}
 
 export default function DailyMainsChallengePage() {
+  const [data, setData] = useState<AnswerData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    dailyAnswerService.getToday()
+      .then(res => setData(res.data))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col bg-gray-50 font-arimo relative overflow-hidden" style={{ height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex flex-col bg-gray-50 font-arimo relative overflow-hidden" style={{ height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-gray-800 mb-2">No Mains Challenge Today</h2>
+            <p className="text-gray-500">{error || 'Check back later for today\'s challenge.'}</p>
+            <Link href="/dashboard" className="mt-4 inline-block text-blue-600 hover:underline">Back to Dashboard</Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col bg-gray-50 font-arimo relative overflow-hidden" style={{ height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
       <main className="flex-1 flex items-center justify-center p-6 relative z-10">
-        <div 
+        <div
           className="relative bg-white rounded-[16px] flex flex-col items-center shadow-lg"
           style={{
             width: '605px',
@@ -31,7 +78,7 @@ export default function DailyMainsChallengePage() {
           />
 
           {/* Title */}
-          <h1 
+          <h1
             className="font-bold text-[#101828] text-center mb-2"
             style={{
               fontSize: '32px',
@@ -42,7 +89,7 @@ export default function DailyMainsChallengePage() {
           </h1>
 
           {/* Subtitle */}
-          <div 
+          <div
             className="text-[#4A5565] text-center mb-6 px-12"
             style={{
               fontSize: '14px',
@@ -55,32 +102,32 @@ export default function DailyMainsChallengePage() {
 
           {/* Tags */}
           <div className="flex items-center gap-3 mb-8">
-            <span 
+            <span
               className="flex items-center justify-center bg-[#EFF6FF] text-[#101828] rounded-full font-medium"
               style={{
                 padding: '6px 16px',
                 fontSize: '14px',
               }}
             >
-              Gs paper II
+              {data.paper}
             </span>
-            <span 
+            <span
               className="flex items-center justify-center bg-[#EFF6FF] text-[#101828] rounded-full font-medium"
               style={{
                 padding: '6px 16px',
                 fontSize: '14px',
               }}
             >
-              Polity & Governance
+              {data.subject}
             </span>
-            <span 
+            <span
               className="flex items-center justify-center bg-[#EFF6FF] text-[#101828] rounded-full font-medium"
               style={{
                 padding: '6px 16px',
                 fontSize: '14px',
               }}
             >
-              15 Marks
+              {data.marks} Marks
             </span>
           </div>
 
@@ -91,46 +138,61 @@ export default function DailyMainsChallengePage() {
           >
             {/* Minutes */}
             <div className="flex flex-col items-center" style={{ gap: '2px' }}>
-              <span className="font-bold text-[#101828]" style={{ fontSize: '30px', lineHeight: '36px' }}>15</span>
+              <span className="font-bold text-[#101828]" style={{ fontSize: '30px', lineHeight: '36px' }}>{data.timeLimit}</span>
               <span className="text-[#4A5565] font-normal" style={{ fontSize: '12px', lineHeight: '16px' }}>Minutes</span>
             </div>
 
             {/* Marks */}
             <div className="flex flex-col items-center" style={{ gap: '2px' }}>
-              <span className="font-bold text-[#101828]" style={{ fontSize: '30px', lineHeight: '36px' }}>15</span>
+              <span className="font-bold text-[#101828]" style={{ fontSize: '30px', lineHeight: '36px' }}>{data.marks}</span>
               <span className="text-[#4A5565] font-normal" style={{ fontSize: '12px', lineHeight: '16px' }}>Marks</span>
             </div>
 
             {/* Word Limit */}
             <div className="flex flex-col items-center" style={{ gap: '2px' }}>
-              <span className="font-bold text-[#101828]" style={{ fontSize: '30px', lineHeight: '36px' }}>250</span>
+              <span className="font-bold text-[#101828]" style={{ fontSize: '30px', lineHeight: '36px' }}>{data.wordLimit}</span>
               <span className="text-[#4A5565] font-normal" style={{ fontSize: '12px', lineHeight: '16px' }}>Word Limit</span>
             </div>
           </div>
 
           {/* Start Button */}
-          <Link href="/dashboard/daily-answer/challenge">
-          <button 
-            className="flex items-center justify-center gap-3 bg-[#101828] text-white rounded-[10px] hover:scale-105 transition-transform shadow-lg"
-            style={{
-              width: '232px',
-              height: '52px',
-              marginTop: '10px'
-            }}
-          >
-            <div className="w-5 h-5 rounded-full border border-white flex items-center justify-center">
-                 <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          {data.attempted ? (
+            <Link href="/dashboard/daily-answer/challenge/attempt/results">
+              <button
+                className="flex items-center justify-center gap-3 bg-green-600 text-white rounded-[10px] hover:scale-105 transition-transform shadow-lg"
+                style={{
+                  width: '232px',
+                  height: '52px',
+                  marginTop: '10px'
+                }}
+              >
+                <span className="font-bold text-[16px]">View Results</span>
+              </button>
+            </Link>
+          ) : (
+            <Link href="/dashboard/daily-answer/challenge">
+              <button
+                className="flex items-center justify-center gap-3 bg-[#101828] text-white rounded-[10px] hover:scale-105 transition-transform shadow-lg"
+                style={{
+                  width: '232px',
+                  height: '52px',
+                  marginTop: '10px'
+                }}
+              >
+                <div className="w-5 h-5 rounded-full border border-white flex items-center justify-center">
+                     <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                </div>
+                <span className="font-bold text-[16px]">Start Now</span>
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 5L19 12L12 19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-            </div>
-            <span className="font-bold text-[16px]">Start Now</span>
-             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M5 12H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 5L19 12L12 19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          </Link>
-          
+              </button>
+            </Link>
+          )}
+
           <p className="text-[#6A7282] mt-4 font-normal" style={{ fontSize: '12px' }}>
             Skip intro (auto-start in 5s)
           </p>
@@ -139,4 +201,3 @@ export default function DailyMainsChallengePage() {
     </div>
   );
 }
-

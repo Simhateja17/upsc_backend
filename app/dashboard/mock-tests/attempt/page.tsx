@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { mockTestService } from '@/lib/services';
 
 interface Question {
   id: number;
@@ -13,93 +14,72 @@ interface Question {
   explanation: string;
 }
 
-const sampleQuestions: Question[] = [
-  {
-    id: 1,
-    subject: 'History',
-    difficulty: 'Medium',
-    text: 'The Doctrine of Lapse was most aggressively applied under which Governor-General?',
-    options: [
-      { label: 'A', text: 'Lord Cornwallis' },
-      { label: 'B', text: 'Lord Dalhousie' },
-      { label: 'C', text: 'Lord Ripon' },
-      { label: 'D', text: 'Lord Curzon' },
-    ],
-    correct: 'B',
-    explanation: 'Lord Dalhousie (1848–56) applied the Doctrine of Lapse most aggressively, annexing Satara, Nagpur, Jhansi and others.',
-  },
-  {
-    id: 2,
-    subject: 'Polity',
-    difficulty: 'Easy',
-    text: 'Which article of the Indian Constitution deals with the Right to Equality?',
-    options: [
-      { label: 'A', text: 'Article 12' },
-      { label: 'B', text: 'Article 14' },
-      { label: 'C', text: 'Article 19' },
-      { label: 'D', text: 'Article 21' },
-    ],
-    correct: 'B',
-    explanation: 'Article 14 guarantees equality before law and equal protection of laws to every person within the territory of India.',
-  },
-  {
-    id: 3,
-    subject: 'Geography',
-    difficulty: 'Medium',
-    text: 'Which of the following rivers originates from the Amarkantak plateau?',
-    options: [
-      { label: 'A', text: 'Mahanadi' },
-      { label: 'B', text: 'Godavari' },
-      { label: 'C', text: 'Narmada' },
-      { label: 'D', text: 'Tapti' },
-    ],
-    correct: 'C',
-    explanation: 'The Narmada river originates from Amarkantak plateau in Madhya Pradesh and flows westward into the Arabian Sea.',
-  },
-  {
-    id: 4,
-    subject: 'Economy',
-    difficulty: 'Hard',
-    text: 'The concept of "Dutch Disease" in economics refers to which phenomenon?',
-    options: [
-      { label: 'A', text: 'Hyperinflation caused by excessive money printing' },
-      { label: 'B', text: 'Decline of manufacturing due to natural resource boom' },
-      { label: 'C', text: 'Economic recession due to trade deficit' },
-      { label: 'D', text: 'Currency depreciation due to capital flight' },
-    ],
-    correct: 'B',
-    explanation: 'Dutch Disease refers to the decline in the manufacturing sector following the discovery of natural resources, causing currency appreciation and reduced export competitiveness.',
-  },
-  {
-    id: 5,
-    subject: 'Environment',
-    difficulty: 'Medium',
-    text: 'The Ramsar Convention is associated with the conservation of which type of ecosystems?',
-    options: [
-      { label: 'A', text: 'Coral reefs' },
-      { label: 'B', text: 'Tropical rainforests' },
-      { label: 'C', text: 'Wetlands' },
-      { label: 'D', text: 'Mangroves' },
-    ],
-    correct: 'C',
-    explanation: 'The Ramsar Convention on Wetlands (1971) is an international treaty for the conservation and sustainable use of wetlands.',
-  },
-];
-
 type QuestionStatus = 'unattempted' | 'answered' | 'marked' | 'current';
 
-export default function MockTestAttemptPage() {
+function MockTestAttemptInner() {
   const router = useRouter();
-  const totalQuestions = sampleQuestions.length;
+  const searchParams = useSearchParams();
+  const testId = searchParams.get('testId');
+
+  /* ─── API / Loading State ─── */
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  /* ─── Quiz State ─── */
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({});
-  const [questionStatuses, setQuestionStatuses] = useState<Record<number, QuestionStatus>>(
-    Object.fromEntries(sampleQuestions.map((q, i) => [i, i === 0 ? 'current' : 'unattempted']))
-  );
-  const [timeLeft, setTimeLeft] = useState(67 * 60 + 56); // 67:56 in seconds
+  const [questionStatuses, setQuestionStatuses] = useState<Record<number, QuestionStatus>>({});
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [startTime] = useState(Date.now());
+
+  /* ─── Load questions from API ─── */
+  useEffect(() => {
+    if (!testId) {
+      setError('No test ID provided. Please generate a test first.');
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    async function loadQuestions() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await mockTestService.getQuestions(testId!);
+        if (cancelled) return;
+
+        const qs: Question[] = res.data?.questions || res.data || [];
+        if (!qs.length) {
+          throw new Error('No questions returned for this test.');
+        }
+        setQuestions(qs);
+        // Initialize statuses
+        const statuses: Record<number, QuestionStatus> = {};
+        qs.forEach((_, i) => {
+          statuses[i] = i === 0 ? 'current' : 'unattempted';
+        });
+        setQuestionStatuses(statuses);
+        // Set timer based on question count (approx 1.6 min per question)
+        const duration = res.data?.duration || Math.ceil(qs.length * 1.6) * 60;
+        setTimeLeft(duration);
+      } catch (err: any) {
+        if (!cancelled) {
+          console.error('Failed to load questions:', err);
+          setError(err.message || 'Failed to load test questions.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    loadQuestions();
+    return () => { cancelled = true; };
+  }, [testId]);
 
   // Timer countdown
   useEffect(() => {
+    if (loading || questions.length === 0) return;
     const interval = setInterval(() => {
       setTimeLeft(t => {
         if (t <= 1) { clearInterval(interval); return 0; }
@@ -107,7 +87,9 @@ export default function MockTestAttemptPage() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loading, questions.length]);
+
+  const totalQuestions = questions.length;
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
@@ -152,23 +134,37 @@ export default function MockTestAttemptPage() {
     if (currentIdx > 0) goToQuestion(currentIdx - 1);
   };
 
-  const handleSubmit = () => {
-    sessionStorage.setItem('testResults', JSON.stringify({
-      selectedOptions,
-      questionStatuses,
-      timeLeft,
-    }));
-    router.push('/dashboard/mock-tests/attempt/results');
+  const handleSubmit = async () => {
+    if (!testId) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+      // Build answers map: questionId -> selected option label
+      const answersMap: Record<string, string> = {};
+      Object.entries(selectedOptions).forEach(([idx, opt]) => {
+        const q = questions[Number(idx)];
+        if (q) {
+          answersMap[String(q.id)] = opt;
+        }
+      });
+      await mockTestService.submit(testId, answersMap, timeTaken);
+      router.push(`/dashboard/mock-tests/attempt/results?testId=${testId}`);
+    } catch (err: any) {
+      console.error('Failed to submit test:', err);
+      setError(err.message || 'Failed to submit test. Please try again.');
+      setSubmitting(false);
+    }
   };
 
   // Stats
   const answered = Object.values(questionStatuses).filter(s => s === 'answered').length;
   const marked = Object.values(questionStatuses).filter(s => s === 'marked').length;
-  const correct = Object.entries(selectedOptions).filter(([idx, opt]) => sampleQuestions[Number(idx)].correct === opt).length;
+  const correct = Object.entries(selectedOptions).filter(([idx, opt]) => questions[Number(idx)]?.correct === opt).length;
   const wrong = Object.keys(selectedOptions).length - correct;
   const netScore = correct * 2 - wrong * 0.67;
 
-  const currentQ = sampleQuestions[currentIdx];
+  const currentQ = questions[currentIdx];
 
   const statusColor: Record<QuestionStatus, string> = {
     answered: '#00C950',
@@ -177,11 +173,69 @@ export default function MockTestAttemptPage() {
     unattempted: '#314158',
   };
 
-  const difficultyColor = {
-    Easy: '#00C950',
-    Medium: '#FDC700',
-    Hard: '#EF4444',
-  };
+  /* ─── Loading State ─── */
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#FFFFFF',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        fontFamily: 'Inter, sans-serif',
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #E5E7EB',
+          borderTopColor: '#0F172B',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <span style={{ fontSize: '16px', color: '#6B7280' }}>Loading test questions...</span>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  /* ─── Error State ─── */
+  if (error && questions.length === 0) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#FFFFFF',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        fontFamily: 'Inter, sans-serif',
+      }}>
+        <span style={{ fontSize: '48px' }}>⚠️</span>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#101828', margin: 0 }}>Something went wrong</h2>
+        <p style={{ fontSize: '14px', color: '#6B7280', maxWidth: '400px', textAlign: 'center' }}>{error}</p>
+        <button
+          onClick={() => router.push('/dashboard/mock-tests')}
+          style={{
+            background: '#0F172B',
+            color: '#FFF',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '12px 24px',
+            fontWeight: 600,
+            fontSize: '14px',
+            cursor: 'pointer',
+          }}
+        >
+          Back to Mock Tests
+        </button>
+      </div>
+    );
+  }
+
+  if (!currentQ) return null;
 
   return (
     <div style={{ minHeight: '100vh', background: '#FFFFFF', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif' }}>
@@ -226,6 +280,21 @@ export default function MockTestAttemptPage() {
           </div>
         </div>
       </header>
+
+      {/* ── Submit Error Banner ── */}
+      {error && (
+        <div style={{
+          background: '#FEF2F2',
+          border: '1px solid #FECACA',
+          padding: '12px 32px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          <span style={{ fontSize: '14px' }}>⚠️</span>
+          <span style={{ fontSize: '14px', color: '#991B1B' }}>{error}</span>
+        </div>
+      )}
 
       {/* ── Body ── */}
       <div style={{ display: 'flex', flex: 1, gap: '0', overflow: 'hidden' }}>
@@ -342,7 +411,7 @@ export default function MockTestAttemptPage() {
             </div>
 
             {/* Explanation — shown after answering */}
-            {selectedOptions[currentIdx] && (
+            {selectedOptions[currentIdx] && currentQ.explanation && (
               <div style={{
                 marginTop: '20px',
                 background: '#EFF6FF',
@@ -492,7 +561,7 @@ export default function MockTestAttemptPage() {
                 { label: 'WRONG', value: wrong, color: '#FF4444' },
                 { label: 'MARKED', value: marked, color: '#FFFFFF' },
                 { label: 'NET SCORE', value: netScore.toFixed(1), color: '#FFFFFF', big: true },
-              ].map((stat, i) => (
+              ].map((stat) => (
                 <div
                   key={stat.label}
                   style={{
@@ -538,8 +607,8 @@ export default function MockTestAttemptPage() {
               Question Navigator
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              {sampleQuestions.map((_, idx) => {
-                const status = questionStatuses[idx];
+              {questions.map((_, idx) => {
+                const status = questionStatuses[idx] || 'unattempted';
                 return (
                   <button
                     key={idx}
@@ -567,29 +636,76 @@ export default function MockTestAttemptPage() {
           {/* Submit Test */}
           <button
             onClick={handleSubmit}
+            disabled={submitting}
             style={{
               width: '100%',
               height: '56px',
-              background: '#0F172B',
+              background: submitting ? '#1E293B' : '#0F172B',
               border: 'none',
               borderRadius: '16px',
               color: '#FFFFFF',
               fontWeight: 600,
               fontSize: '16px',
-              cursor: 'pointer',
+              cursor: submitting ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
+              opacity: submitting ? 0.7 : 1,
               transition: 'background 0.15s ease',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#1E293B')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#0F172B')}
+            onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#1E293B'; }}
+            onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#0F172B'; }}
           >
-            🏁 Submit Test
+            {submitting ? (
+              <>
+                <div style={{
+                  width: '18px',
+                  height: '18px',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  borderTopColor: '#FFF',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                }} />
+                Submitting...
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              </>
+            ) : (
+              '🏁 Submit Test'
+            )}
           </button>
         </aside>
       </div>
     </div>
+  );
+}
+
+export default function MockTestAttemptPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: '100vh',
+        background: '#FFFFFF',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        fontFamily: 'Inter, sans-serif',
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #E5E7EB',
+          borderTopColor: '#0F172B',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <span style={{ fontSize: '16px', color: '#6B7280' }}>Loading...</span>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    }>
+      <MockTestAttemptInner />
+    </Suspense>
   );
 }

@@ -1,76 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { videoService } from '@/lib/services';
 
 /* ------------------------------------------------------------------ */
-/*  Data                                                               */
+/*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
-const categories = [
-  'All Categories',
-  'Polity',
-  'History',
-  'Geography',
-  'Economy',
-  'Environment',
-  'Science & Tech',
-  'Ethics',
-  'IR',
-  'Art & Culture',
-  'Current Affairs',
-];
+const SUBJECT_EMOJIS: Record<string, string> = {
+  'polity': '🏛️', 'history': '📜', 'geography': '🌍', 'economy': '📊',
+  'environment': '🌿', 'science': '🔬', 'ethics': '⚖️', 'current': '📰',
+};
 
-const subjectCards = [
-  { name: 'Indian Polity', emoji: '\uD83C\uDFDB\uFE0F', videos: 81, views: '312K', category: 'Polity' },
-  { name: 'Modern History', emoji: '\uD83D\uDCDC', videos: 64, views: '287K', category: 'History' },
-  { name: 'Geography', emoji: '\uD83C\uDF0D', videos: 72, views: '245K', category: 'Geography' },
-  { name: 'Indian Economy', emoji: '\uD83D\uDCCA', videos: 58, views: '198K', category: 'Economy' },
-  { name: 'Environment', emoji: '\uD83C\uDF3F', videos: 45, views: '176K', category: 'Environment' },
-  { name: 'Science & Tech', emoji: '\uD83D\uDD2C', videos: 39, views: '154K', category: 'Science & Tech' },
-  { name: 'Ancient History', emoji: '\uD83C\uDFFA', videos: 36, views: '142K', category: 'History' },
-  { name: 'Ethics GSA', emoji: '\u2696\uFE0F', videos: 42, views: '168K', category: 'Ethics' },
-  { name: 'International Relations', emoji: '\uD83C\uDF10', videos: 33, views: '129K', category: 'IR' },
-  { name: 'Art & Culture', emoji: '\uD83C\uDFA8', videos: 28, views: '115K', category: 'Art & Culture' },
-  { name: 'Internal Security', emoji: '\uD83D\uDEE1\uFE0F', videos: 24, views: '98K', category: 'IR' },
-  { name: 'Current Affairs', emoji: '\uD83D\uDCF0', videos: 31, views: '186K', category: 'Current Affairs' },
-];
-
-const polityVideos = [
-  {
-    id: 1,
-    title: 'Introduction to Indian Constitution',
-    category: 'INDIAN POLITY',
-    categoryColor: '#1E40AF',
-    views: '3.2L',
-    date: '2 days ago',
-    hot: true,
-  },
-  {
-    id: 2,
-    title: 'Parliament — Structure & Functions',
-    category: 'INDIAN POLITY',
-    categoryColor: '#1E40AF',
-    views: '2.8L',
-    date: '5 days ago',
-    hot: true,
-  },
-  {
-    id: 3,
-    title: 'Judiciary — Supreme Court & High Courts',
-    category: 'INDIAN POLITY',
-    categoryColor: '#1E40AF',
-    views: '2.1L',
-    date: '1 week ago',
-    hot: true,
-  },
-];
-
-const stats = [
-  { number: '500', suffix: '+', label: 'Free Lectures' },
-  { number: '12', suffix: '+', label: 'Core Subjects' },
-  { number: '1L', suffix: '+', label: 'Subscribers' },
-  { number: '', suffix: '', label: 'Always Free', icon: '/infi.png' },
-];
+function subjectEmoji(name: string): string {
+  const lower = name.toLowerCase();
+  for (const [key, emoji] of Object.entries(SUBJECT_EMOJIS)) {
+    if (lower.includes(key)) return emoji;
+  }
+  return '📚';
+}
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -79,12 +27,52 @@ export default function VideoLecturesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showMentorModal, setShowMentorModal] = useState(false);
+  const [apiSubjects, setApiSubjects] = useState<any[]>([]);
+  const [apiStats, setApiStats] = useState<{ totalLectures: number; totalSubjects: number; totalHours: number } | null>(null);
+  const [apiVideos, setApiVideos] = useState<any[]>([]);
+  const [featuredSubjectName, setFeaturedSubjectName] = useState('');
+  const [mentorQuestion, setMentorQuestion] = useState('');
+  const [mentorSubmitting, setMentorSubmitting] = useState(false);
+  const [mentorSuccess, setMentorSuccess] = useState(false);
 
+  const categories = ['All Categories', ...apiSubjects.map(s => s.name)];
   const filteredSubjects = selectedCategory === null
     ? []
     : selectedCategory === 'All Categories'
-      ? subjectCards
-      : subjectCards.filter((s) => s.category === selectedCategory);
+      ? apiSubjects
+      : apiSubjects.filter(s => s.name === selectedCategory);
+
+  useEffect(() => {
+    videoService.getSubjects()
+      .then(res => {
+        if (res.data && Array.isArray(res.data)) {
+          setApiSubjects(res.data);
+          if (res.data.length > 0) {
+            const first = res.data[0];
+            setFeaturedSubjectName(first.name);
+            videoService.getVideosBySubject(first.name)
+              .then(vRes => { if (vRes.data) setApiVideos(vRes.data); })
+              .catch(() => {});
+          }
+        }
+      })
+      .catch(() => {});
+    videoService.getStats()
+      .then(res => { if (res.data) setApiStats(res.data); })
+      .catch(() => {});
+  }, []);
+
+  const handleAskMentor = async () => {
+    if (!mentorQuestion.trim() || mentorSubmitting) return;
+    setMentorSubmitting(true);
+    try {
+      await videoService.askMentor(mentorQuestion);
+      setMentorSuccess(true);
+      setMentorQuestion('');
+      setTimeout(() => setMentorSuccess(false), 3000);
+    } catch {}
+    setMentorSubmitting(false);
+  };
 
   return (
     <div
@@ -206,19 +194,22 @@ export default function VideoLecturesPage() {
             }}
           >
             <div className="flex items-center justify-between">
-              {stats.map((stat, idx) => (
+              {[
+                { number: apiStats?.totalLectures ?? '500', suffix: '+', label: 'Video Lectures' },
+                { number: apiStats?.totalSubjects ?? '12', suffix: null, label: 'Subjects Covered' },
+                { number: apiStats?.totalHours ?? '375', suffix: '+', label: 'Hours of Content' },
+              ].map((stat, idx, arr) => (
                 <React.Fragment key={stat.label}>
                   <div className="flex flex-col items-center" style={{ flex: 1 }}>
                     <div className="font-arimo font-bold flex items-center gap-1" style={{ fontSize: 'clamp(24px, 2.5vw, 34px)', color: '#162456', lineHeight: 1.2 }}>
                       {stat.number}
                       {stat.suffix && <span style={{ color: '#DBAC49' }}>{stat.suffix}</span>}
-                      {stat.icon && <img src={stat.icon} alt="icon" style={{ width: '88.40px', height: '40px', objectFit: 'contain', marginLeft: '2px' }} />}
                     </div>
                     <div className="font-arimo" style={{ fontSize: 'clamp(11px, 0.9vw, 13px)', color: '#6A7282', marginTop: '4px' }}>
                       {stat.label}
                     </div>
                   </div>
-                  {idx < stats.length - 1 && (
+                  {idx < arr.length - 1 && (
                     <div style={{ width: '1px', height: 'clamp(32px, 3vw, 44px)', background: '#E5E7EB' }} />
                   )}
                 </React.Fragment>
@@ -354,7 +345,7 @@ export default function VideoLecturesPage() {
                   }}
                 >
                   <div style={{ fontSize: 'clamp(28px, 3vw, 38px)', marginBottom: 'clamp(10px, 1vw, 14px)' }}>
-                    {subject.emoji}
+                    {subjectEmoji(subject.name)}
                   </div>
                   <div
                     className="font-arimo font-bold"
@@ -363,7 +354,7 @@ export default function VideoLecturesPage() {
                     {subject.name}
                   </div>
                   <div className="font-arimo" style={{ fontSize: 'clamp(10px, 0.9vw, 12px)', color: '#364153' }}>
-                    {subject.videos} videos &middot; {subject.views} Views
+                    {subject.videoCount ?? 0} videos
                   </div>
                 </div>
               ))}
@@ -492,189 +483,123 @@ export default function VideoLecturesPage() {
         </div>
 
         {/* ============================================================ */}
-        {/*  SECTION 5: POLITY SIMPLIFIED (VIDEO LIST)                    */}
+        {/*  SECTION 5: FEATURED VIDEOS                                  */}
         {/* ============================================================ */}
-        <div style={{ marginBottom: 'clamp(40px, 4vw, 60px)' }}>
-          {/* Header */}
-          <div style={{ marginBottom: 'clamp(6px, 0.6vw, 8px)' }}>
-            <div className="flex items-center gap-2" style={{ marginBottom: 'clamp(4px, 0.4vw, 6px)' }}>
-              <div
-                className="flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(135deg, #FF6900 0%, #FB2C36 100%)',
-                  borderRadius: '10px',
-                  width: 'clamp(32px, 2.8vw, 40px)',
-                  height: 'clamp(32px, 2.8vw, 40px)',
-                  flexShrink: 0,
-                }}
-              >
-                <span style={{ fontSize: 'clamp(18px, 1.6vw, 22px)' }}>{'\uD83C\uDFDB\uFE0F'}</span>
-              </div>
-              <h2
-                className="font-arimo font-bold"
-                style={{
-                  fontSize: 'clamp(20px, 1.88vw, 24px)',
-                  color: '#101828',
-                }}
-              >
-                Polity Simplified
-              </h2>
-            </div>
-            <p className="font-arimo" style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', color: '#4A5565', marginBottom: 'clamp(4px, 0.4vw, 6px)' }}>
-              {'\uD83D\uDCFA'} 5 Videos &middot; 15h+ 45 min
-            </p>
-            <p className="font-arimo" style={{ fontSize: 'clamp(13px, 1.12vw, 15px)', color: '#4A5565', marginBottom: 'clamp(20px, 2vw, 28px)' }}>
-              Complete Indian Polity &mdash; Constitution, Parliament, Judiciary, Centre-State Relations &amp; more.
-            </p>
-          </div>
-
-          {/* Video cards row */}
-          <div
-            className="flex"
-            style={{ gap: 'clamp(14px, 1.5vw, 20px)' }}
-          >
-            {polityVideos.map((video) => (
-              <div
-                key={video.id}
-                style={{
-                  flex: 1,
-                  background: '#FFFFFF',
-                  borderRadius: '14px',
-                  boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1)',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Image area */}
+        {apiVideos.length > 0 && (
+          <div style={{ marginBottom: 'clamp(40px, 4vw, 60px)' }}>
+            {/* Header */}
+            <div style={{ marginBottom: 'clamp(6px, 0.6vw, 8px)' }}>
+              <div className="flex items-center gap-2" style={{ marginBottom: 'clamp(4px, 0.4vw, 6px)' }}>
                 <div
                   className="flex items-center justify-center"
                   style={{
-                    background: '#EFF6FF',
-                    height: 'clamp(140px, 13vw, 180px)',
-                    position: 'relative',
+                    background: 'linear-gradient(135deg, #FF6900 0%, #FB2C36 100%)',
+                    borderRadius: '10px',
+                    width: 'clamp(32px, 2.8vw, 40px)',
+                    height: 'clamp(32px, 2.8vw, 40px)',
+                    flexShrink: 0,
                   }}
                 >
-                  <span style={{ fontSize: 'clamp(40px, 4vw, 56px)' }}>{'\uD83C\uDFDB\uFE0F'}</span>
-
-                  {/* HOT badge */}
-                  {video.hot && (
-                    <div
-                      className="flex items-center gap-1 font-arimo font-bold"
-                      style={{
-                        position: 'absolute',
-                        top: 'clamp(8px, 0.75vw, 12px)',
-                        left: 'clamp(8px, 0.75vw, 12px)',
-                        background: '#17223E',
-                        color: '#FFFFFF',
-                        borderRadius: '26843500px',
-                        padding: '4px 10px',
-                        fontSize: 'clamp(10px, 0.82vw, 12px)',
-                      }}
-                    >
-                      {'\uD83D\uDD25'} HOT
-                    </div>
-                  )}
+                  <span style={{ fontSize: 'clamp(18px, 1.6vw, 22px)' }}>{subjectEmoji(featuredSubjectName)}</span>
                 </div>
-
-                {/* Card content */}
-                <div style={{ padding: 'clamp(14px, 1.5vw, 20px)' }}>
-                  {/* Category label */}
-                  <div
-                    className="font-arimo font-bold"
-                    style={{
-                      fontSize: 'clamp(10px, 0.82vw, 12px)',
-                      color: video.categoryColor,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      marginBottom: 'clamp(6px, 0.6vw, 8px)',
-                    }}
-                  >
-                    {video.category}
-                  </div>
-
-                  {/* Title */}
-                  <h3
-                    className="font-arimo font-bold"
-                    style={{
-                      fontSize: 'clamp(14px, 1.2vw, 16px)',
-                      color: '#101828',
-                      marginBottom: 'clamp(8px, 0.75vw, 10px)',
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {video.title}
-                  </h3>
-
-                  {/* Stats */}
-                  <p
-                    className="font-arimo"
-                    style={{
-                      fontSize: 'clamp(11px, 0.9vw, 13px)',
-                      color: '#4A5565',
-                      marginBottom: 'clamp(12px, 1.2vw, 16px)',
-                    }}
-                  >
-                    {'\uD83D\uDC41\uFE0F'} {video.views} &middot; {'\uD83D\uDCC5'} {video.date}
-                  </p>
-
-                  {/* Action buttons */}
-                  <div className="flex items-center" style={{ gap: 'clamp(6px, 0.6vw, 8px)' }}>
-                    {/* PDF button */}
-                    <button
-                      onClick={() => setShowLoginModal(true)}
-                      className="flex items-center gap-1 font-arimo font-medium"
-                      style={{
-                        padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)',
-                        borderRadius: '10px',
-                        background: '#EFF6FF',
-                        border: '1px solid #101828',
-                        color: '#101828',
-                        fontSize: 'clamp(11px, 0.9vw, 13px)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <img src="/pdf.png" alt="pdf" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
-                      PDF
-                    </button>
-
-                    {/* Ask Mentor button */}
-                    <button
-                      onClick={() => setShowMentorModal(true)}
-                      className="flex items-center gap-1 font-arimo font-medium"
-                      style={{
-                        padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)',
-                        borderRadius: '10px',
-                        background: '#EFF6FF',
-                        border: '1px solid #101828',
-                        color: '#101828',
-                        fontSize: 'clamp(11px, 0.9vw, 13px)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <img src="/think.png" alt="ask mentor" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
-                      Ask Mentor
-                    </button>
-
-                    {/* Watch button */}
-                    <button
-                      className="flex items-center gap-1 font-arimo font-bold text-white"
-                      style={{
-                        padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)',
-                        borderRadius: '10px',
-                        background: '#162456',
-                        border: 'none',
-                        fontSize: 'clamp(11px, 0.9vw, 13px)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <img src="/yt.png" alt="watch" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
-                      Watch
-                    </button>
-                  </div>
-                </div>
+                <h2
+                  className="font-arimo font-bold"
+                  style={{ fontSize: 'clamp(20px, 1.88vw, 24px)', color: '#101828' }}
+                >
+                  {featuredSubjectName}
+                </h2>
               </div>
-            ))}
+              <p className="font-arimo" style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', color: '#4A5565', marginBottom: 'clamp(4px, 0.4vw, 6px)' }}>
+                {'\uD83D\uDCFA'} {apiVideos.length} Video{apiVideos.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+
+            {/* Video cards row */}
+            <div className="flex" style={{ gap: 'clamp(14px, 1.5vw, 20px)' }}>
+              {apiVideos.slice(0, 4).map((video) => (
+                <div
+                  key={video.id}
+                  style={{
+                    flex: 1,
+                    background: '#FFFFFF',
+                    borderRadius: '14px',
+                    boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Thumbnail or placeholder */}
+                  <div
+                    className="flex items-center justify-center"
+                    style={{ background: '#EFF6FF', height: 'clamp(140px, 13vw, 180px)', position: 'relative' }}
+                  >
+                    {video.thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={video.thumbnailUrl} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <span style={{ fontSize: 'clamp(40px, 4vw, 56px)' }}>{subjectEmoji(featuredSubjectName)}</span>
+                    )}
+                  </div>
+
+                  {/* Card content */}
+                  <div style={{ padding: 'clamp(14px, 1.5vw, 20px)' }}>
+                    <h3
+                      className="font-arimo font-bold"
+                      style={{ fontSize: 'clamp(14px, 1.2vw, 16px)', color: '#101828', marginBottom: 'clamp(8px, 0.75vw, 10px)', lineHeight: 1.3 }}
+                    >
+                      {video.title}
+                    </h3>
+
+                    {video.instructor && (
+                      <p className="font-arimo" style={{ fontSize: 'clamp(11px, 0.9vw, 13px)', color: '#4A5565', marginBottom: 'clamp(12px, 1.2vw, 16px)' }}>
+                        {video.instructor}{video.duration ? ` · ${video.duration}` : ''}
+                      </p>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex items-center" style={{ gap: 'clamp(6px, 0.6vw, 8px)' }}>
+                      <button
+                        onClick={() => setShowLoginModal(true)}
+                        className="flex items-center gap-1 font-arimo font-medium"
+                        style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#EFF6FF', border: '1px solid #101828', color: '#101828', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
+                      >
+                        <img src="/pdf.png" alt="pdf" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                        PDF
+                      </button>
+                      <button
+                        onClick={() => setShowMentorModal(true)}
+                        className="flex items-center gap-1 font-arimo font-medium"
+                        style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#EFF6FF', border: '1px solid #101828', color: '#101828', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
+                      >
+                        <img src="/think.png" alt="ask mentor" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                        Ask Mentor
+                      </button>
+                      {video.videoUrl ? (
+                        <a
+                          href={video.videoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 font-arimo font-bold text-white"
+                          style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#162456', fontSize: 'clamp(11px, 0.9vw, 13px)', textDecoration: 'none' }}
+                        >
+                          <img src="/yt.png" alt="watch" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                          Watch
+                        </a>
+                      ) : (
+                        <button
+                          className="flex items-center gap-1 font-arimo font-bold text-white"
+                          style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#162456', border: 'none', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
+                        >
+                          <img src="/yt.png" alt="watch" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                          Watch
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ============================================================ */}
         {/*  SECTION 6: ASK MENTOR CARD ONLY                             */}
@@ -821,6 +746,124 @@ export default function VideoLecturesPage() {
               <span className="font-arimo" style={{ fontSize: '13px', color: '#1E40AF', cursor: 'pointer' }}>New? Create free account &rarr;</span>
               <span className="font-arimo" style={{ fontSize: '13px', color: '#6A7282', cursor: 'pointer' }}>🌐 Forgot?</span>
             </div>
+          </div>
+
+          {/* ── Ask the Mentor Card (offset down) ── */}
+          <div
+            style={{
+              flex: 1,
+              background: '#FFFFFF',
+              borderRadius: '24px',
+              border: '1.6px solid #6A7282',
+              padding: 'clamp(20px, 2.51vw, 33px)',
+              marginTop: 'clamp(100px, 12.33vw, 165px)',
+            }}
+          >
+            {/* Top row: emoji + close */}
+            <div className="flex items-center justify-between" style={{ marginBottom: 'clamp(12px, 1.2vw, 16px)' }}>
+              <span style={{ fontSize: 'clamp(28px, 2.8vw, 38px)' }}>{'\uD83E\uDD14'}</span>
+              <button
+                className="flex items-center justify-center"
+                style={{
+                  width: 'clamp(26px, 2.2vw, 30px)',
+                  height: 'clamp(26px, 2.2vw, 30px)',
+                  borderRadius: '50%',
+                  background: '#F3F4F6',
+                  border: 'none',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="#4A5565" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Heading */}
+            <h3
+              className="font-arimo font-bold"
+              style={{ fontSize: 'clamp(20px, 2.09vw, 28px)', color: '#101828', lineHeight: 1.2, marginBottom: 'clamp(6px, 0.6vw, 8px)' }}
+            >
+              Ask the Mentor
+            </h3>
+
+            <p className="font-arimo" style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', color: '#4A5565', marginBottom: 'clamp(18px, 1.8vw, 24px)', lineHeight: 1.5 }}>
+              Have any doubt about <strong>Introduction to Indian Constitution I Historical Background</strong>...Jeet Sir responds within 24 hours.
+            </p>
+
+            {/* Your doubt or question */}
+            <p className="font-arimo font-bold" style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', color: '#101828', marginBottom: 'clamp(6px, 0.6vw, 8px)' }}>
+              Your doubt or question
+            </p>
+            <textarea
+              placeholder="e.g. At 18:32, I didn't understand why Article 370 had was mentioned u..."
+              className="w-full font-arimo outline-none resize-none"
+              value={mentorQuestion}
+              onChange={(e) => setMentorQuestion(e.target.value)}
+              style={{
+                height: 'clamp(90px, 8.61vw, 115px)',
+                borderRadius: '14px',
+                border: '1.6px solid #D1D5DC',
+                padding: '16px',
+                fontSize: 'clamp(13px, 1.12vw, 15px)',
+                color: '#0A0A0A',
+                background: '#FFFFFF',
+                marginBottom: 'clamp(12px, 1.2vw, 16px)',
+              }}
+            />
+
+            {/* Your name (optional) */}
+            <p className="font-arimo font-bold" style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', color: '#101828', marginBottom: 'clamp(6px, 0.6vw, 8px)' }}>
+              Your name (optional)
+            </p>
+            <input
+              type="text"
+              placeholder="e.g. Rahul from Delhi"
+              className="w-full font-arimo outline-none"
+              style={{
+                height: 'clamp(44px, 4.12vw, 55px)',
+                borderRadius: '14px',
+                border: '1.6px solid #D1D5DC',
+                padding: '0 16px',
+                fontSize: 'clamp(13px, 1.12vw, 15px)',
+                color: '#0A0A0A',
+                background: '#FFFFFF',
+                marginBottom: 'clamp(14px, 1.5vw, 20px)',
+              }}
+            />
+
+            {/* Submit Doubt button */}
+            <button
+              onClick={handleAskMentor}
+              disabled={mentorSubmitting || !mentorQuestion.trim()}
+              className="w-full flex items-center justify-center gap-2 font-arimo font-bold text-white"
+              style={{
+                height: 'clamp(48px, 4.48vw, 60px)',
+                borderRadius: '14px',
+                background: mentorSubmitting ? '#6A7282' : '#101828',
+                fontSize: 'clamp(13px, 1.12vw, 15px)',
+                border: 'none',
+                cursor: mentorSubmitting ? 'not-allowed' : 'pointer',
+                marginBottom: 'clamp(12px, 1.2vw, 16px)',
+                opacity: !mentorQuestion.trim() ? 0.5 : 1,
+              }}
+            >
+              {mentorSubmitting ? 'Submitting...' : 'Submit Doubt →'}
+            </button>
+
+            {mentorSuccess && (
+              <p className="font-arimo text-center" style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', color: '#16A34A', marginBottom: 'clamp(8px, 0.8vw, 10px)' }}>
+                Your doubt has been submitted! Jeet Sir will respond within 24 hours.
+              </p>
+            )}
+
+            <p className="font-arimo text-center" style={{ fontSize: 'clamp(11px, 0.9vw, 13px)', color: '#6A7282' }}>
+              Answers posted on{' '}
+              <span style={{ color: '#E7000B', fontWeight: 600, cursor: 'pointer' }}>YouTube Community</span>
+              {' '}&amp;{' '}
+              <span style={{ color: '#1E40AF', fontWeight: 600, cursor: 'pointer' }}>Telegram</span>
+            </p>
           </div>
         </div>
       )}

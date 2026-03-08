@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { pricingService } from '@/lib/services';
 
 /* ------------------------------------------------------------------ */
 /*  Data                                                               */
@@ -35,73 +36,32 @@ const mentorStats = [
   { value: '3 yrs', label: 'TEACHING' },
 ];
 
-const pricingPlans = [
-  {
-    name: 'Foundation Plan',
-    emoji: '🚀',
-    subtitle: 'If your test is 12+ months away',
-    price: '₹4,999',
-    period: '/per month',
-    tagColor: '#155DFC',
-    tagBg: '#DBEAFE',
-    tags: ['All materials', 'Flexible Pace', 'No Coaching'],
-    features: [
-      { text: '4 sessions/month', subtext: 'One per week', badge: 'Core' },
-      { text: 'WhatsApp access', subtext: '48hr response', badge: 'Core' },
-      { text: 'Monthly study plan', subtext: 'Tailored to you', badge: 'Core' },
-      { text: 'Full resource access', subtext: 'PDFs & guides', badge: 'Core' },
-      { text: 'Monthly progress review', subtext: null, badge: null },
-    ],
-    cta: 'Get Started → ₹4,999/mo →',
-    ctaStyle: 'dark' as const,
-    highlight: false,
-    note: null,
-  },
-  {
-    name: 'Serious Attempt',
-    emoji: '🔥',
-    subtitle: 'If test is 6–12 months away',
-    price: '₹8,999',
-    period: '/per month',
-    tagColor: '#C68A0B',
-    tagBg: '#FEF3C7',
-    tags: ['Answer + Mocks', 'Answer Writing', 'Mock Feedback'],
-    features: [
-      { text: '8 sessions/month', subtext: 'Twice each week', badge: 'Core' },
-      { text: 'Answer writing reviews', subtext: 'Detailed, fast', badge: '2x/wk' },
-      { text: 'Mock test debriefs', subtext: 'After each mock', badge: '2x/mo' },
-      { text: 'Priority WhatsApp', subtext: '24hr max reply', badge: null },
-      { text: 'Fortnightly study plans', subtext: null, badge: 'Core' },
-      { text: 'Full resource access', subtext: null, badge: 'Done' },
-    ],
-    cta: 'Enrol Now → ₹8,999/mo →',
-    ctaStyle: 'gold' as const,
-    highlight: true,
-    note: 'Limited to 8 slots @ June batch',
-  },
-  {
-    name: 'Final Mile',
-    emoji: '🏆',
-    subtitle: 'Interview & revision · highest intensity',
-    price: '₹14,999',
-    period: '/per month',
-    tagColor: '#155DFC',
-    tagBg: '#DBEAFE',
-    tags: ['DAF Analysis', 'Mock Interview', '24/7 Access'],
-    features: [
-      { text: '12 sessions/month', subtext: '3 per week', badge: '3x/wk' },
-      { text: 'Unlimited answer reviews', subtext: 'Fast', badge: '24-48h' },
-      { text: 'Mock interview sessions', subtext: 'Tailored', badge: '2x/mo' },
-      { text: 'DAF analysis', subtext: '+ topic cards', badge: null },
-      { text: '24/7 WhatsApp access', subtext: null, badge: 'Instant' },
-      { text: 'Confidence coaching', subtext: 'Mental', badge: 'Daily' },
-    ],
-    cta: 'Enrol Now → ₹14,999/mo →',
-    ctaStyle: 'dark' as const,
-    highlight: false,
-    note: 'Spots close in free-call queue',
-  },
+const PLAN_EMOJIS = ['🚀', '🔥', '🏆'];
+const PLAN_STYLES = [
+  { tagColor: '#155DFC', tagBg: '#DBEAFE', ctaStyle: 'dark' as const },
+  { tagColor: '#C68A0B', tagBg: '#FEF3C7', ctaStyle: 'gold' as const },
+  { tagColor: '#155DFC', tagBg: '#DBEAFE', ctaStyle: 'dark' as const },
 ];
+
+function transformPlan(plan: any, index: number) {
+  const style = PLAN_STYLES[index] ?? PLAN_STYLES[0];
+  const priceNum = Number(plan.price);
+  return {
+    name: plan.name,
+    emoji: PLAN_EMOJIS[index] ?? '✨',
+    subtitle: plan.duration,
+    price: `₹${priceNum.toLocaleString('en-IN')}`,
+    period: '/per month',
+    tagColor: plan.isPopular ? '#C68A0B' : style.tagColor,
+    tagBg: plan.isPopular ? '#FEF3C7' : style.tagBg,
+    tags: (plan.features ?? []).slice(0, 3),
+    features: (plan.features ?? []).map((f: string) => ({ text: f, subtext: null, badge: null })),
+    cta: `Get Started → ₹${priceNum.toLocaleString('en-IN')} →`,
+    ctaStyle: plan.isPopular ? 'gold' as const : style.ctaStyle,
+    highlight: plan.isPopular ?? false,
+    note: null,
+  };
+}
 
 const whyFeatures = [
   {
@@ -136,29 +96,18 @@ const whyFeatures = [
   },
 ];
 
-const testimonials = [
-  {
-    initials: 'PR',
-    name: 'Priya Rajan',
-    credential: 'UPSC Prelims 2024 · Delhi · Foundation',
-    quote: 'Jeet Sir didn\'t just give me a study plan — he rewired how I approach the exam. His weekly calls kept me accountable when I wanted to quit. Cleared Prelims on my first attempt.',
-    color: '#155DFC',
-  },
-  {
-    initials: 'AK',
-    name: 'Ankit Kumar',
-    credential: 'UPSC Mains 2024 · Bihar · Serious Attempt',
-    quote: 'The answer writing feedback alone was worth 10x the fee. He\'d mark every paragraph and show me exactly where I was losing marks. My Mains score jumped 80+ marks in 3 months.',
-    color: '#C68A0B',
-  },
-  {
-    initials: 'SM',
-    name: 'Sneha Mishra',
-    credential: 'UPSC Interview 2024 · MP · Final Mile',
-    quote: 'I was terrified of the interview board. Jeet Sir ran 6 mock sessions, tore apart my DAF, and rebuilt my confidence. I walked in calm and walked out knowing I\'d done my best.',
-    color: '#16A34A',
-  },
-];
+const TESTIMONIAL_COLORS = ['#155DFC', '#C68A0B', '#16A34A', '#8B5CF6', '#EF4444'];
+
+function transformTestimonial(t: any, index: number) {
+  const initials = t.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+  return {
+    initials,
+    name: t.name,
+    credential: t.title,
+    quote: t.content,
+    color: TESTIMONIAL_COLORS[index % TESTIMONIAL_COLORS.length],
+  };
+}
 
 const faqItems = [
   {
@@ -189,6 +138,63 @@ const faqItems = [
 
 export default function FreeTrialPage() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  /* ---- API-backed state ---- */
+  const [apiPlans, setApiPlans] = useState<any[] | null>(null);
+  const [apiTestimonials, setApiTestimonials] = useState<any[] | null>(null);
+
+  /* ---- Booking modal state ---- */
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [bookingName, setBookingName] = useState('');
+  const [bookingEmail, setBookingEmail] = useState('');
+  const [bookingPhone, setBookingPhone] = useState('');
+  const [bookingMessage, setBookingMessage] = useState('');
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingError, setBookingError] = useState('');
+
+  /* ---- Fetch plans & testimonials on mount ---- */
+  useEffect(() => {
+    pricingService.getPlans()
+      .then((res: any) => {
+        const plans = res?.data ?? [];
+        setApiPlans(Array.isArray(plans) ? plans : []);
+      })
+      .catch(() => setApiPlans([]));
+
+    pricingService.getTestimonials()
+      .then((res: any) => {
+        const items = res?.data ?? [];
+        setApiTestimonials(Array.isArray(items) ? items : []);
+      })
+      .catch(() => setApiTestimonials([]));
+  }, []);
+
+  /* ---- Booking handler ---- */
+  const handleBookCall = async () => {
+    if (!bookingName.trim() || !bookingEmail.trim()) {
+      setBookingError('Please provide your name and email.');
+      return;
+    }
+    setBookingSubmitting(true);
+    setBookingError('');
+    try {
+      await pricingService.bookCall({
+        name: bookingName.trim(),
+        email: bookingEmail.trim(),
+        phone: bookingPhone.trim() || undefined,
+        message: bookingMessage.trim() || undefined,
+      });
+      setBookingSuccess(true);
+    } catch (err: any) {
+      setBookingError(err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setBookingSubmitting(false);
+    }
+  };
+
+  const displayPlans = (apiPlans ?? []).map(transformPlan);
+  const displayTestimonials = (apiTestimonials ?? []).map(transformTestimonial);
 
   return (
     <div style={{ background: '#F9FAFB', minHeight: '100vh' }}>
@@ -594,6 +600,15 @@ export default function FreeTrialPage() {
           </p>
 
           {/* 3-col flex */}
+          {apiPlans === null ? (
+            <div style={{ display: 'flex', gap: 'clamp(16px, 1.5vw, 24px)', justifyContent: 'center' }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{ flex: '1 1 280px', height: '480px', background: '#F3F4F6', borderRadius: '24px', animation: 'pulse 1.5s infinite' }} />
+              ))}
+            </div>
+          ) : displayPlans.length === 0 ? (
+            <p className="font-arimo text-center text-[#6B7280] py-12">No pricing plans available yet.</p>
+          ) : (
           <div
             style={{
               display: 'flex',
@@ -602,7 +617,7 @@ export default function FreeTrialPage() {
               alignItems: 'stretch',
             }}
           >
-            {pricingPlans.map((plan) => (
+            {displayPlans.map((plan) => (
               <div
                 key={plan.name}
                 style={{
@@ -681,7 +696,7 @@ export default function FreeTrialPage() {
 
                 {/* Tags */}
                 <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '6px', marginBottom: 'clamp(18px, 1.4vw, 24px)' }}>
-                  {plan.tags.map((tag) => (
+                  {plan.tags.map((tag: string) => (
                     <span
                       key={tag}
                       style={{
@@ -704,7 +719,7 @@ export default function FreeTrialPage() {
 
                 {/* Features */}
                 <div style={{ flex: 1, marginBottom: 'clamp(20px, 1.5vw, 28px)' }}>
-                  {plan.features.map((feat) => (
+                  {plan.features.map((feat: any) => (
                     <div
                       key={feat.text}
                       style={{
@@ -794,6 +809,7 @@ export default function FreeTrialPage() {
               </div>
             ))}
           </div>
+          )}
 
           {/* Below pricing: links */}
           <div
@@ -832,6 +848,7 @@ export default function FreeTrialPage() {
               Compare All Plans →
             </button>
             <button
+              onClick={() => { setBookingSuccess(false); setBookingError(''); setShowBookingModal(true); }}
               style={{
                 padding: 'clamp(8px, 0.6vw, 10px) clamp(16px, 1.2vw, 22px)',
                 borderRadius: '10px',
@@ -1030,7 +1047,7 @@ export default function FreeTrialPage() {
               gap: 'clamp(16px, 1.5vw, 24px)',
             }}
           >
-            {testimonials.map((t) => (
+            {displayTestimonials.map((t) => (
               <div
                 key={t.initials}
                 style={{
@@ -1148,6 +1165,7 @@ export default function FreeTrialPage() {
               {/* Buttons */}
               <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 'clamp(8px, 0.8vw, 12px)' }}>
                 <button
+                  onClick={() => { setBookingSuccess(false); setBookingError(''); setShowBookingModal(true); }}
                   style={{
                     padding: 'clamp(12px, 1vw, 16px) clamp(20px, 1.8vw, 28px)',
                     borderRadius: '12px',
@@ -1322,6 +1340,275 @@ export default function FreeTrialPage() {
         </section>
 
       </div>
+
+      {/* ================================================================ */}
+      {/*  BOOKING MODAL                                                    */}
+      {/* ================================================================ */}
+      {showBookingModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(4px)',
+          }}
+          onClick={() => setShowBookingModal(false)}
+        >
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: '20px',
+              padding: 'clamp(28px, 3vw, 40px)',
+              width: '100%',
+              maxWidth: '460px',
+              margin: '16px',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+              position: 'relative',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowBookingModal(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'none',
+                border: 'none',
+                fontSize: '20px',
+                color: '#6A7282',
+                cursor: 'pointer',
+                lineHeight: 1,
+              }}
+            >
+              ×
+            </button>
+
+            {bookingSuccess ? (
+              /* ---- Success state ---- */
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
+                <h3
+                  style={{ fontSize: '22px', fontWeight: 700, color: '#101828', marginBottom: '8px' }}
+                  className="font-arimo"
+                >
+                  Call Booked!
+                </h3>
+                <p
+                  style={{ fontSize: '15px', color: '#4A5565', lineHeight: 1.6, marginBottom: '24px' }}
+                  className="font-arimo"
+                >
+                  We&apos;ll reach out to you shortly to confirm your free discovery call with Jeet Sir.
+                </p>
+                <button
+                  onClick={() => setShowBookingModal(false)}
+                  style={{
+                    padding: '12px 32px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: '#101828',
+                    color: '#FFFFFF',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                  className="font-arimo"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              /* ---- Form state ---- */
+              <>
+                <h3
+                  style={{
+                    fontSize: 'clamp(20px, 1.6vw, 24px)',
+                    fontWeight: 700,
+                    color: '#101828',
+                    marginBottom: '4px',
+                  }}
+                  className="font-arimo"
+                >
+                  🤙 Book Your Free Discovery Call
+                </h3>
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: '#6A7282',
+                    marginBottom: 'clamp(20px, 2vw, 28px)',
+                    lineHeight: 1.5,
+                  }}
+                  className="font-arimo"
+                >
+                  20-minute call with Jeet Sir — no commitment, no hard sell.
+                </p>
+
+                {/* Name */}
+                <label
+                  style={{ display: 'block', marginBottom: '14px' }}
+                  className="font-arimo"
+                >
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>
+                    Full Name <span style={{ color: '#EF4444' }}>*</span>
+                  </span>
+                  <input
+                    type="text"
+                    value={bookingName}
+                    onChange={(e) => setBookingName(e.target.value)}
+                    placeholder="e.g. Priya Rajan"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #E5E7EB',
+                      fontSize: '14px',
+                      color: '#101828',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </label>
+
+                {/* Email */}
+                <label
+                  style={{ display: 'block', marginBottom: '14px' }}
+                  className="font-arimo"
+                >
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>
+                    Email <span style={{ color: '#EF4444' }}>*</span>
+                  </span>
+                  <input
+                    type="email"
+                    value={bookingEmail}
+                    onChange={(e) => setBookingEmail(e.target.value)}
+                    placeholder="e.g. priya@gmail.com"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #E5E7EB',
+                      fontSize: '14px',
+                      color: '#101828',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </label>
+
+                {/* Phone (optional) */}
+                <label
+                  style={{ display: 'block', marginBottom: '14px' }}
+                  className="font-arimo"
+                >
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>
+                    Phone <span style={{ fontSize: '11px', color: '#9CA3AF', fontWeight: 400 }}>(optional)</span>
+                  </span>
+                  <input
+                    type="tel"
+                    value={bookingPhone}
+                    onChange={(e) => setBookingPhone(e.target.value)}
+                    placeholder="e.g. 9876543210"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #E5E7EB',
+                      fontSize: '14px',
+                      color: '#101828',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </label>
+
+                {/* Message (optional) */}
+                <label
+                  style={{ display: 'block', marginBottom: '20px' }}
+                  className="font-arimo"
+                >
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>
+                    Message <span style={{ fontSize: '11px', color: '#9CA3AF', fontWeight: 400 }}>(optional)</span>
+                  </span>
+                  <textarea
+                    value={bookingMessage}
+                    onChange={(e) => setBookingMessage(e.target.value)}
+                    placeholder="Any specific questions or your current preparation stage..."
+                    rows={3}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #E5E7EB',
+                      fontSize: '14px',
+                      color: '#101828',
+                      outline: 'none',
+                      resize: 'vertical',
+                      boxSizing: 'border-box',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                </label>
+
+                {/* Error message */}
+                {bookingError && (
+                  <div
+                    style={{
+                      background: '#FEF2F2',
+                      border: '1px solid #FECACA',
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                      fontSize: '13px',
+                      color: '#DC2626',
+                      marginBottom: '16px',
+                    }}
+                    className="font-arimo"
+                  >
+                    {bookingError}
+                  </div>
+                )}
+
+                {/* Submit button */}
+                <button
+                  onClick={handleBookCall}
+                  disabled={bookingSubmitting}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: bookingSubmitting ? '#9CA3AF' : '#101828',
+                    color: '#FFFFFF',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    cursor: bookingSubmitting ? 'not-allowed' : 'pointer',
+                    transition: 'background 0.2s ease',
+                  }}
+                  className="font-arimo"
+                >
+                  {bookingSubmitting ? 'Booking...' : 'Book Free Call'}
+                </button>
+
+                <p
+                  style={{
+                    textAlign: 'center',
+                    fontSize: '12px',
+                    color: '#9CA3AF',
+                    marginTop: '12px',
+                  }}
+                  className="font-arimo"
+                >
+                  100% free · No commitment · We&apos;ll confirm via email
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

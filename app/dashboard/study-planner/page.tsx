@@ -1,6 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { studyPlannerService } from '@/lib/services';
+
+interface Task {
+  id: string;
+  title: string;
+  subject?: string;
+  type: string;
+  startTime?: string;
+  endTime?: string;
+  isCompleted: boolean;
+}
 
 export default function StudyPlannerPage() {
   const [taskTitle, setTaskTitle] = useState('');
@@ -8,7 +19,82 @@ export default function StudyPlannerPage() {
   const [studyType, setStudyType] = useState('');
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 10));
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [streakDays, setStreakDays] = useState(0);
+  const [longestStreak, setLongestStreak] = useState(0);
+  const [weeklyStudied, setWeeklyStudied] = useState<number | null>(null);
+  const [weeklyTarget, setWeeklyTarget] = useState<number | null>(null);
+  const [syllabusCoverage, setSyllabusCoverage] = useState<{ subject: string; percentage: number }[]>([]);
+  const [weeklyGoals, setWeeklyGoals] = useState<{ title: string; completed: boolean }[]>([]);
+  const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    studyPlannerService.getTodayTasks()
+      .then(res => { if (res.data) setTasks(res.data); })
+      .catch(() => {});
+    studyPlannerService.getStreak()
+      .then(res => {
+        if (res.data) {
+          setStreakDays(res.data.currentStreak || 0);
+          setLongestStreak(res.data.longestStreak || 0);
+          if (res.data.weeklyStudied !== undefined) setWeeklyStudied(res.data.weeklyStudied);
+          if (res.data.weeklyTarget !== undefined) setWeeklyTarget(res.data.weeklyTarget);
+        }
+      })
+      .catch(() => {});
+    studyPlannerService.getSyllabusCoverage()
+      .then(res => {
+        if (res.data && Array.isArray(res.data)) {
+          setSyllabusCoverage(res.data);
+        } else if (res.data?.subjects && Array.isArray(res.data.subjects)) {
+          setSyllabusCoverage(res.data.subjects);
+        }
+      })
+      .catch(() => {});
+    studyPlannerService.getWeeklyGoals()
+      .then(res => {
+        if (res.data && Array.isArray(res.data)) {
+          setWeeklyGoals(res.data);
+        } else if (res.data?.goals && Array.isArray(res.data.goals)) {
+          setWeeklyGoals(res.data.goals);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleAddTask = async () => {
+    if (!taskTitle.trim()) return;
+    setAdding(true);
+    try {
+      const res = await studyPlannerService.createTask({
+        title: taskTitle,
+        subject: taskSubject || undefined,
+        type: studyType || 'study',
+        startTime,
+        endTime,
+      });
+      if (res.data) setTasks(prev => [...prev, res.data]);
+      setTaskTitle('');
+      setTaskSubject('');
+      setStudyType('');
+    } catch {}
+    setAdding(false);
+  };
+
+  const handleToggleTask = async (id: string, completed: boolean) => {
+    try {
+      await studyPlannerService.updateTask(id, { isCompleted: !completed });
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, isCompleted: !completed } : t));
+    } catch {}
+  };
+
+  const handleDeleteTask = async (id: string) => {
+    try {
+      await studyPlannerService.deleteTask(id);
+      setTasks(prev => prev.filter(t => t.id !== id));
+    } catch {}
+  };
 
   const formatDate = (date: Date) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -19,19 +105,17 @@ export default function StudyPlannerPage() {
   const prevDay = () => { const d = new Date(currentDate); d.setDate(d.getDate() - 1); setCurrentDate(d); };
   const nextDay = () => { const d = new Date(currentDate); d.setDate(d.getDate() + 1); setCurrentDate(d); };
 
-  const calendarDays = [
-    { day: 24, current: false }, { day: 25, current: false }, { day: 26, current: false },
-    { day: 27, current: false }, { day: 28, current: false }, { day: 1, current: true, active: true },
-    { day: 2, current: true, active: true },
-    { day: 3, current: true, active: true }, { day: 4, current: true, active: true },
-    { day: 5, current: true, active: true }, { day: 6, current: true, active: true },
-    { day: 7, current: true, active: true }, { day: 8, current: true, active: true },
-    { day: 9, current: true, active: true },
-    { day: 10, current: true, active: true }, { day: 11, current: true, active: true },
-    { day: 12, current: true, active: true }, { day: 13, current: true, active: true },
-    { day: 14, current: true, active: true }, { day: 15, current: true, active: true, today: true },
-    { day: 16, current: true, active: false },
-  ];
+  // Generate calendar days dynamically for the current month
+  const today = new Date();
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const todayNum = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear()
+    ? today.getDate() : -1;
+  const calendarDays = Array.from({ length: Math.min(16, daysInMonth) }, (_, i) => ({
+    day: i + 1,
+    current: true,
+    active: i + 1 <= (todayNum > 0 ? todayNum : daysInMonth),
+    today: i + 1 === todayNum,
+  }));
 
   const studyTypes = [
     { id: 'video', label: 'Video Lectures', icon: '/study-type-video.png' },
@@ -63,6 +147,32 @@ export default function StudyPlannerPage() {
     '22:00', '22:30', '23:00',
   ];
 
+  // Compute total study time from tasks that have start/end times
+  const totalStudyMinutes = tasks.reduce((sum, task) => {
+    if (task.startTime && task.endTime) {
+      const [sh, sm] = task.startTime.split(':').map(Number);
+      const [eh, em] = task.endTime.split(':').map(Number);
+      const diff = (eh * 60 + em) - (sh * 60 + sm);
+      return sum + (diff > 0 ? diff : 0);
+    }
+    return sum;
+  }, 0);
+  const totalStudyHours = Math.floor(totalStudyMinutes / 60);
+  const totalStudyMins = totalStudyMinutes % 60;
+  const totalStudyLabel = totalStudyMinutes > 0
+    ? `Total Study Time: ${totalStudyMinutes} minutes (${totalStudyHours}h ${totalStudyMins}m)`
+    : 'Total Study Time: —';
+
+  // Dynamic month/year display for calendar header
+  const calendarMonthYear = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  // Weekly streak display
+  const weeklyStreakLabel = weeklyStudied !== null && weeklyTarget !== null
+    ? `${weeklyStudied}/${weeklyTarget} This Week`
+    : weeklyStudied !== null
+    ? `${weeklyStudied} days this week`
+    : null;
+
   return (
     <div className="flex flex-col bg-gray-50 overflow-x-hidden" style={{ height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
       <div className="flex-1 overflow-y-auto">
@@ -88,20 +198,20 @@ export default function StudyPlannerPage() {
                 Study Streak
               </p>
               <h2 className="font-arimo font-bold" style={{ fontSize: '48px', lineHeight: '48px', letterSpacing: '0px', color: '#312C85', marginBottom: '8px' }}>
-                33 Days
+                {streakDays} Days
               </h2>
-              <div className="flex items-center" style={{ gap: '6px', marginBottom: '4px' }}>
+                <div className="flex items-center" style={{ gap: '6px', marginBottom: '4px' }}>
                 <img src="/fire-icon.png" alt="Fire" style={{ width: '16px', height: '20px' }} />
                 <span className="font-arimo font-bold" style={{ fontSize: '16px', lineHeight: '24px', letterSpacing: '0px', color: '#00BC7D' }}>
-                  6/7 This Week
+                  {weeklyStreakLabel || '—'}
                 </span>
               </div>
               <p className="font-arimo" style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 400, letterSpacing: '0px', color: '#6A7282', marginBottom: '24px' }}>
-                Longest: 42 Days
+                Longest: {longestStreak} Days
               </p>
 
               <p className="font-arimo font-bold" style={{ fontSize: '16px', lineHeight: '24px', letterSpacing: '0px', color: '#101828', marginBottom: '12px' }}>
-                March 2025
+                {calendarMonthYear}
               </p>
 
               <div className="grid grid-cols-7" style={{ marginBottom: '10px' }}>
@@ -473,13 +583,15 @@ export default function StudyPlannerPage() {
 
                   {/* Add to Plan Button */}
                   <button
-                    className="flex items-center justify-center gap-2 font-arimo font-bold text-white hover:opacity-90 transition-opacity w-full"
+                    onClick={handleAddTask}
+                    disabled={adding || !taskTitle.trim()}
+                    className="flex items-center justify-center gap-2 font-arimo font-bold text-white hover:opacity-90 transition-opacity w-full disabled:opacity-50"
                     style={{ height: '48px', borderRadius: '10px', background: '#17223E', fontSize: '16px' }}
                   >
                     <svg style={{ width: '18px', height: '18px' }} viewBox="0 0 24 24" fill="none">
                       <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
                     </svg>
-                    Add to Today&apos;s Plan
+                    {adding ? 'Adding...' : "Add to Today's Plan"}
                   </button>
                 </div>
               </div>
@@ -498,7 +610,8 @@ export default function StudyPlannerPage() {
                   padding: '24px',
                 }}
               >
-                {/* Empty State - dashed border container */}
+                {/* Tasks List or Empty State */}
+                {tasks.length === 0 ? (
                 <div
                   className="flex-1 flex flex-col items-center justify-center text-center"
                   style={{
@@ -520,6 +633,27 @@ export default function StudyPlannerPage() {
                     Add study tasks to build your<br />personalized schedule
                   </p>
                 </div>
+                ) : (
+                <div className="flex-1 overflow-y-auto" style={{ maxHeight: '477px' }}>
+                  <div className="space-y-3">
+                    {tasks.map(task => (
+                      <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-white">
+                        <button onClick={() => handleToggleTask(task.id, task.isCompleted)}
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${task.isCompleted ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>
+                          {task.isCompleted && <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-arimo font-bold text-sm ${task.isCompleted ? 'line-through text-gray-400' : 'text-gray-900'}`}>{task.title}</p>
+                          {task.startTime && <p className="font-arimo text-xs text-gray-500">{task.startTime} - {task.endTime || ''}</p>}
+                        </div>
+                        <button onClick={() => handleDeleteTask(task.id)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                )}
 
                 {/* Bottom Stats */}
                 <div style={{ paddingTop: '16px' }}>
@@ -536,7 +670,7 @@ export default function StudyPlannerPage() {
                       marginBottom: '10px',
                     }}
                   >
-                    Total Study Time: 180 minutes (3h 0m)
+                    {totalStudyLabel}
                   </div>
 
                   {/* Start Focus Session */}
@@ -575,38 +709,23 @@ export default function StudyPlannerPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {/* History */}
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                       <span className="font-arimo text-[#101828]" style={{ fontSize: '13px' }}>History</span>
-                       <span className="font-arimo font-bold text-[#101828]" style={{ fontSize: '13px' }}>78%</span>
-                    </div>
-                    <div className="w-full bg-[#E5E7EB] rounded-full h-2">
-                      <div className="bg-[#17223E] h-2 rounded-full" style={{ width: '78%' }}></div>
-                    </div>
-                  </div>
-
-                  {/* Polity */}
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                       <span className="font-arimo text-[#101828]" style={{ fontSize: '13px' }}>Polity</span>
-                       <span className="font-arimo font-bold text-[#101828]" style={{ fontSize: '13px' }}>85%</span>
-                    </div>
-                    <div className="w-full bg-[#E5E7EB] rounded-full h-2">
-                      <div className="bg-[#17223E] h-2 rounded-full" style={{ width: '85%' }}></div>
-                    </div>
-                  </div>
-
-                  {/* Economy */}
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                       <span className="font-arimo text-[#101828]" style={{ fontSize: '13px' }}>Economy</span>
-                       <span className="font-arimo font-bold text-[#101828]" style={{ fontSize: '13px' }}>62%</span>
-                    </div>
-                    <div className="w-full bg-[#E5E7EB] rounded-full h-2">
-                      <div className="bg-[#17223E] h-2 rounded-full" style={{ width: '62%' }}></div>
-                    </div>
-                  </div>
+                  {syllabusCoverage.length > 0 ? (
+                    syllabusCoverage.slice(0, 3).map((item) => (
+                      <div key={item.subject}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-arimo text-[#101828]" style={{ fontSize: '13px' }}>{item.subject}</span>
+                          <span className="font-arimo font-bold text-[#101828]" style={{ fontSize: '13px' }}>{item.percentage}%</span>
+                        </div>
+                        <div className="w-full bg-[#E5E7EB] rounded-full h-2">
+                          <div className="bg-[#17223E] h-2 rounded-full" style={{ width: `${item.percentage}%` }}></div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="font-arimo text-[#6B7280] text-center" style={{ fontSize: '13px', paddingTop: '8px' }}>
+                      No coverage data yet.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -624,18 +743,26 @@ export default function StudyPlannerPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full border border-[#D1D5DB] flex-shrink-0 mt-0.5"></div>
-                    <span className="font-arimo text-[#101828]" style={{ fontSize: '14px', lineHeight: '20px' }}>Complete 5 mock tests</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full border border-[#D1D5DB] flex-shrink-0 mt-0.5"></div>
-                    <span className="font-arimo text-[#101828]" style={{ fontSize: '14px', lineHeight: '20px' }}>Revise 3 optional subjects</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full border border-[#D1D5DB] flex-shrink-0 mt-0.5"></div>
-                    <span className="font-arimo text-[#101828]" style={{ fontSize: '14px', lineHeight: '20px' }}>Write 10 answers daily</span>
-                  </div>
+                  {weeklyGoals.length > 0 ? (
+                    weeklyGoals.map((goal, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <div
+                          className={`w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center ${goal.completed ? 'bg-green-500 border border-green-500' : 'border border-[#D1D5DB]'}`}
+                        >
+                          {goal.completed && (
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                              <path d="M20 6L9 17L4 12" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </div>
+                        <span className={`font-arimo text-[#101828] ${goal.completed ? 'line-through text-gray-400' : ''}`} style={{ fontSize: '14px', lineHeight: '20px' }}>{goal.title}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="font-arimo text-[#6B7280] text-center" style={{ fontSize: '13px', paddingTop: '8px' }}>
+                      No weekly goals set.
+                    </p>
+                  )}
                 </div>
               </div>
 

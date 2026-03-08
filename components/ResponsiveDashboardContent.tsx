@@ -1,13 +1,87 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { dashboardService, studyPlannerService } from '@/lib/services';
 
-const AddTaskModal = ({ onClose }: { onClose: () => void }) => {
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+interface DashboardData {
+  daysRemaining?: number;
+  trio?: {
+    mcq?: { status?: string; topic?: string; questionCount?: number };
+    editorial?: { status?: string; topic?: string };
+    mains?: { status?: string; topic?: string };
+  };
+}
+
+interface StudyTask {
+  _id?: string;
+  id?: string;
+  title: string;
+  type?: string;
+  subject?: string;
+  startTime?: string;
+  endTime?: string;
+  duration?: number;
+  completed?: boolean;
+  priority?: string;
+}
+
+const borderColors: Record<string, string> = {
+  high: 'border-red-500',
+  medium: 'border-green-500',
+  low: 'border-yellow-500',
+};
+
+const borderColorsFallback = ['border-red-500', 'border-green-500', 'border-yellow-500'];
+
+const AddTaskModal = ({ onClose, onTaskAdded }: { onClose: () => void; onTaskAdded: (task: StudyTask) => void }) => {
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState('');
   const [startTime, setStartTime] = useState('14:00');
   const [endTime, setEndTime] = useState('15:30');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSave() {
+    if (!title.trim()) {
+      setError('Please enter a task title.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      // Calculate duration in minutes from start/end times
+      let duration: number | undefined;
+      if (startTime && endTime) {
+        const [sh, sm] = startTime.split(':').map(Number);
+        const [eh, em] = endTime.split(':').map(Number);
+        const diff = (eh * 60 + em) - (sh * 60 + sm);
+        if (diff > 0) duration = diff;
+      }
+      const res = await studyPlannerService.createTask({
+        title: title.trim(),
+        subject: subject || undefined,
+        startTime: startTime || undefined,
+        endTime: endTime || undefined,
+        duration,
+      });
+      const created: StudyTask = res?.data ?? { title: title.trim(), subject, startTime, endTime, duration };
+      onTaskAdded(created);
+      onClose();
+    } catch {
+      setError('Failed to save task. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
@@ -26,6 +100,10 @@ const AddTaskModal = ({ onClose }: { onClose: () => void }) => {
             ✕
           </button>
         </div>
+
+        {error && (
+          <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+        )}
 
         {/* Task Title */}
         <div className="mb-5">
@@ -81,20 +159,26 @@ const AddTaskModal = ({ onClose }: { onClose: () => void }) => {
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 border-2 border-gray-200 rounded-xl py-3 font-inter font-medium text-[15px] text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+            disabled={saving}
+            className="flex-1 border-2 border-gray-200 rounded-xl py-3 font-inter font-medium text-[15px] text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <span>✕</span> Cancel
           </button>
           <button
-            onClick={onClose}
-            className="flex-1 rounded-xl py-3 font-inter font-medium text-[15px] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 rounded-xl py-3 font-inter font-medium text-[15px] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-60"
             style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Add Task
+            {saving ? (
+              <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+            ) : (
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+            {saving ? 'Saving...' : 'Add Task'}
           </button>
         </div>
       </div>
@@ -103,7 +187,77 @@ const AddTaskModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 const ResponsiveDashboardContent = () => {
+  const { user } = useAuth();
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [tasks, setTasks] = useState<StudyTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tasksLoading, setTasksLoading] = useState(true);
+
+  const userName = user?.firstName || '';
+  const greeting = getGreeting();
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchDashboard() {
+      try {
+        const res = await dashboardService.getDashboard();
+        if (mounted && res?.data) {
+          setDashboardData(res.data);
+        }
+      } catch {
+        // Graceful degradation — keep defaults
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    fetchDashboard();
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchTasks() {
+      try {
+        const res = await studyPlannerService.getTodayTasks();
+        if (mounted && res?.data) {
+          setTasks(Array.isArray(res.data) ? res.data : res.data.tasks || []);
+        }
+      } catch {
+        // Graceful degradation — keep defaults
+      } finally {
+        if (mounted) setTasksLoading(false);
+      }
+    }
+    fetchTasks();
+    return () => { mounted = false; };
+  }, []);
+
+  const trio = dashboardData?.trio;
+  const daysRemaining = dashboardData?.daysRemaining ?? null;
+
+  const mcqStatus = trio?.mcq?.status || null;
+  const mcqTopic = trio?.mcq?.topic || null;
+  const mcqCount = trio?.mcq?.questionCount || 5;
+  const editorialStatus = trio?.editorial?.status || null;
+  const editorialTopic = trio?.editorial?.topic || null;
+  const mainsStatus = trio?.mains?.status || null;
+  const mainsTopic = trio?.mains?.topic || null;
+
+  const isMcqCompleted = mcqStatus?.toLowerCase() === 'completed';
+
+  const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  const displayTasks = tasks;
+
+  function formatDuration(mins?: number) {
+    if (!mins) return '';
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h > 0 && m > 0) return `(${h}h ${m}m)`;
+    if (h > 0) return `(${h}h)`;
+    return `(${m}m)`;
+  }
 
   return (
     <>
@@ -127,7 +281,7 @@ const ResponsiveDashboardContent = () => {
                 letterSpacing: '0px',
               }}
             >
-              Good morning, <span style={{ color: '#FFB954' }}>Rahul!</span>
+              {greeting}{userName ? `, ` : '!'}{userName ? <span style={{ color: '#FFB954' }}>{userName}!</span> : null}
             </h1>
 
             <div
@@ -161,7 +315,7 @@ const ResponsiveDashboardContent = () => {
                 letterSpacing: '0px',
               }}
             >
-              UPSC Prelims 2026: 89 days remaining.
+              UPSC Prelims 2026: {daysRemaining !== null ? `${daysRemaining} days remaining` : '— days remaining'}.
             </p>
           </div>
         </div>
@@ -272,100 +426,110 @@ const ResponsiveDashboardContent = () => {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-[clamp(1rem,1.25vw,1.5rem)]">
-            {/* Daily MCQ Card */}
-            <Link
-              href="/dashboard/daily-mcq"
-              aria-label="Open Daily MCQ"
-              className="block bg-[#F9FAFB] rounded-[14px] border border-[#E5E7EB] p-[clamp(1.25rem,1.75vw,2rem)] relative cursor-pointer h-full flex flex-col hover:border-[#D0D5DD] transition-colors"
-            >
-              <div className="absolute top-4 right-4 flex items-center justify-center" style={{ width: '24px', height: '24px' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/container-icon.png" alt="Completed" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
-              </div>
-
-              <div className="mb-4 py-1 text-[clamp(12px,0.73vw,13px)] invisible">AI Evaluation</div>
-
-              <div className="flex items-center gap-3 mb-4">
-                <img src="/Text.png" alt="MCQ" className="w-7 h-7" />
-                <h3 className="font-inter font-bold text-[clamp(18px,1.15vw,20px)] text-[#1A1A1A]">
-                  Daily MCQ
-                </h3>
-              </div>
-
-              <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-gray-600 mb-2">
-                <span className="font-medium text-green-600">Status: Completed</span>
-              </p>
-              <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-[#1A1A1A] font-medium mb-6 flex-grow">
-                5 Questions - Policy & Economy
-              </p>
-
-              <div className="w-full bg-[#17223E] text-white rounded-[8px] py-3 px-4 font-inter font-medium text-[clamp(14px,0.83vw,15px)] hover:bg-[#1E2875] transition-colors flex items-center justify-center gap-2" role="button">
-                <div style={{
-                  width: '22px',
-                  height: '16px',
-                  aspectRatio: '11/8',
-                  background: 'url("/image-removebg-preview (48) 1.png") transparent 50% / cover no-repeat',
-                  flexShrink: 0,
-                }} />
-                Completed
-              </div>
-            </Link>
-
-            {/* Daily Editorial Card */}
-            <Link href="/dashboard/daily-editorial" className="block h-full">
-            <div className="bg-[#F9FAFB] rounded-[14px] border border-[#E5E7EB] p-[clamp(1.25rem,1.75vw,2rem)] h-full flex flex-col hover:border-[#D0D5DD] transition-colors cursor-pointer">
-              <div className="mb-4 py-1 text-[clamp(12px,0.73vw,13px)] invisible">AI Evaluation</div>
-
-              <div className="flex items-center gap-3 mb-4">
-                <img src="/image-removebg-preview (31) 1.png" alt="Editorial" className="w-7 h-7" />
-                <h3 className="font-inter font-bold text-[clamp(18px,1.15vw,20px)] text-[#1A1A1A]">
-                  Daily Editorial
-                </h3>
-              </div>
-
-              <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-gray-600 mb-2">
-                <span className="font-medium">Status: Pending</span>
-              </p>
-              <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-[#1A1A1A] font-medium mb-6 flex-grow">
-                India-US Trade Relations
-              </p>
-
-              <div className="w-full bg-[#17223E] text-white rounded-[8px] py-3 px-4 font-inter font-medium text-[clamp(14px,0.83vw,15px)] hover:bg-[#1E2875] transition-colors flex items-center justify-center gap-2" role="button">
-                <img src="/TrioCard.png" alt="Read" className="w-5 h-5" />
-                Read Now
-              </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#17223E]"></div>
             </div>
-            </Link>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-[clamp(1rem,1.25vw,1.5rem)]">
+              {/* Daily MCQ Card */}
+              <Link
+                href="/dashboard/daily-mcq"
+                aria-label="Open Daily MCQ"
+                className="block bg-[#F9FAFB] rounded-[14px] border border-[#E5E7EB] p-[clamp(1.25rem,1.75vw,2rem)] relative cursor-pointer h-full flex flex-col hover:border-[#D0D5DD] transition-colors"
+              >
+                {isMcqCompleted && (
+                  <div className="absolute top-4 right-4 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <img src="/image-removebg-preview (48) 1.png" alt="Completed" className="w-5 h-5" />
+                  </div>
+                )}
 
-            {/* Mains Question Card */}
-            <Link href="/dashboard/daily-answer" className="block h-full">
-            <div className="bg-[#F9FAFB] rounded-[14px] border border-[#E5E7EB] p-[clamp(1.25rem,1.75vw,2rem)] h-full flex flex-col hover:border-[#D0D5DD] transition-colors cursor-pointer">
-              <div className="mb-4 px-3 py-1 bg-teal-50 text-teal-600 rounded-full text-[clamp(12px,0.73vw,13px)] font-medium w-fit">
-                AI Evaluation
+                <div className="mb-4 py-1 text-[clamp(12px,0.73vw,13px)] invisible">AI Evaluation</div>
+
+                <div className="flex items-center gap-3 mb-4">
+                  <img src="/Text.png" alt="MCQ" className="w-7 h-7" />
+                  <h3 className="font-inter font-bold text-[clamp(18px,1.15vw,20px)] text-[#1A1A1A]">
+                    Daily MCQ
+                  </h3>
+                </div>
+
+                <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-gray-600 mb-2">
+                  <span className={`font-medium ${isMcqCompleted ? 'text-green-600' : ''}`}>Status: {mcqStatus || '—'}</span>
+                </p>
+                <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-[#1A1A1A] font-medium mb-6 flex-grow">
+                  {mcqCount} Questions{mcqTopic ? ` - ${mcqTopic}` : ''}
+                </p>
+
+                <div className={`w-full ${isMcqCompleted ? 'bg-[#17223E]' : 'bg-[#17223E]'} text-white rounded-[8px] py-3 px-4 font-inter font-medium text-[clamp(14px,0.83vw,15px)] hover:bg-[#1E2875] transition-colors flex items-center justify-center gap-2`} role="button">
+                  {isMcqCompleted ? (
+                    <>
+                      <img src="/image-removebg-preview (48) 1.png" alt="Completed" className="w-5 h-5" />
+                      Completed
+                    </>
+                  ) : (
+                    <>
+                      <img src="/TrioCard.png" alt="Start" className="w-5 h-5" />
+                      Start Now
+                    </>
+                  )}
+                </div>
+              </Link>
+
+              {/* Daily Editorial Card */}
+              <Link href="/dashboard/daily-editorial" className="block h-full">
+              <div className="bg-[#F9FAFB] rounded-[14px] border border-[#E5E7EB] p-[clamp(1.25rem,1.75vw,2rem)] h-full flex flex-col hover:border-[#D0D5DD] transition-colors cursor-pointer">
+                <div className="mb-4 py-1 text-[clamp(12px,0.73vw,13px)] invisible">AI Evaluation</div>
+
+                <div className="flex items-center gap-3 mb-4">
+                  <img src="/image-removebg-preview (31) 1.png" alt="Editorial" className="w-7 h-7" />
+                  <h3 className="font-inter font-bold text-[clamp(18px,1.15vw,20px)] text-[#1A1A1A]">
+                    Daily Editorial
+                  </h3>
+                </div>
+
+                <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-gray-600 mb-2">
+                  <span className="font-medium">Status: {editorialStatus || '—'}</span>
+                </p>
+                <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-[#1A1A1A] font-medium mb-6 flex-grow">
+                  {editorialTopic || '—'}
+                </p>
+
+                <div className="w-full bg-[#17223E] text-white rounded-[8px] py-3 px-4 font-inter font-medium text-[clamp(14px,0.83vw,15px)] hover:bg-[#1E2875] transition-colors flex items-center justify-center gap-2" role="button">
+                  <img src="/TrioCard.png" alt="Read" className="w-5 h-5" />
+                  Read Now
+                </div>
               </div>
+              </Link>
 
-              <div className="flex items-center gap-3 mb-4">
-                <img src="/image-removebg-preview (31) 1.png" alt="Mains" className="w-7 h-7" />
-                <h3 className="font-inter font-bold text-[clamp(18px,1.15vw,20px)] text-[#1A1A1A]">
-                  Mains Question
-                </h3>
+              {/* Mains Question Card */}
+              <Link href="/dashboard/daily-answer" className="block h-full">
+              <div className="bg-[#F9FAFB] rounded-[14px] border border-[#E5E7EB] p-[clamp(1.25rem,1.75vw,2rem)] h-full flex flex-col hover:border-[#D0D5DD] transition-colors cursor-pointer">
+                <div className="mb-4 px-3 py-1 bg-teal-50 text-teal-600 rounded-full text-[clamp(12px,0.73vw,13px)] font-medium w-fit">
+                  AI Evaluation
+                </div>
+
+                <div className="flex items-center gap-3 mb-4">
+                  <img src="/image-removebg-preview (31) 1.png" alt="Mains" className="w-7 h-7" />
+                  <h3 className="font-inter font-bold text-[clamp(18px,1.15vw,20px)] text-[#1A1A1A]">
+                    Mains Question
+                  </h3>
+                </div>
+
+                <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-gray-600 mb-2">
+                  <span className="font-medium">Status: {mainsStatus || '—'}</span>
+                </p>
+                <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-[#1A1A1A] font-medium mb-6 flex-grow">
+                  {mainsTopic || '—'}
+                </p>
+
+                <button className="w-full bg-[#17223E] text-white rounded-[8px] py-3 px-4 font-inter font-medium text-[clamp(14px,0.83vw,15px)] hover:bg-[#1E2875] transition-colors flex items-center justify-center gap-2">
+                  <img src="/TrioCard (1).png" alt="Attempt" className="w-5 h-5" />
+                  Attempt Now
+                </button>
               </div>
-
-              <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-gray-600 mb-2">
-                <span className="font-medium">Status: Pending</span>
-              </p>
-              <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-[#1A1A1A] font-medium mb-6 flex-grow">
-                Local Self Governance
-              </p>
-
-              <button className="w-full bg-[#17223E] text-white rounded-[8px] py-3 px-4 font-inter font-medium text-[clamp(14px,0.83vw,15px)] hover:bg-[#1E2875] transition-colors flex items-center justify-center gap-2">
-                <img src="/TrioCard (1).png" alt="Attempt" className="w-5 h-5" />
-                Attempt Now
-              </button>
+              </Link>
             </div>
-            </Link>
-          </div>
+          )}
         </div>
 
         {/* Today's Study Tasks Section */}
@@ -389,8 +553,8 @@ const ResponsiveDashboardContent = () => {
                   <path d="M15 18l-6-6 6-6" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
-              <span className="font-inter font-medium text-[clamp(13px,0.83vw,15px)] text-gray-400 px-2">
-                Today • Wed, Mar 19
+              <span className="font-inter text-[clamp(13px,0.73vw,14px)] text-gray-400 px-4">
+                Today {'\u2022'} {todayStr}
               </span>
               <button className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -400,95 +564,63 @@ const ResponsiveDashboardContent = () => {
             </div>
           </div>
 
-          {/* Task 1 - Red Border */}
-          <div className="rounded-lg border-l-4 border-red-500 bg-white p-[clamp(0.75rem,1vw,1.25rem)] mb-[clamp(0.75rem,1vw,1rem)] flex items-start justify-between" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
-            <div className="flex-1">
-              <h3 className="font-inter font-semibold text-[clamp(14px,0.94vw,16px)] text-[#1A1A1A] mb-2">
-                Complete Polity Chapter 5 - Fundamental Rights
-              </h3>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[clamp(12px,0.68vw,13px)] font-medium text-blue-600" style={{ background: '#DBEAFE' }}>
-                  <img src="/b.png" alt="Reading" className="w-3.5 h-3.5" />
-                  Reading
-                </span>
-                <span className="inline-flex items-center gap-1 text-gray-600 text-[clamp(12px,0.68vw,13px)]">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                  9:00 AM - 11:00 AM (2h)
-                </span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[clamp(12px,0.68vw,13px)] font-medium text-purple-700" style={{ background: '#F3E8FF' }}>
-                  Indian Polity
-                </span>
-              </div>
+          {tasksLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#17223E]"></div>
             </div>
-            <button className="ml-3 w-5 h-5 rounded border-2 border-gray-300 hover:border-green-500 hover:bg-green-50 transition-colors flex items-center justify-center flex-shrink-0">
-              <svg className="w-3 h-3 text-green-600" viewBox="0 0 24 24" fill="none">
-                <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+          ) : displayTasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+              <svg className="w-10 h-10 mb-3 text-gray-300" viewBox="0 0 24 24" fill="none">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-            </button>
-          </div>
+              <p className="font-inter text-[14px]">No tasks scheduled for today.</p>
+              <p className="font-inter text-[13px] mt-1">Add a custom task to get started.</p>
+            </div>
+          ) : (
+            <>
+              {displayTasks.map((task, index) => {
+                const borderClass = task.priority
+                  ? (borderColors[task.priority] || borderColorsFallback[index % 3])
+                  : borderColorsFallback[index % 3];
+                const timeLabel = task.startTime && task.endTime
+                  ? `${task.startTime} - ${task.endTime} ${formatDuration(task.duration)}`
+                  : task.duration ? formatDuration(task.duration) : '';
 
-          {/* Task 2 - Green Border */}
-          <div className="rounded-lg border-l-4 border-green-500 bg-white p-[clamp(0.75rem,1vw,1.25rem)] mb-[clamp(0.75rem,1vw,1rem)] flex items-start justify-between" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
-            <div className="flex-1">
-              <h3 className="font-inter font-semibold text-[clamp(14px,0.94vw,16px)] text-[#1A1A1A] mb-2">
-                Watch Economics Lecture - Fiscal Policy
-              </h3>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[clamp(12px,0.68vw,13px)] font-medium text-blue-600" style={{ background: '#DBEAFE' }}>
-                  <img src="/b.png" alt="Reading" className="w-3.5 h-3.5" />
-                  Reading
-                </span>
-                <span className="inline-flex items-center gap-1 text-gray-600 text-[clamp(12px,0.68vw,13px)]">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                  2:00 PM - 3:30 PM (1.5h)
-                </span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[clamp(12px,0.68vw,13px)] font-medium text-purple-700" style={{ background: '#F3E8FF' }}>
-                  Indian Polity
-                </span>
-              </div>
-            </div>
-            <button className="ml-3 w-5 h-5 rounded border-2 border-gray-300 hover:border-green-500 hover:bg-green-50 transition-colors flex items-center justify-center flex-shrink-0">
-              <svg className="w-3 h-3 text-green-600" viewBox="0 0 24 24" fill="none">
-                <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </div>
-
-          {/* Task 3 - Yellow Border */}
-          <div className="rounded-lg border-l-4 border-yellow-500 bg-white p-[clamp(0.75rem,1vw,1.25rem)] mb-[clamp(0.75rem,1vw,1rem)] flex items-start justify-between" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
-            <div className="flex-1">
-              <h3 className="font-inter font-semibold text-[clamp(14px,0.94vw,16px)] text-[#1A1A1A] mb-2">
-                Solve 50 MCQs on Modern History
-              </h3>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[clamp(12px,0.68vw,13px)] font-medium text-blue-600" style={{ background: '#DBEAFE' }}>
-                  <img src="/b.png" alt="Reading" className="w-3.5 h-3.5" />
-                  Reading
-                </span>
-                <span className="inline-flex items-center gap-1 text-gray-600 text-[clamp(12px,0.68vw,13px)]">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                  4:00 PM - 5:00 PM (1h)
-                </span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[clamp(12px,0.68vw,13px)] font-medium text-purple-700" style={{ background: '#F3E8FF' }}>
-                  Indian Polity
-                </span>
-              </div>
-            </div>
-            <button className="ml-3 w-5 h-5 rounded border-2 border-gray-300 hover:border-green-500 hover:bg-green-50 transition-colors flex items-center justify-center flex-shrink-0">
-              <svg className="w-3 h-3 text-green-600" viewBox="0 0 24 24" fill="none">
-                <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </div>
+                return (
+                  <div key={task._id || task.id || index} className={`rounded-lg border-l-4 ${borderClass} p-[clamp(0.75rem,1vw,1.25rem)] mb-[clamp(0.75rem,1vw,1rem)] flex items-start justify-between`}>
+                    <div className="flex-1">
+                      <h3 className="font-inter font-semibold text-[clamp(14px,0.94vw,16px)] text-[#1A1A1A] mb-2">
+                        {task.title}
+                      </h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[clamp(12px,0.68vw,13px)] font-medium text-blue-600" style={{ background: '#DBEAFE' }}>
+                          <img src="/b.png" alt="Type" className="w-3.5 h-3.5" />
+                          {task.type || 'Reading'}
+                        </span>
+                        {timeLabel && (
+                          <span className="inline-flex items-center gap-1 text-gray-600 text-[clamp(12px,0.68vw,13px)]">
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
+                              <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                            {timeLabel}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[clamp(12px,0.68vw,13px)] font-medium text-purple-700" style={{ background: '#F3E8FF' }}>
+                          {task.subject || 'General'}
+                        </span>
+                      </div>
+                    </div>
+                    <button className="ml-3 w-5 h-5 rounded border-2 border-gray-300 hover:border-green-500 hover:bg-green-50 transition-colors flex items-center justify-center flex-shrink-0">
+                      <svg className="w-3 h-3 text-green-600" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
+            </>
+          )}
 
           {/* Add Custom Task */}
           <div className="rounded-lg p-[clamp(0.75rem,1vw,1.25rem)] mb-[clamp(0.75rem,1vw,1rem)] flex items-center justify-between">
@@ -528,7 +660,12 @@ const ResponsiveDashboardContent = () => {
       </div>
     </div>
 
-      {showAddTaskModal && <AddTaskModal onClose={() => setShowAddTaskModal(false)} />}
+      {showAddTaskModal && (
+        <AddTaskModal
+          onClose={() => setShowAddTaskModal(false)}
+          onTaskAdded={(task) => setTasks(prev => [...prev, task])}
+        />
+      )}
     </>
   );
 };
