@@ -379,6 +379,271 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
   }
 };
 
+// ==================== Video Management ====================
+
+/**
+ * GET /api/admin/videos/subjects
+ */
+export const getVideoSubjects = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const subjects = await prisma.videoSubject.findMany({
+      orderBy: { order: "asc" },
+      include: { _count: { select: { videos: true } } },
+    });
+    res.json({ status: "success", data: subjects });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/videos/subjects
+ */
+export const createVideoSubject = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, description, iconUrl, order } = req.body;
+    if (!name) {
+      return res.status(400).json({ status: "error", message: "Name is required" });
+    }
+    const subject = await prisma.videoSubject.create({
+      data: { name, description, iconUrl, order: order ?? 0 },
+    });
+    res.status(201).json({ status: "success", data: subject });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/admin/videos/subjects/:id
+ */
+export const updateVideoSubject = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { name, description, iconUrl, order } = req.body;
+    const data: any = {};
+    if (name !== undefined) data.name = name;
+    if (description !== undefined) data.description = description;
+    if (iconUrl !== undefined) data.iconUrl = iconUrl;
+    if (order !== undefined) data.order = order;
+    const subject = await prisma.videoSubject.update({ where: { id }, data });
+    res.json({ status: "success", data: subject });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/admin/videos/subjects/:id
+ */
+export const deleteVideoSubject = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    await prisma.videoSubject.delete({ where: { id } });
+    res.json({ status: "success", message: "Subject deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/videos
+ */
+export const createVideo = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { subjectId, title, description, videoUrl, thumbnailUrl, duration, instructor, order } = req.body;
+    if (!subjectId || !title) {
+      return res.status(400).json({ status: "error", message: "subjectId and title are required" });
+    }
+    const video = await prisma.video.create({
+      data: { subjectId, title, description, videoUrl, thumbnailUrl, duration, instructor, order: order ?? 0 },
+    });
+    await prisma.videoSubject.update({
+      where: { id: subjectId },
+      data: { videoCount: { increment: 1 } },
+    });
+    res.status(201).json({ status: "success", data: video });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/admin/videos/:id
+ */
+export const updateVideo = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { title, description, videoUrl, thumbnailUrl, duration, instructor, order, isPublished } = req.body;
+    const data: any = {};
+    if (title !== undefined) data.title = title;
+    if (description !== undefined) data.description = description;
+    if (videoUrl !== undefined) data.videoUrl = videoUrl;
+    if (thumbnailUrl !== undefined) data.thumbnailUrl = thumbnailUrl;
+    if (duration !== undefined) data.duration = duration;
+    if (instructor !== undefined) data.instructor = instructor;
+    if (order !== undefined) data.order = order;
+    if (isPublished !== undefined) data.isPublished = isPublished;
+    const video = await prisma.video.update({ where: { id }, data });
+    res.json({ status: "success", data: video });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/admin/videos/:id
+ */
+export const deleteVideo = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const video = await prisma.video.findUnique({ where: { id } });
+    if (!video) return res.status(404).json({ status: "error", message: "Video not found" });
+    await prisma.video.delete({ where: { id } });
+    await prisma.videoSubject.update({
+      where: { id: video.subjectId },
+      data: { videoCount: { decrement: 1 } },
+    });
+    res.json({ status: "success", message: "Video deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==================== Testimonials Management ====================
+
+/**
+ * GET /api/admin/testimonials
+ */
+export const getTestimonialsAdmin = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const testimonials = await prisma.testimonial.findMany({ orderBy: { order: "asc" } });
+    res.json({ status: "success", data: testimonials });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/testimonials
+ */
+export const createTestimonial = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, title, content, avatarUrl, rating, order } = req.body;
+    if (!name || !title || !content) {
+      return res.status(400).json({ status: "error", message: "name, title, and content are required" });
+    }
+    const testimonial = await prisma.testimonial.create({
+      data: { name, title, content, avatarUrl, rating: rating ?? 5, order: order ?? 0 },
+    });
+    res.status(201).json({ status: "success", data: testimonial });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/admin/testimonials/:id
+ */
+export const updateTestimonial = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { name, title, content, avatarUrl, rating, order, isActive } = req.body;
+    const data: any = {};
+    if (name !== undefined) data.name = name;
+    if (title !== undefined) data.title = title;
+    if (content !== undefined) data.content = content;
+    if (avatarUrl !== undefined) data.avatarUrl = avatarUrl;
+    if (rating !== undefined) data.rating = rating;
+    if (order !== undefined) data.order = order;
+    if (isActive !== undefined) data.isActive = isActive;
+    const testimonial = await prisma.testimonial.update({ where: { id }, data });
+    res.json({ status: "success", data: testimonial });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/admin/testimonials/:id
+ */
+export const deleteTestimonial = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    await prisma.testimonial.delete({ where: { id } });
+    res.json({ status: "success", message: "Testimonial deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==================== Pricing Plans Management ====================
+
+/**
+ * GET /api/admin/pricing
+ */
+export const getPricingPlansAdmin = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const plans = await prisma.pricingPlan.findMany({ orderBy: { order: "asc" } });
+    res.json({ status: "success", data: plans });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/pricing
+ */
+export const createPricingPlan = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, price, duration, features, isPopular, order } = req.body;
+    if (!name || price === undefined || !duration) {
+      return res.status(400).json({ status: "error", message: "name, price, and duration are required" });
+    }
+    const plan = await prisma.pricingPlan.create({
+      data: { name, price, duration, features: features ?? [], isPopular: isPopular ?? false, order: order ?? 0 },
+    });
+    res.status(201).json({ status: "success", data: plan });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/admin/pricing/:id
+ */
+export const updatePricingPlan = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { name, price, duration, features, isPopular, order, isActive } = req.body;
+    const data: any = {};
+    if (name !== undefined) data.name = name;
+    if (price !== undefined) data.price = price;
+    if (duration !== undefined) data.duration = duration;
+    if (features !== undefined) data.features = features;
+    if (isPopular !== undefined) data.isPopular = isPopular;
+    if (order !== undefined) data.order = order;
+    if (isActive !== undefined) data.isActive = isActive;
+    const plan = await prisma.pricingPlan.update({ where: { id }, data });
+    res.json({ status: "success", data: plan });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/admin/pricing/:id
+ */
+export const deletePricingPlan = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    await prisma.pricingPlan.delete({ where: { id } });
+    res.json({ status: "success", message: "Pricing plan deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ==================== Analytics ====================
 
 /**

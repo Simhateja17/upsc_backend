@@ -9,6 +9,7 @@ import { aiLimiter } from "../middleware/rateLimit";
 import * as pyqCtrl from "../controllers/admin/pyq.controller";
 import * as editorialCtrl from "../controllers/admin/editorial.controller";
 import * as contentCtrl from "../controllers/admin/content.controller";
+import * as aiCostCtrl from "../controllers/admin/aiCost.controller";
 
 const router = Router();
 
@@ -52,7 +53,31 @@ router.post("/library/materials/upload", uploadSingle("file"), contentCtrl.uploa
 router.get("/users", contentCtrl.getUsers);
 router.put("/users/:id", contentCtrl.updateUser);
 
+// ==================== Video Management ====================
+router.get("/videos/subjects", contentCtrl.getVideoSubjects);
+router.post("/videos/subjects", contentCtrl.createVideoSubject);
+router.put("/videos/subjects/:id", contentCtrl.updateVideoSubject);
+router.delete("/videos/subjects/:id", contentCtrl.deleteVideoSubject);
+router.post("/videos", contentCtrl.createVideo);
+router.put("/videos/:id", contentCtrl.updateVideo);
+router.delete("/videos/:id", contentCtrl.deleteVideo);
+
+// ==================== Testimonials Management ====================
+router.get("/testimonials", contentCtrl.getTestimonialsAdmin);
+router.post("/testimonials", contentCtrl.createTestimonial);
+router.put("/testimonials/:id", contentCtrl.updateTestimonial);
+router.delete("/testimonials/:id", contentCtrl.deleteTestimonial);
+
+// ==================== Pricing Plans Management ====================
+router.get("/pricing", contentCtrl.getPricingPlansAdmin);
+router.post("/pricing", contentCtrl.createPricingPlan);
+router.put("/pricing/:id", contentCtrl.updatePricingPlan);
+router.delete("/pricing/:id", contentCtrl.deletePricingPlan);
+
 // ==================== Analytics ====================
 router.get("/analytics", contentCtrl.getAnalytics);
+
+// ==================== AI Cost Tracking ====================
+router.get("/ai-cost", aiCostCtrl.getAiCost);
 
 export default router;

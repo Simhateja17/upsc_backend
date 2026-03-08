@@ -33,6 +33,7 @@ model User {
   studyPlanTasks    StudyPlanTask[]
   studyStreak       StudyStreak?
   weeklyGoals       WeeklyGoal[]
+  syllabusCoverage  SyllabusCoverage[]
   mentorQuestions   MentorQuestion[]
   mentorBookings    MentorBooking[]
   pyqUploads        PYQUpload[]
@@ -381,11 +382,17 @@ model WeeklyGoal {
 }
 
 model SyllabusCoverage {
-  id         String   @id @default(uuid())
-  subject    String   @unique
-  totalTopics Int     @map("total_topics")
-  createdAt  DateTime @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  subject       String
+  coveredTopics Int      @default(0) @map("covered_topics")
+  totalTopics   Int      @map("total_topics")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subject])
   @@map("syllabus_coverage")
 }
 
@@ -585,4 +592,19 @@ model UserSeenMCQ {
 
   @@unique([userId, pyqQuestionId])
   @@map("user_seen_mcqs")
+}
+
+model AiUsageLog {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now()) @map("created_at")
+  service      String   // e.g. "answerEvaluator", "questionGenerator"
+  model        String   // e.g. "claude-sonnet-4-6"
+  inputTokens  Int      @map("input_tokens")
+  outputTokens Int      @map("output_tokens")
+  costUsd      Float    @map("cost_usd")
+  costInr      Float    @map("cost_inr")
+
+  @@index([createdAt])
+  @@index([service])
+  @@map("ai_usage_logs")
 }

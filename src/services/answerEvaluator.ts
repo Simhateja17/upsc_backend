@@ -113,6 +113,7 @@ Return ONLY a JSON object with:
       system,
       maxTokens: 2048,
       temperature: 0.3,
+      serviceName: "answerEvaluator",
     });
 
     // Save evaluation result

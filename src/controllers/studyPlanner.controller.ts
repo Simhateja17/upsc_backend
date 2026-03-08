@@ -190,32 +190,48 @@ export const getWeeklyGoals = async (req: Request, res: Response, next: NextFunc
  */
 export const getSyllabusCoverage = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const userId = req.user!.id;
+
     const coverage = await prisma.syllabusCoverage.findMany({
+      where: { userId },
       orderBy: { subject: "asc" },
     });
 
-    // If no coverage data, return defaults
+    // If no coverage data for this user, seed defaults
     if (coverage.length === 0) {
       const defaults = [
-        { subject: "Indian Polity", totalTopics: 25, covered: 18 },
-        { subject: "History", totalTopics: 30, covered: 12 },
-        { subject: "Geography", totalTopics: 28, covered: 20 },
-        { subject: "Economy", totalTopics: 22, covered: 8 },
-        { subject: "Science & Tech", totalTopics: 18, covered: 5 },
-        { subject: "Environment", totalTopics: 15, covered: 10 },
+        { subject: "Indian Polity", totalTopics: 25, coveredTopics: 0 },
+        { subject: "History", totalTopics: 30, coveredTopics: 0 },
+        { subject: "Geography", totalTopics: 28, coveredTopics: 0 },
+        { subject: "Economy", totalTopics: 22, coveredTopics: 0 },
+        { subject: "Science & Tech", totalTopics: 18, coveredTopics: 0 },
+        { subject: "Environment", totalTopics: 15, coveredTopics: 0 },
       ];
+
+      await prisma.syllabusCoverage.createMany({
+        data: defaults.map(d => ({ userId, ...d })),
+      });
 
       return res.json({
         status: "success",
         data: defaults.map(d => ({
           subject: d.subject,
+          coveredTopics: d.coveredTopics,
           totalTopics: d.totalTopics,
-          percentage: Math.round((d.covered / d.totalTopics) * 100),
+          percentage: 0,
         })),
       });
     }
 
-    res.json({ status: "success", data: coverage });
+    res.json({
+      status: "success",
+      data: coverage.map(c => ({
+        subject: c.subject,
+        coveredTopics: c.coveredTopics,
+        totalTopics: c.totalTopics,
+        percentage: Math.round((c.coveredTopics / c.totalTopics) * 100),
+      })),
+    });
   } catch (error) {
     next(error);
   }

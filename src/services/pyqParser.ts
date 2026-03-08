@@ -139,7 +139,7 @@ Return a JSON array of extracted questions.`;
     log("AI-PARSE", `Sending chunk ${chunkIndex + 1} to Bedrock (prompt: ${prompt.length} chars)...`);
     const result = await invokeModelJSON<ParsedQuestion[]>(
       [{ role: "user", content: prompt }],
-      { system, maxTokens: 4096, temperature: 0.1 }
+      { system, maxTokens: 4096, temperature: 0.1, serviceName: "pyqParser" }
     );
 
     const elapsed = Date.now() - startTime;

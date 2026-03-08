@@ -56,8 +56,9 @@ export const authenticate = async (
       });
     }
 
-    // Get user from our database
-    const user = await prisma.user.findUnique({
+    // Get or auto-create user in our database
+    // Auto-create handles OAuth users who haven't hit /auth/callback yet
+    let user = await prisma.user.findUnique({
       where: { supabaseId: authUser.id },
       select: {
         id: true,
@@ -70,9 +71,24 @@ export const authenticate = async (
     });
 
     if (!user) {
-      return res.status(401).json({
-        status: "error",
-        message: "User not found",
+      const metadata = authUser.user_metadata || {};
+      user = await prisma.user.create({
+        data: {
+          supabaseId: authUser.id,
+          email: authUser.email!.toLowerCase(),
+          firstName: metadata.first_name || metadata.full_name?.split(" ")[0] || null,
+          lastName: metadata.last_name || metadata.full_name?.split(" ").slice(1).join(" ") || null,
+          avatarUrl: metadata.avatar_url || metadata.picture || null,
+          emailVerified: !!authUser.email_confirmed_at,
+        },
+        select: {
+          id: true,
+          supabaseId: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+        },
       });
     }
 
@@ -110,7 +126,7 @@ export const optionalAuth = async (
     } = await supabase.auth.getUser(token);
 
     if (authUser) {
-      const user = await prisma.user.findUnique({
+      let user = await prisma.user.findUnique({
         where: { supabaseId: authUser.id },
         select: {
           id: true,
@@ -118,8 +134,31 @@ export const optionalAuth = async (
           email: true,
           firstName: true,
           lastName: true,
+          role: true,
         },
       });
+
+      if (!user && authUser.email) {
+        const metadata = authUser.user_metadata || {};
+        user = await prisma.user.create({
+          data: {
+            supabaseId: authUser.id,
+            email: authUser.email.toLowerCase(),
+            firstName: metadata.first_name || metadata.full_name?.split(" ")[0] || null,
+            lastName: metadata.last_name || metadata.full_name?.split(" ").slice(1).join(" ") || null,
+            avatarUrl: metadata.avatar_url || metadata.picture || null,
+            emailVerified: !!authUser.email_confirmed_at,
+          },
+          select: {
+            id: true,
+            supabaseId: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        });
+      }
 
       if (user) {
         req.user = user;

@@ -61,7 +61,7 @@ Return a JSON array of objects, each with:
   try {
     const result = await invokeModelJSON<GeneratedQuestion[]>(
       [{ role: "user", content: prompt }],
-      { system, maxTokens: 4096, temperature: 0.7 }
+      { system, maxTokens: 4096, temperature: 0.7, serviceName: "questionGenerator" }
     );
 
     return Array.isArray(result) ? result : [];
