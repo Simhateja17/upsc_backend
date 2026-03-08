@@ -65,12 +65,11 @@ async function createAdminUser() {
         console.log("⚠️  User exists in Supabase. Syncing with database...");
 
         // Get the user from Supabase
-        const { data: { users }, error: listError } = await supabase.auth.admin.listUsers({
-          filter: `email.eq.${email}`,
-        });
+        const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+        const matchedUser = !listError && users ? users.find((u) => u.email === email.toLowerCase()) : null;
 
-        if (!listError && users && users.length > 0) {
-          const supabaseUser = users[0];
+        if (matchedUser) {
+          const supabaseUser = matchedUser;
 
           // Create user in our database
           const user = await prisma.user.create({

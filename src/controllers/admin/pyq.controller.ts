@@ -14,17 +14,13 @@ function qs(val: string | string[] | undefined): string | undefined {
 export const uploadPYQ = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { year, paper } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ status: "error", message: "PDF file is required" });
     }
-    if (!year || !paper) {
-      return res.status(400).json({ status: "error", message: "Year and paper are required" });
-    }
 
     // Upload to Supabase Storage
-    const fileName = `${year}_${paper}_${Date.now()}.pdf`;
+    const fileName = `pyq_${Date.now()}.pdf`;
     const filePath = `uploads/${fileName}`;
 
     await uploadFile(
@@ -36,20 +32,20 @@ export const uploadPYQ = async (req: Request, res: Response, next: NextFunction)
 
     const fileUrl = filePath;
 
-    // Create upload record
+    // Create upload record — year/paper will be detected by AI during parsing
     const upload = await prisma.pYQUpload.create({
       data: {
         fileName: req.file.originalname,
         fileUrl,
-        year: parseInt(year),
-        paper,
+        year: 0,
+        paper: "unknown",
         status: "processing",
         uploadedById: userId,
       },
     });
 
-    // Start parsing asynchronously
-    parsePYQPdf(upload.id, req.file.buffer, parseInt(year), paper)
+    // Start parsing asynchronously — AI detects year & paper from PDF content
+    parsePYQPdf(upload.id, req.file.buffer)
       .catch((err) => console.error("PYQ parsing error:", err));
 
     res.status(201).json({

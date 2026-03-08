@@ -419,7 +419,7 @@ export const createVideoSubject = async (req: Request, res: Response, next: Next
  */
 export const updateVideoSubject = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, description, iconUrl, order } = req.body;
     const data: any = {};
     if (name !== undefined) data.name = name;
@@ -438,7 +438,7 @@ export const updateVideoSubject = async (req: Request, res: Response, next: Next
  */
 export const deleteVideoSubject = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await prisma.videoSubject.delete({ where: { id } });
     res.json({ status: "success", message: "Subject deleted" });
   } catch (error) {
@@ -473,7 +473,7 @@ export const createVideo = async (req: Request, res: Response, next: NextFunctio
  */
 export const updateVideo = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { title, description, videoUrl, thumbnailUrl, duration, instructor, order, isPublished } = req.body;
     const data: any = {};
     if (title !== undefined) data.title = title;
@@ -496,7 +496,7 @@ export const updateVideo = async (req: Request, res: Response, next: NextFunctio
  */
 export const deleteVideo = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const video = await prisma.video.findUnique({ where: { id } });
     if (!video) return res.status(404).json({ status: "error", message: "Video not found" });
     await prisma.video.delete({ where: { id } });
@@ -547,7 +547,7 @@ export const createTestimonial = async (req: Request, res: Response, next: NextF
  */
 export const updateTestimonial = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, title, content, avatarUrl, rating, order, isActive } = req.body;
     const data: any = {};
     if (name !== undefined) data.name = name;
@@ -569,7 +569,7 @@ export const updateTestimonial = async (req: Request, res: Response, next: NextF
  */
 export const deleteTestimonial = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await prisma.testimonial.delete({ where: { id } });
     res.json({ status: "success", message: "Testimonial deleted" });
   } catch (error) {
@@ -614,7 +614,7 @@ export const createPricingPlan = async (req: Request, res: Response, next: NextF
  */
 export const updatePricingPlan = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, price, duration, features, isPopular, order, isActive } = req.body;
     const data: any = {};
     if (name !== undefined) data.name = name;
@@ -636,7 +636,7 @@ export const updatePricingPlan = async (req: Request, res: Response, next: NextF
  */
 export const deletePricingPlan = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await prisma.pricingPlan.delete({ where: { id } });
     res.json({ status: "success", message: "Pricing plan deleted" });
   } catch (error) {
