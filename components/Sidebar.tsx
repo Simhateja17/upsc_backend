@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 const Sidebar = () => {
-  const [activeItem, setActiveItem] = useState('overview');
+  const pathname = usePathname();
 
   const navigationSections = [
     {
@@ -77,14 +77,13 @@ const Sidebar = () => {
                 <li key={item.id}>
                   <Link
                     href={item.path}
-                    onClick={() => setActiveItem(item.id)}
                     className={`
                       flex items-center gap-[10px]
                       px-3 py-[9px]
                       rounded-[6px]
                       transition-all duration-200
                       ${
-                        activeItem === item.id
+                        pathname === item.path
                           ? 'bg-[#EFF6FF] text-[#17223E]'
                           : 'text-[#1A1A1A] hover:bg-gray-50 hover:text-[#17223E]'
                       }

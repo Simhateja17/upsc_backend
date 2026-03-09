@@ -551,9 +551,28 @@ const PerformanceStatsWidget = () => {
           </p>
         </div>
         <button
-          className="w-full rounded-[clamp(8px,0.52vw,10px)] bg-white hover:bg-gray-100 transition-colors"
-          style={{
-            height: 'clamp(28px,1.72vw,33px)',
+          className="w-full rounded-[clamp(8px,0.52vw,10px)] bg-white hover:bg-gray-100 transition-colors cursor-pointer"
+          style={{ height: 'clamp(28px,1.72vw,33px)' }}
+          onClick={() => {
+            // Tomorrow at 10AM local time
+            const start = new Date();
+            start.setDate(start.getDate() + 1);
+            start.setHours(10, 0, 0, 0);
+            const end = new Date(start);
+            end.setHours(12, 0, 0, 0); // 2-hour window
+
+            const fmt = (d: Date) =>
+              d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+            const url = new URL('https://calendar.google.com/calendar/render');
+            url.searchParams.set('action', 'TEMPLATE');
+            url.searchParams.set('text', 'UPSC Prelims Mock Test');
+            url.searchParams.set('dates', `${fmt(start)}/${fmt(end)}`);
+            url.searchParams.set('details', 'UPSC Prelims Mock Test — RiseWithJeet');
+            url.searchParams.set('sf', 'true');
+            url.searchParams.set('output', 'xml');
+
+            window.open(url.toString(), '_blank');
           }}
         >
           <span className="font-inter font-semibold text-[#0E182D]" style={{ fontSize: 'clamp(13px,0.78vw,15px)', lineHeight: '1.2' }}>

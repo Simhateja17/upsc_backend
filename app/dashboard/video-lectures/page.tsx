@@ -20,27 +20,50 @@ function subjectEmoji(name: string): string {
   return '📚';
 }
 
+function formatViews(count: number): string {
+  if (count >= 100000) return `${(count / 100000).toFixed(1)}L`;
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+  return String(count);
+}
+
+function timeAgo(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (days < 1) return 'Today';
+  if (days === 1) return '1 day ago';
+  if (days < 7) return `${days} days ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks === 1) return '1 week ago';
+  if (weeks < 5) return `${weeks} weeks ago`;
+  const months = Math.floor(days / 30);
+  if (months === 1) return '1 month ago';
+  return `${months} months ago`;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 export default function VideoLecturesPage() {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All Categories');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showMentorModal, setShowMentorModal] = useState(false);
   const [apiSubjects, setApiSubjects] = useState<any[]>([]);
   const [apiStats, setApiStats] = useState<{ totalLectures: number; totalSubjects: number; totalHours: number } | null>(null);
   const [apiVideos, setApiVideos] = useState<any[]>([]);
   const [featuredSubjectName, setFeaturedSubjectName] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [subjectVideos, setSubjectVideos] = useState<any[]>([]);
+  const [subjectVideosLoading, setSubjectVideosLoading] = useState(false);
   const [mentorQuestion, setMentorQuestion] = useState('');
   const [mentorSubmitting, setMentorSubmitting] = useState(false);
   const [mentorSuccess, setMentorSuccess] = useState(false);
 
   const categories = ['All Categories', ...apiSubjects.map(s => s.name)];
-  const filteredSubjects = selectedCategory === null
-    ? []
-    : selectedCategory === 'All Categories'
-      ? apiSubjects
-      : apiSubjects.filter(s => s.name === selectedCategory);
+  const filteredSubjects = selectedCategory === 'All Categories'
+    ? apiSubjects
+    : apiSubjects.filter(s => s.name === selectedCategory);
 
   useEffect(() => {
     videoService.getSubjects()
@@ -61,6 +84,21 @@ export default function VideoLecturesPage() {
       .then(res => { if (res.data) setApiStats(res.data); })
       .catch(() => {});
   }, []);
+
+  const handleSubjectClick = (subjectName: string) => {
+    if (selectedSubject === subjectName) {
+      setSelectedSubject(null);
+      setSubjectVideos([]);
+      return;
+    }
+    setSelectedSubject(subjectName);
+    setSubjectVideosLoading(true);
+    setSubjectVideos([]);
+    videoService.getVideosBySubject(subjectName)
+      .then(vRes => { if (vRes.data) setSubjectVideos(vRes.data); })
+      .catch(() => {})
+      .finally(() => setSubjectVideosLoading(false));
+  };
 
   const handleAskMentor = async () => {
     if (!mentorQuestion.trim() || mentorSubmitting) return;
@@ -265,15 +303,30 @@ export default function VideoLecturesPage() {
             <span className="font-arimo font-bold italic" style={{ color: '#FDC700' }}>Start Learning.</span>
           </h2>
 
-          {/* Subject grid — shown only when a category is selected */}
-          {selectedCategory === null ? (
-            <div className="flex flex-col items-center justify-center" style={{ padding: 'clamp(32px, 4vw, 56px) 0', color: '#9CA3AF' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>👆</div>
-              <p className="font-arimo font-medium" style={{ fontSize: 'clamp(14px, 1.2vw, 16px)' }}>
-                Select a category above to browse subjects
-              </p>
-            </div>
-          ) : filteredSubjects.length === 0 ? (
+          {/* Category filter pills */}
+          <div className="flex flex-wrap justify-center" style={{ gap: '10px', marginBottom: 'clamp(24px, 2.5vw, 36px)' }}>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className="font-arimo font-medium"
+                style={{
+                  borderRadius: '26843500px',
+                  padding: '8px 20px',
+                  fontSize: '14px',
+                  border: selectedCategory === cat ? 'none' : '1px solid #E5E7EB',
+                  background: selectedCategory === cat ? '#17223E' : '#FFFFFF',
+                  color: selectedCategory === cat ? '#FFFFFF' : '#374151',
+                  cursor: 'pointer',
+                }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Subject grid */}
+          {filteredSubjects.length === 0 ? (
             <div className="flex flex-col items-center justify-center" style={{ padding: 'clamp(32px, 4vw, 56px) 0', color: '#9CA3AF' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
               <p className="font-arimo font-medium" style={{ fontSize: 'clamp(14px, 1.2vw, 16px)' }}>
@@ -291,13 +344,15 @@ export default function VideoLecturesPage() {
               {filteredSubjects.map((subject) => (
                 <div
                   key={subject.name}
+                  onClick={() => handleSubjectClick(subject.name)}
                   style={{
-                    background: '#FFFFFF',
+                    background: selectedSubject === subject.name ? '#F0F4FF' : '#FFFFFF',
                     borderRadius: '14px',
                     padding: 'clamp(18px, 2vw, 24px)',
                     boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1)',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
+                    border: selectedSubject === subject.name ? '2px solid #17223E' : '2px solid transparent',
                   }}
                 >
                   <div style={{ fontSize: 'clamp(28px, 3vw, 38px)', marginBottom: 'clamp(10px, 1vw, 14px)' }}>
@@ -310,10 +365,179 @@ export default function VideoLecturesPage() {
                     {subject.name}
                   </div>
                   <div className="font-arimo" style={{ fontSize: 'clamp(10px, 0.9vw, 12px)', color: '#364153' }}>
-                    {subject.videoCount ?? 0} videos
+                    {subject.videoCount ?? 0} videos{subject.viewCount ? ` • ${subject.viewCount >= 1000 ? `${(subject.viewCount / 1000).toFixed(0)}K` : subject.viewCount} Views` : ''}
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Inline videos for selected subject */}
+          {selectedSubject && (
+            <div style={{ marginTop: 'clamp(24px, 2.5vw, 36px)' }}>
+              {/* Subject header */}
+              <div style={{ marginBottom: 'clamp(16px, 1.5vw, 24px)' }}>
+                <div className="flex items-center gap-3" style={{ marginBottom: 'clamp(4px, 0.4vw, 6px)' }}>
+                  <div
+                    className="flex items-center justify-center"
+                    style={{
+                      background: 'linear-gradient(135deg, #FF6900 0%, #FB2C36 100%)',
+                      borderRadius: '12px',
+                      width: 'clamp(40px, 3.5vw, 48px)',
+                      height: 'clamp(40px, 3.5vw, 48px)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{ fontSize: 'clamp(22px, 2vw, 26px)' }}>{subjectEmoji(selectedSubject)}</span>
+                  </div>
+                  <div>
+                    <h2
+                      className="font-arimo font-bold"
+                      style={{ fontSize: 'clamp(20px, 1.88vw, 26px)', color: '#101828', lineHeight: 1.2 }}
+                    >
+                      {selectedSubject}
+                    </h2>
+                    <p className="font-arimo" style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', color: '#4A5565' }}>
+                      📺 {subjectVideos.length} Video{subjectVideos.length !== 1 ? 's' : ''}
+                      {(() => {
+                        const matched = apiSubjects.find(s => s.name === selectedSubject);
+                        return matched?.totalDuration ? ` · ${matched.totalDuration}` : '';
+                      })()}
+                    </p>
+                  </div>
+                </div>
+                {(() => {
+                  const matched = apiSubjects.find(s => s.name === selectedSubject);
+                  return matched?.description ? (
+                    <p className="font-arimo" style={{ fontSize: 'clamp(13px, 1.12vw, 15px)', color: '#4A5565', marginTop: 'clamp(8px, 0.8vw, 12px)', lineHeight: 1.5 }}>
+                      {matched.description}
+                    </p>
+                  ) : null;
+                })()}
+              </div>
+
+              {subjectVideosLoading ? (
+                <div className="flex flex-col items-center justify-center" style={{ padding: 'clamp(32px, 4vw, 56px) 0', color: '#9CA3AF' }}>
+                  <p className="font-arimo font-medium" style={{ fontSize: 'clamp(14px, 1.2vw, 16px)' }}>
+                    Loading videos...
+                  </p>
+                </div>
+              ) : subjectVideos.length === 0 ? (
+                <div className="flex flex-col items-center justify-center" style={{ padding: 'clamp(32px, 4vw, 56px) 0', color: '#9CA3AF' }}>
+                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
+                  <p className="font-arimo font-medium" style={{ fontSize: 'clamp(14px, 1.2vw, 16px)' }}>
+                    No videos available for {selectedSubject}
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 'clamp(14px, 1.5vw, 20px)',
+                  }}
+                >
+                  {subjectVideos.map((video) => (
+                    <div
+                      key={video.id}
+                      style={{
+                        background: '#FFFFFF',
+                        borderRadius: '14px',
+                        boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {/* Thumbnail */}
+                      <div
+                        className="flex items-center justify-center"
+                        style={{ background: '#EFF6FF', height: 'clamp(140px, 13vw, 180px)', position: 'relative' }}
+                      >
+                        {video.thumbnailUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={video.thumbnailUrl} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <span style={{ fontSize: 'clamp(40px, 4vw, 56px)' }}>{subjectEmoji(selectedSubject)}</span>
+                        )}
+                        <div
+                          className="font-arimo font-bold"
+                          style={{
+                            position: 'absolute',
+                            top: '10px',
+                            left: '10px',
+                            background: '#16A34A',
+                            color: '#FFFFFF',
+                            fontSize: '11px',
+                            padding: '3px 10px',
+                            borderRadius: '6px',
+                            letterSpacing: '0.5px',
+                          }}
+                        >
+                          🔥 HOT
+                        </div>
+                      </div>
+
+                      {/* Card content */}
+                      <div style={{ padding: 'clamp(14px, 1.5vw, 20px)' }}>
+                        <p
+                          className="font-arimo font-bold"
+                          style={{ fontSize: 'clamp(10px, 0.85vw, 12px)', color: '#C68A0B', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 'clamp(4px, 0.4vw, 6px)' }}
+                        >
+                          {selectedSubject.toUpperCase()}
+                        </p>
+                        <h3
+                          className="font-arimo font-bold"
+                          style={{ fontSize: 'clamp(14px, 1.2vw, 16px)', color: '#101828', marginBottom: 'clamp(6px, 0.6vw, 8px)', lineHeight: 1.3 }}
+                        >
+                          {video.title}
+                        </h3>
+                        <p className="font-arimo" style={{ fontSize: 'clamp(11px, 0.9vw, 13px)', color: '#4A5565', marginBottom: 'clamp(12px, 1.2vw, 16px)' }}>
+                          👀 {video.viewCount ? formatViews(video.viewCount) : '—'}
+                          {video.createdAt ? ` · 📅 ${timeAgo(video.createdAt)}` : video.publishedAt ? ` · 📅 ${timeAgo(video.publishedAt)}` : ''}
+                        </p>
+
+                        <div className="flex items-center" style={{ gap: 'clamp(6px, 0.6vw, 8px)' }}>
+                          <button
+                            onClick={() => setShowLoginModal(true)}
+                            className="flex items-center gap-1 font-arimo font-medium"
+                            style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#EFF6FF', border: '1px solid #101828', color: '#101828', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
+                          >
+                            <img src="/pdf.png" alt="pdf" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                            PDF
+                          </button>
+                          <button
+                            onClick={() => setShowMentorModal(true)}
+                            className="flex items-center gap-1 font-arimo font-medium"
+                            style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#EFF6FF', border: '1px solid #101828', color: '#101828', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
+                          >
+                            <img src="/think.png" alt="ask mentor" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                            Ask Mentor
+                          </button>
+                          {video.videoUrl ? (
+                            <a
+                              href={video.videoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 font-arimo font-bold text-white"
+                              style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#162456', fontSize: 'clamp(11px, 0.9vw, 13px)', textDecoration: 'none' }}
+                            >
+                              <img src="/yt.png" alt="watch" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                              Watch
+                            </a>
+                          ) : (
+                            <button
+                              className="flex items-center gap-1 font-arimo font-bold text-white"
+                              style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#162456', border: 'none', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
+                            >
+                              <img src="/yt.png" alt="watch" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                              Watch
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -444,39 +668,54 @@ export default function VideoLecturesPage() {
         {apiVideos.length > 0 && (
           <div style={{ marginBottom: 'clamp(40px, 4vw, 60px)' }}>
             {/* Header */}
-            <div style={{ marginBottom: 'clamp(6px, 0.6vw, 8px)' }}>
-              <div className="flex items-center gap-2" style={{ marginBottom: 'clamp(4px, 0.4vw, 6px)' }}>
+            <div style={{ marginBottom: 'clamp(16px, 1.5vw, 24px)' }}>
+              <div className="flex items-center gap-3" style={{ marginBottom: 'clamp(4px, 0.4vw, 6px)' }}>
                 <div
                   className="flex items-center justify-center"
                   style={{
                     background: 'linear-gradient(135deg, #FF6900 0%, #FB2C36 100%)',
-                    borderRadius: '10px',
-                    width: 'clamp(32px, 2.8vw, 40px)',
-                    height: 'clamp(32px, 2.8vw, 40px)',
+                    borderRadius: '12px',
+                    width: 'clamp(40px, 3.5vw, 48px)',
+                    height: 'clamp(40px, 3.5vw, 48px)',
                     flexShrink: 0,
                   }}
                 >
-                  <span style={{ fontSize: 'clamp(18px, 1.6vw, 22px)' }}>{subjectEmoji(featuredSubjectName)}</span>
+                  <span style={{ fontSize: 'clamp(22px, 2vw, 26px)' }}>{subjectEmoji(featuredSubjectName)}</span>
                 </div>
-                <h2
-                  className="font-arimo font-bold"
-                  style={{ fontSize: 'clamp(20px, 1.88vw, 24px)', color: '#101828' }}
-                >
-                  {featuredSubjectName}
-                </h2>
+                <div>
+                  <h2
+                    className="font-arimo font-bold"
+                    style={{ fontSize: 'clamp(20px, 1.88vw, 26px)', color: '#101828', lineHeight: 1.2 }}
+                  >
+                    {featuredSubjectName}
+                  </h2>
+                  <p className="font-arimo" style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', color: '#4A5565' }}>
+                    📺 {apiVideos.length} Video{apiVideos.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
               </div>
-              <p className="font-arimo" style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', color: '#4A5565', marginBottom: 'clamp(4px, 0.4vw, 6px)' }}>
-                {'\uD83D\uDCFA'} {apiVideos.length} Video{apiVideos.length !== 1 ? 's' : ''}
-              </p>
+              {(() => {
+                const matched = apiSubjects.find(s => s.name === featuredSubjectName);
+                return matched?.description ? (
+                  <p className="font-arimo" style={{ fontSize: 'clamp(13px, 1.12vw, 15px)', color: '#4A5565', marginTop: 'clamp(8px, 0.8vw, 12px)', lineHeight: 1.5 }}>
+                    {matched.description}
+                  </p>
+                ) : null;
+              })()}
             </div>
 
-            {/* Video cards row */}
-            <div className="flex" style={{ gap: 'clamp(14px, 1.5vw, 20px)' }}>
-              {apiVideos.slice(0, 4).map((video) => (
+            {/* Video cards grid */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 'clamp(14px, 1.5vw, 20px)',
+              }}
+            >
+              {apiVideos.map((video) => (
                 <div
                   key={video.id}
                   style={{
-                    flex: 1,
                     background: '#FFFFFF',
                     borderRadius: '14px',
                     boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1)',
@@ -494,22 +733,46 @@ export default function VideoLecturesPage() {
                     ) : (
                       <span style={{ fontSize: 'clamp(40px, 4vw, 56px)' }}>{subjectEmoji(featuredSubjectName)}</span>
                     )}
+                    {/* HOT badge */}
+                    <div
+                      className="font-arimo font-bold"
+                      style={{
+                        position: 'absolute',
+                        top: '10px',
+                        left: '10px',
+                        background: '#16A34A',
+                        color: '#FFFFFF',
+                        fontSize: '11px',
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        letterSpacing: '0.5px',
+                      }}
+                    >
+                      🔥 HOT
+                    </div>
                   </div>
 
                   {/* Card content */}
                   <div style={{ padding: 'clamp(14px, 1.5vw, 20px)' }}>
+                    {/* Category label */}
+                    <p
+                      className="font-arimo font-bold"
+                      style={{ fontSize: 'clamp(10px, 0.85vw, 12px)', color: '#C68A0B', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 'clamp(4px, 0.4vw, 6px)' }}
+                    >
+                      {featuredSubjectName.toUpperCase()}
+                    </p>
                     <h3
                       className="font-arimo font-bold"
-                      style={{ fontSize: 'clamp(14px, 1.2vw, 16px)', color: '#101828', marginBottom: 'clamp(8px, 0.75vw, 10px)', lineHeight: 1.3 }}
+                      style={{ fontSize: 'clamp(14px, 1.2vw, 16px)', color: '#101828', marginBottom: 'clamp(6px, 0.6vw, 8px)', lineHeight: 1.3 }}
                     >
                       {video.title}
                     </h3>
 
-                    {video.instructor && (
-                      <p className="font-arimo" style={{ fontSize: 'clamp(11px, 0.9vw, 13px)', color: '#4A5565', marginBottom: 'clamp(12px, 1.2vw, 16px)' }}>
-                        {video.instructor}{video.duration ? ` · ${video.duration}` : ''}
-                      </p>
-                    )}
+                    {/* Views & time ago */}
+                    <p className="font-arimo" style={{ fontSize: 'clamp(11px, 0.9vw, 13px)', color: '#4A5565', marginBottom: 'clamp(12px, 1.2vw, 16px)' }}>
+                      👀 {video.viewCount ? formatViews(video.viewCount) : '—'}
+                      {video.createdAt ? ` · 📅 ${timeAgo(video.createdAt)}` : video.publishedAt ? ` · 📅 ${timeAgo(video.publishedAt)}` : ''}
+                    </p>
 
                     {/* Action buttons */}
                     <div className="flex items-center" style={{ gap: 'clamp(6px, 0.6vw, 8px)' }}>

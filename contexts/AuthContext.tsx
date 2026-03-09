@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { authService, User, getStoredTokens, storeTokens, clearTokens, SignupData, LoginData } from '@/lib/auth';
+import { authService, User, storeTokens, clearTokens, SignupData, LoginData } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
 interface AuthContextType {
@@ -23,42 +23,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      const { accessToken } = getStoredTokens();
-      if (!accessToken) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        clearTokens();
         setUser(null);
         setIsLoading(false);
         return;
       }
-
+      storeTokens(session.access_token, session.refresh_token ?? '');
       const { user } = await authService.getMe();
       setUser(user);
-    } catch (error) {
-      // Try to refresh the token via Supabase
-      try {
-        await authService.refreshToken();
-        const { user } = await authService.getMe();
-        setUser(user);
-      } catch {
-        clearTokens();
-        setUser(null);
-      }
+    } catch {
+      clearTokens();
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    refreshUser();
-  }, [refreshUser]);
-
-  // Keep our localStorage tokens in sync with Supabase's automatic token refresh
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    // Use Supabase's onAuthStateChange as the single source of truth.
+    // It fires INITIAL_SESSION on page load (including hard refresh) with the
+    // current session — no race condition with manual token checks.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         storeTokens(session.access_token, session.refresh_token ?? '');
-      } else if (event === 'SIGNED_OUT') {
+        try {
+          const { user } = await authService.getMe();
+          setUser(user);
+        } catch {
+          setUser(null);
+          clearTokens();
+        }
+      } else {
         clearTokens();
+        setUser(null);
       }
+      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();

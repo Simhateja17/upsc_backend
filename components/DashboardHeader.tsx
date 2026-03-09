@@ -122,7 +122,7 @@ const DashboardHeader = () => {
                   className="text-white font-poppins font-medium leading-[100%] truncate mt-[clamp(2px,0.3vw,4px)]"
                   style={{ fontSize: 'clamp(9px, 0.6vw, 11.52px)' }}
                 >
-                  {isAuthenticated ? 'UPSC Aspirant' : 'Guest'}
+                  {isAuthenticated ? (user?.email || 'UPSC Aspirant') : 'Guest'}
                 </div>
               </div>
 

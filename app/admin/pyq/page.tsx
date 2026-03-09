@@ -27,8 +27,6 @@ export default function PYQManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<PYQQuestion>>({});
   const fileRef = useRef<HTMLInputElement>(null);
-  const [year, setYear] = useState('2023');
-  const [paper, setPaper] = useState('GS-I');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalQuestions, setTotalQuestions] = useState(0);
@@ -69,7 +67,7 @@ export default function PYQManager() {
     setUploadMsg('Uploading & parsing PDF...');
 
     try {
-      const res = await adminService.uploadPYQ(file, parseInt(year), paper);
+      const res = await adminService.uploadPYQ(file);
       if (res.success !== false) {
         setUploadMsg(`Extracted ${res.data?.extractedCount ?? '?'} questions!`);
         loadQuestions();
@@ -156,27 +154,6 @@ export default function PYQManager() {
               className="block text-sm text-[#374151] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#EFF6FF] file:text-[#1D4ED8] file:font-medium file:cursor-pointer"
             />
           </div>
-          <div>
-            <label className="block text-sm text-[#6B7280] mb-1 font-inter">Year</label>
-            <input
-              type="number"
-              value={year}
-              onChange={(e) => setYear(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-24"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-[#6B7280] mb-1 font-inter">Paper</label>
-            <select
-              value={paper}
-              onChange={(e) => setPaper(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            >
-              {['GS-I', 'GS-II', 'GS-III', 'GS-IV', 'CSAT', 'Essay'].map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
           <button
             onClick={handleUpload}
             disabled={uploading}
@@ -186,6 +163,9 @@ export default function PYQManager() {
             {uploading ? 'Processing...' : 'Upload & Parse'}
           </button>
         </div>
+        <p className="mt-2 text-xs text-[#9CA3AF] font-inter">
+          Year and paper type are automatically detected from the PDF content.
+        </p>
         {uploadMsg && (
           <p className="mt-3 text-sm font-inter" style={{ color: uploadMsg.startsWith('Error') ? '#EF4444' : '#10B981' }}>
             {uploadMsg}

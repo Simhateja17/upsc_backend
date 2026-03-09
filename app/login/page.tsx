@@ -19,7 +19,7 @@ const avatarColors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, signup, loginWithGoogle, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, signup, loginWithGoogle, isAuthenticated, isLoading: authLoading, user } = useAuth();
 
   // Get initial tab from URL query param
   const tabParam = searchParams.get('tab');
@@ -45,9 +45,9 @@ function LoginPageContent() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      router.push('/dashboard');
+      router.push(user?.role === 'admin' ? '/admin' : '/dashboard');
     }
-  }, [isAuthenticated, authLoading, router]);
+  }, [isAuthenticated, authLoading, user, router]);
 
   // Update tab when URL changes
   useEffect(() => {
@@ -65,7 +65,7 @@ function LoginPageContent() {
 
     try {
       await login({ email: loginEmail, password: loginPassword });
-      router.push('/dashboard');
+      // Redirect is handled by the useEffect watching isAuthenticated/user
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
     } finally {

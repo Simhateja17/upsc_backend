@@ -1,7 +1,33 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { studyPlannerService } from '@/lib/services';
+
+function fmtTimer(secs: number): string {
+  const s = Math.max(0, secs);
+  const m = Math.floor(s / 60).toString().padStart(2, '0');
+  const sec = (s % 60).toString().padStart(2, '0');
+  return `${m}:${sec}`;
+}
+
+function taskDurationSecs(task: Task): number {
+  if (task.startTime && task.endTime) {
+    const [sh, sm] = task.startTime.split(':').map(Number);
+    const [eh, em] = task.endTime.split(':').map(Number);
+    const diff = (eh * 60 + em) - (sh * 60 + sm);
+    if (diff > 0) return diff * 60;
+  }
+  return 3600;
+}
+
+function pieSlicePath(cx: number, cy: number, r: number, startAngle: number, endAngle: number): string {
+  const x1 = cx + r * Math.cos(startAngle);
+  const y1 = cy + r * Math.sin(startAngle);
+  const x2 = cx + r * Math.cos(endAngle);
+  const y2 = cy + r * Math.sin(endAngle);
+  const largeArc = endAngle - startAngle > Math.PI ? 1 : 0;
+  return `M ${cx} ${cy} L ${x1.toFixed(3)} ${y1.toFixed(3)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(3)} ${y2.toFixed(3)} Z`;
+}
 
 interface Task {
   id: string;
@@ -27,7 +53,21 @@ export default function StudyPlannerPage() {
   const [weeklyTarget, setWeeklyTarget] = useState<number | null>(null);
   const [syllabusCoverage, setSyllabusCoverage] = useState<{ subject: string; percentage: number }[]>([]);
   const [weeklyGoals, setWeeklyGoals] = useState<{ title: string; completed: boolean }[]>([]);
+  const [showGoalsModal, setShowGoalsModal] = useState(false);
+  const [editGoals, setEditGoals] = useState<{ title: string; completed: boolean }[]>([]);
+  const [savingGoals, setSavingGoals] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [studiedDays, setStudiedDays] = useState<number[]>([]);
+
+  // Focus session state
+  const [focusActive, setFocusActive] = useState(false);
+  const [focusPaused, setFocusPaused] = useState(false);
+  const [focusDone, setFocusDone] = useState(false);
+  const [focusSessionTasks, setFocusSessionTasks] = useState<Task[]>([]);
+  const [focusTaskIdx, setFocusTaskIdx] = useState(0);
+  const [focusTaskSecs, setFocusTaskSecs] = useState(0);
+  const [focusTotalSecs, setFocusTotalSecs] = useState(0);
+  const focusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     studyPlannerService.getTodayTasks()
@@ -63,6 +103,15 @@ export default function StudyPlannerPage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    studyPlannerService.getMonthlyActivity(currentDate.getFullYear(), currentDate.getMonth() + 1)
+      .then(res => {
+        if (res.data?.studiedDays) setStudiedDays(res.data.studiedDays);
+        else setStudiedDays([]);
+      })
+      .catch(() => {});
+  }, [currentDate]);
+
   const handleAddTask = async () => {
     if (!taskTitle.trim()) return;
     setAdding(true);
@@ -96,6 +145,58 @@ export default function StudyPlannerPage() {
     } catch {}
   };
 
+  // Focus session timer
+  useEffect(() => {
+    if (focusActive && !focusPaused && !focusDone) {
+      focusTimerRef.current = setInterval(() => {
+        setFocusTaskSecs(s => s + 1);
+        setFocusTotalSecs(s => s + 1);
+      }, 1000);
+    } else {
+      if (focusTimerRef.current) clearInterval(focusTimerRef.current);
+    }
+    return () => { if (focusTimerRef.current) clearInterval(focusTimerRef.current); };
+  }, [focusActive, focusPaused, focusDone]);
+
+  const startFocusSession = () => {
+    if (tasks.length === 0) return;
+    setFocusSessionTasks([...tasks]);
+    setFocusTaskIdx(0);
+    setFocusTaskSecs(0);
+    setFocusTotalSecs(0);
+    setFocusPaused(false);
+    setFocusDone(false);
+    setFocusActive(true);
+  };
+
+  const focusAdvance = (newIdx: number, sessionTasks: Task[]) => {
+    if (newIdx >= sessionTasks.length) {
+      setFocusDone(true);
+    } else {
+      setFocusTaskIdx(newIdx);
+      setFocusTaskSecs(0);
+    }
+  };
+
+  const focusMarkDone = async () => {
+    const task = focusSessionTasks[focusTaskIdx];
+    if (task && !task.isCompleted) {
+      await handleToggleTask(task.id, false);
+      const updated = focusSessionTasks.map((t, i) => i === focusTaskIdx ? { ...t, isCompleted: true } : t);
+      setFocusSessionTasks(updated);
+    }
+    focusAdvance(focusTaskIdx + 1, focusSessionTasks);
+  };
+
+  const focusSkip = () => {
+    focusAdvance(focusTaskIdx + 1, focusSessionTasks);
+  };
+
+  const closeFocusSession = () => {
+    setFocusActive(false);
+    setFocusDone(false);
+  };
+
   const formatDate = (date: Date) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -110,12 +211,16 @@ export default function StudyPlannerPage() {
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const todayNum = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear()
     ? today.getDate() : -1;
-  const calendarDays = Array.from({ length: Math.min(16, daysInMonth) }, (_, i) => ({
+  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const offset = (firstDayOfMonth.getDay() + 6) % 7; // 0=Mon … 6=Sun
+  const emptySlots = Array.from({ length: offset }, (_, i) => ({ day: 0, empty: true, studied: false, today: false }));
+  const daySlots = Array.from({ length: daysInMonth }, (_, i) => ({
     day: i + 1,
-    current: true,
-    active: i + 1 <= (todayNum > 0 ? todayNum : daysInMonth),
+    empty: false,
+    studied: studiedDays.includes(i + 1),
     today: i + 1 === todayNum,
   }));
+  const calendarDays = [...emptySlots, ...daySlots];
 
   const studyTypes = [
     { id: 'video', label: 'Video Lectures', icon: '/study-type-video.png' },
@@ -138,6 +243,18 @@ export default function StudyPlannerPage() {
     ['Answer Writing'],
     ['GS1', 'GS2', 'GS3', 'GS4'],
   ];
+
+  // Items that map to a subject in the dropdown — fills both title and subject
+  const subjectItems = new Set(['Polity', 'History', 'Science & Technology', 'Economics', 'Geography', 'Environment', 'Ethics']);
+
+  const handleQuickAdd = (item: string) => {
+    if (subjectItems.has(item)) {
+      setTaskTitle(`${item} Study Session`);
+      setTaskSubject(item);
+    } else {
+      setTaskTitle(item);
+    }
+  };
 
   const timeOptions = [
     '06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
@@ -163,6 +280,31 @@ export default function StudyPlannerPage() {
     ? `Total Study Time: ${totalStudyMinutes} minutes (${totalStudyHours}h ${totalStudyMins}m)`
     : 'Total Study Time: —';
 
+  // Time distribution by study type
+  const typeConfig = [
+    { id: 'reading',  label: 'Reading',        color: '#2DD4BF' },
+    { id: 'video',    label: 'Video Lectures',  color: '#F43F5E' },
+    { id: 'practice', label: 'Practice',        color: '#FBBF24' },
+    { id: 'revision', label: 'Revision',        color: '#312C85' },
+    { id: 'test',     label: 'Test',            color: '#FF6900' },
+    { id: 'notes',    label: 'Note Making',     color: '#818CF8' },
+    { id: 'answer',   label: 'Answer Writing',  color: '#34D399' },
+    { id: 'other',    label: 'Other',           color: '#9CA3AF' },
+  ];
+  const timeByType = typeConfig.map(tc => {
+    const mins = tasks
+      .filter(t => t.type === tc.id && t.startTime && t.endTime)
+      .reduce((sum, t) => {
+        const [sh, sm] = t.startTime!.split(':').map(Number);
+        const [eh, em] = t.endTime!.split(':').map(Number);
+        const diff = (eh * 60 + em) - (sh * 60 + sm);
+        return sum + (diff > 0 ? diff : 0);
+      }, 0);
+    return { ...tc, minutes: mins };
+  }).filter(x => x.minutes > 0);
+  const totalTypeMins = timeByType.reduce((s, x) => s + x.minutes, 0);
+  const fmtHours = (m: number) => (m / 60 % 1 === 0 ? (m / 60).toFixed(0) : (m / 60).toFixed(1)) + 'h';
+
   // Dynamic month/year display for calendar header
   const calendarMonthYear = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -174,6 +316,7 @@ export default function StudyPlannerPage() {
     : null;
 
   return (
+    <>
     <div className="flex flex-col bg-gray-50 overflow-x-hidden" style={{ height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
       <div className="flex-1 overflow-y-auto">
         <div className="flex gap-5 p-6">
@@ -230,15 +373,15 @@ export default function StudyPlannerPage() {
                     style={{
                       width: '27.5px',
                       height: '27.5px',
-                      borderRadius: (item.active || item.today) ? '10px' : '0',
-                      background: item.today ? '#FF6900' : item.active ? '#00BC7D' : 'transparent',
-                      color: !item.current ? '#99A1AF' : (item.active || item.today) ? '#FFFFFF' : '#99A1AF',
+                      borderRadius: (item.studied || item.today) ? '10px' : '0',
+                      background: item.empty ? 'transparent' : item.today ? '#FF6900' : item.studied ? '#00BC7D' : 'transparent',
+                      color: item.empty ? 'transparent' : (item.studied || item.today) ? '#FFFFFF' : '#99A1AF',
                       fontSize: '14px',
                       lineHeight: '20px',
                       margin: '0 auto',
                     }}
                   >
-                    {item.day}
+                    {item.empty ? '' : item.day}
                   </div>
                 ))}
               </div>
@@ -276,6 +419,7 @@ export default function StudyPlannerPage() {
                     {row.map((item) => (
                       <button
                         key={item}
+                        onClick={() => handleQuickAdd(item)}
                         className="flex items-center justify-center font-arimo hover:bg-gray-100 transition-colors"
                         style={{
                           height: '40px',
@@ -310,50 +454,66 @@ export default function StudyPlannerPage() {
               }}
             >
               <div className="flex items-center gap-2 mb-6">
-                 {/* Donut Chart Icon / P Icon */}
                 <div style={{ position: 'relative', width: '28px', height: '28px' }}>
-                    <div className="w-full h-full rounded-full border-4 border-t-yellow-400 border-r-red-400 border-b-green-400 border-l-blue-500"></div>
+                  <div className="w-full h-full rounded-full border-4 border-t-yellow-400 border-r-red-400 border-b-green-400 border-l-blue-500"></div>
                 </div>
                 <h2 className="font-arimo font-bold text-[#17223E]" style={{ fontSize: '20px', lineHeight: '28px' }}>
                   Time Distribution
                 </h2>
               </div>
-              
-              {/* Chart Container */}
-              <div className="relative mb-4" style={{ height: '245px' }}>
-                <div className="relative w-full h-full">
-                    {/* Pie Chart Image */}
-                    <img
-                      src="/container-8.png"
-                      alt="Time Distribution Chart"
-                      className="w-full h-full object-contain"
-                    />
-                </div>
+
+              {/* SVG Pie Chart */}
+              <div className="flex items-center justify-center mb-4">
+                {totalTypeMins === 0 ? (
+                  <div className="flex items-center justify-center font-arimo text-[#9CA3AF] text-sm" style={{ height: '180px' }}>
+                    No timed tasks today
+                  </div>
+                ) : (
+                  <svg viewBox="0 0 220 220" width="180" height="180">
+                    {(() => {
+                      const cx = 110, cy = 110, r = 85;
+                      let angle = -Math.PI / 2;
+                      return timeByType.map((slice) => {
+                        const sliceAngle = (slice.minutes / totalTypeMins) * 2 * Math.PI;
+                        const path = pieSlicePath(cx, cy, r, angle, angle + sliceAngle);
+                        angle += sliceAngle;
+                        return <path key={slice.id} d={path} fill={slice.color} stroke="#fff" strokeWidth="2" />;
+                      });
+                    })()}
+                    {/* Center label */}
+                    <text x="110" y="105" textAnchor="middle" dominantBaseline="middle" fill="#17223E" fontWeight="bold" fontSize="22" fontFamily="Arimo, sans-serif">
+                      {fmtHours(totalTypeMins)}
+                    </text>
+                    <text x="110" y="128" textAnchor="middle" dominantBaseline="middle" fill="#6B7280" fontSize="11" fontFamily="Arimo, sans-serif">
+                      total
+                    </text>
+                  </svg>
+                )}
               </div>
 
-               {/* Legend */}
+              {/* Legend */}
               <div className="space-y-3 px-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#2DD4BF]"></span>
-                    <span className="font-arimo text-[#374151] text-sm font-medium">Reading</span>
-                  </div>
-                  <span className="font-arimo font-bold text-[#111827] text-sm">2.0h</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#F43F5E]"></span>
-                    <span className="font-arimo text-[#374151] text-sm font-medium">Video Lectures</span>
-                  </div>
-                  <span className="font-arimo font-bold text-[#111827] text-sm">1.5h</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#FBBF24]"></span>
-                    <span className="font-arimo text-[#374151] text-sm font-medium">Practice</span>
-                  </div>
-                  <span className="font-arimo font-bold text-[#111827] text-sm">1.0h</span>
-                </div>
+                {totalTypeMins === 0 ? (
+                  typeConfig.slice(0, 3).map(tc => (
+                    <div key={tc.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full" style={{ background: tc.color }}></span>
+                        <span className="font-arimo text-[#374151] text-sm font-medium">{tc.label}</span>
+                      </div>
+                      <span className="font-arimo font-bold text-[#9CA3AF] text-sm">—</span>
+                    </div>
+                  ))
+                ) : (
+                  timeByType.map(slice => (
+                    <div key={slice.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full" style={{ background: slice.color }}></span>
+                        <span className="font-arimo text-[#374151] text-sm font-medium">{slice.label}</span>
+                      </div>
+                      <span className="font-arimo font-bold text-[#111827] text-sm">{fmtHours(slice.minutes)}</span>
+                    </div>
+                  ))
+                )}
               </div>
 
             </div>
@@ -679,7 +839,9 @@ export default function StudyPlannerPage() {
 
                   {/* Start Focus Session */}
                   <button
-                    className="flex items-center justify-center gap-2 font-arimo font-bold text-white hover:opacity-90 transition-opacity w-full"
+                    onClick={startFocusSession}
+                    disabled={tasks.length === 0}
+                    className="flex items-center justify-center gap-2 font-arimo font-bold text-white hover:opacity-90 transition-opacity w-full disabled:opacity-40"
                     style={{
                       height: '44px',
                       borderRadius: '10px',
@@ -713,23 +875,17 @@ export default function StudyPlannerPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {syllabusCoverage.length > 0 ? (
-                    syllabusCoverage.slice(0, 3).map((item) => (
-                      <div key={item.subject}>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="font-arimo text-[#101828]" style={{ fontSize: '13px' }}>{item.subject}</span>
-                          <span className="font-arimo font-bold text-[#101828]" style={{ fontSize: '13px' }}>{item.percentage}%</span>
-                        </div>
-                        <div className="w-full bg-[#E5E7EB] rounded-full h-2">
-                          <div className="bg-[#17223E] h-2 rounded-full" style={{ width: `${item.percentage}%` }}></div>
-                        </div>
+                  {syllabusCoverage.map((item) => (
+                    <div key={item.subject}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-arimo text-[#101828]" style={{ fontSize: '13px' }}>{item.subject}</span>
+                        <span className="font-arimo font-bold text-[#101828]" style={{ fontSize: '13px' }}>{item.percentage}%</span>
                       </div>
-                    ))
-                  ) : (
-                    <p className="font-arimo text-[#6B7280] text-center" style={{ fontSize: '13px', paddingTop: '8px' }}>
-                      No coverage data yet.
-                    </p>
-                  )}
+                      <div className="w-full bg-[#E5E7EB] rounded-full h-2">
+                        <div className="bg-[#17223E] h-2 rounded-full" style={{ width: `${item.percentage}%` }}></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -737,28 +893,47 @@ export default function StudyPlannerPage() {
               <div
                 className="bg-white rounded-[16px] border-[0.8px] border-[#E5E7EB] p-6 shadow-[0px_1px_2px_-1px_#0000001A,0px_1px_3px_0px_#0000001A] flex-1"
               >
-                <div className="flex items-center gap-2 mb-4">
-                  {/* Target Icon */}
-                  <img src="/image-removebg-preview%20(61)%201%20(1).png" alt="Goals" style={{ width: '24px', height: '24px' }} />
-                  <h3 className="font-arimo font-bold text-[#101828]" style={{ fontSize: '16px', lineHeight: '24px' }}>
-                    Weekly Goals
-                  </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    {/* Target Icon */}
+                    <img src="/image-removebg-preview%20(61)%201%20(1).png" alt="Goals" style={{ width: '24px', height: '24px' }} />
+                    <h3 className="font-arimo font-bold text-[#101828]" style={{ fontSize: '16px', lineHeight: '24px' }}>
+                      Weekly Goals
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => { setEditGoals(weeklyGoals.map(g => ({ ...g }))); setShowGoalsModal(true); }}
+                    className="flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors"
+                    style={{ width: '32px', height: '32px' }}
+                    title="Edit goals"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </button>
                 </div>
 
                 <div className="space-y-3">
                   {weeklyGoals.length > 0 ? (
                     weeklyGoals.map((goal, i) => (
-                      <div key={i} className="flex items-start gap-3">
+                      <div
+                        key={i}
+                        className="flex items-start gap-3 cursor-pointer select-none"
+                        onClick={() => {
+                          const updated = weeklyGoals.map((g, idx) =>
+                            idx === i ? { ...g, completed: !g.completed } : g
+                          );
+                          setWeeklyGoals(updated);
+                          studyPlannerService.saveWeeklyGoals(updated).catch(() => {});
+                        }}
+                      >
                         <div
-                          className={`w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center ${goal.completed ? 'bg-green-500 border border-green-500' : 'border border-[#D1D5DB]'}`}
+                          className={`w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${goal.completed ? 'bg-[#4F78F6] border-2 border-[#4F78F6]' : 'border-2 border-[#D1D5DB] hover:border-[#4F78F6]'}`}
                         >
-                          {goal.completed && (
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                              <path d="M20 6L9 17L4 12" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          )}
+                          {goal.completed && <div className="w-2 h-2 rounded-full bg-white" />}
                         </div>
-                        <span className={`font-arimo text-[#101828] ${goal.completed ? 'line-through text-gray-400' : ''}`} style={{ fontSize: '14px', lineHeight: '20px' }}>{goal.title}</span>
+                        <span className={`font-arimo ${goal.completed ? 'line-through text-gray-400' : 'text-[#101828]'}`} style={{ fontSize: '14px', lineHeight: '20px' }}>{goal.title}</span>
                       </div>
                     ))
                   ) : (
@@ -823,6 +998,302 @@ export default function StudyPlannerPage() {
         </div>
       </div>
     </div>
+
+    {/* ── Focus Session Modal ── */}
+    {focusActive && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ background: 'rgba(11,18,42,0.82)' }}
+      >
+        <div
+          className="bg-white shadow-2xl flex flex-col"
+          style={{ borderRadius: '24px', width: '520px', maxWidth: '95vw', maxHeight: '90vh', overflow: 'hidden' }}
+        >
+          {focusDone ? (
+            /* ── Summary Screen ── */
+            <div className="flex flex-col items-center justify-center p-10 text-center" style={{ minHeight: '360px' }}>
+              <div
+                className="flex items-center justify-center mb-6"
+                style={{ width: '72px', height: '72px', borderRadius: '50%', background: '#DCFCE7' }}
+              >
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17L4 12" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h2 className="font-arimo font-bold text-[#101828] mb-2" style={{ fontSize: '26px' }}>Session Complete!</h2>
+              <p className="font-arimo text-[#6B7280] mb-6" style={{ fontSize: '15px' }}>Great work — keep the momentum going.</p>
+              <div className="flex gap-8 mb-8">
+                <div className="text-center">
+                  <p className="font-arimo font-bold text-[#17223E]" style={{ fontSize: '32px', lineHeight: '1' }}>{fmtTimer(focusTotalSecs)}</p>
+                  <p className="font-arimo text-[#9CA3AF]" style={{ fontSize: '13px', marginTop: '4px' }}>Time Studied</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-arimo font-bold text-[#17223E]" style={{ fontSize: '32px', lineHeight: '1' }}>
+                    {focusSessionTasks.filter(t => t.isCompleted).length}/{focusSessionTasks.length}
+                  </p>
+                  <p className="font-arimo text-[#9CA3AF]" style={{ fontSize: '13px', marginTop: '4px' }}>Tasks Done</p>
+                </div>
+              </div>
+              <button
+                onClick={closeFocusSession}
+                className="font-arimo font-bold text-white hover:opacity-90 transition-opacity"
+                style={{ height: '48px', borderRadius: '12px', background: '#17223E', fontSize: '15px', padding: '0 40px' }}
+              >
+                Close
+              </button>
+            </div>
+          ) : (
+            /* ── Active Session Screen ── */
+            <>
+              {/* Header */}
+              <div className="flex items-center justify-between px-7 pt-6 pb-4" style={{ borderBottom: '1px solid #F3F4F6' }}>
+                <div>
+                  <h2 className="font-arimo font-bold text-[#101828]" style={{ fontSize: '18px' }}>Focus Session</h2>
+                  <p className="font-arimo text-[#9CA3AF]" style={{ fontSize: '13px' }}>{formatDate(new Date())}</p>
+                </div>
+                <button onClick={closeFocusSession} className="hover:bg-gray-100 rounded-lg p-1.5 transition-colors">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+
+              {/* Current Task + Countdown */}
+              {(() => {
+                const task = focusSessionTasks[focusTaskIdx];
+                const durSecs = task ? taskDurationSecs(task) : 3600;
+                const remaining = Math.max(0, durSecs - focusTaskSecs);
+                const pct = Math.min(100, Math.round((focusTaskSecs / durSecs) * 100));
+                const isTimeUp = focusTaskSecs >= durSecs;
+                return (
+                  <div className="px-7 py-5">
+                    {/* Task name + subject */}
+                    <div className="mb-1">
+                      <p className="font-arimo text-[#9CA3AF]" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Task {focusTaskIdx + 1} of {focusSessionTasks.length}
+                      </p>
+                      <h3 className="font-arimo font-bold text-[#101828]" style={{ fontSize: '20px', lineHeight: '1.3' }}>{task?.title ?? '—'}</h3>
+                      {task?.subject && (
+                        <span className="inline-block font-arimo text-[#312C85] mt-1" style={{ fontSize: '12px', background: '#EEF2FF', borderRadius: '6px', padding: '2px 8px' }}>
+                          {task.subject}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Countdown */}
+                    <div className="flex items-center justify-between mt-4 mb-2">
+                      <div>
+                        <p
+                          className="font-arimo font-bold"
+                          style={{ fontSize: '42px', lineHeight: '1', color: isTimeUp ? '#EF4444' : '#17223E' }}
+                        >
+                          {isTimeUp ? 'Time\'s up!' : fmtTimer(remaining)}
+                        </p>
+                        {!isTimeUp && (
+                          <p className="font-arimo text-[#9CA3AF]" style={{ fontSize: '12px', marginTop: '2px' }}>
+                            remaining · {fmtTimer(focusTotalSecs)} total
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setFocusPaused(p => !p)}
+                        className="flex items-center gap-2 font-arimo font-bold hover:opacity-80 transition-opacity"
+                        style={{ height: '40px', borderRadius: '10px', background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '0 16px', fontSize: '14px', color: '#374151' }}
+                      >
+                        {focusPaused ? (
+                          <><svg width="14" height="14" viewBox="0 0 24 24" fill="#374151"><path d="M8 5v14l11-7z"/></svg>Resume</>
+                        ) : (
+                          <><svg width="14" height="14" viewBox="0 0 24 24" fill="#374151"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>Pause</>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Progress bar for current task */}
+                    <div className="w-full bg-[#F3F4F6] rounded-full" style={{ height: '6px' }}>
+                      <div
+                        className="rounded-full transition-all"
+                        style={{ height: '6px', width: `${pct}%`, background: isTimeUp ? '#EF4444' : '#00BC7D' }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Task Queue */}
+              <div className="flex-1 overflow-y-auto px-7 pb-2" style={{ maxHeight: '240px' }}>
+                <p className="font-arimo text-[#9CA3AF] mb-2" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>All Tasks</p>
+                <div className="space-y-2">
+                  {focusSessionTasks.map((task, i) => {
+                    const isActive = i === focusTaskIdx;
+                    const isDone = task.isCompleted || i < focusTaskIdx;
+                    return (
+                      <div
+                        key={task.id}
+                        className="flex items-center gap-3 rounded-[10px] px-3 py-2.5"
+                        style={{
+                          background: isActive ? '#EEF2FF' : 'transparent',
+                          border: isActive ? '1px solid #C7D2FE' : '1px solid transparent',
+                          opacity: !isActive && i > focusTaskIdx ? 0.5 : 1,
+                        }}
+                      >
+                        <div
+                          className="flex-shrink-0 flex items-center justify-center rounded-full"
+                          style={{
+                            width: '22px', height: '22px',
+                            background: isDone ? '#00BC7D' : isActive ? '#312C85' : '#E5E7EB',
+                            border: 'none',
+                          }}
+                        >
+                          {isDone ? (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          ) : (
+                            <span className="font-arimo font-bold text-white" style={{ fontSize: '11px' }}>{i + 1}</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-arimo font-bold truncate ${isDone ? 'line-through text-[#9CA3AF]' : 'text-[#101828]'}`} style={{ fontSize: '14px' }}>
+                            {task.title}
+                          </p>
+                          {task.startTime && (
+                            <p className="font-arimo text-[#9CA3AF]" style={{ fontSize: '12px' }}>{task.startTime}{task.endTime ? ` – ${task.endTime}` : ''}</p>
+                          )}
+                        </div>
+                        {isActive && (
+                          <span className="font-arimo font-bold text-[#312C85]" style={{ fontSize: '11px', background: '#E0E7FF', borderRadius: '4px', padding: '2px 6px' }}>Active</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="px-7 py-4 flex gap-3" style={{ borderTop: '1px solid #F3F4F6' }}>
+                <button
+                  onClick={focusSkip}
+                  className="font-arimo font-bold hover:bg-gray-100 transition-colors"
+                  style={{ height: '44px', borderRadius: '10px', border: '1px solid #E5E7EB', fontSize: '14px', color: '#6B7280', padding: '0 20px' }}
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={focusMarkDone}
+                  className="flex-1 font-arimo font-bold text-white hover:opacity-90 transition-opacity"
+                  style={{ height: '44px', borderRadius: '10px', background: '#00BC7D', fontSize: '14px' }}
+                >
+                  ✓ Mark Done &amp; Next
+                </button>
+                <button
+                  onClick={() => setFocusDone(true)}
+                  className="font-arimo font-bold hover:bg-gray-100 transition-colors"
+                  style={{ height: '44px', borderRadius: '10px', border: '1px solid #E5E7EB', fontSize: '14px', color: '#EF4444', padding: '0 20px' }}
+                >
+                  End
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )}
+
+    {/* ── Weekly Goals Edit Modal ── */}
+    {showGoalsModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ background: 'rgba(0,0,0,0.45)' }}
+        onClick={(e) => { if (e.target === e.currentTarget) setShowGoalsModal(false); }}
+      >
+        <div className="bg-white rounded-[16px] shadow-xl w-full max-w-md mx-4" style={{ padding: '28px' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <img src="/image-removebg-preview%20(61)%201%20(1).png" alt="Goals" style={{ width: '24px', height: '24px' }} />
+              <h2 className="font-arimo font-bold text-[#101828]" style={{ fontSize: '18px' }}>Edit Weekly Goals</h2>
+            </div>
+            <button onClick={() => setShowGoalsModal(false)} className="hover:bg-gray-100 rounded-lg p-1 transition-colors">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Goals list */}
+          <div className="space-y-2 mb-4" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            {editGoals.map((goal, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={goal.title}
+                  onChange={(e) => {
+                    const updated = [...editGoals];
+                    updated[i] = { ...updated[i], title: e.target.value };
+                    setEditGoals(updated);
+                  }}
+                  className="flex-1 font-arimo outline-none border border-[#E5E7EB] rounded-[8px] px-3 focus:border-[#4F78F6]"
+                  style={{ height: '40px', fontSize: '14px', color: '#101828' }}
+                  placeholder="Goal title"
+                />
+                <button
+                  onClick={() => setEditGoals(editGoals.filter((_, idx) => idx !== i))}
+                  className="flex-shrink-0 hover:bg-red-50 rounded-lg p-1.5 transition-colors"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add goal */}
+          <button
+            onClick={() => setEditGoals([...editGoals, { title: '', completed: false }])}
+            className="flex items-center gap-2 font-arimo text-[#4F78F6] hover:text-[#3b62d6] transition-colors mb-6"
+            style={{ fontSize: '14px', fontWeight: 500 }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add goal
+          </button>
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowGoalsModal(false)}
+              className="flex-1 font-arimo font-bold rounded-[8px] border border-[#E5E7EB] hover:bg-gray-50 transition-colors"
+              style={{ height: '44px', fontSize: '14px', color: '#374151' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                const cleaned = editGoals.filter(g => g.title.trim());
+                setSavingGoals(true);
+                try {
+                  await studyPlannerService.saveWeeklyGoals(cleaned);
+                  setWeeklyGoals(cleaned);
+                  setShowGoalsModal(false);
+                } catch {
+                  // optimistic update even if API fails
+                  setWeeklyGoals(cleaned);
+                  setShowGoalsModal(false);
+                } finally {
+                  setSavingGoals(false);
+                }
+              }}
+              disabled={savingGoals}
+              className="flex-1 font-arimo font-bold bg-[#101828] text-white rounded-[8px] hover:opacity-90 transition-opacity disabled:opacity-60"
+              style={{ height: '44px', fontSize: '14px' }}
+            >
+              {savingGoals ? 'Saving…' : 'Save Goals'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 

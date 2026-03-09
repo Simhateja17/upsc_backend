@@ -85,7 +85,11 @@ export const studyPlannerService = {
   deleteTask: (id: string) => api.delete<any>(`/study-plan/tasks/${id}`, authConfig()),
   getStreak: () => api.get<any>('/study-plan/streak', authConfig()),
   getWeeklyGoals: () => api.get<any>('/study-plan/weekly-goals', authConfig()),
+  saveWeeklyGoals: (goals: { title: string; completed: boolean }[]) =>
+    api.put<any>('/study-plan/weekly-goals', { goals }, authConfig()),
   getSyllabusCoverage: () => api.get<any>('/study-plan/syllabus-coverage', authConfig()),
+  getMonthlyActivity: (year: number, month: number) =>
+    api.get<any>(`/study-plan/monthly-activity?year=${year}&month=${month}`, authConfig()),
 };
 
 // ==================== Video Lectures ====================
@@ -134,11 +138,9 @@ export const adminService = {
     api.put<any>(`/admin/users/${id}`, data, authConfig()),
 
   // PYQ Management
-  uploadPYQ: async (file: File, year: number, paper: string) => {
+  uploadPYQ: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('year', String(year));
-    formData.append('paper', paper);
 
     const token = getToken();
     const res = await fetch(
