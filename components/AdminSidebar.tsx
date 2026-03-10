@@ -1,52 +1,163 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+interface NavItem {
+  id: string;
+  label: string;
+  path: string;
+  icon: string;
+  children?: NavItem[];
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const navigationSections: NavSection[] = [
+  {
+    title: 'OVERVIEW',
+    items: [
+      { id: 'dashboard', label: 'Dashboard', path: '/admin', icon: '📊' },
+    ],
+  },
+  {
+    title: 'CONTENT',
+    items: [
+      { id: 'pyq', label: 'PYQ Manager', path: '/admin/pyq', icon: '📚' },
+      { id: 'daily-content', label: 'Daily Content', path: '/admin/daily-content', icon: '📅' },
+      { id: 'editorials', label: 'Editorials', path: '/admin/editorials', icon: '📰' },
+      { id: 'videos', label: 'Video Lectures', path: '/admin/videos', icon: '🎥' },
+    ],
+  },
+  {
+    title: 'CMS',
+    items: [
+      { id: 'cms-hub', label: 'Content Hub', path: '/admin/cms/hub', icon: '🏠' },
+      { id: 'cms-home', label: 'Home Page', path: '/admin/cms/home', icon: '🏡' },
+      { id: 'cms-login', label: 'Login Page', path: '/admin/cms/login', icon: '🔑' },
+      {
+        id: 'cms-dashboard',
+        label: 'Dashboard Pages',
+        path: '/admin/cms/dashboard',
+        icon: '📋',
+        children: [
+          { id: 'cms-dash-overview', label: 'Overview', path: '/admin/cms/dashboard', icon: '📊' },
+          { id: 'cms-dash-mcq', label: 'Daily MCQ', path: '/admin/cms/dashboard%2Fdaily-mcq', icon: '✅' },
+          { id: 'cms-dash-answer', label: 'Daily Answer', path: '/admin/cms/dashboard%2Fdaily-answer', icon: '✍️' },
+          { id: 'cms-dash-editorial', label: 'Editorial', path: '/admin/cms/dashboard%2Fdaily-editorial', icon: '📰' },
+          { id: 'cms-dash-mock', label: 'Mock Tests', path: '/admin/cms/dashboard%2Fmock-tests', icon: '📝' },
+          { id: 'cms-dash-library', label: 'Library', path: '/admin/cms/dashboard%2Flibrary', icon: '📖' },
+          { id: 'cms-dash-video', label: 'Video Lectures', path: '/admin/cms/dashboard%2Fvideo-lectures', icon: '🎥' },
+          { id: 'cms-dash-jeet', label: 'Jeet GPT', path: '/admin/cms/dashboard%2Fjeet-gpt', icon: '⚡' },
+          { id: 'cms-dash-planner', label: 'Study Planner', path: '/admin/cms/dashboard%2Fstudy-planner', icon: '📆' },
+          { id: 'cms-dash-pyq', label: 'PYQ Bank', path: '/admin/cms/dashboard%2Fpyq', icon: '🗂️' },
+          { id: 'cms-dash-perf', label: 'Performance', path: '/admin/cms/dashboard%2Fperformance', icon: '📈' },
+        ],
+      },
+      { id: 'cms-all', label: 'All Pages', path: '/admin/cms', icon: '📄' },
+    ],
+  },
+  {
+    title: 'PLATFORM',
+    items: [
+      { id: 'testimonials', label: 'Testimonials', path: '/admin/testimonials', icon: '⭐' },
+      { id: 'pricing', label: 'Pricing Plans', path: '/admin/pricing', icon: '💳' },
+    ],
+  },
+  {
+    title: 'MANAGEMENT',
+    items: [
+      { id: 'users', label: 'Users', path: '/admin/users', icon: '👥' },
+    ],
+  },
+];
+
 const AdminSidebar = () => {
   const pathname = usePathname();
-
-  const navigationSections = [
-    {
-      title: 'OVERVIEW',
-      items: [
-        { id: 'dashboard', label: 'Dashboard', path: '/admin', icon: '📊' },
-      ],
-    },
-    {
-      title: 'CONTENT',
-      items: [
-        { id: 'pyq', label: 'PYQ Manager', path: '/admin/pyq', icon: '📚' },
-        { id: 'daily-content', label: 'Daily Content', path: '/admin/daily-content', icon: '📅' },
-        { id: 'editorials', label: 'Editorials', path: '/admin/editorials', icon: '📰' },
-        { id: 'videos', label: 'Video Lectures', path: '/admin/videos', icon: '🎥' },
-      ],
-    },
-    {
-      title: 'CMS',
-      items: [
-        { id: 'content-hub', label: 'Content Hub', path: '/admin/cms/hub', icon: '🏠' },
-        { id: 'pages', label: 'Page Manager', path: '/admin/cms', icon: '📄' },
-      ],
-    },
-    {
-      title: 'PLATFORM',
-      items: [
-        { id: 'testimonials', label: 'Testimonials', path: '/admin/testimonials', icon: '⭐' },
-        { id: 'pricing', label: 'Pricing Plans', path: '/admin/pricing', icon: '💳' },
-      ],
-    },
-    {
-      title: 'MANAGEMENT',
-      items: [
-        { id: 'users', label: 'Users', path: '/admin/users', icon: '👥' },
-      ],
-    },
-  ];
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const isActive = (path: string) => {
     if (path === '/admin') return pathname === '/admin';
+    if (path === '/admin/cms') return pathname === '/admin/cms';
     return pathname.startsWith(path);
+  };
+
+  const toggleGroup = (id: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Auto-expand group if a child is active
+  const isGroupActive = (item: NavItem) => {
+    if (!item.children) return false;
+    return item.children.some((child) => isActive(child.path));
+  };
+
+  const renderItem = (item: NavItem, depth = 0) => {
+    const hasChildren = item.children && item.children.length > 0;
+    const expanded = expandedGroups[item.id] || isGroupActive(item);
+    const active = isActive(item.path);
+
+    if (hasChildren) {
+      return (
+        <li key={item.id}>
+          <button
+            type="button"
+            onClick={() => toggleGroup(item.id)}
+            className={`
+              w-full flex items-center gap-[clamp(0.5rem,0.7vw,0.75rem)]
+              px-[clamp(0.5rem,0.625vw,0.75rem)]
+              py-[clamp(0.4rem,0.5vw,0.55rem)]
+              rounded-lg transition-all duration-200
+              ${active ? 'bg-[#EFF6FF] text-[#1D4ED8]' : 'text-[#374151] hover:bg-gray-50'}
+            `}
+          >
+            <span style={{ fontSize: 'clamp(14px, 0.9vw, 17px)' }}>{item.icon}</span>
+            <span className="font-inter font-medium flex-1 text-left" style={{ fontSize: 'clamp(12px, 0.8vw, 14px)' }}>
+              {item.label}
+            </span>
+            <svg
+              width="12" height="12" viewBox="0 0 12 12" fill="none"
+              className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
+              style={{ color: '#9CA3AF' }}
+            >
+              <path d="M4 2.5L7.5 6L4 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {expanded && (
+            <ul className="mt-0.5 space-y-0.5 ml-3 border-l border-gray-100 pl-2">
+              {item.children!.map((child) => renderItem(child, depth + 1))}
+            </ul>
+          )}
+        </li>
+      );
+    }
+
+    return (
+      <li key={item.id}>
+        <Link
+          href={item.path}
+          className={`
+            flex items-center gap-[clamp(0.4rem,0.6vw,0.65rem)]
+            px-[clamp(0.5rem,0.625vw,0.75rem)]
+            py-[clamp(0.35rem,0.45vw,0.5rem)]
+            rounded-lg transition-all duration-200
+            ${active ? 'bg-[#EFF6FF] text-[#1D4ED8]' : 'text-[#374151] hover:bg-gray-50 hover:text-[#17223E]'}
+          `}
+        >
+          <span style={{ fontSize: depth > 0 ? 'clamp(12px, 0.75vw, 15px)' : 'clamp(14px, 0.9vw, 17px)' }}>{item.icon}</span>
+          <span
+            className="font-inter font-medium"
+            style={{ fontSize: depth > 0 ? 'clamp(12px, 0.75vw, 13px)' : 'clamp(13px, 0.85vw, 15px)' }}
+          >
+            {item.label}
+          </span>
+        </Link>
+      </li>
+    );
   };
 
   return (
@@ -68,41 +179,15 @@ const AdminSidebar = () => {
 
       <nav className="py-[clamp(0.5rem,1vw,1rem)] px-[clamp(0.75rem,1vw,1rem)] flex-1">
         {navigationSections.map((section, idx) => (
-          <div key={idx} className="mb-[clamp(1.5rem,2vw,2rem)]">
+          <div key={idx} className="mb-[clamp(1.25rem,1.5vw,1.75rem)]">
             <h3
-              className="font-inter font-medium uppercase tracking-wider mb-[clamp(0.5rem,0.8vw,0.75rem)] px-[clamp(0.5rem,0.625vw,0.75rem)]"
-              style={{ color: '#9CA3AF', fontSize: 'clamp(10px, 0.65vw, 12px)', letterSpacing: '0.08em' }}
+              className="font-inter font-medium uppercase tracking-wider mb-[clamp(0.4rem,0.6vw,0.6rem)] px-[clamp(0.5rem,0.625vw,0.75rem)]"
+              style={{ color: '#9CA3AF', fontSize: 'clamp(10px, 0.6vw, 11px)', letterSpacing: '0.08em' }}
             >
               {section.title}
             </h3>
-            <ul className="space-y-[clamp(2px,0.3vw,4px)]">
-              {section.items.map((item) => (
-                <li key={item.id}>
-                  <Link
-                    href={item.path}
-                    className={`
-                      flex items-center gap-[clamp(0.5rem,0.7vw,0.75rem)]
-                      px-[clamp(0.5rem,0.625vw,0.75rem)]
-                      py-[clamp(0.5rem,0.6vw,0.65rem)]
-                      rounded-lg
-                      transition-all duration-200
-                      ${
-                        isActive(item.path)
-                          ? 'bg-[#EFF6FF] text-[#1D4ED8]'
-                          : 'text-[#374151] hover:bg-gray-50 hover:text-[#17223E]'
-                      }
-                    `}
-                  >
-                    <span style={{ fontSize: 'clamp(16px, 1.1vw, 20px)' }}>{item.icon}</span>
-                    <span
-                      className="font-inter font-medium"
-                      style={{ fontSize: 'clamp(13px, 0.85vw, 16px)' }}
-                    >
-                      {item.label}
-                    </span>
-                  </Link>
-                </li>
-              ))}
+            <ul className="space-y-[clamp(1px,0.2vw,3px)]">
+              {section.items.map((item) => renderItem(item))}
             </ul>
           </div>
         ))}

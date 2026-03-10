@@ -31,6 +31,7 @@ const Sidebar = ({ forceShow = false }: { forceShow?: boolean }) => {
       items: [
         { id: 'daily-mcq', label: 'Daily MCQ', icon: '/sidebar-daily-mcq-new.png', path: '/dashboard/daily-mcq' },
         { id: 'daily-answer', label: 'Daily Answer Writing', icon: '/sidebar-daily-answer-new.png', path: '/dashboard/daily-answer' },
+        { id: 'daily-editorial', label: 'Daily Editorial', icon: '/sidebar-current-affairs.png', path: '/dashboard/daily-editorial' },
         { id: 'mock-tests', label: 'Mock Tests', icon: '/sidebar-mock-tests-new.png', path: '/dashboard/mock-tests' },
         { id: 'pyq', label: 'Previous Year Questions', icon: '/sidebar-pyq-new.png', path: '/dashboard/pyq' },
       ],

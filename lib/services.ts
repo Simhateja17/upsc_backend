@@ -241,6 +241,22 @@ export const adminService = {
   createCmsSection: (data: any) => api.post<any>('/admin/cms/sections', data, authConfig()),
   updateCmsSection: (id: string, data: any) => api.put<any>(`/admin/cms/sections/${id}`, data, authConfig()),
   deleteCmsSection: (id: string) => api.delete<any>(`/admin/cms/sections/${id}`, authConfig()),
+  uploadCmsMedia: async (file: File): Promise<{ url: string; path: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = getToken();
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/admin/cms/upload`,
+      {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      }
+    );
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Upload failed');
+    return json.data;
+  },
 
   // Library
   createSubject: (data: any) => api.post<any>('/admin/library/subjects', data, authConfig()),
