@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import authRoutes from "./auth.routes";
+import aiRoutes from "./ai.routes";
 import dashboardRoutes from "./dashboard.routes";
 import dailyMcqRoutes from "./dailyMcq.routes";
 import dailyAnswerRoutes from "./dailyAnswer.routes";
@@ -65,5 +66,8 @@ router.use("/mentorship", mentorshipRoutes);
 
 // Admin routes
 router.use("/admin", adminRoutes);
+
+// Jeet AI chat routes
+router.use("/ai", aiRoutes);
 
 export default router;
