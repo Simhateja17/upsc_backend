@@ -153,33 +153,57 @@ export const getWeeklyGoals = async (req: Request, res: Response, next: NextFunc
     const userId = req.user!.id;
     const weekStart = getWeekStart();
 
-    let goals = await prisma.weeklyGoal.findMany({
+    // One-time cleanup: wipe ALL existing weekly goals for this user
+    const existingCount = await prisma.weeklyGoal.count({ where: { userId } });
+    if (existingCount > 0) {
+      await prisma.weeklyGoal.deleteMany({ where: { userId } });
+    }
+
+    const goals = await prisma.weeklyGoal.findMany({
       where: { userId, weekStart },
       orderBy: { createdAt: "asc" },
     });
 
-    // Create default goals if none exist
-    if (goals.length === 0) {
-      const defaults = [
-        { title: "Complete Daily MCQs", targetCount: 7 },
-        { title: "Practice Answer Writing", targetCount: 5 },
-        { title: "Read Editorials", targetCount: 7 },
-        { title: "Study Hours", targetCount: 35 },
-      ];
+    res.json({ status: "success", data: goals.map(g => ({ id: g.id, title: g.title, completed: g.isCompleted })) });
+  } catch (error) {
+    next(error);
+  }
+};
 
-      for (const g of defaults) {
-        await prisma.weeklyGoal.create({
-          data: { userId, title: g.title, targetCount: g.targetCount, weekStart },
-        });
-      }
+/**
+ * PUT /api/study-plan/weekly-goals
+ */
+export const saveWeeklyGoals = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const weekStart = getWeekStart();
+    const { goals } = req.body as { goals: { title: string; completed?: boolean }[] };
 
-      goals = await prisma.weeklyGoal.findMany({
-        where: { userId, weekStart },
-        orderBy: { createdAt: "asc" },
-      });
+    if (!Array.isArray(goals)) {
+      res.status(400).json({ status: "error", message: "goals must be an array" });
+      return;
     }
 
-    res.json({ status: "success", data: goals });
+    // Delete existing goals for this week and recreate
+    await prisma.weeklyGoal.deleteMany({ where: { userId, weekStart } });
+
+    const created = await Promise.all(
+      goals
+        .filter(g => g.title?.trim())
+        .map(g =>
+          prisma.weeklyGoal.create({
+            data: {
+              userId,
+              title: g.title.trim(),
+              targetCount: 1,
+              isCompleted: g.completed ?? false,
+              weekStart,
+            },
+          })
+        )
+    );
+
+    res.json({ status: "success", data: created.map(g => ({ id: g.id, title: g.title, completed: g.isCompleted })) });
   } catch (error) {
     next(error);
   }
@@ -192,46 +216,71 @@ export const getSyllabusCoverage = async (req: Request, res: Response, next: Nex
   try {
     const userId = req.user!.id;
 
-    const coverage = await prisma.syllabusCoverage.findMany({
-      where: { userId },
-      orderBy: { subject: "asc" },
+    // Fixed list of UPSC subjects to always show
+    const SUBJECTS = [
+      "Polity", "History", "Geography", "Economics",
+      "Science & Technology", "Environment", "Ethics", "Current Affairs",
+    ];
+
+    // Count total and completed tasks per subject
+    const [allTasks, completedTasks] = await Promise.all([
+      prisma.studyPlanTask.groupBy({
+        by: ["subject"],
+        where: { userId, subject: { in: SUBJECTS } },
+        _count: { id: true },
+      }),
+      prisma.studyPlanTask.groupBy({
+        by: ["subject"],
+        where: { userId, subject: { in: SUBJECTS }, isCompleted: true },
+        _count: { id: true },
+      }),
+    ]);
+
+    const totalMap = new Map(allTasks.map(r => [r.subject!, r._count.id]));
+    const doneMap  = new Map(completedTasks.map(r => [r.subject!, r._count.id]));
+
+    const data = SUBJECTS.map(subject => {
+      const total     = totalMap.get(subject) ?? 0;
+      const completed = doneMap.get(subject) ?? 0;
+      const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+      return { subject, completedTasks: completed, totalTasks: total, percentage };
     });
 
-    // If no coverage data for this user, seed defaults
-    if (coverage.length === 0) {
-      const defaults = [
-        { subject: "Indian Polity", totalTopics: 25, coveredTopics: 0 },
-        { subject: "History", totalTopics: 30, coveredTopics: 0 },
-        { subject: "Geography", totalTopics: 28, coveredTopics: 0 },
-        { subject: "Economy", totalTopics: 22, coveredTopics: 0 },
-        { subject: "Science & Tech", totalTopics: 18, coveredTopics: 0 },
-        { subject: "Environment", totalTopics: 15, coveredTopics: 0 },
-      ];
+    res.json({ status: "success", data });
+  } catch (error) {
+    next(error);
+  }
+};
 
-      await prisma.syllabusCoverage.createMany({
-        data: defaults.map(d => ({ userId, ...d })),
-      });
+/**
+ * GET /api/study-plan/monthly-activity
+ * Returns day numbers in the given month that have at least one completed task
+ */
+export const getMonthlyActivity = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const now = new Date();
+    const year = parseInt(req.query.year as string) || now.getFullYear();
+    const month = parseInt(req.query.month as string) || now.getMonth() + 1;
 
-      return res.json({
-        status: "success",
-        data: defaults.map(d => ({
-          subject: d.subject,
-          coveredTopics: d.coveredTopics,
-          totalTopics: d.totalTopics,
-          percentage: 0,
-        })),
-      });
+    const startOfMonth = new Date(year, month - 1, 1);
+    const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+
+    const tasks = await prisma.studyPlanTask.findMany({
+      where: {
+        userId,
+        isCompleted: true,
+        date: { gte: startOfMonth, lte: endOfMonth },
+      },
+      select: { date: true },
+    });
+
+    const daySet = new Set<number>();
+    for (const task of tasks) {
+      daySet.add(new Date(task.date).getDate());
     }
 
-    res.json({
-      status: "success",
-      data: coverage.map(c => ({
-        subject: c.subject,
-        coveredTopics: c.coveredTopics,
-        totalTopics: c.totalTopics,
-        percentage: Math.round((c.coveredTopics / c.totalTopics) * 100),
-      })),
-    });
+    res.json({ status: "success", data: { studiedDays: Array.from(daySet).sort((a, b) => a - b) } });
   } catch (error) {
     next(error);
   }

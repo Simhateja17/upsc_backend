@@ -7,7 +7,9 @@ import {
   deleteTask,
   getStudyStreak,
   getWeeklyGoals,
+  saveWeeklyGoals,
   getSyllabusCoverage,
+  getMonthlyActivity,
 } from "../controllers/studyPlanner.controller";
 
 const router = Router();
@@ -18,6 +20,8 @@ router.put("/tasks/:id", authenticate, updateTask);
 router.delete("/tasks/:id", authenticate, deleteTask);
 router.get("/streak", authenticate, getStudyStreak);
 router.get("/weekly-goals", authenticate, getWeeklyGoals);
+router.put("/weekly-goals", authenticate, saveWeeklyGoals);
 router.get("/syllabus-coverage", authenticate, getSyllabusCoverage);
+router.get("/monthly-activity", authenticate, getMonthlyActivity);
 
 export default router;

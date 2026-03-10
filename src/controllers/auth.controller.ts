@@ -290,15 +290,32 @@ export const getMe = async (
       });
     }
 
-    // Get user from our database
-    const user = await prisma.user.findUnique({
+    // Get or auto-create user in our database
+    const metadata = authUser.user_metadata || {};
+    let user = await prisma.user.findUnique({
       where: { supabaseId: authUser.id },
     });
 
     if (!user) {
-      return res.status(404).json({
-        status: "error",
-        message: "User not found",
+      // User exists in Supabase but not in our DB — create them now
+      user = await prisma.user.create({
+        data: {
+          supabaseId: authUser.id,
+          email: authUser.email!.toLowerCase(),
+          firstName: metadata.first_name || metadata.full_name?.split(" ")[0] || null,
+          lastName: metadata.last_name || metadata.full_name?.split(" ").slice(1).join(" ") || null,
+          avatarUrl: metadata.avatar_url || metadata.picture || null,
+          emailVerified: !!authUser.email_confirmed_at,
+        },
+      });
+    } else if (!user.firstName && !user.lastName && (metadata.first_name || metadata.full_name)) {
+      // Backfill missing name from Supabase metadata
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          firstName: metadata.first_name || metadata.full_name?.split(" ")[0] || null,
+          lastName: metadata.last_name || metadata.full_name?.split(" ").slice(1).join(" ") || null,
+        },
       });
     }
 
@@ -471,18 +488,27 @@ export const authCallback = async (
       where: { supabaseId: authUser.id },
     });
 
-    // Create user if doesn't exist
+    const metadata = authUser.user_metadata || {};
+    const metaFirst = metadata.first_name || metadata.full_name?.split(" ")[0] || null;
+    const metaLast  = metadata.last_name  || metadata.full_name?.split(" ").slice(1).join(" ") || null;
+
     if (!user) {
-      const metadata = authUser.user_metadata || {};
+      // Create user
       user = await prisma.user.create({
         data: {
           supabaseId: authUser.id,
           email: authUser.email!.toLowerCase(),
-          firstName: metadata.first_name || metadata.full_name?.split(" ")[0],
-          lastName: metadata.last_name || metadata.full_name?.split(" ").slice(1).join(" "),
+          firstName: metaFirst,
+          lastName: metaLast,
           avatarUrl: metadata.avatar_url || metadata.picture,
           emailVerified: !!authUser.email_confirmed_at,
         },
+      });
+    } else if (!user.firstName && !user.lastName && (metaFirst || metaLast)) {
+      // Backfill name from Supabase metadata if missing in DB
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { firstName: metaFirst, lastName: metaLast },
       });
     }
 
@@ -495,6 +521,7 @@ export const authCallback = async (
           firstName: user.firstName,
           lastName: user.lastName,
           avatarUrl: user.avatarUrl,
+          role: user.role,
         },
         session: {
           accessToken,

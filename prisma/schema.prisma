@@ -608,3 +608,36 @@ model AiUsageLog {
   @@index([service])
   @@map("ai_usage_logs")
 }
+
+// ==================== CMS ====================
+
+model Page {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  description String?
+  isPublished Boolean  @default(true) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  sections PageSection[]
+
+  @@map("pages")
+}
+
+model PageSection {
+  id        String   @id @default(uuid())
+  pageId    String   @map("page_id")
+  key       String
+  type      String   @default("text")
+  content   String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, key])
+  @@map("page_sections")
+}

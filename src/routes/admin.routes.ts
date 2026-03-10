@@ -10,6 +10,7 @@ import * as pyqCtrl from "../controllers/admin/pyq.controller";
 import * as editorialCtrl from "../controllers/admin/editorial.controller";
 import * as contentCtrl from "../controllers/admin/content.controller";
 import * as aiCostCtrl from "../controllers/admin/aiCost.controller";
+import * as cmsCtrl from "../controllers/admin/cms.controller";
 
 const router = Router();
 
@@ -79,5 +80,13 @@ router.get("/analytics", contentCtrl.getAnalytics);
 
 // ==================== AI Cost Tracking ====================
 router.get("/ai-cost", aiCostCtrl.getAiCost);
+
+// ==================== CMS Management ====================
+router.get("/cms/pages", cmsCtrl.getPages);
+router.get("/cms/pages/:slug", cmsCtrl.getPage);
+router.put("/cms/pages/:slug/bulk", cmsCtrl.bulkUpdateSections);
+router.post("/cms/sections", cmsCtrl.createSection);
+router.put("/cms/sections/:id", cmsCtrl.updateSection);
+router.delete("/cms/sections/:id", cmsCtrl.deleteSection);
 
 export default router;

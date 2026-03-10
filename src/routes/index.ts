@@ -11,6 +11,7 @@ import libraryRoutes from "./library.routes";
 import pricingRoutes from "./pricing.routes";
 import mentorshipRoutes from "./mentorship.routes";
 import adminRoutes from "./admin.routes";
+import * as cmsPublicCtrl from "../controllers/cms.public.controller";
 
 const router = Router();
 
@@ -65,5 +66,8 @@ router.use("/mentorship", mentorshipRoutes);
 
 // Admin routes
 router.use("/admin", adminRoutes);
+
+// Public CMS route (no auth - slug is URL-encoded for nested paths)
+router.get("/cms/:slug", cmsPublicCtrl.getPageContent);
 
 export default router;
