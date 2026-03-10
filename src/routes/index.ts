@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import authRoutes from "./auth.routes";
+import aiRoutes from "./ai.routes";
 import dashboardRoutes from "./dashboard.routes";
 import dailyMcqRoutes from "./dailyMcq.routes";
 import dailyAnswerRoutes from "./dailyAnswer.routes";
@@ -69,5 +70,8 @@ router.use("/admin", adminRoutes);
 
 // Public CMS route (no auth - slug is URL-encoded for nested paths)
 router.get("/cms/:slug", cmsPublicCtrl.getPageContent);
+
+// Jeet AI chat routes
+router.use("/ai", aiRoutes);
 
 export default router;
