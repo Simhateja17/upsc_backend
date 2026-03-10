@@ -10,6 +10,34 @@ function authConfig() {
   return { token: getToken() };
 }
 
+// ==================== Jeet AI Chat ====================
+
+export const jeetAIService = {
+  sendMessage: (message: string, conversationId?: string) =>
+    api.post<{ conversationId: string; reply: string }>(
+      '/ai/chat',
+      { message, conversationId },
+      authConfig()
+    ),
+
+  getConversations: () =>
+    api.get<{
+      today: { id: string; title: string; updatedAt: string }[];
+      yesterday: { id: string; title: string; updatedAt: string }[];
+      earlier: { id: string; title: string; updatedAt: string }[];
+    }>('/ai/conversations', authConfig()),
+
+  getConversation: (conversationId: string) =>
+    api.get<{
+      id: string;
+      title: string;
+      messages: { id: string; role: string; content: string; createdAt: string }[];
+    }>(`/ai/conversations/${conversationId}`, authConfig()),
+
+  deleteConversation: (conversationId: string) =>
+    api.delete<{ message: string }>(`/ai/conversations/${conversationId}`, authConfig()),
+};
+
 // ==================== Dashboard ====================
 
 export const dashboardService = {
