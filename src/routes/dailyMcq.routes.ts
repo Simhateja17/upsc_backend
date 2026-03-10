@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authenticate, optionalAuth } from "../middleware/auth.middleware";
+import { authenticate } from "../middleware/auth.middleware";
 import {
   getTodayMCQ,
   getTodayQuestions,
@@ -11,7 +11,7 @@ import {
 
 const router = Router();
 
-router.get("/today", optionalAuth, getTodayMCQ);
+router.get("/today", authenticate, getTodayMCQ);
 router.get("/today/questions", authenticate, getTodayQuestions);
 router.post("/today/submit", authenticate, submitMCQ);
 router.get("/today/results", authenticate, getTodayResults);

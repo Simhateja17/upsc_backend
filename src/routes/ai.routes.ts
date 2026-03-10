@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
+import { aiLimiter } from "../middleware/rateLimit";
 import {
   chat,
   getConversations,
@@ -12,8 +13,8 @@ const router = Router();
 // All AI routes require authentication
 router.use(authenticate);
 
-// POST /api/ai/chat — send message, get AI reply
-router.post("/chat", chat);
+// POST /api/ai/chat — send message, get AI reply (rate limited — expensive)
+router.post("/chat", aiLimiter, chat);
 
 // GET /api/ai/conversations — list all conversations grouped by date
 router.get("/conversations", getConversations);

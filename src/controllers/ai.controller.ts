@@ -44,6 +44,10 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
       return res.status(400).json({ status: "error", message: "Message is required" });
     }
 
+    if (message.length > 5000) {
+      return res.status(400).json({ status: "error", message: "Message must be under 5000 characters" });
+    }
+
     const trimmedMessage = message.trim();
 
     // Determine or create conversation

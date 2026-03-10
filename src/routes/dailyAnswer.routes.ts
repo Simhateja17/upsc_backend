@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authenticate, optionalAuth } from "../middleware/auth.middleware";
+import { authenticate } from "../middleware/auth.middleware";
 import { submissionLimiter, aiLimiter } from "../middleware/rateLimit";
 import { uploadSingle } from "../middleware/upload";
 import {
@@ -13,7 +13,7 @@ import {
 
 const router = Router();
 
-router.get("/today", optionalAuth, getTodayQuestion);
+router.get("/today", authenticate, getTodayQuestion);
 router.get("/today/question", authenticate, getTodayFullQuestion);
 router.post("/today/submit-text", authenticate, submissionLimiter, submitTextAnswer);
 router.post("/today/upload", authenticate, submissionLimiter, uploadSingle("file"), uploadAnswer);

@@ -82,6 +82,7 @@ router.get("/analytics", contentCtrl.getAnalytics);
 router.get("/ai-cost", aiCostCtrl.getAiCost);
 
 // ==================== CMS Management ====================
+router.post("/cms/upload", uploadSingle("file"), cmsCtrl.uploadMedia);
 router.get("/cms/pages", cmsCtrl.getPages);
 router.get("/cms/pages/:slug", cmsCtrl.getPage);
 router.put("/cms/pages/:slug/bulk", cmsCtrl.bulkUpdateSections);

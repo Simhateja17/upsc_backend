@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../../config/database";
+import { STORAGE_BUCKETS, uploadFile, getPublicUrl } from "../../config/storage";
 
 // GET /admin/cms/pages — List all pages with section counts
 export const getPages = async (req: Request, res: Response) => {
@@ -137,6 +138,31 @@ export const bulkUpdateSections = async (req: Request, res: Response) => {
     );
 
     res.json({ status: "success", data: results });
+  } catch (error: any) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
+};
+
+// POST /admin/cms/upload — Upload media to CMS bucket, returns public URL
+export const uploadMedia = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ status: "error", message: "No file uploaded" });
+    }
+
+    const ext = req.file.originalname.split(".").pop() || "png";
+    const path = `cms/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    await uploadFile(
+      STORAGE_BUCKETS.CMS_MEDIA,
+      path,
+      req.file.buffer,
+      req.file.mimetype
+    );
+
+    const url = getPublicUrl(STORAGE_BUCKETS.CMS_MEDIA, path);
+
+    res.json({ status: "success", data: { url, path } });
   } catch (error: any) {
     res.status(500).json({ status: "error", message: error.message });
   }

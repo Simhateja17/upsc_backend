@@ -24,13 +24,10 @@ export const getTodayMCQ = async (req: Request, res: Response, next: NextFunctio
     }
 
     // Check if user already attempted
-    let attempted = false;
-    if (req.user) {
-      const attempt = await prisma.mCQAttempt.findUnique({
-        where: { userId_dailyMcqId: { userId: req.user.id, dailyMcqId: mcq.id } },
-      });
-      attempted = !!attempt?.completedAt;
-    }
+    const attempt = await prisma.mCQAttempt.findUnique({
+      where: { userId_dailyMcqId: { userId: req.user!.id, dailyMcqId: mcq.id } },
+    });
+    const attempted = !!attempt?.completedAt;
 
     res.json({ status: "success", data: { ...mcq, attempted } });
   } catch (error) {

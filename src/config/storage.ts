@@ -5,7 +5,11 @@ export const STORAGE_BUCKETS = {
   ANSWER_UPLOADS: "answer-uploads",
   STUDY_MATERIALS: "study-materials",
   EDITORIAL_IMAGES: "editorial-images",
+  CMS_MEDIA: "cms-media",
 } as const;
+
+// Buckets that should be publicly accessible (no signed URL needed)
+const PUBLIC_BUCKETS: Set<string> = new Set([STORAGE_BUCKETS.CMS_MEDIA]);
 
 /**
  * Initialize storage buckets (call once on startup or via admin endpoint)
@@ -18,7 +22,7 @@ export async function initStorageBuckets() {
 
   for (const bucket of Object.values(STORAGE_BUCKETS)) {
     const { error } = await supabaseAdmin.storage.createBucket(bucket, {
-      public: false,
+      public: PUBLIC_BUCKETS.has(bucket),
       fileSizeLimit: 50 * 1024 * 1024, // 50MB
     });
 
@@ -64,6 +68,15 @@ export async function getSignedUrl(
 
   if (error) throw new Error(`Signed URL failed: ${error.message}`);
   return data.signedUrl;
+}
+
+/**
+ * Get a public URL for a file in a public bucket
+ */
+export function getPublicUrl(bucket: string, path: string): string {
+  if (!supabaseAdmin) throw new Error("Supabase admin client not configured");
+  const { data } = supabaseAdmin.storage.from(bucket).getPublicUrl(path);
+  return data.publicUrl;
 }
 
 /**
