@@ -44,7 +44,7 @@ async function logUsage(
         costInr,
       },
     })
-    .catch((err) =>
+    .catch((err: unknown) =>
       console.error("[AI cost logger] Failed to write usage log:", err)
     );
 }
