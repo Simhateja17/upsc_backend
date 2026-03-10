@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const DashboardHeader = () => {
   const router = useRouter();
-  const { user, logout, isAuthenticated, isLoading } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -33,13 +33,9 @@ const DashboardHeader = () => {
   };
 
   // Get display name
-  const displayName = user
-    ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email?.split('@')[0] || 'User'
-    : 'Guest';
+  const displayName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.email?.split('@')[0] || 'User';
 
-  const initials = user
-    ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'
-    : 'G';
+  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U';
 
   return (
     <header className="w-full h-[clamp(90px,5.78vw,111px)] bg-gradient-to-r from-[#0E182D] to-[#17223E] flex items-center justify-between px-[clamp(1rem,2vw,2.5rem)] sticky top-0 z-50">
@@ -122,7 +118,7 @@ const DashboardHeader = () => {
                   className="text-white font-poppins font-medium leading-[100%] truncate mt-[clamp(2px,0.3vw,4px)]"
                   style={{ fontSize: 'clamp(9px, 0.6vw, 11.52px)' }}
                 >
-                  {isAuthenticated ? (user?.email || 'UPSC Aspirant') : 'Guest'}
+                  {user?.email || 'UPSC Aspirant'}
                 </div>
               </div>
 
@@ -157,57 +153,36 @@ const DashboardHeader = () => {
                 border: '1px solid #374151',
               }}
             >
-              {isAuthenticated ? (
-                <>
-                  <Link
-                    href="/dashboard"
-                    className="block px-4 py-3 text-white hover:bg-[#374151] transition-colors text-sm"
-                    onClick={() => setShowDropdown(false)}
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
-                    href="/dashboard/profile"
-                    className="block px-4 py-3 text-white hover:bg-[#374151] transition-colors text-sm"
-                    onClick={() => setShowDropdown(false)}
-                  >
-                    My Profile
-                  </Link>
-                  {user?.role === 'admin' && (
-                    <Link
-                      href="/admin"
-                      className="block px-4 py-3 text-[#A78BFA] hover:bg-[#374151] transition-colors text-sm font-medium"
-                      onClick={() => setShowDropdown(false)}
-                    >
-                      Admin Panel
-                    </Link>
-                  )}
-                  <hr className="border-[#374151]" />
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-3 text-red-400 hover:bg-[#374151] transition-colors text-sm"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/login?tab=login"
-                    className="block px-4 py-3 text-white hover:bg-[#374151] transition-colors text-sm"
-                    onClick={() => setShowDropdown(false)}
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    href="/login?tab=signup"
-                    className="block px-4 py-3 text-white hover:bg-[#374151] transition-colors text-sm"
-                    onClick={() => setShowDropdown(false)}
-                  >
-                    Sign Up
-                  </Link>
-                </>
+              <Link
+                href="/dashboard"
+                className="block px-4 py-3 text-white hover:bg-[#374151] transition-colors text-sm"
+                onClick={() => setShowDropdown(false)}
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/dashboard/profile"
+                className="block px-4 py-3 text-white hover:bg-[#374151] transition-colors text-sm"
+                onClick={() => setShowDropdown(false)}
+              >
+                My Profile
+              </Link>
+              {user?.role === 'admin' && (
+                <Link
+                  href="/admin"
+                  className="block px-4 py-3 text-[#A78BFA] hover:bg-[#374151] transition-colors text-sm font-medium"
+                  onClick={() => setShowDropdown(false)}
+                >
+                  Admin Panel
+                </Link>
               )}
+              <hr className="border-[#374151]" />
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-3 text-red-400 hover:bg-[#374151] transition-colors text-sm"
+              >
+                Logout
+              </button>
             </div>
           )}
         </div>

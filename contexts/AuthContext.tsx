@@ -34,8 +34,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { user } = await authService.getMe();
       setUser(user);
     } catch {
-      clearTokens();
-      setUser(null);
+      // If we have a valid Supabase session but getMe failed, use session data as fallback
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (currentSession) {
+        setUser(prev => prev ?? {
+          id: currentSession.user.id,
+          email: currentSession.user.email ?? '',
+          firstName: currentSession.user.user_metadata?.first_name,
+          lastName: currentSession.user.user_metadata?.last_name,
+          avatarUrl: currentSession.user.user_metadata?.avatar_url,
+        });
+      } else {
+        clearTokens();
+        setUser(null);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -67,8 +79,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { user: freshUser } = await authService.getMe();
           setUser(freshUser);
         } catch {
-          // getMe failed — keep existing user state if we have one
-          // (e.g. login() already set the user before this event fired)
+          // getMe failed — if user is already set (e.g. login() set it), keep it.
+          // Otherwise (fresh page load), fall back to Supabase session data
+          // so the user isn't logged out just because /auth/me failed.
+          setUser(prev => prev ?? {
+            id: session.user.id,
+            email: session.user.email ?? '',
+            firstName: session.user.user_metadata?.first_name,
+            lastName: session.user.user_metadata?.last_name,
+            avatarUrl: session.user.user_metadata?.avatar_url,
+          });
         }
       } else {
         clearTokens();

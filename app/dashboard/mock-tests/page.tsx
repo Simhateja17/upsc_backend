@@ -483,10 +483,12 @@ export default function MockTestsPage() {
                       flexDirection: 'column' as const,
                     }}
                   >
-                    <div style={{ marginBottom: '12px' }}>
-                      <img src={paper.icon} alt={paper.label} style={{ width: '36px', height: '40px', objectFit: 'contain' }} />
-                    </div>
-                    {'isDefault' in paper && paper.isDefault && (
+                    {(paper as { icon?: string }).icon && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <img src={(paper as { icon?: string }).icon} alt={paper.label} style={{ width: '36px', height: '40px', objectFit: 'contain' }} />
+                      </div>
+                    )}
+                    {(paper as { isDefault?: boolean }).isDefault && (
                       <span style={{
                         position: 'absolute',
                         top: '16px',
@@ -620,7 +622,7 @@ export default function MockTestsPage() {
                       </span>
                     )}
                     <div style={{ marginBottom: '6px' }}>
-                      <img src={src.icon} alt={src.label} style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
+                      <img src={(src as { icon?: string }).icon} alt={src.label} style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
                     </div>
                     <div style={{ fontFamily: 'var(--font-inter), Inter, sans-serif', fontWeight: 700, fontSize: 'clamp(13px, 0.85vw, 15px)', color: '#101828', marginBottom: '4px' }}>
                       {src.label}
