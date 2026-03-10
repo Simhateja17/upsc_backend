@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import { summarizeEditorial } from "../services/editorialSummarizer";
+import { getNewsArticlesBySource, syncNewsToEditorials } from "../services/newsApi";
 
 /**
  * GET /api/editorials/today
@@ -187,3 +188,146 @@ export const getStats = async (req: Request, res: Response, next: NextFunction) 
     next(error);
   }
 };
+
+/**
+ * GET /api/editorials/live-news
+ * Fetch live news from News API (real-time data)
+ */
+export const getLiveNews = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { source } = req.query;
+    
+    // Determine which source to fetch from
+    let sourceType: 'hindu' | 'express' | 'general' = 'general';
+    if (source === 'The Hindu') sourceType = 'hindu';
+    else if (source === 'Indian Express') sourceType = 'express';
+
+    // Fetch articles from News API
+    const articles = await getNewsArticlesBySource(sourceType);
+
+    // Transform News API articles to match our Editorial format
+    const transformedArticles = articles.map(article => {
+      const category = categorizeArticle(article);
+      const tags = extractArticleTags(article);
+
+      return {
+        id: Buffer.from(article.url).toString('base64').slice(0, 16), // Generate temp ID from URL
+        title: article.title,
+        source: article.source.name || sourceType,
+        sourceUrl: article.url,
+        category,
+        summary: article.description || null,
+        content: article.content || null,
+        tags,
+        publishedAt: article.publishedAt,
+        isRead: false,
+        isSaved: false,
+      };
+    });
+
+    res.json({ status: "success", data: transformedArticles });
+  } catch (error: any) {
+    console.error('[Editorial] Error fetching live news:', error.message);
+    // Fallback to database if News API fails
+    try {
+      const { source } = req.query;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const where: any = {
+        publishedAt: { gte: today, lt: tomorrow },
+      };
+      if (source && source !== "all") {
+        where.source = source as string;
+      }
+
+      const editorials = await prisma.editorial.findMany({
+        where,
+        orderBy: { publishedAt: "desc" },
+      });
+
+      const data = editorials.map(e => ({
+        ...e,
+        isRead: false,
+        isSaved: false,
+      }));
+
+      res.json({ status: "success", data });
+    } catch (fallbackError) {
+      next(fallbackError);
+    }
+  }
+};
+
+/**
+ * POST /api/editorials/sync-news
+ * Manually trigger sync of News API articles to database
+ */
+export const syncNews = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const count = await syncNewsToEditorials();
+    res.json({ 
+      status: "success", 
+      message: `Synced ${count} new articles from News API`,
+      data: { syncedCount: count }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Helper functions for categorization
+function categorizeArticle(article: any): string {
+  const title = article.title?.toLowerCase() || '';
+  const description = article.description?.toLowerCase() || '';
+  const content = `${title} ${description}`;
+
+  if (content.match(/economy|gdp|inflation|fiscal|monetary|budget|tax|rbi|reserve bank/i)) {
+    return 'Economy';
+  }
+  if (content.match(/polity|constitution|parliament|supreme court|government|election|democracy|judiciary/i)) {
+    return 'Polity';
+  }
+  if (content.match(/environment|climate|pollution|forest|wildlife|ecology|biodiversity|green/i)) {
+    return 'Environment';
+  }
+  if (content.match(/technology|digital|cyber|ai|artificial intelligence|internet|innovation/i)) {
+    return 'Technology';
+  }
+  if (content.match(/international|foreign|diplomacy|china|pakistan|usa|russia|treaty|bilateral/i)) {
+    return 'International Relations';
+  }
+  if (content.match(/security|defence|army|navy|border|terrorism|national security/i)) {
+    return 'Security';
+  }
+  if (content.match(/society|social|culture|education|health|welfare|poverty|inequality/i)) {
+    return 'Society';
+  }
+  if (content.match(/agriculture|farmer|crop|rural|irrigation|food security/i)) {
+    return 'Agriculture';
+  }
+
+  return 'General';
+}
+
+function extractArticleTags(article: any): string[] {
+  const tags: string[] = [];
+  const content = `${article.title} ${article.description || ''}`.toLowerCase();
+
+  const keywords = [
+    'economy', 'gdp', 'inflation', 'polity', 'parliament', 'supreme court',
+    'environment', 'climate change', 'technology', 'international relations',
+    'defence', 'security', 'agriculture', 'education', 'health', 'judiciary',
+    'upsc', 'current affairs'
+  ];
+
+  keywords.forEach(keyword => {
+    if (content.includes(keyword)) {
+      tags.push(keyword.charAt(0).toUpperCase() + keyword.slice(1));
+    }
+  });
+
+  return [...new Set(tags)].slice(0, 5);
+}
