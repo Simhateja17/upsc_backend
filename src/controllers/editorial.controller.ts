@@ -9,14 +9,13 @@ import { getNewsArticlesBySource, syncNewsToEditorials } from "../services/newsA
  */
 export const getTodayEditorials = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { source } = req.query;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const { source, limit } = req.query;
+
+    // Show articles from the last 24 hours so RSS articles fetched today are always included
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const where: any = {
-      publishedAt: { gte: today, lt: tomorrow },
+      publishedAt: { gte: since },
     };
     if (source && source !== "all") {
       where.source = source as string;
@@ -25,6 +24,7 @@ export const getTodayEditorials = async (req: Request, res: Response, next: Next
     const editorials = await prisma.editorial.findMany({
       where,
       orderBy: { publishedAt: "desc" },
+      take: limit ? parseInt(limit as string) : 30,
     });
 
     // If user is authenticated, include their progress

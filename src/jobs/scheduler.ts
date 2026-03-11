@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { runEditorialScraper } from "../services/editorialScraper";
 import { rotateDailyMCQ, createDailyMainsQuestion } from "./dailyContentJob";
 import { runEditorialSummarization } from "./dailyEditorialJob";
+import { runLatestNewsJob } from "./latestNewsJob";
 
 /**
  * Initialize all cron jobs
@@ -48,6 +49,17 @@ export function initScheduler() {
       await createDailyMainsQuestion();
     } catch (error) {
       console.error("[Cron] Daily mains question failed:", error);
+    }
+  });
+
+  // Every 3 hours — fetch latest UPSC-relevant news from RSS feeds + auto-summarize
+  // Runs at: 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, 21:00 UTC
+  cron.schedule("0 */3 * * *", async () => {
+    console.log("[Cron] Running latest news RSS fetch...");
+    try {
+      await runLatestNewsJob();
+    } catch (error) {
+      console.error("[Cron] Latest news job failed:", error);
     }
   });
 
