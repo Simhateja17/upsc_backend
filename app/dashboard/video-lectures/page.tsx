@@ -74,7 +74,7 @@ export default function VideoLecturesPage() {
             const first = res.data[0];
             setFeaturedSubjectName(first.name);
             videoService.getVideosBySubject(first.name)
-              .then(vRes => { if (vRes.data) setApiVideos(vRes.data); })
+              .then(vRes => { if (vRes.data?.videos) setApiVideos(vRes.data.videos); })
               .catch(() => {});
           }
         }
@@ -95,7 +95,7 @@ export default function VideoLecturesPage() {
     setSubjectVideosLoading(true);
     setSubjectVideos([]);
     videoService.getVideosBySubject(subjectName)
-      .then(vRes => { if (vRes.data) setSubjectVideos(vRes.data); })
+      .then(vRes => { if (vRes.data?.videos) setSubjectVideos(vRes.data.videos); })
       .catch(() => {})
       .finally(() => setSubjectVideosLoading(false));
   };

@@ -3,6 +3,33 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { authService, User, storeTokens, clearTokens, SignupData, LoginData } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+import type { Session } from '@supabase/supabase-js';
+
+/** Build a fallback User from the Supabase session when /auth/me is unavailable */
+function userFromSession(session: Session): User {
+  const { user: su } = session;
+  return {
+    id: su.id,
+    email: su.email ?? '',
+    firstName: su.user_metadata?.first_name,
+    lastName: su.user_metadata?.last_name,
+    avatarUrl: su.user_metadata?.avatar_url,
+    role: su.app_metadata?.role ?? su.user_metadata?.role,
+  };
+}
+
+/** Try getMe(), retry once after a short delay on failure */
+async function fetchMe(): Promise<User> {
+  try {
+    const { user } = await authService.getMe();
+    return user;
+  } catch {
+    // Retry once — token may not have been fully propagated yet
+    await new Promise(r => setTimeout(r, 500));
+    const { user } = await authService.getMe();
+    return user;
+  }
+}
 
 interface AuthContextType {
   user: User | null;
@@ -31,19 +58,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       storeTokens(session.access_token, session.refresh_token ?? '');
-      const { user } = await authService.getMe();
-      setUser(user);
+      const freshUser = await fetchMe();
+      setUser(freshUser);
     } catch {
-      // If we have a valid Supabase session but getMe failed, use session data as fallback
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (currentSession) {
-        setUser(prev => prev ?? {
-          id: currentSession.user.id,
-          email: currentSession.user.email ?? '',
-          firstName: currentSession.user.user_metadata?.first_name,
-          lastName: currentSession.user.user_metadata?.last_name,
-          avatarUrl: currentSession.user.user_metadata?.avatar_url,
-        });
+        setUser(prev => prev ?? userFromSession(currentSession));
       } else {
         clearTokens();
         setUser(null);
@@ -76,19 +96,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session) {
         storeTokens(session.access_token, session.refresh_token ?? '');
         try {
-          const { user: freshUser } = await authService.getMe();
+          const freshUser = await fetchMe();
           setUser(freshUser);
         } catch {
-          // getMe failed — if user is already set (e.g. login() set it), keep it.
-          // Otherwise (fresh page load), fall back to Supabase session data
-          // so the user isn't logged out just because /auth/me failed.
-          setUser(prev => prev ?? {
-            id: session.user.id,
-            email: session.user.email ?? '',
-            firstName: session.user.user_metadata?.first_name,
-            lastName: session.user.user_metadata?.last_name,
-            avatarUrl: session.user.user_metadata?.avatar_url,
-          });
+          // getMe failed even after retry — fall back to Supabase session data
+          // (includes role from app_metadata) so user isn't logged out.
+          setUser(prev => prev ?? userFromSession(session));
         }
       } else {
         clearTokens();

@@ -1,25 +1,35 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardHeader from '@/components/DashboardHeader';
 import AdminSidebar from '@/components/AdminSidebar';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated, refreshUser } = useAuth();
   const router = useRouter();
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
       router.push('/login');
-    } else if (user?.role !== 'admin') {
+      return;
+    }
+    // If role is missing (e.g. fallback user from Supabase session),
+    // try refreshing user data from the backend before redirecting.
+    if (!user?.role && !checked) {
+      setChecked(true);
+      refreshUser();
+      return;
+    }
+    if (user?.role !== 'admin') {
       router.push('/dashboard');
     }
-  }, [isLoading, isAuthenticated, user?.role, router]);
+  }, [isLoading, isAuthenticated, user?.role, router, checked, refreshUser]);
 
-  if (isLoading) {
+  if (isLoading || (!checked && !user?.role)) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#F3F4F6' }}>
         <div className="text-center">

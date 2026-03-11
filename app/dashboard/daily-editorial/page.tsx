@@ -2,15 +2,21 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { editorialService } from '@/lib/services';
 
 interface EditorialCard {
   id: string;
   title: string;
   summary: string | null;
+  aiSummary?: string | null;
   source: string;
+  sourceUrl?: string;
   category: string;
   tags: string[];
+  publishedAt?: string;
   isRead: boolean;
   isSaved: boolean;
 }
@@ -56,6 +62,7 @@ function getCalendarDays(year: number, month: number) {
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 export default function DailyEditorialPage() {
+  const router = useRouter();
   const [activeNewspaper, setActiveNewspaper] = useState<'hindu' | 'express'>('hindu');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
@@ -63,16 +70,27 @@ export default function DailyEditorialPage() {
   const [editorials, setEditorials] = useState<EditorialCard[]>([]);
   const [learningStats, setLearningStats] = useState(defaultLearningStats);
   const [loading, setLoading] = useState(true);
+  const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
   const [summarizing, setSummarizing] = useState<string | null>(null);
+  const [summaryModal, setSummaryModal] = useState<{
+    open: boolean;
+    loading: boolean;
+    editorial: EditorialCard | null;
+    summary: string | null;
+    loadStep: number;
+  }>({ open: false, loading: false, editorial: null, summary: null, loadStep: 0 });
 
   useEffect(() => {
     const source = activeNewspaper === 'hindu' ? 'The Hindu' : 'Indian Express';
     setLoading(true);
-    // Use getLiveNews to fetch real-time news from News API
-    editorialService.getLiveNews(source)
+    setCurrentPage(1);
+    editorialService.getToday(source)
       .then(res => {
         if (res.data && Array.isArray(res.data)) {
           setEditorials(res.data);
+          setLastFetched(new Date());
         }
       })
       .catch(() => {})
@@ -109,16 +127,38 @@ export default function DailyEditorialPage() {
     } catch {}
   };
 
-  const handleSummarize = async (id: string) => {
-    setSummarizing(id);
+  const handleSummarize = async (card: EditorialCard) => {
+    // Use cached summary if available — no AI call needed
+    if (card.aiSummary) {
+      setSummaryModal({ open: true, loading: false, editorial: card, summary: card.aiSummary, loadStep: 4 });
+      return;
+    }
+
+    setSummarizing(card.id);
+    setSummaryModal({ open: true, loading: true, editorial: card, summary: null, loadStep: 0 });
+
+    // Animate loading steps
+    let step = 0;
+    const interval = setInterval(() => {
+      step += 1;
+      setSummaryModal(prev => ({ ...prev, loadStep: step }));
+      if (step >= 3) clearInterval(interval);
+    }, 900);
+
     try {
-      const res = await editorialService.summarize(id);
-      if (res.data?.summary) {
-        alert(res.data.summary);
-      }
-    } catch {}
+      const res = await editorialService.summarize(card.id);
+      clearInterval(interval);
+      const summary = res.data?.summary || null;
+      // Cache in local state so re-opening is instant
+      setEditorials(prev => prev.map(e => e.id === card.id ? { ...e, aiSummary: summary } : e));
+      setSummaryModal(prev => ({ ...prev, loading: false, summary, loadStep: 4 }));
+    } catch {
+      clearInterval(interval);
+      setSummaryModal(prev => ({ ...prev, open: false }));
+    }
     setSummarizing(null);
   };
+
 
   const calDays = getCalendarDays(calYear, calMonth);
   const now = new Date();
@@ -329,13 +369,25 @@ export default function DailyEditorialPage() {
           {/* Divider */}
           <div style={{ borderBottom: '1px solid #D1D5DC', marginBottom: 'clamp(14px, 1.5vw, 20px)' }} />
 
+          {/* Last updated + article count */}
+          {!loading && editorials.length > 0 && (
+            <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
+              <span className="font-arimo" style={{ fontSize: '13px', color: '#6A7282' }}>
+                🕐 Updated {lastFetched ? lastFetched.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'just now'} &nbsp;·&nbsp; {editorials.length} articles (last 24 hrs)
+              </span>
+              <span className="font-arimo" style={{ fontSize: '13px', color: '#6A7282' }}>
+                Page {currentPage} of {Math.ceil(editorials.length / PAGE_SIZE)}
+              </span>
+            </div>
+          )}
+
           {/* News cards */}
           <div className="flex flex-col" style={{ gap: 'clamp(14px, 1.5vw, 20px)' }}>
             {loading ? (
               <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900"></div></div>
             ) : editorials.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">No editorials available for today. Check back later.</div>
-            ) : editorials.map((card) => {
+              <div className="text-center py-12 text-gray-500">No articles in the last 24 hours. Check back later.</div>
+            ) : editorials.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((card) => {
               const tagList = card.tags?.length > 0 ? card.tags : [card.category];
               return (
               <div
@@ -457,7 +509,7 @@ export default function DailyEditorialPage() {
                   </div>
 
                   <button
-                    onClick={() => handleSummarize(card.id)}
+                    onClick={() => handleSummarize(card)}
                     disabled={summarizing === card.id}
                     className="flex items-center gap-2 font-arimo font-bold"
                     style={{
@@ -478,6 +530,52 @@ export default function DailyEditorialPage() {
               );
             })}
           </div>
+
+          {/* Pagination controls */}
+          {!loading && editorials.length > PAGE_SIZE && (
+            <div className="flex items-center justify-center" style={{ gap: '8px', marginTop: '8px', paddingBottom: '8px' }}>
+              <button
+                onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                disabled={currentPage === 1}
+                className="font-arimo font-medium"
+                style={{
+                  padding: '8px 16px', borderRadius: '8px', border: '1px solid #E5E7EB',
+                  background: currentPage === 1 ? '#F9FAFB' : '#FFFFFF',
+                  color: currentPage === 1 ? '#9CA3AF' : '#101828',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '13px',
+                }}
+              >← Prev</button>
+
+              {Array.from({ length: Math.ceil(editorials.length / PAGE_SIZE) }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="font-arimo font-medium"
+                  style={{
+                    width: '36px', height: '36px', borderRadius: '8px',
+                    border: page === currentPage ? 'none' : '1px solid #E5E7EB',
+                    background: page === currentPage ? '#101828' : '#FFFFFF',
+                    color: page === currentPage ? '#FFFFFF' : '#101828',
+                    cursor: 'pointer', fontSize: '13px',
+                  }}
+                >{page}</button>
+              ))}
+
+              <button
+                onClick={() => { setCurrentPage(p => Math.min(Math.ceil(editorials.length / PAGE_SIZE), p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                disabled={currentPage === Math.ceil(editorials.length / PAGE_SIZE)}
+                className="font-arimo font-medium"
+                style={{
+                  padding: '8px 16px', borderRadius: '8px', border: '1px solid #E5E7EB',
+                  background: currentPage === Math.ceil(editorials.length / PAGE_SIZE) ? '#F9FAFB' : '#FFFFFF',
+                  color: currentPage === Math.ceil(editorials.length / PAGE_SIZE) ? '#9CA3AF' : '#101828',
+                  cursor: currentPage === Math.ceil(editorials.length / PAGE_SIZE) ? 'not-allowed' : 'pointer',
+                  fontSize: '13px',
+                }}
+              >Next →</button>
+            </div>
+          )}
         </div>
 
         {/* ========================================================== */}
@@ -812,6 +910,227 @@ export default function DailyEditorialPage() {
           </div>
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/*  JEET AI SUMMARY MODAL                                        */}
+      {/* ============================================================ */}
+      {summaryModal.open && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setSummaryModal(prev => ({ ...prev, open: false })); }}
+        >
+          <div
+            style={{
+              background: '#151C2C',
+              borderRadius: '20px',
+              width: '100%',
+              maxWidth: '640px',
+              maxHeight: '85vh',
+              overflowY: 'auto',
+              padding: '28px',
+              position: 'relative',
+            }}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setSummaryModal(prev => ({ ...prev, open: false }))}
+              style={{
+                position: 'absolute', top: '16px', right: '16px',
+                width: '36px', height: '36px', borderRadius: '50%',
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none', color: '#fff', fontSize: '18px',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >✕</button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3" style={{ marginBottom: '16px' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#1E2A40', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>🧠</div>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', fontWeight: 700, color: '#fff' }}>
+                <span style={{ color: '#FFD273' }}>Jeet AI</span> Summary
+              </span>
+            </div>
+
+            {/* Source badge */}
+            {summaryModal.editorial && (
+              <div style={{ marginBottom: '10px' }}>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  background: summaryModal.editorial.source.includes('Hindu') ? '#DC2626' : '#1E3A5F',
+                  color: '#fff', borderRadius: '8px',
+                  padding: '5px 12px', fontSize: '13px', fontWeight: 600,
+                }}>
+                  🗞️ {summaryModal.editorial.source}
+                </span>
+              </div>
+            )}
+
+            {/* Title */}
+            {summaryModal.editorial && (
+              <h2 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, lineHeight: '1.4', marginBottom: '12px' }}>
+                {summaryModal.editorial.title}
+              </h2>
+            )}
+
+            {/* Tags */}
+            {summaryModal.editorial && (
+              <div className="flex flex-wrap" style={{ gap: '8px', marginBottom: '20px' }}>
+                {(summaryModal.editorial.tags?.length > 0 ? summaryModal.editorial.tags : [summaryModal.editorial.category]).map(t => (
+                  <span key={t} style={{ background: 'rgba(255,255,255,0.08)', color: '#CBD5E1', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 500 }}>{t}</span>
+                ))}
+              </div>
+            )}
+
+            {/* Loading state */}
+            {summaryModal.loading && (
+              <div>
+                <div className="flex flex-col items-center" style={{ padding: '20px 0 28px', gap: '8px' }}>
+                  <span style={{ fontSize: '40px' }}>🧠</span>
+                  <span style={{ color: '#fff', fontSize: '18px', fontWeight: 700 }}>Analyzing editorial...</span>
+                  <span style={{ color: '#64748B', fontSize: '13px' }}>UPSC lens activated</span>
+                </div>
+                <div className="flex flex-col" style={{ gap: '12px' }}>
+                  {[
+                    { icon: '📄', label: 'Reading full article', color: '#3B82F6' },
+                    { icon: '🔍', label: 'Extracting key arguments', color: '#06B6D4' },
+                    { icon: '🎯', label: 'Mapping to UPSC syllabus', color: '#EC4899' },
+                    { icon: '✏️', label: 'Generating practice questions', color: '#F97316' },
+                  ].map((step, i) => (
+                    <div key={step.label} className="flex items-center justify-between" style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '12px', padding: '12px 16px' }}>
+                      <div className="flex items-center gap-3">
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: step.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+                          {step.icon}
+                        </div>
+                        <span style={{ color: i <= summaryModal.loadStep ? '#fff' : '#475569', fontSize: '14px', fontWeight: 500 }}>{step.label}</span>
+                      </div>
+                      {i < summaryModal.loadStep && <span style={{ color: '#22C55E', fontSize: '18px' }}>✓</span>}
+                      {i === summaryModal.loadStep && (
+                        <div style={{ width: '18px', height: '18px', border: '2px solid #64748B', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Summary result */}
+            {!summaryModal.loading && summaryModal.summary && (
+              <div className="flex flex-col" style={{ gap: '16px' }}>
+                <div
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    borderRadius: '14px',
+                    padding: '20px',
+                    color: '#CBD5E1',
+                    fontSize: '14px',
+                    lineHeight: '1.8',
+                  }}
+                >
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      h1: ({ children }) => (
+                        <h1 style={{ color: '#FFD273', fontSize: '17px', fontWeight: 700, marginBottom: '4px', marginTop: '0' }}>{children}</h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 style={{ color: '#F97316', fontSize: '15px', fontWeight: 700, marginTop: '18px', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '6px' }}>{children}</h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 style={{ color: '#60A5FA', fontSize: '14px', fontWeight: 600, marginTop: '14px', marginBottom: '6px' }}>{children}</h3>
+                      ),
+                      p: ({ children }) => (
+                        <p style={{ color: '#CBD5E1', marginBottom: '10px', marginTop: '0' }}>{children}</p>
+                      ),
+                      strong: ({ children }) => (
+                        <strong style={{ color: '#fff', fontWeight: 700 }}>{children}</strong>
+                      ),
+                      ul: ({ children }) => (
+                        <ul style={{ paddingLeft: '18px', marginBottom: '10px', marginTop: '4px' }}>{children}</ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol style={{ paddingLeft: '18px', marginBottom: '10px', marginTop: '4px' }}>{children}</ol>
+                      ),
+                      li: ({ children }) => (
+                        <li style={{ color: '#CBD5E1', marginBottom: '6px' }}>{children}</li>
+                      ),
+                      hr: () => (
+                        <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '14px 0' }} />
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote style={{ borderLeft: '3px solid #3B82F6', paddingLeft: '12px', margin: '10px 0', background: 'rgba(59,130,246,0.08)', borderRadius: '0 8px 8px 0', padding: '10px 14px' }}>{children}</blockquote>
+                      ),
+                      code: ({ children }) => (
+                        <code style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '4px', padding: '2px 6px', fontSize: '13px', color: '#FACC15' }}>{children}</code>
+                      ),
+                    }}
+                  >
+                    {summaryModal.summary}
+                  </ReactMarkdown>
+                </div>
+
+                {/* Action buttons */}
+                <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginTop: '8px' }}>
+                  {[
+                    {
+                      emoji: summaryModal.editorial?.isSaved ? '✅' : '📌',
+                      label: summaryModal.editorial?.isSaved ? 'Saved' : 'Save Note',
+                      action: async () => {
+                        if (!summaryModal.editorial) return;
+                        await handleSave(summaryModal.editorial.id);
+                        setSummaryModal(prev => prev.editorial ? { ...prev, editorial: { ...prev.editorial!, isSaved: !prev.editorial!.isSaved } } : prev);
+                      },
+                    },
+                    {
+                      emoji: '✏️',
+                      label: 'Practice MCQ',
+                      action: () => { setSummaryModal(prev => ({ ...prev, open: false })); router.push('/dashboard/daily-mcq'); },
+                    },
+                    {
+                      emoji: '📝',
+                      label: 'Mains Writing',
+                      action: () => { setSummaryModal(prev => ({ ...prev, open: false })); router.push('/dashboard/daily-answer'); },
+                    },
+                    {
+                      emoji: '🔗',
+                      label: 'Source',
+                      action: () => summaryModal.editorial?.sourceUrl && window.open(summaryModal.editorial.sourceUrl, '_blank'),
+                    },
+                  ].map((btn) => (
+                    <button
+                      key={btn.label}
+                      onClick={btn.action}
+                      style={{
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '12px',
+                        padding: '12px 8px',
+                        color: '#CBD5E1',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span style={{ fontSize: '22px' }}>{btn.emoji}</span>
+                      {btn.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
