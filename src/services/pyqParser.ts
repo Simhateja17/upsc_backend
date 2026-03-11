@@ -1,6 +1,5 @@
 import { invokeModelJSON } from "../config/bedrock";
 import prisma from "../config/database";
-import * as stringSimilarity from "string-similarity";
 
 interface ParsedQuestion {
   questionText: string;
@@ -226,51 +225,6 @@ async function parseChunksInBatches(
 }
 
 /**
- * Check for duplicate questions against existing PYQ bank.
- * Uses a pre-loaded cache to avoid N separate DB queries.
- */
-async function findDuplicates(
-  questionText: string,
-  questionIndex: number,
-  existingCache: { id: string; questionText: string }[]
-): Promise<{ isDuplicate: boolean; duplicateId: string | null; similarity: number }> {
-  log("DEDUP", `Checking duplicates for question #${questionIndex + 1}: "${questionText.substring(0, 60)}..."`);
-  const startTime = Date.now();
-
-  const exact = existingCache.find((q) => q.questionText === questionText);
-  if (exact) {
-    const elapsed = Date.now() - startTime;
-    log("DEDUP", `  EXACT DUPLICATE found in ${elapsed}ms (id: ${exact.id})`);
-    return { isDuplicate: true, duplicateId: exact.id, similarity: 1.0 };
-  }
-
-  if (existingCache.length === 0) {
-    const elapsed = Date.now() - startTime;
-    log("DEDUP", `  No existing questions to compare against (${elapsed}ms)`);
-    return { isDuplicate: false, duplicateId: null, similarity: 0 };
-  }
-
-  log("DEDUP", `  Comparing against ${existingCache.length} existing questions...`);
-  const existingTexts = existingCache.map((q) => q.questionText);
-  const bestMatch = stringSimilarity.findBestMatch(questionText, existingTexts);
-  const elapsed = Date.now() - startTime;
-
-  if (bestMatch.bestMatch.rating > 0.7) {
-    const matchIndex = bestMatch.bestMatchIndex;
-    log("DEDUP", `  FUZZY DUPLICATE found in ${elapsed}ms (similarity: ${(bestMatch.bestMatch.rating * 100).toFixed(1)}%, id: ${existingCache[matchIndex].id})`);
-    log("DEDUP", `    Matched with: "${existingCache[matchIndex].questionText.substring(0, 60)}..."`);
-    return {
-      isDuplicate: true,
-      duplicateId: existingCache[matchIndex].id,
-      similarity: bestMatch.bestMatch.rating,
-    };
-  }
-
-  log("DEDUP", `  No duplicate found in ${elapsed}ms (best similarity: ${(bestMatch.bestMatch.rating * 100).toFixed(1)}%)`);
-  return { isDuplicate: false, duplicateId: null, similarity: bestMatch.bestMatch.rating };
-}
-
-/**
  * Full PDF parsing pipeline
  */
 export async function parsePYQPdf(
@@ -306,16 +260,6 @@ export async function parsePYQPdf(
     console.log("─".repeat(60));
     const chunks = splitIntoChunks(text);
 
-    // ─── Step 2.5: Load dedup cache (all existing questions, once) ──
-    console.log("\n" + "─".repeat(60));
-    log("STEP-2.5", "LOADING DEDUP CACHE");
-    console.log("─".repeat(60));
-    const dedupCache = await prisma.pYQQuestion.findMany({
-      where: { status: { in: ["approved", "draft"] } },
-      select: { id: true, questionText: true },
-    });
-    log("STEP-2.5", `Loaded ${dedupCache.length} existing questions for dedup`);
-
     // ─── Step 3: Parse chunks with AI (parallel batches) ────────────
     // Year and paper are detected PER QUESTION by AI
     console.log("\n" + "─".repeat(60));
@@ -325,29 +269,22 @@ export async function parsePYQPdf(
 
     const chunkResults = await parseChunksInBatches(chunks);
 
-    // ─── Step 4: Dedup & save ──────────────────────────────────────
+    // ─── Step 4: Save questions ────────────────────────────────────
     console.log("\n" + "─".repeat(60));
-    log("STEP-4", "DEDUPLICATING & SAVING QUESTIONS");
+    log("STEP-4", "SAVING QUESTIONS");
     console.log("─".repeat(60));
 
     let totalExtracted = 0;
-    let totalDuplicates = 0;
-    let totalNew = 0;
 
     for (const { questions } of chunkResults) {
       for (const q of questions) {
-        const dupCheck = await findDuplicates(q.questionText, totalExtracted, dedupCache);
-
-        const status = dupCheck.isDuplicate ? "rejected" : "draft";
-        if (dupCheck.isDuplicate) totalDuplicates++;
-        else totalNew++;
-
+        totalExtracted++;
         const qYear = q.year || 0;
         const qPaper = q.paper || "Unknown";
 
-        log("DB-SAVE", `Saving question #${totalExtracted + 1}: status=${status}, year=${qYear}, paper=${qPaper}, subject=${q.subject || "Current Affairs"}`);
+        log("DB-SAVE", `Saving question #${totalExtracted}: status=approved, year=${qYear}, paper=${qPaper}, subject=${q.subject || "Current Affairs"}`);
 
-        const created = await prisma.pYQQuestion.create({
+        await prisma.pYQQuestion.create({
           data: {
             year: qYear,
             paper: qPaper,
@@ -358,18 +295,12 @@ export async function parsePYQPdf(
             options: q.options || [],
             correctOption: q.correctOption || null,
             explanation: q.explanation || null,
-            status,
-            duplicateOfId: dupCheck.duplicateId,
+            status: "approved",
             uploadId,
           },
         });
 
-        if (!dupCheck.isDuplicate) {
-          dedupCache.push({ id: created.id, questionText: q.questionText });
-        }
-
-        log("DB-SAVE", `Question #${totalExtracted + 1} saved successfully`);
-        totalExtracted++;
+        log("DB-SAVE", `Question #${totalExtracted} saved successfully`);
       }
     }
 
@@ -399,8 +330,6 @@ export async function parsePYQPdf(
     log("PIPELINE", "PIPELINE COMPLETE");
     log("PIPELINE", `Total time: ${(totalElapsed / 1000).toFixed(1)}s`);
     log("PIPELINE", `Total questions extracted: ${totalExtracted}`);
-    log("PIPELINE", `  New questions: ${totalNew}`);
-    log("PIPELINE", `  Duplicates rejected: ${totalDuplicates}`);
     log("PIPELINE", `  Chunks processed: ${chunks.length}`);
     log("PIPELINE", `  Upload metadata: year=${detectedYear}, paper=${detectedPaper}`);
     log("PIPELINE", `  Avg time per chunk: ${(totalElapsed / chunks.length / 1000).toFixed(1)}s`);
