@@ -69,6 +69,7 @@ export default function DailyEditorialPage() {
   const [calYear, setCalYear] = useState(() => new Date().getFullYear());
   const [editorials, setEditorials] = useState<EditorialCard[]>([]);
   const [learningStats, setLearningStats] = useState(defaultLearningStats);
+  const [glanceStats, setGlanceStats] = useState({ hindu: 0, express: 0, read: 0, ai: 0 });
   const [loading, setLoading] = useState(true);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -88,9 +89,18 @@ export default function DailyEditorialPage() {
     setCurrentPage(1);
     editorialService.getToday(source)
       .then(res => {
-        if (res.data && Array.isArray(res.data)) {
-          setEditorials(res.data);
+        const articles = res.data && Array.isArray(res.data) ? res.data : [];
+        if (articles.length > 0) {
+          setEditorials(articles);
           setLastFetched(new Date());
+        } else {
+          // DB empty — fall back to live News API
+          return editorialService.getLiveNews(source).then(liveRes => {
+            if (liveRes.data && Array.isArray(liveRes.data)) {
+              setEditorials(liveRes.data);
+              setLastFetched(new Date());
+            }
+          });
         }
       })
       .catch(() => {})
