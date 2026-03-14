@@ -9,7 +9,7 @@ import AdminSidebar from '@/components/AdminSidebar';
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated, refreshUser } = useAuth();
   const router = useRouter();
-  const [checked, setChecked] = useState(false);
+  const [roleVerified, setRoleVerified] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -17,19 +17,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.push('/login');
       return;
     }
-    // If role is missing (e.g. fallback user from Supabase session),
-    // try refreshing user data from the backend before redirecting.
-    if (!user?.role && !checked) {
-      setChecked(true);
-      refreshUser();
+
+    // If user already has admin role, we're good
+    if (user?.role === 'admin') {
+      setRoleVerified(true);
       return;
     }
-    if (user?.role !== 'admin') {
+
+    // If role is missing or not admin, try refreshing from backend once
+    if (!roleVerified) {
+      let cancelled = false;
+      refreshUser().then(() => {
+        if (!cancelled) setRoleVerified(true);
+      });
+      return () => { cancelled = true; };
+    }
+
+    // After refresh attempt, if still not admin, redirect
+    if (roleVerified && user?.role !== 'admin') {
       router.push('/dashboard');
     }
-  }, [isLoading, isAuthenticated, user?.role, router, checked, refreshUser]);
+  }, [isLoading, isAuthenticated, user?.role, router, roleVerified, refreshUser]);
 
-  if (isLoading || (!checked && !user?.role)) {
+  if (isLoading || (!roleVerified && isAuthenticated)) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#F3F4F6' }}>
         <div className="text-center">
