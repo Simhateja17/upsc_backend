@@ -14,6 +14,20 @@ import { initScheduler } from "./jobs/scheduler";
 
 const app: Application = express();
 
+// Request logger middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  const { method, originalUrl } = req;
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    const { statusCode } = res;
+    console.log(`[${new Date().toISOString()}] ${method} ${originalUrl} → ${statusCode} (${duration}ms)`);
+  });
+
+  next();
+});
+
 // Middleware
 app.use(cors({
   origin: config.cors.origin,
@@ -24,13 +38,16 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Apply general rate limiter to all API routes
 app.use("/api", generalLimiter);
+console.log("[Server] Rate limiter applied");
 
 // Routes
 app.use("/api", routes);
+console.log("[Server] API routes mounted");
 
 // Error handling
 app.use(notFoundHandler);
 app.use(errorHandler);
+console.log("[Server] Error handlers registered");
 
 // Start server
 const PORT = config.port;

@@ -27,6 +27,7 @@ export const errorHandler = (
 };
 
 export const notFoundHandler = (req: Request, res: Response) => {
+  console.warn(`[404] Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
     status: "error",
     message: `Route ${req.originalUrl} not found`,

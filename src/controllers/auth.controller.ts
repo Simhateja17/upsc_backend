@@ -39,6 +39,7 @@ export const signup = async (
 ) => {
   try {
     const { email, password, firstName, lastName, phone } = req.body;
+    console.log(`[Signup] Attempt for email: ${email}`);
 
     // Validate required fields
     if (!email || !password) {
@@ -115,6 +116,7 @@ export const signup = async (
         emailVerified: !!authData.user.email_confirmed_at,
       },
     });
+    console.log(`[Signup] User created successfully: ${user.email} (${user.id})`);
 
     // Send welcome email (async, don't block response)
     sendWelcomeEmail(email, firstName || "").catch((err) =>
@@ -175,6 +177,7 @@ export const login = async (
 ) => {
   try {
     const { email, password } = req.body;
+    console.log(`[Login] Attempt for email: ${email}`);
 
     // Validate required fields
     if (!email || !password) {
@@ -232,6 +235,7 @@ export const login = async (
       });
     }
 
+    console.log(`[Login] Successful for: ${user.email} (${user.id})`);
     res.json({
       status: "success",
       message: "Login successful",
@@ -350,6 +354,7 @@ export const logout = async (
   next: NextFunction
 ) => {
   try {
+    console.log(`[Logout] User: ${req.user?.email || "unknown"}`);
     // Use admin client to revoke the user's session server-side
     if (supabaseAdmin && req.user) {
       await supabaseAdmin.auth.admin.signOut(
@@ -424,8 +429,9 @@ export const googleAuth = async (
   next: NextFunction
 ) => {
   try {
+    console.log("[GoogleAuth] Initiating OAuth flow");
     const redirectUrl = process.env.GOOGLE_REDIRECT_URL || "http://localhost:3000/auth/callback";
-    
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -462,6 +468,7 @@ export const authCallback = async (
 ) => {
   try {
     const { accessToken, refreshToken } = req.body;
+    console.log("[AuthCallback] Processing OAuth callback");
 
     if (!accessToken) {
       return res.status(400).json({

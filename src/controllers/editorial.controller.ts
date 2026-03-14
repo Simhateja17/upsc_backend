@@ -10,6 +10,7 @@ import { getNewsArticlesBySource, syncNewsToEditorials } from "../services/newsA
 export const getTodayEditorials = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { source, limit } = req.query;
+    console.log(`[Editorial] Fetching today's editorials, source: ${source || "all"}, limit: ${limit || 30}`);
 
     // Show articles from the last 24 hours so RSS articles fetched today are always included
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -85,6 +86,7 @@ export const markRead = async (req: Request, res: Response, next: NextFunction) 
   try {
     const userId = req.user!.id;
     const id = req.params.id as string;
+    console.log(`[Editorial] Mark read: editorial ${id} by user ${userId}`);
 
     await prisma.editorialProgress.upsert({
       where: { userId_editorialId: { userId, editorialId: id } },
@@ -134,6 +136,7 @@ export const toggleSave = async (req: Request, res: Response, next: NextFunction
 export const summarize = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = req.params.id as string;
+    console.log(`[Editorial] AI summarize requested for: ${id}`);
     const editorial = await prisma.editorial.findUnique({ where: { id } });
 
     if (!editorial) {
@@ -282,6 +285,7 @@ export const getLiveNews = async (req: Request, res: Response, next: NextFunctio
  */
 export const syncNews = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log("[Editorial] Manual news sync triggered");
     const count = await syncNewsToEditorials();
     res.json({ 
       status: "success", 

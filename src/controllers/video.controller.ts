@@ -50,6 +50,7 @@ export const getSubjects = async (_req: Request, res: Response, next: NextFuncti
 export const getVideosBySubject = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const subject = req.params.subject as string;
+    console.log(`[Videos] Fetching videos for subject: ${subject}`);
 
     const subjectRecord = await prisma.videoSubject.findFirst({
       where: { OR: [{ id: subject }, { name: subject }] },
@@ -110,6 +111,7 @@ export const askMentor = async (req: Request, res: Response, next: NextFunction)
     const mentorQuestion = await prisma.mentorQuestion.create({
       data: { userId, question: question.trim() },
     });
+    console.log(`[Mentor] Question submitted by user: ${userId}`);
 
     res.status(201).json({ status: "success", data: mentorQuestion });
   } catch (error) {

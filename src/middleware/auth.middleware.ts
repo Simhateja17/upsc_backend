@@ -35,6 +35,7 @@ export const authenticate = async (
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log(`[Auth] No token provided for ${req.method} ${req.originalUrl}`);
       return res.status(401).json({
         status: "error",
         message: "No token provided",
@@ -50,6 +51,7 @@ export const authenticate = async (
     } = await supabase.auth.getUser(token);
 
     if (authError || !authUser) {
+      console.log(`[Auth] Invalid/expired token for ${req.method} ${req.originalUrl}`);
       return res.status(401).json({
         status: "error",
         message: "Invalid or expired token",
@@ -94,6 +96,7 @@ export const authenticate = async (
 
     // Attach user to request
     req.user = user;
+    console.log(`[Auth] Authenticated user: ${user.email} (${user.id})`);
     next();
   } catch (error) {
     console.error("Auth middleware error:", error);

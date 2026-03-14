@@ -87,6 +87,7 @@ export const bookCall = async (req: Request, res: Response, next: NextFunction) 
     const booking = await prisma.mentorBooking.create({
       data: { userId, name, email, phone, message },
     });
+    console.log(`[Mentorship] Call booked by user: ${userId}, name: ${name}`);
 
     res.status(201).json({ status: "success", data: booking, message: "Call booked successfully! We'll reach out within 24 hours." });
   } catch (error) {

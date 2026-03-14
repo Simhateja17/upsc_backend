@@ -8,6 +8,7 @@ import prisma from "../config/database";
 export const getDashboard = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
+    console.log(`[Dashboard] Fetching dashboard for user: ${userId}`);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -84,6 +85,7 @@ export const getActivity = async (req: Request, res: Response, next: NextFunctio
 export const getPerformance = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
+    console.log(`[Dashboard] Fetching performance for user: ${userId}`);
 
     const [mcqAttempts, mainsAttempts, mockAttempts, streak] = await Promise.all([
       prisma.mCQAttempt.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 20 }),

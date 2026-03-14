@@ -84,6 +84,7 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
   try {
     const userId = req.user!.id;
     const { source, subject, examMode, paperType, questionCount, difficulty } = req.body;
+    console.log(`[Mock Test] Generate: user=${userId}, subject=${subject}, count=${questionCount}, difficulty=${difficulty}`);
 
     const count = Math.min(questionCount || 10, 100);
     const duration = Math.round(count * 1.6);
@@ -177,6 +178,7 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
       data: { userId, type: "mock_test", title: "Generated Mock Test", description: `${count} questions on ${subject || "Mixed"}` },
     });
 
+    console.log(`[Mock Test] Generated: ${mockTest.id} with ${questionNum - 1} questions (${pyqQuestions.length} PYQ + ${aiQuestions.length} AI)`);
     res.json({
       status: "success",
       data: {
@@ -236,6 +238,7 @@ export const submitTest = async (req: Request, res: Response, next: NextFunction
     const userId = req.user!.id;
     const testId = req.params.testId as string;
     const { answers, timeTaken } = req.body;
+    console.log(`[Mock Test] Submit: user=${userId}, testId=${testId}, timeTaken=${timeTaken}`);
 
     const test = await prisma.mockTest.findUnique({
       where: { id: testId },
@@ -295,6 +298,7 @@ export const submitTest = async (req: Request, res: Response, next: NextFunction
       data: { userId, type: "mock_test", title: "Completed Mock Test", description: `Score: ${Math.round(score)}/${test.totalMarks}` },
     });
 
+    console.log(`[Mock Test] User ${userId} scored ${Math.round(score)}/${test.totalMarks} (${Math.round(accuracy)}%)`);
     res.json({
       status: "success",
       data: { attemptId: attempt.id, testId },

@@ -19,6 +19,7 @@ export const getPublicPYQQuestions = async (
   next: NextFunction
 ) => {
   try {
+    console.log(`[PYQ] Fetching questions: mode=${req.query.mode}, subject=${req.query.subject}, year=${req.query.year}, page=${req.query.page}`);
     if (!supabaseAdmin) {
       return res.status(503).json({ status: "error", message: "Service unavailable" });
     }
