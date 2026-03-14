@@ -174,6 +174,17 @@ export const getStats = async (req: Request, res: Response, next: NextFunction) 
 
     const streak = await prisma.userStreak.findUnique({ where: { userId } });
 
+    // Today's counts
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [todayHinduCount, todayExpressCount, todayAiCount, todayReadCount] = await Promise.all([
+      prisma.editorial.count({ where: { source: 'The Hindu', publishedAt: { gte: todayStart } } }),
+      prisma.editorial.count({ where: { source: 'Indian Express', publishedAt: { gte: todayStart } } }),
+      prisma.editorial.count({ where: { aiSummary: { not: null }, publishedAt: { gte: todayStart } } }),
+      prisma.editorialProgress.count({ where: { userId, isRead: true, readAt: { gte: todayStart } } }),
+    ]);
+
     res.json({
       status: "success",
       data: {
@@ -182,6 +193,10 @@ export const getStats = async (req: Request, res: Response, next: NextFunction) 
         weeklyRead,
         weeklyTarget: 7,
         streak: streak?.currentStreak || 0,
+        todayHinduCount,
+        todayExpressCount,
+        todayAiCount,
+        todayReadCount,
       },
     });
   } catch (error) {
