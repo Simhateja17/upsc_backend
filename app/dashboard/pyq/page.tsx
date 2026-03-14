@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { pyqService } from '@/lib/services';
 
 const AI_EVAL_DURATION_MS = 30 * 1000; // 30 seconds
 const AI_EVAL_STEPS = [
@@ -20,6 +21,37 @@ export default function PyqPage() {
   const [aiEvalProgress, setAiEvalProgress] = useState(0);
   const [aiEvalStepIndex, setAiEvalStepIndex] = useState(0);
   const [mode, setMode] = useState<'prelims' | 'mains'>('prelims');
+
+  // Data state
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState('All Papers');
+
+  const fetchQuestions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await pyqService.getQuestions({
+        mode,
+        year: selectedYear || undefined,
+        subject: selectedSubject !== 'All Papers' ? selectedSubject : undefined,
+        limit: 20,
+      });
+      if (res.status === 'success') {
+        setQuestions(res.data.questions);
+        setTotal(res.data.pagination.total);
+      }
+    } catch (e) {
+      console.error('Failed to fetch PYQ questions:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [mode, selectedYear, selectedSubject]);
+
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
 
   // When AI eval modal opens: run 30s timer, animate progress and steps, then open results
   useEffect(() => {
@@ -223,254 +255,113 @@ export default function PyqPage() {
           <section className="flex-1 min-w-0">
             {mode === 'prelims' ? (
               <>
-            <div className="rounded-[16px] bg-white shadow-[0_1px_2px_-1px_rgba(0,0,0,0.1),0_1px_3px_rgba(0,0,0,0.1)] p-6 mb-6">
+              {/* Header */}
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
                 <h3 className="font-bold text-[20px] md:text-[24px] text-[#101828]">
-                  Prelims Questions · 2024
+                  Prelims Questions{selectedYear ? ` · ${selectedYear}` : ''}
                 </h3>
                 <p className="text-[13px] text-[#6A7282]">
-                  Showing 1 of 2,400 questions
+                  {loading ? 'Loading...' : `Showing ${questions.length} of ${total} questions`}
                 </p>
               </div>
 
-              {/* Tag row */}
-              <div className="flex flex-wrap gap-2 mb-5">
-                <span className="px-3 py-1 rounded-full bg-[#DBEAFE] text-[12px] font-bold text-[#1447E6]">
-                  UPSC 2024
-                </span>
-                <span className="px-3 py-1 rounded-full bg-[#E0E7FF] text-[12px] font-bold text-[#432DD7]">
-                  POLITY
-                </span>
-                <span className="px-3 py-1 rounded-full bg-[#FFEDD4] text-[12px] font-bold text-[#CA3500]">
-                  MODERATE
-                </span>
-              </div>
+              {/* Loading skeleton */}
+              {loading && (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="rounded-[16px] bg-white p-6 mb-4 animate-pulse">
+                      <div className="flex gap-2 mb-4"><div className="h-6 w-20 bg-gray-200 rounded-full"/><div className="h-6 w-16 bg-gray-200 rounded-full"/></div>
+                      <div className="h-5 w-3/4 bg-gray-200 rounded mb-3"/>
+                      <div className="h-4 w-full bg-gray-200 rounded mb-2"/>
+                      <div className="h-4 w-5/6 bg-gray-200 rounded"/>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-              {/* Question meta - smaller, lighter grey */}
-              <div
-                className="uppercase mb-2"
-                style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '12px',
-                  fontWeight: 400,
-                  letterSpacing: '0.02em',
-                  color: '#9CA3AF',
-                  lineHeight: 1.4,
-                }}
-              >
-                PRELIMS · QUESTION #1
-              </div>
-
-              {/* Question text - layout: 482×58.5, dark text */}
-              <p
-                className="mb-5"
-                style={{
-                  width: '482px',
-                  height: '58.5px',
-                  opacity: 1,
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '18px',
-                  fontWeight: 500,
-                  lineHeight: 1.5,
-                  color: '#111827',
-                  textAlign: 'left',
-                }}
-              >
-                Which of the following statements regarding the Preamble of the Indian Constitution is/are correct?
-              </p>
-
-              {/* Stem */}
-              <div className="rounded-[14px] bg-[#F9FAFB] px-4 py-4 mb-5 space-y-2 text-[14px] text-[#364153]">
-                <p>1. It is not enforceable in courts of law.</p>
-                <p>2. It was amended once in 1976 by the 42nd Amendment.</p>
-                <p>3. It is considered a part of the Constitution.</p>
-              </div>
-
-              {/* Options - white cards, subtle shadow, circle badge, regular text */}
-              <div className="space-y-3 mb-6">
-                {[
-                  '1 and 2 only',
-                  '2 and 3 only',
-                  '1 and 3 only',
-                  '1, 2 and 3',
-                ].map((text, index) => {
-                  const label = String.fromCharCode(65 + index); // A,B,C,D
-                  return (
-                    <button
-                      key={label}
-                      className="w-full flex items-center gap-4 rounded-xl bg-white px-5 py-3.5 text-left transition-colors hover:bg-[#FAFAFA]"
-                      style={{
-                        boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.08), 0px 1px 2px -1px rgba(0,0,0,0.06)',
-                      }}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-[16px] font-bold flex-shrink-0"
-                        style={{ background: '#EBECEF', color: '#4A5565' }}
-                      >
-                        {label}
-                      </div>
-                      <span
-                        className="text-[16px]"
-                        style={{ color: '#1A202C', fontWeight: 400 }}
-                      >
-                        {text}
+              {/* Dynamic question cards */}
+              {!loading && questions.map((q, idx) => {
+                const opts: { label: string; text: string }[] = Array.isArray(q.options) ? q.options : [];
+                const diffColor = q.difficulty === 'Hard'
+                  ? { bg: '#FFE2E2', color: '#C10007' }
+                  : q.difficulty === 'Easy'
+                  ? { bg: '#DCFCE7', color: '#008236' }
+                  : { bg: '#FFEDD4', color: '#CA3500' };
+                return (
+                  <div
+                    key={q.id}
+                    className="rounded-[16px] bg-white shadow-[0_1px_2px_-1px_rgba(0,0,0,0.1),0_1px_3px_rgba(0,0,0,0.1)] p-6 mb-6"
+                  >
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {q.year > 0 && (
+                        <span className="px-3 py-1 rounded-full text-[12px] font-bold" style={{ background: '#DBEAFE', color: '#1447E6' }}>
+                          UPSC {q.year}
+                        </span>
+                      )}
+                      {q.subject && (
+                        <span className="px-3 py-1 rounded-full text-[12px] font-bold" style={{ background: '#E0E7FF', color: '#432DD7' }}>
+                          {q.subject.toUpperCase()}
+                        </span>
+                      )}
+                      <span className="px-3 py-1 rounded-full text-[12px] font-bold" style={diffColor}>
+                        {q.difficulty?.toUpperCase()}
                       </span>
-                    </button>
-                  );
-                })}
-              </div>
+                    </div>
 
-              {/* CTA */}
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAttemptModal(true)}
-                  className="w-full h-[52px] rounded-[14px] bg-[#0F172B] text-white font-bold text-[18px] leading-[28px] flex items-center justify-center hover:bg-[#111827] transition-colors"
-                >
-                  Attempt Question
-                </button>
-              </div>
-            </div>
+                    {/* Meta */}
+                    <div className="uppercase mb-2 text-[12px] tracking-[0.02em] text-[#9CA3AF]">
+                      PRELIMS · QUESTION #{idx + 1}
+                    </div>
 
-            {/* Question card 2 - UPSC 2022, Economy, Hard */}
-            <div
-              className="rounded-[16px] bg-white shadow-[0_1px_2px_-1px_rgba(0,0,0,0.1),0_1px_3px_rgba(0,0,0,0.1)] p-6 mb-6 w-full max-w-[546px] mx-auto"
-              style={{
-                opacity: 1,
-              }}
-            >
-              {/* Tag row */}
-              <div
-                className="flex flex-wrap gap-2 mb-5"
-                style={{ width: '482px', maxWidth: '100%' }}
-              >
-                <span
-                  className="px-3 py-1 rounded-full text-[12px] font-bold"
-                  style={{ background: '#DCFCE7', color: '#008236' }}
-                >
-                  UPSC 2022
-                </span>
-                <span
-                  className="px-3 py-1 rounded-full text-[12px] font-bold"
-                  style={{ background: '#DBEAFE', color: '#1447E6' }}
-                >
-                  ECONOMY
-                </span>
-                <span
-                  className="px-3 py-1 rounded-full text-[12px] font-bold"
-                  style={{ background: '#FFE2E2', color: '#C10007' }}
-                >
-                  HARD
-                </span>
-              </div>
+                    {/* Question text */}
+                    <p className="mb-5 text-[18px] font-[500] leading-[1.5] text-[#111827]">
+                      {q.questionText}
+                    </p>
 
-              {/* Question meta */}
-              <div
-                className="uppercase mb-2"
-                style={{
-                  width: '482px',
-                  maxWidth: '100%',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  lineHeight: '16px',
-                  color: '#6A7282',
-                }}
-              >
-                Prelims · Question #2
-              </div>
-
-              {/* Question text */}
-              <p
-                className="mb-5"
-                style={{
-                  width: '482px',
-                  maxWidth: '100%',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '18px',
-                  fontWeight: 400,
-                  lineHeight: '29.25px',
-                  color: '#101828',
-                }}
-              >
-                With reference to the Monetary Policy Committee (MPC) of the Reserve
-                Bank of India, which of the following statements is/are correct?
-              </p>
-
-              {/* Stem */}
-              <div
-                className="rounded-[14px] px-4 py-4 mb-5 space-y-2 text-[14px]"
-                style={{
-                  width: '482px',
-                  maxWidth: '100%',
-                  background: '#F9FAFB',
-                  color: '#364153',
-                }}
-              >
-                <p>1. It has six members in total.</p>
-                <p>2. The RBI Governor chairs MPC meetings.</p>
-                <p>3. In case of a tie, the RBI Governor has a casting vote.</p>
-              </div>
-
-              {/* Options */}
-              <div
-                className="space-y-3 mb-6"
-                style={{ width: '482px', maxWidth: '100%' }}
-              >
-                {[
-                  '1 and 2 only',
-                  '2 and 3 only',
-                  '1, 2 and 3',
-                  '3 only',
-                ].map((text, index) => {
-                  const label = String.fromCharCode(65 + index); // A,B,C,D
-                  return (
-                    <button
-                      key={label}
-                      className="w-full flex items-center gap-4 rounded-[14px] bg-white px-6 py-4 text-left"
-                      style={{
-                        minHeight: '75.2px',
-                        borderRadius: '14px',
-                        border: '1.6px solid #E5E7EB',
-                      }}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-[16px] font-bold flex-shrink-0"
-                        style={{ background: '#F3F4F6', color: '#364153' }}
-                      >
-                        {label}
+                    {/* Options */}
+                    {opts.length > 0 && (
+                      <div className="space-y-3 mb-6">
+                        {opts.map((opt) => (
+                          <button
+                            key={opt.label}
+                            className="w-full flex items-center gap-4 rounded-[14px] bg-white px-5 py-3.5 text-left transition-colors hover:bg-[#FAFAFA]"
+                            style={{ border: '1.6px solid #E5E7EB' }}
+                          >
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-[16px] font-bold flex-shrink-0"
+                              style={{ background: '#EBECEF', color: '#4A5565' }}
+                            >
+                              {opt.label}
+                            </div>
+                            <span className="text-[16px]" style={{ color: '#1A202C', fontWeight: 400 }}>
+                              {opt.text}
+                            </span>
+                          </button>
+                        ))}
                       </div>
-                      <span
-                        className="text-[16px]"
-                        style={{
-                          fontFamily: 'Inter, sans-serif',
-                          fontWeight: 500,
-                          lineHeight: '24px',
-                          color: '#101828',
-                        }}
-                      >
-                        {text}
-                      </span>
+                    )}
+
+                    {/* CTA */}
+                    <button
+                      type="button"
+                      onClick={() => setShowAttemptModal(true)}
+                      className="w-full h-[52px] rounded-[14px] bg-[#0F172B] text-white font-bold text-[18px] leading-[28px] flex items-center justify-center hover:bg-[#111827] transition-colors"
+                    >
+                      Attempt Question
                     </button>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
 
-              {/* CTA */}
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAttemptModal(true)}
-                  className="w-full h-[52px] rounded-[14px] bg-[#0F172B] text-white font-bold text-[18px] leading-[28px] flex items-center justify-center hover:bg-[#111827] transition-colors"
-                >
-                  Attempt Question
-                </button>
-              </div>
-            </div>
+              {!loading && questions.length === 0 && (
+                <div className="rounded-[16px] bg-white p-10 text-center text-[#6A7282]">
+                  No questions found for the selected filters.
+                </div>
+              )}
 
-            {/* Question card 3 - UPSC 2022, Environment, Moderate (biodiversity hotspots) */}
-            <div
+              {/* PLACEHOLDER card 3 — kept for UI reference until removed */}
+              {false && <div
               className="rounded-[16px] bg-white shadow-[0_1px_2px_-1px_rgba(0,0,0,0.1),0_1px_3px_rgba(0,0,0,0.1)] p-6 mb-6 w-full max-w-[546px] mx-auto"
               style={{ opacity: 1 }}
             >
@@ -601,86 +492,37 @@ export default function PyqPage() {
                   Attempt Question
                 </button>
               </div>
-            </div>
-
-            {/* Login CTA card - Load more questions (546×127.2, full border, button centered) */}
-            <div
-              className="rounded-[16px] bg-white w-full max-w-[546px] mx-auto mb-6 flex items-center justify-center"
-              style={{
-                minHeight: '127.2px',
-                padding: '33.6px clamp(24px, 12%, 65.04px) 1.6px',
-                border: '1.6px solid #BEDBFF',
-                borderRadius: '16px',
-                boxShadow: '0px 1px 2px -1px #0000001A, 0px 1px 3px 0px #0000001A',
-              }}
-            >
-              <button
-                className="flex items-center justify-center rounded-[14px] text-white font-bold transition-opacity hover:opacity-95"
-                style={{
-                  width: 'min(415.925px, 100%)',
-                  height: '60px',
-                  borderRadius: '14px',
-                  gap: '8px',
-                  opacity: 1,
-                  background: 'linear-gradient(90deg, #FF6900 0%, #F0B100 100%)',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '18px',
-                  lineHeight: '28px',
-                  letterSpacing: 0,
-                  textAlign: 'center',
-                }}
-                onClick={() => setShowLoginModal(true)}
-              >
-                <span className="text-[20px] leading-none" aria-hidden>🔥</span>
-                <span>Login to Load 2,380+ More Questions</span>
-              </button>
-            </div>
+            </div>}
               </>
             ) : (
               <>
                 {/* Mains header */}
-                <div
-                  className="mb-6"
-                  style={{
-                    width: '540px',
-                    maxWidth: '100%',
-                    height: '87.975px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <h3
-                    style={{
-                      width: '356px',
-                      maxWidth: '100%',
-                      fontFamily: 'Inter, sans-serif',
-                      fontWeight: 700,
-                      fontSize: '24px',
-                      lineHeight: '32px',
-                      color: '#101828',
-                    }}
-                  >
-                    Mains Questions - All Papers
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
+                  <h3 className="font-bold text-[24px] text-[#101828]">
+                    Mains Questions{selectedYear ? ` · ${selectedYear}` : ' - All Papers'}
                   </h3>
-                  <p
-                    style={{
-                      marginTop: '8px',
-                      fontFamily: 'Inter, sans-serif',
-                      fontWeight: 400,
-                      fontSize: '14px',
-                      lineHeight: '20px',
-                      color: '#6A7282',
-                    }}
-                  >
-                    Showing 3 of 800 questions
+                  <p className="text-[14px] text-[#6A7282]">
+                    {loading ? 'Loading...' : `Showing ${questions.length} of ${total} questions`}
                   </p>
                 </div>
 
-                {/* Mains question cards (3) */}
-                {[1, 2, 3].map((idx) => (
+                {/* Loading skeleton */}
+                {loading && (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="rounded-[16px] bg-white p-8 mb-4 animate-pulse" style={{ border: '0.8px solid #E5E7EB' }}>
+                        <div className="flex gap-2 mb-4"><div className="h-6 w-32 bg-gray-200 rounded"/><div className="h-6 w-20 bg-gray-200 rounded"/></div>
+                        <div className="h-5 w-full bg-gray-200 rounded mb-2"/>
+                        <div className="h-5 w-4/5 bg-gray-200 rounded"/>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Dynamic mains cards */}
+                {!loading && questions.map((q, idx) => (
                   <div
-                    key={idx}
+                    key={q.id}
                     className="mb-6"
                     style={{
                       width: '540px',
@@ -693,227 +535,90 @@ export default function PyqPage() {
                     }}
                   >
                     {/* Tag row */}
-                    <div
-                      className="flex flex-wrap gap-2 mb-4"
-                      style={{ width: '474.4px', maxWidth: '100%' }}
-                    >
-                      <span
-                        className="px-3 py-1 rounded-[8px] text-[12px] font-bold"
-                        style={{ background: '#1E40AF', color: '#FFFFFF' }}
-                      >
-                        UPSC MAINS 2024
-                      </span>
-                      <span
-                        className="px-3 py-1 rounded-[8px] text-[12px] font-bold"
-                        style={{ background: '#DBEAFE', color: '#1447E6' }}
-                      >
-                        GS PAPER II
-                      </span>
-                      <span
-                        className="px-3 py-1 rounded-[8px] text-[12px] font-bold"
-                        style={{ background: '#FFEDD4', color: '#CA3500' }}
-                      >
-                        GOVERNANCE
-                      </span>
-                      <span
-                        className="px-3 py-1 rounded-[8px] text-[12px] font-bold"
-                        style={{ background: '#F3E8FF', color: '#8200DB' }}
-                      >
-                        15 MARKS
-                      </span>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {q.year > 0 && (
+                        <span className="px-3 py-1 rounded-[8px] text-[12px] font-bold" style={{ background: '#1E40AF', color: '#FFFFFF' }}>
+                          UPSC MAINS {q.year}
+                        </span>
+                      )}
+                      {q.paper && (
+                        <span className="px-3 py-1 rounded-[8px] text-[12px] font-bold" style={{ background: '#DBEAFE', color: '#1447E6' }}>
+                          {q.paper.toUpperCase()}
+                        </span>
+                      )}
+                      {q.subject && (
+                        <span className="px-3 py-1 rounded-[8px] text-[12px] font-bold" style={{ background: '#FFEDD4', color: '#CA3500' }}>
+                          {q.subject.toUpperCase()}
+                        </span>
+                      )}
                     </div>
 
                     {/* AI Evaluation pill */}
-                    <div
-                      className="inline-flex items-center mb-4"
-                      style={{
-                        borderRadius: '8px',
-                        background: '#17223E',
-                        padding: '4px 16px',
-                      }}
-                    >
-                      <span style={{ fontSize: '14px', marginRight: '8px' }} aria-hidden>
-                        ✨
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: 'Arimo, sans-serif',
-                          fontWeight: 700,
-                          fontSize: '14px',
-                          lineHeight: '20px',
-                          color: '#FFD272',
-                        }}
-                      >
+                    <div className="inline-flex items-center mb-4" style={{ borderRadius: '8px', background: '#17223E', padding: '4px 16px' }}>
+                      <span style={{ fontSize: '14px', marginRight: '8px' }} aria-hidden>✨</span>
+                      <span style={{ fontFamily: 'Arimo, sans-serif', fontWeight: 700, fontSize: '14px', lineHeight: '20px', color: '#FFD272' }}>
                         AI Evaluation
                       </span>
                     </div>
 
                     {/* Meta */}
-                    <div
-                      className="mb-2"
-                      style={{
-                        width: '474.4px',
-                        maxWidth: '100%',
-                        fontFamily: 'Inter, sans-serif',
-                        fontWeight: 400,
-                        fontSize: '12px',
-                        lineHeight: '16px',
-                        letterSpacing: '0.3px',
-                        textTransform: 'uppercase',
-                        color: '#6A7282',
-                      }}
-                    >
-                      MAINS · GS-II · QUESTION #1
+                    <div className="mb-2 uppercase text-[12px] tracking-[0.3px] text-[#6A7282]">
+                      MAINS · {q.paper || 'GS'} · QUESTION #{idx + 1}
                     </div>
 
                     {/* Question text */}
-                    <p
-                      className="mb-4"
-                      style={{
-                        width: '474.4px',
-                        maxWidth: '100%',
-                        fontFamily: 'Inter, sans-serif',
-                        fontWeight: 500,
-                        fontSize: '16px',
-                        lineHeight: '26px',
-                        color: '#101828',
-                      }}
-                    >
-                      &quot;The role of civil society organisations in policy-making has increased significantly in India,
-                      yet their accountability remains a critical concern.&quot;{' '}
-                      <span style={{ fontWeight: 700 }}>
-                        Examine with relevant examples.
-                      </span>
+                    <p className="mb-4 text-[16px] font-[500] leading-[26px] text-[#101828]">
+                      {q.questionText}
                     </p>
 
                     {/* Stats row */}
-                    <div
-                      className="flex flex-wrap items-center gap-6 mb-6"
-                      style={{ width: '474.4px', maxWidth: '100%' }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span aria-hidden>📝</span>
-                        <span
-                          style={{
-                            fontFamily: 'Inter, sans-serif',
-                            fontSize: '14px',
-                            lineHeight: '20px',
-                            color: '#6A7282',
-                          }}
-                        >
-                          150 words
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span aria-hidden>📊</span>
-                        <span
-                          style={{
-                            fontFamily: 'Inter, sans-serif',
-                            fontSize: '14px',
-                            lineHeight: '20px',
-                            color: '#6A7282',
-                          }}
-                        >
-                          Characters
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span aria-hidden>📅</span>
-                        <span
-                          style={{
-                            fontFamily: 'Inter, sans-serif',
-                            fontSize: '14px',
-                            lineHeight: '20px',
-                            color: '#6A7282',
-                          }}
-                        >
-                          2024
-                        </span>
-                      </div>
+                    <div className="flex flex-wrap items-center gap-6 mb-6">
+                      {q.year > 0 && (
+                        <div className="flex items-center gap-2">
+                          <span aria-hidden>📅</span>
+                          <span className="text-[14px] text-[#6A7282]">{q.year}</span>
+                        </div>
+                      )}
+                      {q.topic && (
+                        <div className="flex items-center gap-2">
+                          <span aria-hidden>📝</span>
+                          <span className="text-[14px] text-[#6A7282]">{q.topic}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Buttons row */}
-                    <div
-                      className="flex items-center gap-3 mb-4"
-                      style={{ width: '474.4px', maxWidth: '100%' }}
-                    >
+                    <div className="flex items-center gap-3 mb-4">
                       <button
                         type="button"
                         onClick={() => setShowMainsWriteModal(true)}
                         className="flex items-center justify-center"
-                        style={{
-                          width: '205px',
-                          height: '59px',
-                          borderRadius: '14px',
-                          background: '#101828',
-                          color: '#FFFFFF',
-                          fontFamily: 'Inter, sans-serif',
-                          fontWeight: 700,
-                          fontSize: '16px',
-                          lineHeight: '24px',
-                        }}
+                        style={{ height: '59px', borderRadius: '14px', background: '#101828', color: '#FFFFFF', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '16px', padding: '0 20px' }}
                       >
-                        <span aria-hidden style={{ marginRight: '8px' }}>
-                          🔥
-                        </span>
+                        <span aria-hidden style={{ marginRight: '8px' }}>🔥</span>
                         <span>Write &amp; AI Evaluate</span>
                       </button>
                       <button
                         className="flex items-center justify-center"
-                        style={{
-                          width: '182px',
-                          height: '59px',
-                          borderRadius: '14px',
-                          background: '#0F172A',
-                          color: '#FFFFFF',
-                          fontFamily: 'Inter, sans-serif',
-                          fontWeight: 700,
-                          fontSize: '16px',
-                          lineHeight: '24px',
-                        }}
+                        style={{ height: '59px', borderRadius: '14px', background: '#0F172A', color: '#FFFFFF', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '16px', padding: '0 20px' }}
                       >
                         <span>Model Answer</span>
-                      </button>
-                      <button
-                        className="flex items-center justify-center"
-                        style={{
-                          width: '65px',
-                          height: '59px',
-                          borderRadius: '14px',
-                          border: '1.6px solid #FFC9C9',
-                          fontFamily: 'Inter, sans-serif',
-                          fontWeight: 500,
-                          fontSize: '20px',
-                          lineHeight: '28px',
-                          color: '#0A0A0A',
-                        }}
-                      >
-                        ✏️
                       </button>
                     </div>
 
                     {/* Footnote */}
-                    <div
-                      className="flex items-center gap-2 justify-end"
-                      style={{
-                        width: '474.4px',
-                        maxWidth: '100%',
-                        fontFamily: 'Inter, sans-serif',
-                        fontWeight: 400,
-                        fontSize: '14px',
-                        lineHeight: '20px',
-                        color: '#6A7282',
-                      }}
-                    >
-                      <img
-                        src="/icon-21-lock.png"
-                        alt="Locked"
-                        style={{ width: '20px', height: '20px', objectFit: 'contain' }}
-                      />
+                    <div className="flex items-center gap-2 justify-end text-[14px] text-[#6A7282]">
+                      <img src="/icon-21-lock.png" alt="Locked" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
                       <span>Full model answer on login</span>
                     </div>
                   </div>
                 ))}
+
+                {!loading && questions.length === 0 && (
+                  <div className="rounded-[16px] bg-white p-10 text-center text-[#6A7282]" style={{ border: '0.8px solid #E5E7EB' }}>
+                    No mains questions found for the selected filters.
+                  </div>
+                )}
               </>
             )}
           </section>
@@ -942,47 +647,43 @@ export default function PyqPage() {
                 className="grid grid-cols-4 gap-2 px-5"
                 style={{ gap: '8px 8px' }}
               >
-                {[
-                  { year: '2024', selected: true },
-                  { year: '2023', selected: false },
-                  { year: '2022', selected: false },
-                  { year: '2021', selected: false },
-                  { year: '2020', selected: false },
-                  { year: '2019', selected: false },
-                  { year: '2018', selected: false },
-                  { year: '2017', selected: false },
-                ].map(({ year, selected }) => (
-                  <button
-                    key={year}
-                    className="rounded-[10px] flex items-center justify-center flex-shrink-0"
-                    style={{
-                      width: '49.25px',
-                      height: '36px',
-                      background: selected ? '#FDBA26' : '#F3F4F6',
-                      fontFamily: 'Inter, sans-serif',
-                      fontWeight: 600,
-                      fontSize: '14px',
-                      lineHeight: '20px',
-                      letterSpacing: 0,
-                      textAlign: 'center',
-                      color: selected ? '#FFFFFF' : '#364153',
-                    }}
-                  >
-                    {year}
-                  </button>
-                ))}
+                {['2024', '2023', '2022', '2021', '2020', '2019', '2018', '2017'].map((year) => {
+                  const selected = selectedYear === parseInt(year);
+                  return (
+                    <button
+                      key={year}
+                      onClick={() => setSelectedYear(selected ? null : parseInt(year))}
+                      className="rounded-[10px] flex items-center justify-center flex-shrink-0"
+                      style={{
+                        width: '49.25px',
+                        height: '36px',
+                        background: selected ? '#FDBA26' : '#F3F4F6',
+                        fontFamily: 'Inter, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        lineHeight: '20px',
+                        letterSpacing: 0,
+                        textAlign: 'center',
+                        color: selected ? '#FFFFFF' : '#364153',
+                      }}
+                    >
+                      {year}
+                    </button>
+                  );
+                })}
               </div>
-              <div
+              <button
+                onClick={() => setSelectedYear(null)}
                 className="flex-1 flex items-end justify-center pb-4"
                 style={{
                   fontFamily: 'Inter, sans-serif',
                   fontSize: '14px',
-                  fontWeight: 500,
-                  color: '#364153',
+                  fontWeight: selectedYear === null ? 700 : 500,
+                  color: selectedYear === null ? '#FDBA26' : '#364153',
                 }}
               >
                 All Years
-              </div>
+              </button>
             </div>
 
             {/* Subject Filter panel - 310×826 */}
@@ -1020,60 +721,50 @@ export default function PyqPage() {
 
               <div className="flex flex-col gap-2 px-5 pb-5">
                 {[
-                  { label: 'All Papers', count: '2600', selected: true, icon: '📘' },
-                  { label: 'History', count: '340', selected: false, icon: '🏛️' },
-                  { label: 'Geography', count: '289', selected: false, icon: '🌍' },
-                  { label: 'Polity', count: '220', selected: false, icon: '⚖️' },
-                  { label: 'Economy', count: '258', selected: false, icon: '📈' },
-                  { label: 'Science & Tech', count: '55', selected: false, icon: '🔬' },
-                  { label: 'Environment', count: '198', selected: false, icon: '🌿' },
-                  { label: 'Int. Relations', count: '138', selected: false, icon: '🌐' },
-                  { label: 'Security & Defence', count: '95', selected: false, icon: '🛡️' },
-                  { label: 'CSAT', count: '120', selected: false, icon: '📊' },
-                  { label: 'Art & Culture', count: '55', selected: false, icon: '🎨' },
-                ].map(({ label, count, selected, icon }) => (
-                  <button
-                    key={label}
-                    className="w-full flex items-center justify-between rounded-[14px] px-4 py-3 text-left transition-colors"
-                    style={{
-                      minHeight: '59.99px',
-                      background: selected ? '#0F1A30' : '#F9FAFB',
-                      paddingLeft: 16,
-                      paddingRight: 16,
-                    }}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-[18px] leading-none flex-shrink-0" aria-hidden>
-                        {icon}
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: selected ? 'Arimo, sans-serif' : 'Inter, sans-serif',
-                          fontWeight: selected ? 700 : 500,
-                          fontSize: '14px',
-                          lineHeight: '20px',
-                          letterSpacing: 0,
-                          color: selected ? '#FFFFFF' : '#101828',
-                        }}
-                      >
-                        {label}
-                      </span>
-                    </div>
-                    <span
-                      className="flex-shrink-0"
+                  { label: 'All Papers', icon: '📘' },
+                  { label: 'History', icon: '🏛️' },
+                  { label: 'Geography', icon: '🌍' },
+                  { label: 'Polity', icon: '⚖️' },
+                  { label: 'Economy', icon: '📈' },
+                  { label: 'Science & Tech', icon: '🔬' },
+                  { label: 'Environment', icon: '🌿' },
+                  { label: 'International Relations', icon: '🌐' },
+                  { label: 'Art & Culture', icon: '🎨' },
+                  { label: 'Current Affairs', icon: '📰' },
+                ].map(({ label, icon }) => {
+                  const selected = selectedSubject === label;
+                  return (
+                    <button
+                      key={label}
+                      onClick={() => setSelectedSubject(label)}
+                      className="w-full flex items-center justify-between rounded-[14px] px-4 py-3 text-left transition-colors"
                       style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontWeight: 600,
-                        fontSize: '14px',
-                        lineHeight: '20px',
-                        letterSpacing: 0,
-                        color: selected ? '#FFFFFF' : '#99A1AF',
+                        minHeight: '59.99px',
+                        background: selected ? '#0F1A30' : '#F9FAFB',
+                        paddingLeft: 16,
+                        paddingRight: 16,
                       }}
                     >
-                      {count}
-                    </span>
-                  </button>
-                ))}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-[18px] leading-none flex-shrink-0" aria-hidden>
+                          {icon}
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: selected ? 'Arimo, sans-serif' : 'Inter, sans-serif',
+                            fontWeight: selected ? 700 : 500,
+                            fontSize: '14px',
+                            lineHeight: '20px',
+                            letterSpacing: 0,
+                            color: selected ? '#FFFFFF' : '#101828',
+                          }}
+                        >
+                          {label}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </aside>

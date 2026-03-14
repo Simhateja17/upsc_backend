@@ -168,6 +168,29 @@ export const cmsService = {
   getPageContent: (slug: string) => api.get<any>(`/cms/${encodeURIComponent(slug)}`),
 };
 
+// ==================== PYQ (Public) ====================
+
+export const pyqService = {
+  getQuestions: (params?: {
+    mode?: 'prelims' | 'mains';
+    year?: number;
+    subject?: string;
+    paper?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.mode) query.set('mode', params.mode);
+    if (params?.year) query.set('year', String(params.year));
+    if (params?.subject) query.set('subject', params.subject);
+    if (params?.paper) query.set('paper', params.paper);
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    const qs = query.toString();
+    return api.get<any>(`/pyq/questions${qs ? `?${qs}` : ''}`);
+  },
+};
+
 // ==================== Admin ====================
 
 export const adminService = {
