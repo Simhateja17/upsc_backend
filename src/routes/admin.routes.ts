@@ -32,6 +32,7 @@ router.post("/editorials", editorialCtrl.createEditorial);
 router.put("/editorials/:id", editorialCtrl.updateEditorial);
 router.delete("/editorials/:id", editorialCtrl.deleteEditorial);
 router.post("/editorials/scrape", aiLimiter, editorialCtrl.triggerScrape);
+router.post("/editorials/sync-rss", aiLimiter, editorialCtrl.triggerRssSync);
 router.post("/editorials/:id/summarize", aiLimiter, editorialCtrl.triggerSummarize);
 
 // ==================== Daily MCQ Management ====================
@@ -62,6 +63,9 @@ router.delete("/videos/subjects/:id", contentCtrl.deleteVideoSubject);
 router.post("/videos", contentCtrl.createVideo);
 router.put("/videos/:id", contentCtrl.updateVideo);
 router.delete("/videos/:id", contentCtrl.deleteVideo);
+router.get("/videos/:id/questions", contentCtrl.getVideoQuestions);
+router.post("/videos/:id/questions", contentCtrl.createVideoQuestion);
+router.delete("/videos/:videoId/questions/:qid", contentCtrl.deleteVideoQuestion);
 
 // ==================== Testimonials Management ====================
 router.get("/testimonials", contentCtrl.getTestimonialsAdmin);

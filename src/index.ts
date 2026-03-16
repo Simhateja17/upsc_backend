@@ -11,6 +11,7 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { generalLimiter } from "./middleware/rateLimit";
 import { initStorageBuckets } from "./config/storage";
 import { initScheduler } from "./jobs/scheduler";
+import { runLatestNewsJob } from "./jobs/latestNewsJob";
 
 const app: Application = express();
 
@@ -73,6 +74,13 @@ app.listen(PORT, async () => {
 
   // Initialize cron scheduler
   initScheduler();
+
+  // Populate editorials immediately on startup — critical for Render free tier
+  // which spins down between requests, killing cron jobs. This ensures the DB
+  // always has fresh articles after every cold start. Fire-and-forget.
+  runLatestNewsJob().catch((err) =>
+    console.warn("[Startup] RSS fetch failed (non-fatal):", err?.message)
+  );
 });
 
 export default app;

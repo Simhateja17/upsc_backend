@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../../config/database";
 import { runEditorialScraper } from "../../services/editorialScraper";
 import { summarizeEditorial } from "../../services/editorialSummarizer";
+import { runRssFetch } from "../../services/rssFetcher";
+import { runEditorialSummarization } from "../../jobs/dailyEditorialJob";
 
 function qs(val: string | string[] | undefined): string | undefined {
   return Array.isArray(val) ? val[0] : val;
@@ -168,6 +170,32 @@ export const triggerSummarize = async (req: Request, res: Response, next: NextFu
     const summary = await summarizeEditorial(id);
 
     res.json({ status: "success", data: { summary } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/editorials/sync-rss
+ * Pull fresh articles from all RSS feeds into the DB, then AI-summarize new ones.
+ * Use this to manually repopulate the DB when the cron job hasn't run
+ * (e.g. after a cold start on Render free tier).
+ */
+export const triggerRssSync = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log("[Admin] Manual RSS sync triggered");
+    const saved = await runRssFetch();
+
+    let summarized = 0;
+    if (saved > 0) {
+      summarized = await runEditorialSummarization();
+    }
+
+    res.json({
+      status: "success",
+      message: `RSS sync complete. ${saved} new articles saved, ${summarized} summarized.`,
+      data: { saved, summarized },
+    });
   } catch (error) {
     next(error);
   }
