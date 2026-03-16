@@ -96,6 +96,55 @@ export const getStats = async (_req: Request, res: Response, next: NextFunction)
 };
 
 /**
+ * GET /api/videos/:id/questions
+ * Questions for a video (options only, no correct answer)
+ */
+export const getVideoQuestions = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const videoId = req.params.id as string;
+    const questions = await prisma.videoQuestion.findMany({
+      where: { videoId },
+      orderBy: { order: "asc" },
+      select: { id: true, question: true, options: true, order: true },
+    });
+    res.json({ status: "success", data: questions });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/videos/:id/submit
+ * Student submits answers; returns correct answers + explanations
+ */
+export const submitVideoQuiz = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const videoId = req.params.id as string;
+    const { answers } = req.body as { answers: Record<string, number> };
+
+    const questions = await prisma.videoQuestion.findMany({
+      where: { videoId },
+      orderBy: { order: "asc" },
+    });
+
+    const results = questions.map(q => ({
+      id: q.id,
+      question: q.question,
+      options: q.options,
+      correctOption: q.correctOption,
+      explanation: q.explanation,
+      selected: answers?.[q.id] ?? null,
+      isCorrect: answers?.[q.id] === q.correctOption,
+    }));
+
+    const correct = results.filter(r => r.isCorrect).length;
+    res.json({ status: "success", data: { results, score: correct, total: questions.length } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * POST /api/mentor/ask
  * Submit "Ask the Mentor" question
  */

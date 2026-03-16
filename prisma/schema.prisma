@@ -426,9 +426,25 @@ model Video {
   isPublished Boolean  @default(true) @map("is_published")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  subject VideoSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subject   VideoSubject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  questions VideoQuestion[]
 
   @@map("videos")
+}
+
+model VideoQuestion {
+  id            String   @id @default(uuid())
+  videoId       String   @map("video_id")
+  question      String
+  options       Json     // array of 4 option strings
+  correctOption Int      @map("correct_option") // index 0-3
+  explanation   String?
+  order         Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@map("video_questions")
 }
 
 model MentorQuestion {
