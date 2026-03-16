@@ -94,4 +94,8 @@ router.post("/cms/sections", cmsCtrl.createSection);
 router.put("/cms/sections/:id", cmsCtrl.updateSection);
 router.delete("/cms/sections/:id", cmsCtrl.deleteSection);
 
+// ==================== Mindmap (Admin seeding) ====================
+import { createMindmap } from "../controllers/mindmap.controller";
+router.post("/mindmaps", createMindmap);
+
 export default router;
