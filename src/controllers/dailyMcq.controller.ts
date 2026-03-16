@@ -13,6 +13,7 @@ function getToday(): Date {
  */
 export const getTodayMCQ = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log(`[Daily MCQ] Fetching today's MCQ for user: ${req.user?.id}`);
     const today = getToday();
     const mcq = await prisma.dailyMCQ.findUnique({
       where: { date: today },
@@ -78,6 +79,7 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
   try {
     const userId = req.user!.id;
     const { answers, timeTaken } = req.body;
+    console.log(`[Daily MCQ] Submit by user: ${userId}, answers: ${answers?.length || 0}, timeTaken: ${timeTaken}`);
 
     const today = getToday();
     const mcq = await prisma.dailyMCQ.findUnique({
@@ -191,6 +193,7 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
     // Update streak
     await updateStreak(userId);
 
+    console.log(`[Daily MCQ] User ${userId} scored ${correctCount}/${mcq.questionCount} (${Math.round(accuracy)}%)`);
     res.json({
       status: "success",
       data: {

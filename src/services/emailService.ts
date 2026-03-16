@@ -53,7 +53,7 @@ export async function sendWelcomeEmail(
           <li><strong>Mock Tests</strong> — Full-length and subject-wise tests</li>
         </ul>
         <p>Start your preparation today!</p>
-        <a href="${config.cors.origin}/dashboard" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">Go to Dashboard</a>
+        <a href="${config.cors.origins[0]}/dashboard" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">Go to Dashboard</a>
         <p style="color: #666; margin-top: 24px;">— Team Rise with Jeet</p>
       </div>
     `,
@@ -71,7 +71,7 @@ export async function sendDailyReminder(
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>Good morning, ${firstName || "Aspirant"}!</h2>
         <p>Today's Daily MCQ challenge is live. Keep your streak going!</p>
-        <a href="${config.cors.origin}/dashboard/daily-mcq" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">Start Today's MCQ</a>
+        <a href="${config.cors.origins[0]}/dashboard/daily-mcq" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">Start Today's MCQ</a>
       </div>
     `,
   });
@@ -90,7 +90,7 @@ export async function sendStreakAlert(
         <h2>Hey ${firstName || "Aspirant"}!</h2>
         <p>You're on a <strong>${currentStreak}-day streak</strong>! Don't break it now.</p>
         <p>Complete today's practice to keep the momentum going.</p>
-        <a href="${config.cors.origin}/dashboard" style="display: inline-block; padding: 12px 24px; background: #dc2626; color: white; text-decoration: none; border-radius: 8px;">Continue Streak</a>
+        <a href="${config.cors.origins[0]}/dashboard" style="display: inline-block; padding: 12px 24px; background: #dc2626; color: white; text-decoration: none; border-radius: 8px;">Continue Streak</a>
       </div>
     `,
   });
@@ -114,7 +114,7 @@ export async function sendEvaluationComplete(
           <p style="color: #666; margin: 4px 0;">Your Score</p>
         </div>
         <p>View detailed feedback including strengths, areas for improvement, and suggestions.</p>
-        <a href="${config.cors.origin}/dashboard/daily-answer" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">View Results</a>
+        <a href="${config.cors.origins[0]}/dashboard/daily-answer" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">View Results</a>
       </div>
     `,
   });
@@ -145,7 +145,7 @@ export async function sendWeeklyProgress(
           <tr><td style="padding: 8px;">Current Streak</td><td style="text-align: right; font-weight: bold; color: #dc2626;">${stats.streak} days 🔥</td></tr>
         </table>
         <p style="margin-top: 16px;">Keep pushing! Consistency is key to UPSC success.</p>
-        <a href="${config.cors.origin}/dashboard" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">Go to Dashboard</a>
+        <a href="${config.cors.origins[0]}/dashboard" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">Go to Dashboard</a>
       </div>
     `,
   });

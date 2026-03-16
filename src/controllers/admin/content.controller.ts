@@ -510,6 +510,59 @@ export const deleteVideo = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+// ==================== Video Questions Management ====================
+
+/**
+ * GET /api/admin/videos/:id/questions
+ */
+export const getVideoQuestions = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const videoId = req.params.id as string;
+    const questions = await prisma.videoQuestion.findMany({
+      where: { videoId },
+      orderBy: { order: "asc" },
+    });
+    res.json({ status: "success", data: questions });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/videos/:id/questions
+ */
+export const createVideoQuestion = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const videoId = req.params.id as string;
+    const { question, options, correctOption, explanation, order } = req.body;
+    if (!question || !options || correctOption === undefined) {
+      return res.status(400).json({ status: "error", message: "question, options, and correctOption are required" });
+    }
+    if (!Array.isArray(options) || options.length !== 4) {
+      return res.status(400).json({ status: "error", message: "options must be an array of 4 strings" });
+    }
+    const q = await prisma.videoQuestion.create({
+      data: { videoId, question, options, correctOption: Number(correctOption), explanation, order: order ?? 0 },
+    });
+    res.status(201).json({ status: "success", data: q });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/admin/videos/:videoId/questions/:qid
+ */
+export const deleteVideoQuestion = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const qid = req.params.qid as string;
+    await prisma.videoQuestion.delete({ where: { id: qid } });
+    res.json({ status: "success", message: "Question deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ==================== Testimonials Management ====================
 
 /**

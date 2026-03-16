@@ -55,6 +55,7 @@ export const getSubjects = async (_req: Request, res: Response, next: NextFuncti
 export const getChapters = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = req.params.id as string;
+    console.log(`[Library] Fetching chapters for subject: ${id}`);
 
     const subject = await prisma.subject.findUnique({
       where: { id },
@@ -87,6 +88,7 @@ export const getChapters = async (req: Request, res: Response, next: NextFunctio
 export const getDownloadUrl = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const chapterId = req.params.chapterId as string;
+    console.log(`[Library] Download requested for chapter: ${chapterId}`);
 
     const materials = await prisma.studyMaterial.findMany({
       where: { chapterId },

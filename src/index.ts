@@ -11,12 +11,34 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { generalLimiter } from "./middleware/rateLimit";
 import { initStorageBuckets } from "./config/storage";
 import { initScheduler } from "./jobs/scheduler";
+import { runLatestNewsJob } from "./jobs/latestNewsJob";
 
 const app: Application = express();
 
+// Request logger middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  const { method, originalUrl } = req;
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    const { statusCode } = res;
+    console.log(`[${new Date().toISOString()}] ${method} ${originalUrl} → ${statusCode} (${duration}ms)`);
+  });
+
+  next();
+});
+
 // Middleware
 app.use(cors({
-  origin: config.cors.origin,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (config.cors.origins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: "10mb" }));
@@ -24,13 +46,16 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Apply general rate limiter to all API routes
 app.use("/api", generalLimiter);
+console.log("[Server] Rate limiter applied");
 
 // Routes
 app.use("/api", routes);
+console.log("[Server] API routes mounted");
 
 // Error handling
 app.use(notFoundHandler);
 app.use(errorHandler);
+console.log("[Server] Error handlers registered");
 
 // Start server
 const PORT = config.port;
@@ -49,6 +74,13 @@ app.listen(PORT, async () => {
 
   // Initialize cron scheduler
   initScheduler();
+
+  // Populate editorials immediately on startup — critical for Render free tier
+  // which spins down between requests, killing cron jobs. This ensures the DB
+  // always has fresh articles after every cold start. Fire-and-forget.
+  runLatestNewsJob().catch((err) =>
+    console.warn("[Startup] RSS fetch failed (non-fatal):", err?.message)
+  );
 });
 
 export default app;

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { supabaseAdmin } from "../config/supabase";
+import prisma from "../config/database";
 
 const MAINS_PAPERS = ["GS-I", "GS-II", "GS-III", "GS-IV", "Essay"];
 
@@ -19,10 +19,6 @@ export const getPublicPYQQuestions = async (
   next: NextFunction
 ) => {
   try {
-    if (!supabaseAdmin) {
-      return res.status(503).json({ status: "error", message: "Service unavailable" });
-    }
-
     const mode = qs(req.query.mode as string);
     const subject = qs(req.query.subject as string);
     const year = qs(req.query.year as string);
@@ -31,70 +27,48 @@ export const getPublicPYQQuestions = async (
     const limit = parseInt(qs(req.query.limit as string) || "20");
     const skip = (page - 1) * limit;
 
-    const buildQuery = (countOnly = false) => {
-      let q = supabaseAdmin!
-        .from("pyq_questions")
-        .select(
-          countOnly
-            ? "*"
-            : "id, year, paper, question_text, subject, topic, difficulty, options, correct_option, explanation",
-          countOnly ? { count: "exact", head: true } : { count: "exact" }
-        )
-        .eq("status", "approved");
+    console.log(`[PYQ] Query params: mode=${mode}, subject=${subject}, year=${year}, paper=${paper}, page=${page}, limit=${limit}`);
 
-      if (mode === "mains") {
-        q = q.in("paper", MAINS_PAPERS);
-      } else if (mode === "prelims") {
-        q = q.not("paper", "in", `(${MAINS_PAPERS.join(",")})`);
-      }
+    const where: any = { status: "approved" };
 
-      if (subject && subject !== "All Papers") {
-        q = q.ilike("subject", `%${subject}%`);
-      }
-      if (year) q = q.eq("year", parseInt(year));
-      if (paper) q = q.eq("paper", paper);
+    if (mode === "mains") {
+      where.paper = { in: MAINS_PAPERS };
+    } else if (mode === "prelims") {
+      where.paper = { notIn: MAINS_PAPERS };
+    }
 
-      return q;
-    };
+    if (subject && subject !== "All Papers") {
+      where.subject = { contains: subject, mode: "insensitive" };
+    }
+    if (year) where.year = parseInt(year);
+    if (paper) where.paper = paper;
 
-    // Get count
-    const { count, error: countError } = await buildQuery(true);
-    if (countError) throw countError;
+    const [questions, total] = await Promise.all([
+      prisma.pYQQuestion.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.pYQQuestion.count({ where }),
+    ]);
 
-    // Get paginated data
-    const { data: questions, error: dataError } = await buildQuery(false)
-      .order("created_at", { ascending: false })
-      .range(skip, skip + limit - 1);
-
-    if (dataError) throw dataError;
-
-    // Map snake_case to camelCase for frontend compatibility
-    const mapped = (questions || []).map((q: any) => ({
-      id: q.id,
-      year: q.year,
-      paper: q.paper,
-      questionText: q.question_text,
-      subject: q.subject,
-      topic: q.topic,
-      difficulty: q.difficulty,
-      options: q.options,
-      correctOption: q.correct_option,
-      explanation: q.explanation,
-    }));
+    console.log(`[PYQ] Found ${questions.length} questions (total: ${total})`);
 
     res.json({
       status: "success",
       data: {
-        questions: mapped,
+        questions,
         pagination: {
-          total: count || 0,
+          total,
           page,
           limit,
-          totalPages: Math.ceil((count || 0) / limit),
+          totalPages: Math.ceil(total / limit),
         },
       },
     });
   } catch (error) {
+    console.error("[PYQ] Error fetching questions:", error);
     next(error);
   }
 };

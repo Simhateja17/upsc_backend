@@ -13,6 +13,9 @@ import pricingRoutes from "./pricing.routes";
 import mentorshipRoutes from "./mentorship.routes";
 import adminRoutes from "./admin.routes";
 import pyqRoutes from "./pyq.routes";
+import flashcardsRoutes from "./flashcards.routes";
+import spacedRepetitionRoutes from "./spacedRepetition.routes";
+import mindmapRoutes from "./mindmap.routes";
 import * as cmsPublicCtrl from "../controllers/cms.public.controller";
 
 const router = Router();
@@ -71,6 +74,15 @@ router.use("/admin", adminRoutes);
 
 // Public PYQ routes
 router.use("/pyq", pyqRoutes);
+
+// Flashcards routes
+router.use("/flashcards", flashcardsRoutes);
+
+// Spaced Repetition routes
+router.use("/spaced-repetition", spacedRepetitionRoutes);
+
+// Mindmap routes
+router.use("/mindmaps", mindmapRoutes);
 
 // Public CMS route (no auth - slug is URL-encoded for nested paths)
 router.get("/cms/:slug", cmsPublicCtrl.getPageContent);

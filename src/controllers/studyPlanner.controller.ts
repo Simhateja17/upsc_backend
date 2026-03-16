@@ -35,6 +35,7 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
   try {
     const userId = req.user!.id;
     const { title, description, subject, type, date, startTime, endTime, duration } = req.body;
+    console.log(`[Study Plan] Create task: user=${userId}, title="${title}", subject=${subject}`);
 
     if (!title) {
       return res.status(400).json({ status: "error", message: "Title is required" });
@@ -72,6 +73,7 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
     const userId = req.user!.id;
     const id = req.params.id as string;
     const { title, description, subject, type, date, startTime, endTime, duration, isCompleted } = req.body;
+    console.log(`[Study Plan] Update task: id=${id}, user=${userId}, isCompleted=${isCompleted}`);
 
     const existing = await prisma.studyPlanTask.findFirst({ where: { id, userId } });
     if (!existing) {
@@ -112,6 +114,7 @@ export const deleteTask = async (req: Request, res: Response, next: NextFunction
   try {
     const userId = req.user!.id;
     const id = req.params.id as string;
+    console.log(`[Study Plan] Delete task: id=${id}, user=${userId}`);
 
     const existing = await prisma.studyPlanTask.findFirst({ where: { id, userId } });
     if (!existing) {

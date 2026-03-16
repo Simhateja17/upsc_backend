@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import { summarizeEditorial } from "../services/editorialSummarizer";
 import { getNewsArticlesBySource, syncNewsToEditorials } from "../services/newsApi";
+import { runRssFetch } from "../services/rssFetcher";
 
 /**
  * GET /api/editorials/today
@@ -10,9 +11,11 @@ import { getNewsArticlesBySource, syncNewsToEditorials } from "../services/newsA
 export const getTodayEditorials = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { source, limit } = req.query;
+    console.log(`[Editorial] Fetching today's editorials, source: ${source || "all"}, limit: ${limit || 30}`);
 
-    // Show articles from the last 24 hours so RSS articles fetched today are always included
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    // Show articles from the last 48 hours — wider window ensures content is
+    // always visible even when the server was spun down and cron jobs didn't run.
+    const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
     const where: any = {
       publishedAt: { gte: since },
@@ -85,6 +88,7 @@ export const markRead = async (req: Request, res: Response, next: NextFunction) 
   try {
     const userId = req.user!.id;
     const id = req.params.id as string;
+    console.log(`[Editorial] Mark read: editorial ${id} by user ${userId}`);
 
     await prisma.editorialProgress.upsert({
       where: { userId_editorialId: { userId, editorialId: id } },
@@ -134,6 +138,7 @@ export const toggleSave = async (req: Request, res: Response, next: NextFunction
 export const summarize = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = req.params.id as string;
+    console.log(`[Editorial] AI summarize requested for: ${id}`);
     const editorial = await prisma.editorial.findUnique({ where: { id } });
 
     if (!editorial) {
@@ -174,15 +179,14 @@ export const getStats = async (req: Request, res: Response, next: NextFunction) 
 
     const streak = await prisma.userStreak.findUnique({ where: { userId } });
 
-    // Today's counts
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    // Count articles from the last 48 hours (matches getTodayEditorials window)
+    const recentSince = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
     const [todayHinduCount, todayExpressCount, todayAiCount, todayReadCount] = await Promise.all([
-      prisma.editorial.count({ where: { source: 'The Hindu', publishedAt: { gte: todayStart } } }),
-      prisma.editorial.count({ where: { source: 'Indian Express', publishedAt: { gte: todayStart } } }),
-      prisma.editorial.count({ where: { aiSummary: { not: null }, publishedAt: { gte: todayStart } } }),
-      prisma.editorialProgress.count({ where: { userId, isRead: true, readAt: { gte: todayStart } } }),
+      prisma.editorial.count({ where: { source: 'The Hindu', publishedAt: { gte: recentSince } } }),
+      prisma.editorial.count({ where: { source: 'Indian Express', publishedAt: { gte: recentSince } } }),
+      prisma.editorial.count({ where: { aiSummary: { not: null }, publishedAt: { gte: recentSince } } }),
+      prisma.editorialProgress.count({ where: { userId, isRead: true, readAt: { gte: recentSince } } }),
     ]);
 
     res.json({
@@ -278,15 +282,27 @@ export const getLiveNews = async (req: Request, res: Response, next: NextFunctio
 
 /**
  * POST /api/editorials/sync-news
- * Manually trigger sync of News API articles to database
+ * Manually trigger sync from both RSS feeds and News API.
+ * RSS is the primary reliable source; NewsAPI is supplementary.
  */
 export const syncNews = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const count = await syncNewsToEditorials();
-    res.json({ 
-      status: "success", 
-      message: `Synced ${count} new articles from News API`,
-      data: { syncedCount: count }
+    console.log("[Editorial] Manual news sync triggered");
+
+    // Run both pipelines in parallel; tolerate individual failures
+    const [rssCount, newsApiCount] = await Promise.allSettled([
+      runRssFetch(),
+      syncNewsToEditorials(),
+    ]).then(([rss, api]) => [
+      rss.status === "fulfilled" ? rss.value : 0,
+      api.status === "fulfilled" ? api.value : 0,
+    ]);
+
+    const total = (rssCount as number) + (newsApiCount as number);
+    res.json({
+      status: "success",
+      message: `Synced ${total} new articles (RSS: ${rssCount}, NewsAPI: ${newsApiCount})`,
+      data: { syncedCount: total, rssCount, newsApiCount },
     });
   } catch (error) {
     next(error);

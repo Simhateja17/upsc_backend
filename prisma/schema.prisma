@@ -427,9 +427,25 @@ model Video {
   isPublished Boolean  @default(true) @map("is_published")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  subject VideoSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subject   VideoSubject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  questions VideoQuestion[]
 
   @@map("videos")
+}
+
+model VideoQuestion {
+  id            String   @id @default(uuid())
+  videoId       String   @map("video_id")
+  question      String
+  options       Json     // array of 4 option strings
+  correctOption Int      @map("correct_option") // index 0-3
+  explanation   String?
+  order         Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@map("video_questions")
 }
 
 model MentorQuestion {
@@ -674,6 +690,112 @@ model AiUsageLog {
   @@index([createdAt])
   @@index([service])
   @@map("ai_usage_logs")
+}
+
+// ==================== FLASHCARDS ====================
+
+model FlashcardDeck {
+  id        String      @id @default(cuid())
+  subject   String
+  subjectId String      @unique @map("subject_id")
+  icon      String      @default("📚")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  cards Flashcard[]
+
+  @@map("flashcard_decks")
+}
+
+model Flashcard {
+  id         String        @id @default(cuid())
+  deckId     String        @map("deck_id")
+  topic      String
+  topicId    String        @map("topic_id")
+  question   String
+  answer     String
+  difficulty String        @default("Medium")
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  deck     FlashcardDeck           @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  progress UserFlashcardProgress[]
+
+  @@index([deckId, topicId])
+  @@map("flashcards")
+}
+
+model UserFlashcardProgress {
+  id       String    @id @default(cuid())
+  userId   String    @map("user_id")
+  cardId   String    @map("card_id")
+  mastered Boolean   @default(false)
+  lastSeen DateTime  @default(now()) @map("last_seen")
+
+  card Flashcard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId])
+  @@map("user_flashcard_progress")
+}
+
+// ==================== SPACED REPETITION ====================
+
+model SpacedRepItem {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  questionText     String   @map("question_text")
+  source           String
+  sourceType       String   @map("source_type")
+  subject          String
+  scheduleDay      Int      @default(3) @map("schedule_day")
+  remindEnabled    Boolean  @default(false) @map("remind_enabled")
+  addedToFlashcard Boolean  @default(false) @map("added_to_flashcard")
+  nextReviewAt     DateTime @default(now()) @map("next_review_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([userId, nextReviewAt])
+  @@map("spaced_rep_items")
+}
+
+// ==================== MINDMAP ====================
+
+model MindmapSubject {
+  id   String    @id @default(cuid())
+  name String
+  slug String    @unique
+  icon String    @default("🗺️")
+
+  maps Mindmap[]
+
+  @@map("mindmap_subjects")
+}
+
+model Mindmap {
+  id        String   @id @default(cuid())
+  subjectId String   @map("subject_id")
+  title     String
+  slug      String
+  branches  Json
+  nodes     Json
+  quizData  Json?    @map("quiz_data")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  subject  MindmapSubject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  progress UserMindmapProgress[]
+
+  @@unique([subjectId, slug])
+  @@map("mindmaps")
+}
+
+model UserMindmapProgress {
+  id        String  @id @default(cuid())
+  userId    String  @map("user_id")
+  mindmapId String  @map("mindmap_id")
+  viewed    Boolean @default(false)
+  mastery   Int     @default(0)
+
+  mindmap Mindmap @relation(fields: [mindmapId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mindmapId])
+  @@map("user_mindmap_progress")
 }
 
 // ==================== CMS ====================

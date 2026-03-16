@@ -40,6 +40,8 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
       conversationId?: string;
     };
 
+    console.log(`[AI Chat] User: ${userId}, conversationId: ${conversationId || "new"}, messageLength: ${message?.length || 0}`);
+
     if (!message || typeof message !== "string" || message.trim().length === 0) {
       return res.status(400).json({ status: "error", message: "Message is required" });
     }
@@ -85,6 +87,7 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
     ];
 
     // Call Claude
+    console.log(`[AI Chat] Sending ${claudeMessages.length} messages to Claude`);
     const aiReply = await invokeModel(claudeMessages, {
       maxTokens: 2048,
       temperature: 0.5,
@@ -105,6 +108,7 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
       data: { updatedAt: new Date() },
     });
 
+    console.log(`[AI Chat] Reply generated for conversation: ${conversation.id}, replyLength: ${aiReply.length}`);
     res.json({
       status: "success",
       data: {
@@ -212,6 +216,7 @@ export const deleteConversation = async (
     }
 
     await prisma.chatConversation.delete({ where: { id: conversationId } });
+    console.log(`[AI Chat] Conversation deleted: ${conversationId}`);
 
     res.json({ status: "success", message: "Conversation deleted" });
   } catch (error) {
