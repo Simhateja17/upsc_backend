@@ -131,10 +131,12 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
     }
 
     // ── Fallback: PYQ bank + AI generation if RAG didn't produce enough ──
+    let pyqQuestions: any[] = [];
+    let aiQuestions: any[] = [];
     if (finalQuestions.length < count) {
       const remaining = count - finalQuestions.length;
 
-      let pyqQuestions: any[] = [];
+      pyqQuestions = [];
       if (source === "pyq" || source === "mixed" || finalQuestions.length === 0) {
         const pyqWhere: any = { status: "approved" };
         if (subject && subject !== "All Subjects") {
@@ -148,7 +150,6 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
       }
 
       const aiCount = remaining - pyqQuestions.length;
-      let aiQuestions: any[] = [];
       if (aiCount > 0) {
         aiQuestions = await generateMCQQuestions({
           subject: targetSubject,

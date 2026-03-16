@@ -262,8 +262,8 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
     const mainsStats = {
       totalAnswers: mainsAttempts.length,
       avgScore: mainsScores.length > 0 ? Math.round(avg(mainsScores) * 10) / 10 : 0,
-      latestScore: mainsScores.at(-1) ?? 0,
-      improvement: mainsScores.length >= 2 ? (mainsScores.at(-1)! - mainsScores.at(-2)!) : 0,
+      latestScore: mainsScores[mainsScores.length - 1] ?? 0,
+      improvement: mainsScores.length >= 2 ? (mainsScores[mainsScores.length - 1] - mainsScores[mainsScores.length - 2]) : 0,
     };
 
     // --- Time per question daily ---
