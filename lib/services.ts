@@ -191,6 +191,57 @@ export const pyqService = {
   },
 };
 
+// ==================== Flashcards ====================
+
+export const flashcardService = {
+  getSubjects: () => api.get<any>('/flashcards/subjects', authConfig()),
+  getTopics: (subjectId: string) => api.get<any>(`/flashcards/${subjectId}/topics`, authConfig()),
+  getCards: (subjectId: string, topicId: string) =>
+    api.get<any>(`/flashcards/${subjectId}/${topicId}`, authConfig()),
+  createCard: (data: {
+    subjectId: string;
+    subject?: string;
+    topicId?: string;
+    topic?: string;
+    question: string;
+    answer: string;
+    difficulty?: string;
+  }) => api.post<any>('/flashcards', data, authConfig()),
+  updateProgress: (cardId: string, mastered: boolean) =>
+    api.patch<any>(`/flashcards/${cardId}/progress`, { mastered }, authConfig()),
+};
+
+// ==================== Spaced Repetition ====================
+
+export const spacedRepService = {
+  getItems: (sourceType?: string) => {
+    const qs = sourceType ? `?sourceType=${sourceType}` : '';
+    return api.get<any>(`/spaced-repetition${qs}`, authConfig());
+  },
+  addItem: (data: {
+    questionText: string;
+    subject: string;
+    source?: string;
+    sourceType?: string;
+    scheduleDay?: number;
+    remindEnabled?: boolean;
+  }) => api.post<any>('/spaced-repetition', data, authConfig()),
+  updateItem: (id: string, data: { scheduleDay?: number; remindEnabled?: boolean; addedToFlashcard?: boolean }) =>
+    api.patch<any>(`/spaced-repetition/${id}`, data, authConfig()),
+  deleteItem: (id: string) => api.delete<any>(`/spaced-repetition/${id}`, authConfig()),
+};
+
+// ==================== Mindmap ====================
+
+export const mindmapService = {
+  getSubjects: () => api.get<any>('/mindmaps/subjects', authConfig()),
+  getMindmaps: (subjectId: string) => api.get<any>(`/mindmaps/${subjectId}`, authConfig()),
+  getMindmap: (subjectId: string, mindmapId: string) =>
+    api.get<any>(`/mindmaps/${subjectId}/${mindmapId}`, authConfig()),
+  updateProgress: (mindmapId: string, mastery: number, viewed?: boolean) =>
+    api.patch<any>(`/mindmaps/${mindmapId}/progress`, { mastery, viewed }, authConfig()),
+};
+
 // ==================== Admin ====================
 
 export const adminService = {
