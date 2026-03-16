@@ -3,13 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { spacedRepService } from '@/lib/services';
 
-const subjectPills = [
-  { label: 'Critical:', count: '2 subjects', icon: '🔴' },
-  { label: 'Weak:', count: '1 subjects', icon: '🟠' },
-  { label: 'Improving:', count: '6 subjects', icon: '🟡' },
-  { label: 'Strong:', count: '3 subjects', icon: '🟢' },
-];
-
 const filterOptions = ['All', 'mcq', 'mains', 'pyq', 'custom'];
 const scheduleOptions = [3, 7, 15, 30];
 
@@ -122,6 +115,28 @@ export default function SpacedRepetitionPage() {
       .catch(() => {})
       .finally(() => setSaving(false));
   };
+
+  // Compute subject health pills from real data
+  const subjectPills = (() => {
+    const now = new Date();
+    const map: Record<string, { overdue: number; total: number }> = {};
+    for (const item of items) {
+      if (!map[item.subject]) map[item.subject] = { overdue: 0, total: 0 };
+      map[item.subject].total++;
+      if (new Date(item.nextReviewAt) <= now) map[item.subject].overdue++;
+    }
+    const subs = Object.values(map);
+    const critical = subs.filter((s) => s.total > 0 && s.overdue / s.total > 0.6).length;
+    const weak = subs.filter((s) => s.total > 0 && s.overdue / s.total > 0.3 && s.overdue / s.total <= 0.6).length;
+    const improving = subs.filter((s) => s.overdue > 0 && s.overdue / s.total <= 0.3).length;
+    const strong = subs.filter((s) => s.overdue === 0 && s.total > 0).length;
+    return [
+      { label: 'Critical:', count: `${critical} subjects`, icon: '🔴' },
+      { label: 'Weak:', count: `${weak} subjects`, icon: '🟠' },
+      { label: 'Improving:', count: `${improving} subjects`, icon: '🟡' },
+      { label: 'Strong:', count: `${strong} subjects`, icon: '🟢' },
+    ];
+  })();
 
   const ITEMS_PER_PAGE = 10;
   const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
