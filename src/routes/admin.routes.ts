@@ -11,6 +11,7 @@ import * as editorialCtrl from "../controllers/admin/editorial.controller";
 import * as contentCtrl from "../controllers/admin/content.controller";
 import * as aiCostCtrl from "../controllers/admin/aiCost.controller";
 import * as cmsCtrl from "../controllers/admin/cms.controller";
+import * as studyMaterialCtrl from "../controllers/admin/studyMaterial.controller";
 
 const router = Router();
 
@@ -45,7 +46,12 @@ router.post("/daily-mains", contentCtrl.createDailyMains);
 router.put("/daily-mains/:id", contentCtrl.updateDailyMains);
 router.post("/daily-mains/generate", aiLimiter, contentCtrl.triggerDailyMains);
 
-// ==================== Study Material Management ====================
+// ==================== Study Material RAG (Mock Test Source) ====================
+router.post("/study-materials/upload", uploadPDF, studyMaterialCtrl.uploadStudyMaterial);
+router.get("/study-materials", studyMaterialCtrl.getStudyMaterials);
+router.delete("/study-materials/:id", studyMaterialCtrl.deleteStudyMaterial);
+
+// ==================== Library Management ====================
 router.post("/library/subjects", contentCtrl.createSubject);
 router.post("/library/chapters", contentCtrl.createChapter);
 router.post("/library/materials/upload", uploadSingle("file"), contentCtrl.uploadMaterial);

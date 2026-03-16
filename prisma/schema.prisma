@@ -36,9 +36,10 @@ model User {
   syllabusCoverage  SyllabusCoverage[]
   mentorQuestions   MentorQuestion[]
   mentorBookings    MentorBooking[]
-  pyqUploads        PYQUpload[]
-  seenMcqQuestions  UserSeenMCQ[]
-  chatConversations ChatConversation[]
+  pyqUploads            PYQUpload[]
+  seenMcqQuestions      UserSeenMCQ[]
+  chatConversations     ChatConversation[]
+  studyMaterialUploads  StudyMaterialUpload[]
 
   @@map("users")
 }
@@ -564,6 +565,42 @@ model PYQQuestion {
   @@map("pyq_questions")
 }
 
+// ==================== MOCK TEST STUDY MATERIAL (RAG) ====================
+
+model StudyMaterialUpload {
+  id           String   @id @default(cuid())
+  fileName     String   @map("file_name")
+  fileUrl      String   @map("file_url")
+  subject      String
+  topic        String?
+  source       String?  // e.g. "NCERT Class 11", "Laxmikanth", "Notes"
+  status       String   @default("processing") // processing, vectorized, failed
+  totalChunks  Int      @default(0) @map("total_chunks")
+  uploadedById String   @map("uploaded_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  uploadedBy User                 @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  chunks     StudyMaterialChunk[]
+
+  @@index([subject])
+  @@map("study_material_uploads")
+}
+
+model StudyMaterialChunk {
+  id         String              @id @default(cuid())
+  uploadId   String              @map("upload_id")
+  upload     StudyMaterialUpload @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  pageNumber Int                 @map("page_number")
+  chunkIndex Int                 @map("chunk_index")
+  chunkText  String              @map("chunk_text")
+  embedding  Unsupported("vector(1536)")? // Gemini Embedding 2, MRL 1536 dims
+  metadata   Json                // { subject, topic, source, fileName, pageNumber, uploadId }
+  createdAt  DateTime            @default(now()) @map("created_at")
+
+  @@index([uploadId])
+  @@map("study_material_chunks")
+}
+
 // ==================== JEET AI CHAT ====================
 
 model ChatConversation {
@@ -599,7 +636,7 @@ model PYQUpload {
   fileUrl        String   @map("file_url")
   year           Int
   paper          String
-  status         String   @default("processing") // processing, parsed, reviewed, completed
+  status         String   @default("processing") // processing, parsed, reviewed, completed, vectorized
   totalExtracted Int      @default(0) @map("total_extracted")
   totalApproved  Int      @default(0) @map("total_approved")
   uploadedById   String   @map("uploaded_by_id")

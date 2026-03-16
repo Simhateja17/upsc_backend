@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import { generateMCQQuestions } from "../services/questionGenerator";
+import { generateMockTestFromRAG, hasStudyMaterial } from "../services/mockTestRag.service";
 
 /**
  * GET /api/mock-tests/subjects
@@ -106,53 +107,74 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
 
     const targetSubject = subject && subject !== "All Subjects" ? subject : "General Studies";
 
-    // Try to source from PYQ bank first, then AI-generate the rest
-    let pyqQuestions: any[] = [];
-    if (source === "pyq" || source === "mixed") {
-      const pyqWhere: any = { status: "approved" };
-      if (subject && subject !== "All Subjects") {
-        pyqWhere.subject = { contains: subject, mode: "insensitive" };
+    let finalQuestions: any[] = [];
+
+    // ── RAG Path: use uploaded study material if available ──────────
+    const ragAvailable = await hasStudyMaterial(targetSubject);
+
+    if (ragAvailable) {
+      try {
+        console.log(`[MockTest] RAG generation for subject="${targetSubject}" count=${count}`);
+        const ragQuestions = await generateMockTestFromRAG({
+          subject: targetSubject,
+          topic: req.body.topic,
+          difficulty: difficulty || "mixed",
+          questionCount: count,
+          examMode: examMode || "prelims",
+        });
+        finalQuestions = ragQuestions;
+        console.log(`[MockTest] RAG produced ${ragQuestions.length} questions`);
+      } catch (ragErr) {
+        console.warn("[MockTest] RAG failed, falling back to standard generation:", ragErr);
       }
-      pyqQuestions = await prisma.pYQQuestion.findMany({
-        where: pyqWhere,
-        take: source === "pyq" ? count : Math.ceil(count / 2),
-        orderBy: { createdAt: "desc" },
-      });
     }
 
-    const aiCount = count - pyqQuestions.length;
-    let aiQuestions: any[] = [];
+    // ── Fallback: PYQ bank + AI generation if RAG didn't produce enough ──
+    if (finalQuestions.length < count) {
+      const remaining = count - finalQuestions.length;
 
-    if (aiCount > 0) {
-      // Generate AI questions
-      aiQuestions = await generateMCQQuestions({
-        subject: targetSubject,
-        difficulty: difficulty || "medium",
-        count: aiCount,
-        examMode: examMode || "prelims",
-      });
+      let pyqQuestions: any[] = [];
+      if (source === "pyq" || source === "mixed" || finalQuestions.length === 0) {
+        const pyqWhere: any = { status: "approved" };
+        if (subject && subject !== "All Subjects") {
+          pyqWhere.subject = { contains: subject, mode: "insensitive" };
+        }
+        pyqQuestions = await prisma.pYQQuestion.findMany({
+          where: pyqWhere,
+          take: Math.ceil(remaining / 2),
+          orderBy: { createdAt: "desc" },
+        });
+      }
+
+      const aiCount = remaining - pyqQuestions.length;
+      let aiQuestions: any[] = [];
+      if (aiCount > 0) {
+        aiQuestions = await generateMCQQuestions({
+          subject: targetSubject,
+          difficulty: difficulty || "medium",
+          count: aiCount,
+          examMode: examMode || "prelims",
+        });
+      }
+
+      finalQuestions = [
+        ...finalQuestions,
+        ...pyqQuestions.map((q) => ({
+          questionText: q.questionText,
+          options: q.options,
+          correctOption: q.correctOption || "A",
+          subject: q.subject,
+          category: q.subject,
+          difficulty: q.difficulty,
+          explanation: q.explanation || "",
+        })),
+        ...aiQuestions,
+      ];
     }
 
-    // Combine and save questions
+    // ── Save questions ───────────────────────────────────────────────
     let questionNum = 1;
-
-    for (const pyq of pyqQuestions) {
-      await prisma.mockTestQuestion.create({
-        data: {
-          mockTestId: mockTest.id,
-          questionNum: questionNum++,
-          questionText: pyq.questionText,
-          subject: pyq.subject,
-          category: pyq.subject,
-          difficulty: pyq.difficulty,
-          options: pyq.options as any,
-          correctOption: pyq.correctOption || "A",
-          explanation: pyq.explanation || "",
-        },
-      });
-    }
-
-    for (const q of aiQuestions) {
+    for (const q of finalQuestions.slice(0, count)) {
       await prisma.mockTestQuestion.create({
         data: {
           mockTestId: mockTest.id,
