@@ -6,7 +6,9 @@ export const config = {
   port: parseInt(process.env.PORT || "5000", 10),
   nodeEnv: process.env.NODE_ENV || "development",
   cors: {
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origins: (process.env.CORS_ORIGIN || "http://localhost:3000")
+      .split(",")
+      .map((o) => o.trim()),
   },
   supabase: {
     url: process.env.SUPABASE_URL || "",
