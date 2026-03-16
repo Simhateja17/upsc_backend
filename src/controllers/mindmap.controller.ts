@@ -197,6 +197,113 @@ export const updateProgress = async (
   }
 };
 
+// ==================== ADMIN ====================
+
+/**
+ * GET /api/admin/mindmaps/subjects
+ */
+export const adminGetMindmapSubjects = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const subjects = await prisma.mindmapSubject.findMany({
+      include: { _count: { select: { maps: true } } },
+    });
+    res.json({ status: "success", data: subjects });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/mindmaps/subjects
+ */
+export const adminCreateMindmapSubject = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, slug, icon } = req.body;
+    if (!name || !slug) {
+      res.status(400).json({ status: "error", message: "name and slug are required" });
+      return;
+    }
+    const subject = await prisma.mindmapSubject.create({
+      data: { name, slug, icon: icon || "🗺️" },
+    });
+    res.status(201).json({ status: "success", data: subject });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/admin/mindmaps/subjects/:id
+ */
+export const adminUpdateMindmapSubject = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = param(req, "id");
+    const { name, slug, icon } = req.body;
+    const subject = await prisma.mindmapSubject.update({ where: { id }, data: { name, slug, icon } });
+    res.json({ status: "success", data: subject });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/admin/mindmaps/subjects/:id
+ */
+export const adminDeleteMindmapSubject = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = param(req, "id");
+    await prisma.mindmapSubject.delete({ where: { id } });
+    res.json({ status: "success", message: "Subject deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/admin/mindmaps
+ */
+export const adminGetMindmaps = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const maps = await prisma.mindmap.findMany({
+      include: { subject: { select: { name: true, slug: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+    res.json({ status: "success", data: maps });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/admin/mindmaps/:id
+ */
+export const adminUpdateMindmap = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = param(req, "id");
+    const { title, slug, branches, nodes, quizData } = req.body;
+    const mindmap = await prisma.mindmap.update({
+      where: { id },
+      data: { title, slug, branches, nodes, quizData: quizData ?? undefined },
+    });
+    res.json({ status: "success", data: mindmap });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/admin/mindmaps/:id
+ */
+export const adminDeleteMindmap = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = param(req, "id");
+    await prisma.mindmap.delete({ where: { id } });
+    res.json({ status: "success", message: "Mindmap deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * POST /api/admin/mindmaps
  */

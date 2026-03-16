@@ -5,10 +5,12 @@ import {
   addItem,
   updateItem,
   deleteItem,
+  getSeeds,
 } from "../controllers/spacedRepetition.controller";
 
 const router = Router();
 
+router.get("/seeds", authenticate, getSeeds);
 router.get("/", authenticate, getItems);
 router.post("/", authenticate, addItem);
 router.patch("/:id", authenticate, updateItem);

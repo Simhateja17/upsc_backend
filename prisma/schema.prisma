@@ -830,3 +830,16 @@ model PageSection {
   @@unique([pageId, key])
   @@map("page_sections")
 }
+
+// ==================== SPACED REP SEEDS (Admin library) ====================
+
+model SpacedRepSeed {
+  id           String   @id @default(cuid())
+  subject      String
+  topic        String?
+  questionText String   @map("question_text")
+  difficulty   String   @default("Medium")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("spaced_rep_seeds")
+}

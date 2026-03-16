@@ -100,8 +100,56 @@ router.post("/cms/sections", cmsCtrl.createSection);
 router.put("/cms/sections/:id", cmsCtrl.updateSection);
 router.delete("/cms/sections/:id", cmsCtrl.deleteSection);
 
-// ==================== Mindmap (Admin seeding) ====================
-import { createMindmap } from "../controllers/mindmap.controller";
+// ==================== Flashcard Management ====================
+import {
+  adminGetDecks,
+  adminCreateDeck,
+  adminUpdateDeck,
+  adminDeleteDeck,
+  adminGetCards,
+  adminCreateCard,
+  adminUpdateCard,
+  adminDeleteCard,
+} from "../controllers/flashcard.controller";
+router.get("/flashcards/decks", adminGetDecks);
+router.post("/flashcards/decks", adminCreateDeck);
+router.put("/flashcards/decks/:id", adminUpdateDeck);
+router.delete("/flashcards/decks/:id", adminDeleteDeck);
+router.get("/flashcards/cards", adminGetCards);
+router.post("/flashcards/cards", adminCreateCard);
+router.put("/flashcards/cards/:id", adminUpdateCard);
+router.delete("/flashcards/cards/:id", adminDeleteCard);
+
+// ==================== Mindmap Management ====================
+import {
+  createMindmap,
+  adminGetMindmapSubjects,
+  adminCreateMindmapSubject,
+  adminUpdateMindmapSubject,
+  adminDeleteMindmapSubject,
+  adminGetMindmaps,
+  adminUpdateMindmap,
+  adminDeleteMindmap,
+} from "../controllers/mindmap.controller";
+router.get("/mindmaps/subjects", adminGetMindmapSubjects);
+router.post("/mindmaps/subjects", adminCreateMindmapSubject);
+router.put("/mindmaps/subjects/:id", adminUpdateMindmapSubject);
+router.delete("/mindmaps/subjects/:id", adminDeleteMindmapSubject);
+router.get("/mindmaps", adminGetMindmaps);
 router.post("/mindmaps", createMindmap);
+router.put("/mindmaps/:id", adminUpdateMindmap);
+router.delete("/mindmaps/:id", adminDeleteMindmap);
+
+// ==================== Spaced Rep Seeds ====================
+import {
+  adminGetSeeds,
+  adminCreateSeed,
+  adminUpdateSeed,
+  adminDeleteSeed,
+} from "../controllers/spacedRepetition.controller";
+router.get("/spaced-rep/seeds", adminGetSeeds);
+router.post("/spaced-rep/seeds", adminCreateSeed);
+router.put("/spaced-rep/seeds/:id", adminUpdateSeed);
+router.delete("/spaced-rep/seeds/:id", adminDeleteSeed);
 
 export default router;

@@ -203,6 +203,139 @@ export const createCard = async (
   }
 };
 
+// ==================== ADMIN ====================
+
+/**
+ * GET /api/admin/flashcards/decks
+ */
+export const adminGetDecks = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const decks = await prisma.flashcardDeck.findMany({
+      include: { _count: { select: { cards: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+    res.json({ status: "success", data: decks });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/flashcards/decks
+ */
+export const adminCreateDeck = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { subject, subjectId, icon } = req.body;
+    if (!subject || !subjectId) {
+      res.status(400).json({ status: "error", message: "subject and subjectId are required" });
+      return;
+    }
+    const deck = await prisma.flashcardDeck.create({
+      data: { subject, subjectId, icon: icon || "📚" },
+    });
+    res.status(201).json({ status: "success", data: deck });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/admin/flashcards/decks/:id
+ */
+export const adminUpdateDeck = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = param(req, "id");
+    const { subject, subjectId, icon } = req.body;
+    const deck = await prisma.flashcardDeck.update({
+      where: { id },
+      data: { subject, subjectId, icon },
+    });
+    res.json({ status: "success", data: deck });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/admin/flashcards/decks/:id
+ */
+export const adminDeleteDeck = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = param(req, "id");
+    await prisma.flashcardDeck.delete({ where: { id } });
+    res.json({ status: "success", message: "Deck deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/admin/flashcards/cards
+ */
+export const adminGetCards = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const deckId = req.query.deckId as string | undefined;
+    const where = deckId ? { deckId } : {};
+    const cards = await prisma.flashcard.findMany({
+      where,
+      include: { deck: { select: { subject: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+    res.json({ status: "success", data: cards });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/flashcards/cards
+ */
+export const adminCreateCard = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { deckId, topic, topicId, question, answer, difficulty } = req.body;
+    if (!deckId || !topic || !topicId || !question || !answer) {
+      res.status(400).json({ status: "error", message: "deckId, topic, topicId, question, and answer are required" });
+      return;
+    }
+    const card = await prisma.flashcard.create({
+      data: { deckId, topic, topicId, question, answer, difficulty: difficulty || "Medium" },
+    });
+    res.status(201).json({ status: "success", data: card });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/admin/flashcards/cards/:id
+ */
+export const adminUpdateCard = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = param(req, "id");
+    const { topic, topicId, question, answer, difficulty } = req.body;
+    const card = await prisma.flashcard.update({
+      where: { id },
+      data: { topic, topicId, question, answer, difficulty },
+    });
+    res.json({ status: "success", data: card });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/admin/flashcards/cards/:id
+ */
+export const adminDeleteCard = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = param(req, "id");
+    await prisma.flashcard.delete({ where: { id } });
+    res.json({ status: "success", message: "Card deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * PATCH /api/flashcards/:cardId/progress
  */

@@ -121,6 +121,89 @@ export const updateItem = async (
   }
 };
 
+// ==================== ADMIN SEEDS ====================
+
+/**
+ * GET /api/admin/spaced-rep/seeds
+ */
+export const adminGetSeeds = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const subject = req.query.subject as string | undefined;
+    const seeds = await prisma.spacedRepSeed.findMany({
+      where: subject ? { subject } : {},
+      orderBy: { createdAt: "asc" },
+    });
+    res.json({ status: "success", data: seeds });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/spaced-rep/seeds
+ */
+export const adminCreateSeed = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { subject, topic, questionText, difficulty } = req.body;
+    if (!subject || !questionText) {
+      res.status(400).json({ status: "error", message: "subject and questionText are required" });
+      return;
+    }
+    const seed = await prisma.spacedRepSeed.create({
+      data: { subject, topic: topic || null, questionText, difficulty: difficulty || "Medium" },
+    });
+    res.status(201).json({ status: "success", data: seed });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/admin/spaced-rep/seeds/:id
+ */
+export const adminUpdateSeed = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = param(req, "id");
+    const { subject, topic, questionText, difficulty } = req.body;
+    const seed = await prisma.spacedRepSeed.update({
+      where: { id },
+      data: { subject, topic, questionText, difficulty },
+    });
+    res.json({ status: "success", data: seed });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/admin/spaced-rep/seeds/:id
+ */
+export const adminDeleteSeed = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = param(req, "id");
+    await prisma.spacedRepSeed.delete({ where: { id } });
+    res.json({ status: "success", message: "Seed deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/spaced-repetition/seeds  (user-facing)
+ */
+export const getSeeds = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const subject = req.query.subject as string | undefined;
+    const seeds = await prisma.spacedRepSeed.findMany({
+      where: subject ? { subject } : {},
+      orderBy: { createdAt: "asc" },
+    });
+    res.json({ status: "success", data: seeds });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * DELETE /api/spaced-repetition/:id
  */
