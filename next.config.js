@@ -18,6 +18,22 @@ const nextConfig = {
         destination: '/:path*',
         permanent: false,
       },
+      // Safety redirects for common "Test Series" route variants
+      {
+        source: '/test-series',
+        destination: '/dashboard/test-series',
+        permanent: false,
+      },
+      {
+        source: '/dashboard/testseries',
+        destination: '/dashboard/test-series',
+        permanent: false,
+      },
+      {
+        source: '/dashboard/testSeries',
+        destination: '/dashboard/test-series',
+        permanent: false,
+      },
     ];
   },
 }

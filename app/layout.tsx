@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Manrope, Roboto, Poppins, Arimo, Tinos, Fahkwang } from 'next/font/google'
+import { Inter, Manrope, Roboto, Poppins, Arimo, Tinos, Fahkwang, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 
@@ -26,6 +26,12 @@ const fahkwang = Fahkwang({
   subsets: ['latin'],
   variable: '--font-fahkwang',
   weight: ['400', '500', '600', '700'],
+})
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  weight: ['400', '500', '600', '700', '800', '900'],
 })
 
 const manrope = Manrope({
@@ -59,7 +65,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${manrope.variable} ${roboto.variable} ${poppins.variable} ${arimo.variable} ${tinos.variable} ${fahkwang.variable}`}>
+      <body className={`${inter.variable} ${manrope.variable} ${roboto.variable} ${poppins.variable} ${arimo.variable} ${tinos.variable} ${fahkwang.variable} ${playfair.variable}`}>
         <AuthProvider>
           {children}
         </AuthProvider>
