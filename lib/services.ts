@@ -46,6 +46,7 @@ export const dashboardService = {
   getActivity: (limit = 10) => api.get<any>(`/user/activity?limit=${limit}`, authConfig()),
   getPerformance: () => api.get<any>('/user/performance', authConfig()),
   getPracticeStats: () => api.get<any>('/user/practice-stats', authConfig()),
+  getTestAnalytics: () => api.get<any>('/user/test-analytics', authConfig()),
 };
 
 // ==================== Daily MCQ ====================
@@ -191,6 +192,57 @@ export const pyqService = {
   },
 };
 
+// ==================== Flashcards ====================
+
+export const flashcardService = {
+  getSubjects: () => api.get<any>('/flashcards/subjects', authConfig()),
+  getTopics: (subjectId: string) => api.get<any>(`/flashcards/${subjectId}/topics`, authConfig()),
+  getCards: (subjectId: string, topicId: string) =>
+    api.get<any>(`/flashcards/${subjectId}/${topicId}`, authConfig()),
+  createCard: (data: {
+    subjectId: string;
+    subject?: string;
+    topicId?: string;
+    topic?: string;
+    question: string;
+    answer: string;
+    difficulty?: string;
+  }) => api.post<any>('/flashcards', data, authConfig()),
+  updateProgress: (cardId: string, mastered: boolean) =>
+    api.patch<any>(`/flashcards/${cardId}/progress`, { mastered }, authConfig()),
+};
+
+// ==================== Spaced Repetition ====================
+
+export const spacedRepService = {
+  getItems: (sourceType?: string) => {
+    const qs = sourceType ? `?sourceType=${sourceType}` : '';
+    return api.get<any>(`/spaced-repetition${qs}`, authConfig());
+  },
+  addItem: (data: {
+    questionText: string;
+    subject: string;
+    source?: string;
+    sourceType?: string;
+    scheduleDay?: number;
+    remindEnabled?: boolean;
+  }) => api.post<any>('/spaced-repetition', data, authConfig()),
+  updateItem: (id: string, data: { scheduleDay?: number; remindEnabled?: boolean; addedToFlashcard?: boolean }) =>
+    api.patch<any>(`/spaced-repetition/${id}`, data, authConfig()),
+  deleteItem: (id: string) => api.delete<any>(`/spaced-repetition/${id}`, authConfig()),
+};
+
+// ==================== Mindmap ====================
+
+export const mindmapService = {
+  getSubjects: () => api.get<any>('/mindmaps/subjects', authConfig()),
+  getMindmaps: (subjectId: string) => api.get<any>(`/mindmaps/${subjectId}`, authConfig()),
+  getMindmap: (subjectId: string, mindmapId: string) =>
+    api.get<any>(`/mindmaps/${subjectId}/${mindmapId}`, authConfig()),
+  updateProgress: (mindmapId: string, mastery: number, viewed?: boolean) =>
+    api.patch<any>(`/mindmaps/${mindmapId}/progress`, { mastery, viewed }, authConfig()),
+};
+
 // ==================== Admin ====================
 
 export const adminService = {
@@ -311,6 +363,44 @@ export const adminService = {
     if (!res.ok) throw new Error(json.message || 'Upload failed');
     return json.data;
   },
+
+  // Flashcard Management
+  getFlashcardDecks: () => api.get<any>('/admin/flashcards/decks', authConfig()),
+  createFlashcardDeck: (data: { subject: string; subjectId: string; icon?: string }) =>
+    api.post<any>('/admin/flashcards/decks', data, authConfig()),
+  updateFlashcardDeck: (id: string, data: { subject?: string; subjectId?: string; icon?: string }) =>
+    api.put<any>(`/admin/flashcards/decks/${id}`, data, authConfig()),
+  deleteFlashcardDeck: (id: string) => api.delete<any>(`/admin/flashcards/decks/${id}`, authConfig()),
+  getFlashcardCards: (deckId?: string) =>
+    api.get<any>(`/admin/flashcards/cards${deckId ? `?deckId=${deckId}` : ''}`, authConfig()),
+  createFlashcardCard: (data: { deckId: string; topic: string; topicId: string; question: string; answer: string; difficulty?: string }) =>
+    api.post<any>('/admin/flashcards/cards', data, authConfig()),
+  updateFlashcardCard: (id: string, data: any) =>
+    api.put<any>(`/admin/flashcards/cards/${id}`, data, authConfig()),
+  deleteFlashcardCard: (id: string) => api.delete<any>(`/admin/flashcards/cards/${id}`, authConfig()),
+
+  // Mindmap Management
+  getMindmapSubjects: () => api.get<any>('/admin/mindmaps/subjects', authConfig()),
+  createMindmapSubject: (data: { name: string; slug: string; icon?: string }) =>
+    api.post<any>('/admin/mindmaps/subjects', data, authConfig()),
+  updateMindmapSubject: (id: string, data: { name?: string; slug?: string; icon?: string }) =>
+    api.put<any>(`/admin/mindmaps/subjects/${id}`, data, authConfig()),
+  deleteMindmapSubject: (id: string) => api.delete<any>(`/admin/mindmaps/subjects/${id}`, authConfig()),
+  getAdminMindmaps: () => api.get<any>('/admin/mindmaps', authConfig()),
+  createAdminMindmap: (data: { subjectSlug: string; subjectName?: string; subjectIcon?: string; title: string; slug: string; branches: any; nodes: any; quizData?: any }) =>
+    api.post<any>('/admin/mindmaps', data, authConfig()),
+  updateAdminMindmap: (id: string, data: { title?: string; slug?: string; branches?: any; nodes?: any; quizData?: any }) =>
+    api.put<any>(`/admin/mindmaps/${id}`, data, authConfig()),
+  deleteAdminMindmap: (id: string) => api.delete<any>(`/admin/mindmaps/${id}`, authConfig()),
+
+  // Spaced Rep Seeds
+  getSpacedRepSeeds: (subject?: string) =>
+    api.get<any>(`/admin/spaced-rep/seeds${subject ? `?subject=${encodeURIComponent(subject)}` : ''}`, authConfig()),
+  createSpacedRepSeed: (data: { subject: string; topic?: string; questionText: string; difficulty?: string }) =>
+    api.post<any>('/admin/spaced-rep/seeds', data, authConfig()),
+  updateSpacedRepSeed: (id: string, data: any) =>
+    api.put<any>(`/admin/spaced-rep/seeds/${id}`, data, authConfig()),
+  deleteSpacedRepSeed: (id: string) => api.delete<any>(`/admin/spaced-rep/seeds/${id}`, authConfig()),
 
   // Library
   createSubject: (data: any) => api.post<any>('/admin/library/subjects', data, authConfig()),

@@ -1,6 +1,19 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { flashcardService } from '@/lib/services';
+
+const SUBJECT_TO_ID: Record<string, string> = {
+  'Indian Polity': 'polity',
+  'Modern History': 'history',
+  'Geography': 'geography',
+  'Indian Economy': 'economy',
+  'Science & Tech': 'science',
+  'Environment': 'environment',
+  'GS IV — Ethics': 'ethics',
+  'Current Affairs': 'current-affairs',
+  'Weak Topics': 'weak',
+};
 
 const subjectOptions = [
   'Indian Polity',
@@ -33,32 +46,78 @@ type Props = {
   onClose: () => void;
   initialSubject?: string;
   initialDeck?: string;
+  onCreated?: () => void;
 };
 
-export default function CreateFlashcardModal({ open, onClose, initialSubject, initialDeck }: Props) {
+export default function CreateFlashcardModal({ open, onClose, initialSubject, initialDeck, onCreated }: Props) {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [subject, setSubject] = useState(initialSubject || '');
   const [deck, setDeck] = useState(initialDeck || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (open) {
       setSubject(initialSubject ?? '');
       setDeck(initialDeck ?? '');
+      setError('');
     }
   }, [open, initialSubject, initialDeck]);
 
   if (!open) return null;
 
-  const handleSaveCard = () => {
-    onClose();
+  const getSubjectId = () => {
+    const name = deck || subject;
+    return SUBJECT_TO_ID[name] ?? name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   };
 
-  const handleSaveAndAddAnother = () => {
-    setQuestion('');
-    setAnswer('');
-    setDeck('');
-    setSubject(initialSubject ?? '');
+  const doSave = async (): Promise<boolean> => {
+    if (!question.trim() || !answer.trim()) {
+      setError('Question and answer are required.');
+      return false;
+    }
+    const subjectName = deck || subject;
+    if (!subjectName) {
+      setError('Please select a subject or deck.');
+      return false;
+    }
+    setError('');
+    setSaving(true);
+    try {
+      const res = await flashcardService.createCard({
+        subjectId: getSubjectId(),
+        subject: subjectName,
+        question: question.trim(),
+        answer: answer.trim(),
+      });
+      if (res.status === 'success') {
+        onCreated?.();
+        return true;
+      }
+      setError('Failed to save card. Please try again.');
+      return false;
+    } catch {
+      setError('Failed to save card. Please try again.');
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveCard = async () => {
+    const ok = await doSave();
+    if (ok) onClose();
+  };
+
+  const handleSaveAndAddAnother = async () => {
+    const ok = await doSave();
+    if (ok) {
+      setQuestion('');
+      setAnswer('');
+      setDeck('');
+      setSubject(initialSubject ?? '');
+    }
   };
 
   return (
@@ -213,12 +272,18 @@ export default function CreateFlashcardModal({ open, onClose, initialSubject, in
           </div>
         </div>
 
+        {/* Error */}
+        {error && (
+          <p className="text-red-500 text-sm mb-4 text-center">{error}</p>
+        )}
+
         {/* Actions */}
         <div className="flex flex-wrap items-center justify-center gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-[10px] px-5 py-2.5 border"
+            disabled={saving}
+            className="rounded-[10px] px-5 py-2.5 border disabled:opacity-50"
             style={{
               fontFamily: 'Inter',
               fontWeight: 500,
@@ -236,7 +301,8 @@ export default function CreateFlashcardModal({ open, onClose, initialSubject, in
           <button
             type="button"
             onClick={handleSaveCard}
-            className="rounded-[10px] px-5 py-2.5"
+            disabled={saving}
+            className="rounded-[10px] px-5 py-2.5 disabled:opacity-50"
             style={{
               fontFamily: 'Inter',
               fontWeight: 600,
@@ -248,12 +314,13 @@ export default function CreateFlashcardModal({ open, onClose, initialSubject, in
               background: '#101828',
             }}
           >
-            Save Card
+            {saving ? 'Saving...' : 'Save Card'}
           </button>
           <button
             type="button"
             onClick={handleSaveAndAddAnother}
-            className="rounded-[10px] px-5 py-2.5"
+            disabled={saving}
+            className="rounded-[10px] px-5 py-2.5 disabled:opacity-50"
             style={{
               fontFamily: 'Inter',
               fontWeight: 600,
@@ -265,7 +332,7 @@ export default function CreateFlashcardModal({ open, onClose, initialSubject, in
               background: 'linear-gradient(90deg, #F3A301 0%, #FD7201 100%)',
             }}
           >
-            Save & Add Another
+            {saving ? 'Saving...' : 'Save & Add Another'}
           </button>
         </div>
       </div>

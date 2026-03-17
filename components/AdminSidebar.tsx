@@ -31,6 +31,9 @@ const navigationSections: NavSection[] = [
       { id: 'daily-content', label: 'Daily Content', path: '/admin/daily-content', icon: '📅' },
       { id: 'editorials', label: 'Editorials', path: '/admin/editorials', icon: '📰' },
       { id: 'videos', label: 'Video Lectures', path: '/admin/videos', icon: '🎥' },
+      { id: 'flashcards', label: 'Flashcards', path: '/admin/flashcards', icon: '🃏' },
+      { id: 'mindmaps', label: 'Mindmaps', path: '/admin/mindmaps', icon: '🗺️' },
+      { id: 'spaced-rep', label: 'Spaced Rep', path: '/admin/spaced-repetition', icon: '🔁' },
     ],
   },
   {

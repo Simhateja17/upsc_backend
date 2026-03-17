@@ -15,6 +15,9 @@ const AI_EVAL_STEPS = [
 export default function PyqPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showAttemptModal, setShowAttemptModal] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [showMainsWriteModal, setShowMainsWriteModal] = useState(false);
   const [showAiEvalModal, setShowAiEvalModal] = useState(false);
   const [showAiEvalCompleteModal, setShowAiEvalCompleteModal] = useState(false);
@@ -26,27 +29,43 @@ export default function PyqPage() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [page, setPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedSubject, setSelectedSubject] = useState('All Papers');
 
   const fetchQuestions = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await pyqService.getQuestions({
         mode,
         year: selectedYear || undefined,
         subject: selectedSubject !== 'All Papers' ? selectedSubject : undefined,
+        page,
         limit: 20,
       });
       if (res.status === 'success') {
         setQuestions(res.data.questions);
         setTotal(res.data.pagination.total);
+        setTotalPages(res.data.pagination.totalPages);
+      } else {
+        setError(res.message || 'Failed to load questions');
+        setQuestions([]);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to fetch PYQ questions:', e);
+      setError('Unable to load questions. Please check your connection and try again.');
+      setQuestions([]);
     } finally {
       setLoading(false);
     }
+  }, [mode, selectedYear, selectedSubject, page]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
   }, [mode, selectedYear, selectedSubject]);
 
   useEffect(() => {
@@ -345,7 +364,12 @@ export default function PyqPage() {
                     {/* CTA */}
                     <button
                       type="button"
-                      onClick={() => setShowAttemptModal(true)}
+                      onClick={() => {
+                        setSelectedQuestion(q);
+                        setSelectedAnswer(null);
+                        setHasSubmitted(false);
+                        setShowAttemptModal(true);
+                      }}
                       className="w-full h-[52px] rounded-[14px] bg-[#0F172B] text-white font-bold text-[18px] leading-[28px] flex items-center justify-center hover:bg-[#111827] transition-colors"
                     >
                       Attempt Question
@@ -354,9 +378,44 @@ export default function PyqPage() {
                 );
               })}
 
-              {!loading && questions.length === 0 && (
+              {!loading && error && (
+                <div className="rounded-[16px] bg-red-50 border border-red-200 p-10 text-center">
+                  <p className="text-red-600 mb-4">{error}</p>
+                  <button
+                    onClick={fetchQuestions}
+                    className="px-5 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {!loading && !error && questions.length === 0 && (
                 <div className="rounded-[16px] bg-white p-10 text-center text-[#6A7282]">
                   No questions found for the selected filters.
+                </div>
+              )}
+
+              {/* Pagination */}
+              {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-6">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="px-5 py-2.5 rounded-[12px] bg-white shadow text-[15px] font-semibold text-[#0F172B] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-[15px] text-[#6A7282]">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="px-5 py-2.5 rounded-[12px] bg-white shadow text-[15px] font-semibold text-[#0F172B] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                  >
+                    Next
+                  </button>
                 </div>
               )}
 
@@ -1254,7 +1313,7 @@ export default function PyqPage() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header: question #, tags, actions - always visible when modal opens */}
+            {/* Header: question #, tags, actions */}
             <div
               className="flex items-center justify-between flex-wrap gap-2 flex-shrink-0"
               style={{ width: '824px', maxWidth: '100%', minHeight: '48px' }}
@@ -1264,12 +1323,15 @@ export default function PyqPage() {
                   className="rounded-[14px] flex items-center justify-center flex-shrink-0"
                   style={{ width: 48, height: 48, background: '#1E293B', color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 700, fontSize: '18px', lineHeight: '28px' }}
                 >
-                  1
+                  {selectedQuestion?.questionNum ?? '?'}
                 </div>
-                <span className="px-3 py-1.5 rounded-full text-[14px] font-semibold flex-shrink-0" style={{ background: '#1E293B', color: '#FFFFFF' }}>2024</span>
-                <span className="px-3 py-1.5 rounded-full text-[14px] font-semibold flex-shrink-0" style={{ background: '#FEF3C6', color: '#BB4D00' }}>History</span>
-                <span className="px-3 py-1.5 rounded-full text-[14px] font-semibold flex items-center gap-1 flex-shrink-0" style={{ background: '#FFEDD4', color: '#F54900' }}>🔥 Medium</span>
-                <span className="px-3 py-1 rounded-full text-[14px] font-semibold flex items-center gap-1 flex-shrink-0" style={{ background: '#DCFCE7', color: '#008236' }}>✅ Attempted</span>
+                <span className="px-3 py-1.5 rounded-full text-[14px] font-semibold flex-shrink-0" style={{ background: '#1E293B', color: '#FFFFFF' }}>{selectedQuestion?.year}</span>
+                <span className="px-3 py-1.5 rounded-full text-[14px] font-semibold flex-shrink-0" style={{ background: '#FEF3C6', color: '#BB4D00' }}>{selectedQuestion?.subject}</span>
+                <span className="px-3 py-1.5 rounded-full text-[14px] font-semibold flex items-center gap-1 flex-shrink-0" style={{ background: '#FFEDD4', color: '#F54900' }}>🔥 {selectedQuestion?.difficulty}</span>
+                {hasSubmitted
+                  ? <span className="px-3 py-1 rounded-full text-[14px] font-semibold flex items-center gap-1 flex-shrink-0" style={{ background: '#DCFCE7', color: '#008236' }}>✅ Attempted</span>
+                  : <span className="px-3 py-1 rounded-full text-[14px] font-semibold flex items-center gap-1 flex-shrink-0" style={{ background: '#F3F4F6', color: '#6A7282' }}>📝 Not Attempted</span>
+                }
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button type="button" onClick={() => setShowAttemptModal(false)} className="w-10 h-10 rounded-[14px] flex items-center justify-center text-[18px] font-bold" style={{ background: '#00A63E', color: '#FFFFFF' }} aria-label="Close">×</button>
@@ -1280,69 +1342,84 @@ export default function PyqPage() {
 
             {/* Question text */}
             <p style={{ width: '824px', maxWidth: '100%', fontFamily: 'Inter', fontWeight: 400, fontSize: '18px', lineHeight: '29.25px', color: '#1E2939' }}>
-              With reference to the history of ancient India, which of the following statements is/are correct?
+              {selectedQuestion?.questionText}
             </p>
-
-            {/* Statements */}
-            <div style={{ width: '824px', maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <p style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '16px', lineHeight: '24px', color: '#364153' }}>1. Arthashastra was written by Vishnugupta</p>
-              <p style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '16px', lineHeight: '24px', color: '#364153' }}>2. Indica was written by Deimachos</p>
-              <p style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '16px', lineHeight: '24px', color: '#364153' }}>3. Mudrarakshasa was written by Visakhadatta</p>
-            </div>
 
             {/* Options */}
             <div style={{ width: '824px', maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[
-                { label: 'A', text: '1 and 2 only', correct: false, wrong: false },
-                { label: 'B', text: '1 and 3 only', correct: true, wrong: false },
-                { label: 'C', text: '2 and 3 only', correct: false, wrong: false },
-                { label: 'D', text: '1, 2 and 3', correct: false, wrong: true },
-              ].map(({ label, text, correct, wrong }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-3 rounded-[14px] pl-4 py-3"
-                  style={{
-                    minHeight: 65,
-                    background: correct ? '#F0FDF4' : wrong ? '#FEF2F2' : '#F9FAFB',
-                    border: correct ? '1.6px solid #00C950' : wrong ? '1.6px solid #FB2C36' : '0.8px solid #E5E7EB',
-                  }}
-                >
-                  <div
-                    className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0 text-[16px] font-bold"
-                    style={{ background: correct ? '#00A63E' : wrong ? '#E7000B' : '#D1D5DC', color: correct || wrong ? '#FFFFFF' : '#364153' }}
+              {(selectedQuestion?.options ?? []).map((opt: any) => {
+                const isSelected = selectedAnswer === opt.label;
+                const isCorrect  = opt.label === selectedQuestion?.correctOption;
+
+                let bg = '#F9FAFB', border = '0.8px solid #E5E7EB', labelBg = '#D1D5DC', labelColor = '#364153';
+                if (!hasSubmitted && isSelected) {
+                  bg = '#EFF6FF'; border = '1.6px solid #3B82F6'; labelBg = '#3B82F6'; labelColor = '#fff';
+                }
+                if (hasSubmitted && isCorrect) {
+                  bg = '#F0FDF4'; border = '1.6px solid #00C950'; labelBg = '#00A63E'; labelColor = '#fff';
+                }
+                if (hasSubmitted && isSelected && !isCorrect) {
+                  bg = '#FEF2F2'; border = '1.6px solid #FB2C36'; labelBg = '#E7000B'; labelColor = '#fff';
+                }
+
+                return (
+                  <button
+                    key={opt.label}
+                    disabled={hasSubmitted}
+                    onClick={() => setSelectedAnswer(opt.label)}
+                    className="w-full flex items-center gap-3 rounded-[14px] pl-4 py-3 text-left transition-colors"
+                    style={{ minHeight: 65, background: bg, border }}
                   >
-                    {label}
-                  </div>
-                  <span style={{ fontFamily: 'Inter', fontWeight: correct || wrong ? 500 : 400, fontSize: '16px', lineHeight: '24px', color: '#1E2939' }}>{text}</span>
-                </div>
-              ))}
+                    <div className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0 text-[16px] font-bold"
+                         style={{ background: labelBg, color: labelColor }}>
+                      {opt.label}
+                    </div>
+                    <span style={{ fontWeight: (hasSubmitted && (isCorrect || isSelected)) ? 500 : 400, fontSize: '16px', color: '#1E2939' }}>
+                      {opt.text}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Explanation */}
-            <div style={{ width: '774.4px', maxWidth: '100%' }}>
-              <div className="flex items-center gap-2 mb-2" style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: '14px', lineHeight: '20px', letterSpacing: '0.35px', textTransform: 'uppercase', color: '#016630' }}>
-                <span aria-hidden>✅</span>
-                <span>Explanation</span>
+            {/* Explanation — shown only after submit */}
+            {hasSubmitted && selectedQuestion?.explanation && (
+              <div style={{ width: '774.4px', maxWidth: '100%' }}>
+                <div className="flex items-center gap-2 mb-2" style={{ color: '#016630', fontWeight: 700, fontSize: '14px', textTransform: 'uppercase' }}>
+                  <span>✅</span><span>Explanation</span>
+                </div>
+                <p style={{ fontSize: '16px', color: '#364153', lineHeight: '26px', marginBottom: 12 }}>
+                  {selectedQuestion.explanation}
+                </p>
+                <div className="flex items-center gap-2" style={{ fontSize: '14px', color: '#6A7282' }}>
+                  <span>📖</span>
+                  <span>UPSC CSE Prelims {selectedQuestion.year}, {selectedQuestion.paper}</span>
+                </div>
               </div>
-              <p style={{ width: '100%', fontFamily: 'Inter', fontWeight: 400, fontSize: '16px', lineHeight: '26px', color: '#364153', marginBottom: 12 }}>
-                Arthashastra is attributed to Kautilya/Vishnugupta/Chanakya (correct). Indica was written by Megasthenes, not Deimachos. Mudrarakshasa was indeed written by Visakhadatta — a Sanskrit play on Chandragupta&apos;s ascent.
-              </p>
-              <div className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '14px', lineHeight: '20px', color: '#6A7282' }}>
-                <span aria-hidden>📖</span>
-                <span>UPSC CSE Prelims 2024, GS Paper I</span>
-              </div>
-            </div>
+            )}
 
             {/* Bottom bar */}
             <div className="flex items-center justify-between flex-wrap gap-4" style={{ width: '824px', maxWidth: '100%', marginTop: 'auto', paddingTop: 8 }}>
-              <button
-                type="button"
-                className="flex items-center justify-center gap-2 rounded-[14px] px-5 py-2.5"
-                style={{ background: '#DCFCE7', color: '#008236', fontFamily: 'Inter', fontWeight: 600, fontSize: '16px', lineHeight: '24px' }}
-              >
-                <span aria-hidden>✅</span>
-                <span>Attempted · Reset</span>
-              </button>
+              {!hasSubmitted ? (
+                <button
+                  type="button"
+                  onClick={() => { if (selectedAnswer) setHasSubmitted(true); }}
+                  disabled={!selectedAnswer}
+                  className="flex items-center justify-center gap-2 rounded-[14px] px-5 py-2.5"
+                  style={{ background: selectedAnswer ? '#0F172B' : '#E5E7EB', color: selectedAnswer ? '#fff' : '#9CA3AF', fontWeight: 600, fontSize: '16px', cursor: selectedAnswer ? 'pointer' : 'not-allowed' }}
+                >
+                  {selectedAnswer ? 'Submit Answer' : 'Select an answer first'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setHasSubmitted(false); setSelectedAnswer(null); }}
+                  className="flex items-center justify-center gap-2 rounded-[14px] px-5 py-2.5"
+                  style={{ background: '#DCFCE7', color: '#008236', fontWeight: 600, fontSize: '16px' }}
+                >
+                  <span>✅</span><span>Attempted · Reset</span>
+                </button>
+              )}
               <div className="flex items-center gap-6">
                 <span className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '14px', lineHeight: '20px', color: '#6A7282' }}>
                   <span aria-hidden>👁</span>

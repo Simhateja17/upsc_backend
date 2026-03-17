@@ -1,64 +1,72 @@
 'use client';
 
-import React from 'react';
-
-const topStripCards = [
-  { label: 'test taken', value: '34', valueColor: '#D4AF37' },
-  { label: 'avg score', value: '127', valueColor: '#00D492' },
-  { label: 'accuracy', value: '82%', valueColor: '#FFFFFF' },
-  { label: 'best rank', value: '#1245', valueColor: '#FF8904' },
-  { label: 'day \nstreak', value: '42', valueColor: '#FFFFFF' },
-];
-
-type SummaryCard = {
-  title: string;
-  value: string;
-  accentColor: string;
-  subtitle: string;
-};
-
-const summaryCards: SummaryCard[] = [
-  {
-    title: 'Overall Percentile Score',
-    value: '84.6',
-    accentColor: '#00BBA7',
-    subtitle: 'Outperforming 82% of serious aspirants',
-  },
-  {
-    title: 'Tests Attempted',
-    value: '47',
-    accentColor: '#FF6900',
-    subtitle: 'Full length + sectional mock tests',
-  },
-  {
-    title: 'Questions Attempted',
-    value: '4,218',
-    accentColor: '#155DFC',
-    subtitle: 'Across MCQs, PYQs and mock tests',
-  },
-  {
-    title: 'Overall Accuracy',
-    value: '82.4%',
-    accentColor: '#22C55E',
-    subtitle: 'Net accuracy after negative marking',
-  },
-];
-
-const mcqStats = {
-  correct: 1842,
-  wrong: 513,
-  skipped: 187,
-  netAccuracy: 78.4,
-};
+import React, { useState, useEffect } from 'react';
+import { dashboardService } from '@/lib/services';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function PerformancePage() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    dashboardService.getPerformance()
+      .then(res => setData(res.data))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const mcq = data?.mcq ?? {};
+  const streak = data?.streak ?? {};
+  const mockTests = data?.mockTests ?? {};
+
+  const totalTests = (mcq.totalAttempts ?? 0) + (mockTests.totalAttempts ?? 0);
+  const avgAccuracy = mcq.avgAccuracy ?? 0;
+  const bestPercentile = mcq.bestPercentile ?? 0;
+  const currentStreak = streak.currentStreak ?? 0;
+  const totalQuestions = (mcq.totalCorrect ?? 0) + (mcq.totalWrong ?? 0) + (mcq.totalSkipped ?? 0);
+
+  const topStripCards = [
+    { label: 'test taken', value: String(totalTests), valueColor: '#D4AF37' },
+    { label: 'avg score', value: `${avgAccuracy}%`, valueColor: '#00D492' },
+    { label: 'accuracy', value: `${avgAccuracy}%`, valueColor: '#FFFFFF' },
+    { label: 'best rank', value: bestPercentile > 0 ? `${bestPercentile}th %ile` : 'N/A', valueColor: '#FF8904' },
+    { label: 'day \nstreak', value: String(currentStreak), valueColor: '#FFFFFF' },
+  ];
+
+  const summaryCards = [
+    {
+      title: 'Overall Percentile Score',
+      value: bestPercentile > 0 ? String(bestPercentile) : 'N/A',
+      accentColor: '#00BBA7',
+      subtitle: 'Outperforming aspirants',
+    },
+    {
+      title: 'Tests Attempted',
+      value: String(totalTests),
+      accentColor: '#FF6900',
+      subtitle: 'Full length + sectional mock tests',
+    },
+    {
+      title: 'Questions Attempted',
+      value: totalQuestions.toLocaleString('en-IN'),
+      accentColor: '#155DFC',
+      subtitle: 'Across MCQs, PYQs and mock tests',
+    },
+    {
+      title: 'Overall Accuracy',
+      value: `${avgAccuracy}%`,
+      accentColor: '#22C55E',
+      subtitle: 'Net accuracy after negative marking',
+    },
+  ];
+
   return (
     <div
       className="flex overflow-hidden"
       style={{ background: '#FFFFFF', minHeight: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}
     >
       <div className="flex-1 overflow-y-auto">
-        <div className="w-full max-w-[1180px] mx-auto px-6 py-8">
+        <div className={`w-full max-w-[1180px] mx-auto px-6 py-8 ${loading ? 'opacity-50 animate-pulse' : ''}`}>
           {/* Hero section */}
           <div
             className="w-full rounded-[16px] px-10 pt-8 pb-6 mb-6 flex flex-col gap-6"
@@ -87,7 +95,7 @@ export default function PerformancePage() {
                 className="text-[40px] sm:text-[48px] leading-[48px] font-bold"
                 style={{ color: '#FFFFFF', fontFamily: 'Inter, system-ui' }}
               >
-                Arjun&apos;s{' '}
+                {user?.firstName ?? 'Your'}&apos;s{' '}
                 <span
                   style={{
                     fontFamily: 'Georgia, ui-serif',
@@ -243,7 +251,7 @@ export default function PerformancePage() {
                         color: '#101828',
                       }}
                     >
-                      {mcqStats.correct.toLocaleString('en-IN')}
+                      {(mcq.totalCorrect ?? 0).toLocaleString('en-IN')}
                     </div>
                     <div
                       className="uppercase text-[12px] tracking-[0.6px]"
@@ -265,7 +273,7 @@ export default function PerformancePage() {
                         color: '#FB2C36',
                       }}
                     >
-                      {mcqStats.wrong.toLocaleString('en-IN')}
+                      {(mcq.totalWrong ?? 0).toLocaleString('en-IN')}
                     </div>
                     <div
                       className="uppercase text-[12px] tracking-[0.6px]"
@@ -287,7 +295,7 @@ export default function PerformancePage() {
                         color: '#D1D5DC',
                       }}
                     >
-                      {mcqStats.skipped.toLocaleString('en-IN')}
+                      {(mcq.totalSkipped ?? 0).toLocaleString('en-IN')}
                     </div>
                     <div
                       className="uppercase text-[12px] tracking-[0.6px]"
@@ -309,7 +317,7 @@ export default function PerformancePage() {
                         color: '#FF6900',
                       }}
                     >
-                      {mcqStats.netAccuracy}%
+                      {avgAccuracy}%
                     </div>
                     <div
                       className="uppercase text-[12px] tracking-[0.6px]"
