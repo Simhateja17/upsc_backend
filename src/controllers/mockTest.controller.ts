@@ -354,7 +354,7 @@ export const saveProgress = async (req: Request, res: Response, next: NextFuncti
 
     res.json({ status: "success", message: "Progress saved" });
   } catch (error) {
-    res.json({ status: "success", message: "Progress saved" });
+    next(error);
   }
 };
 
