@@ -1,19 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { createClient } from "@supabase/supabase-js";
-import prisma from "../config/database";
+import { randomUUID } from "crypto";
+import { supabase, supabaseAdmin } from "../config/supabase";
 import { sendWelcomeEmail } from "../services/emailService";
-
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// Create Supabase client for auth operations
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Admin client for server-side operations (bypasses RLS)
-const supabaseAdmin = supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey)
-  : null;
 
 interface SignupBody {
   email: string;
@@ -41,119 +29,89 @@ export const signup = async (
     const { email, password, firstName, lastName, phone } = req.body;
     console.log(`[Signup] Attempt for email: ${email}`);
 
-    // Validate required fields
     if (!email || !password) {
-      return res.status(400).json({
-        status: "error",
-        message: "Email and password are required",
-      });
+      return res.status(400).json({ status: "error", message: "Email and password are required" });
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        status: "error",
-        message: "Invalid email format",
-      });
+      return res.status(400).json({ status: "error", message: "Invalid email format" });
     }
 
-    // Validate password strength
     if (password.length < 6) {
-      return res.status(400).json({
-        status: "error",
-        message: "Password must be at least 6 characters",
-      });
+      return res.status(400).json({ status: "error", message: "Password must be at least 6 characters" });
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
+    // Check if user already exists via REST
+    const { data: existing } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("email", email.toLowerCase())
+      .single();
 
-    if (existingUser) {
-      return res.status(409).json({
-        status: "error",
-        message: "An account with this email already exists",
-      });
+    if (existing) {
+      return res.status(409).json({ status: "error", message: "An account with this email already exists" });
     }
 
     // Create user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.toLowerCase(),
       password,
-      options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-        },
-      },
+      options: { data: { first_name: firstName, last_name: lastName } },
     });
 
     if (authError) {
       console.error("Supabase auth error:", authError);
-      return res.status(400).json({
-        status: "error",
-        message: authError.message,
-      });
+      return res.status(400).json({ status: "error", message: authError.message });
     }
 
     if (!authData.user) {
-      return res.status(500).json({
-        status: "error",
-        message: "Failed to create user account",
-      });
+      return res.status(500).json({ status: "error", message: "Failed to create user account" });
     }
 
-    // Create user in our database
-    const user = await prisma.user.create({
-      data: {
-        supabaseId: authData.user.id,
+    // Create user in our database via REST
+    const { data: user, error: createErr } = await supabaseAdmin
+      .from("users")
+      .insert({
+        id: randomUUID(),
+        supabase_id: authData.user.id,
         email: email.toLowerCase(),
-        firstName,
-        lastName,
+        first_name: firstName,
+        last_name: lastName,
         phone,
-        emailVerified: !!authData.user.email_confirmed_at,
-      },
-    });
+        email_verified: !!authData.user.email_confirmed_at,
+      })
+      .select("id, email, first_name, last_name, role")
+      .single();
+
+    if (createErr || !user) {
+      console.error("Failed to create user record:", createErr);
+      return res.status(500).json({ status: "error", message: "Failed to create user record" });
+    }
+
     console.log(`[Signup] User created successfully: ${user.email} (${user.id})`);
 
-    // Send welcome email (async, don't block response)
     sendWelcomeEmail(email, firstName || "").catch((err) =>
       console.error("Welcome email failed:", err)
     );
 
-    // If email confirmation is required, session will be null
-    // In that case, we still return success but without session
     if (!authData.session) {
-      res.status(201).json({
+      return res.status(201).json({
         status: "success",
         message: "Account created successfully. Please check your email to verify your account.",
         data: {
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-          },
+          user: { id: user.id, email: user.email, firstName: user.first_name, lastName: user.last_name },
           session: null,
           requiresEmailVerification: true,
         },
       });
-      return;
     }
 
     res.status(201).json({
       status: "success",
       message: "Account created successfully",
       data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-        },
+        user: { id: user.id, email: user.email, firstName: user.first_name, lastName: user.last_name, role: user.role },
         session: {
           accessToken: authData.session.access_token,
           refreshToken: authData.session.refresh_token,
@@ -179,74 +137,66 @@ export const login = async (
     const { email, password } = req.body;
     console.log(`[Login] Attempt for email: ${email}`);
 
-    // Validate required fields
     if (!email || !password) {
-      return res.status(400).json({
-        status: "error",
-        message: "Email and password are required",
-      });
+      return res.status(400).json({ status: "error", message: "Email and password are required" });
     }
 
-    // Authenticate with Supabase
-    const { data: authData, error: authError } =
-      await supabase.auth.signInWithPassword({
-        email: email.toLowerCase(),
-        password,
-      });
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase(),
+      password,
+    });
 
     if (authError) {
       console.error("Login error:", authError);
-      return res.status(401).json({
-        status: "error",
-        message: "Invalid email or password",
-      });
+      return res.status(401).json({ status: "error", message: "Invalid email or password" });
     }
 
     if (!authData.user || !authData.session) {
-      return res.status(401).json({
-        status: "error",
-        message: "Invalid email or password",
-      });
+      return res.status(401).json({ status: "error", message: "Invalid email or password" });
     }
 
-    // Get user from our database
-    let user = await prisma.user.findUnique({
-      where: { supabaseId: authData.user.id },
-    });
+    // Get user from our database via REST
+    let { data: user } = await supabaseAdmin
+      .from("users")
+      .select("*")
+      .eq("supabase_id", authData.user.id)
+      .single();
 
-    // If user doesn't exist in our DB (e.g., created via Google OAuth), create them
     if (!user) {
-      user = await prisma.user.create({
-        data: {
-          supabaseId: authData.user.id,
+      const { data: newUser } = await supabaseAdmin
+        .from("users")
+        .insert({
+          id: randomUUID(),
+          supabase_id: authData.user.id,
           email: authData.user.email!.toLowerCase(),
-          firstName: authData.user.user_metadata?.first_name,
-          lastName: authData.user.user_metadata?.last_name,
-          emailVerified: !!authData.user.email_confirmed_at,
-        },
-      });
+          first_name: authData.user.user_metadata?.first_name,
+          last_name: authData.user.user_metadata?.last_name,
+          email_verified: !!authData.user.email_confirmed_at,
+        })
+        .select("*")
+        .single();
+      user = newUser;
     }
 
-    // Update email verified status if changed
-    if (authData.user.email_confirmed_at && !user.emailVerified) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { emailVerified: true },
-      });
+    if (authData.user.email_confirmed_at && !user?.email_verified) {
+      await supabaseAdmin
+        .from("users")
+        .update({ email_verified: true })
+        .eq("id", user!.id);
     }
 
-    console.log(`[Login] Successful for: ${user.email} (${user.id})`);
+    console.log(`[Login] Successful for: ${user!.email} (${user!.id})`);
     res.json({
       status: "success",
       message: "Login successful",
       data: {
         user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          avatarUrl: user.avatarUrl,
-          role: user.role,
+          id: user!.id,
+          email: user!.email,
+          firstName: user!.first_name,
+          lastName: user!.last_name,
+          avatarUrl: user!.avatar_url,
+          role: user!.role,
         },
         session: {
           accessToken: authData.session.access_token,
@@ -263,6 +213,8 @@ export const login = async (
 /**
  * Get current authenticated user
  * GET /api/auth/me
+ * The auth middleware already verified the JWT and looked up the user.
+ * This endpoint just returns the user data — no additional network calls needed.
  */
 export const getMe = async (
   req: Request,
@@ -270,57 +222,19 @@ export const getMe = async (
   next: NextFunction
 ) => {
   try {
-    // Get token from header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        status: "error",
-        message: "No token provided",
-      });
+    if (!req.user) {
+      return res.status(401).json({ status: "error", message: "Not authenticated" });
     }
 
-    const token = authHeader.split(" ")[1];
-
-    // Verify token with Supabase
-    const {
-      data: { user: authUser },
-      error: authError,
-    } = await supabase.auth.getUser(token);
-
-    if (authError || !authUser) {
-      return res.status(401).json({
-        status: "error",
-        message: "Invalid or expired token",
-      });
-    }
-
-    // Get or auto-create user in our database
-    const metadata = authUser.user_metadata || {};
-    let user = await prisma.user.findUnique({
-      where: { supabaseId: authUser.id },
-    });
+    // Fetch full user data via REST (middleware only attaches a subset)
+    const { data: user } = await supabaseAdmin
+      .from("users")
+      .select("*")
+      .eq("id", req.user.id)
+      .single();
 
     if (!user) {
-      // User exists in Supabase but not in our DB — create them now
-      user = await prisma.user.create({
-        data: {
-          supabaseId: authUser.id,
-          email: authUser.email!.toLowerCase(),
-          firstName: metadata.first_name || metadata.full_name?.split(" ")[0] || null,
-          lastName: metadata.last_name || metadata.full_name?.split(" ").slice(1).join(" ") || null,
-          avatarUrl: metadata.avatar_url || metadata.picture || null,
-          emailVerified: !!authUser.email_confirmed_at,
-        },
-      });
-    } else if (!user.firstName && !user.lastName && (metadata.first_name || metadata.full_name)) {
-      // Backfill missing name from Supabase metadata
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          firstName: metadata.first_name || metadata.full_name?.split(" ")[0] || null,
-          lastName: metadata.last_name || metadata.full_name?.split(" ").slice(1).join(" ") || null,
-        },
-      });
+      return res.status(404).json({ status: "error", message: "User not found" });
     }
 
     res.json({
@@ -329,13 +243,13 @@ export const getMe = async (
         user: {
           id: user.id,
           email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
+          firstName: user.first_name,
+          lastName: user.last_name,
           phone: user.phone,
-          avatarUrl: user.avatarUrl,
-          emailVerified: user.emailVerified,
+          avatarUrl: user.avatar_url,
+          emailVerified: user.email_verified,
           role: user.role,
-          createdAt: user.createdAt,
+          createdAt: user.created_at,
         },
       },
     });
@@ -345,7 +259,7 @@ export const getMe = async (
 };
 
 /**
- * Logout user (invalidate session)
+ * Logout user
  * POST /api/auth/logout
  */
 export const logout = async (
@@ -355,7 +269,6 @@ export const logout = async (
 ) => {
   try {
     console.log(`[Logout] User: ${req.user?.email || "unknown"}`);
-    // Use admin client to revoke the user's session server-side
     if (supabaseAdmin && req.user) {
       await supabaseAdmin.auth.admin.signOut(
         req.headers.authorization?.split(" ")[1] || "",
@@ -365,10 +278,7 @@ export const logout = async (
       await supabase.auth.signOut();
     }
 
-    res.json({
-      status: "success",
-      message: "Logged out successfully",
-    });
+    res.json({ status: "success", message: "Logged out successfully" });
   } catch (error) {
     next(error);
   }
@@ -387,10 +297,7 @@ export const refreshToken = async (
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      return res.status(400).json({
-        status: "error",
-        message: "Refresh token is required",
-      });
+      return res.status(400).json({ status: "error", message: "Refresh token is required" });
     }
 
     const { data, error } = await supabase.auth.refreshSession({
@@ -398,10 +305,7 @@ export const refreshToken = async (
     });
 
     if (error || !data.session) {
-      return res.status(401).json({
-        status: "error",
-        message: "Invalid refresh token",
-      });
+      return res.status(401).json({ status: "error", message: "Invalid refresh token" });
     }
 
     res.json({
@@ -434,24 +338,14 @@ export const googleAuth = async (
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: redirectUrl,
-      },
+      options: { redirectTo: redirectUrl },
     });
 
     if (error) {
-      return res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
+      return res.status(400).json({ status: "error", message: error.message });
     }
 
-    res.json({
-      status: "success",
-      data: {
-        url: data.url,
-      },
-    });
+    res.json({ status: "success", data: { url: data.url } });
   } catch (error) {
     next(error);
   }
@@ -471,69 +365,63 @@ export const authCallback = async (
     console.log("[AuthCallback] Processing OAuth callback");
 
     if (!accessToken) {
-      return res.status(400).json({
-        status: "error",
-        message: "Access token is required",
-      });
+      return res.status(400).json({ status: "error", message: "Access token is required" });
     }
 
-    // Get user from Supabase
-    const {
-      data: { user: authUser },
-      error: authError,
-    } = await supabase.auth.getUser(accessToken);
+    // Use admin client to get user details (HTTPS, reliable)
+    const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
 
     if (authError || !authUser) {
-      return res.status(401).json({
-        status: "error",
-        message: "Invalid token",
-      });
+      return res.status(401).json({ status: "error", message: "Invalid token" });
     }
 
-    // Check if user exists in our database
-    let user = await prisma.user.findUnique({
-      where: { supabaseId: authUser.id },
-    });
+    let { data: user } = await supabaseAdmin
+      .from("users")
+      .select("*")
+      .eq("supabase_id", authUser.id)
+      .single();
 
     const metadata = authUser.user_metadata || {};
     const metaFirst = metadata.first_name || metadata.full_name?.split(" ")[0] || null;
-    const metaLast  = metadata.last_name  || metadata.full_name?.split(" ").slice(1).join(" ") || null;
+    const metaLast = metadata.last_name || metadata.full_name?.split(" ").slice(1).join(" ") || null;
 
     if (!user) {
-      // Create user
-      user = await prisma.user.create({
-        data: {
-          supabaseId: authUser.id,
+      const { data: newUser } = await supabaseAdmin
+        .from("users")
+        .insert({
+          id: randomUUID(),
+          supabase_id: authUser.id,
           email: authUser.email!.toLowerCase(),
-          firstName: metaFirst,
-          lastName: metaLast,
-          avatarUrl: metadata.avatar_url || metadata.picture,
-          emailVerified: !!authUser.email_confirmed_at,
-        },
-      });
-    } else if (!user.firstName && !user.lastName && (metaFirst || metaLast)) {
-      // Backfill name from Supabase metadata if missing in DB
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { firstName: metaFirst, lastName: metaLast },
-      });
+          first_name: metaFirst,
+          last_name: metaLast,
+          avatar_url: metadata.avatar_url || metadata.picture,
+          email_verified: !!authUser.email_confirmed_at,
+        })
+        .select("*")
+        .single();
+      user = newUser;
+    } else if (!user.first_name && !user.last_name && (metaFirst || metaLast)) {
+      const { data: updated } = await supabaseAdmin
+        .from("users")
+        .update({ first_name: metaFirst, last_name: metaLast })
+        .eq("id", user.id)
+        .select("*")
+        .single();
+      user = updated || user;
     }
 
     res.json({
       status: "success",
       data: {
         user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          avatarUrl: user.avatarUrl,
-          role: user.role,
+          id: user!.id,
+          email: user!.email,
+          firstName: user!.first_name,
+          lastName: user!.last_name,
+          avatarUrl: user!.avatar_url,
+          role: user!.role,
         },
-        session: {
-          accessToken,
-          refreshToken,
-        },
+        session: { accessToken, refreshToken },
       },
     });
   } catch (error) {

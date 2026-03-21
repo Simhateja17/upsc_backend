@@ -12,6 +12,7 @@ import * as contentCtrl from "../controllers/admin/content.controller";
 import * as aiCostCtrl from "../controllers/admin/aiCost.controller";
 import * as cmsCtrl from "../controllers/admin/cms.controller";
 import * as studyMaterialCtrl from "../controllers/admin/studyMaterial.controller";
+import * as mockTestMaterialCtrl from "../controllers/admin/mockTestMaterial.controller";
 
 const router = Router();
 
@@ -51,6 +52,11 @@ router.post("/daily-mains/generate", aiLimiter, contentCtrl.triggerDailyMains);
 router.post("/study-materials/upload", uploadPDF, studyMaterialCtrl.uploadStudyMaterial);
 router.get("/study-materials", studyMaterialCtrl.getStudyMaterials);
 router.delete("/study-materials/:id", studyMaterialCtrl.deleteStudyMaterial);
+
+// ==================== Mock Test Materials (stores in mock_test_chunks) ====================
+router.post("/mock-test-materials/upload", uploadPDF, mockTestMaterialCtrl.uploadMockTestMaterial);
+router.get("/mock-test-materials", mockTestMaterialCtrl.getMockTestMaterials);
+router.delete("/mock-test-materials/:id", mockTestMaterialCtrl.deleteMockTestMaterial);
 
 // ==================== Library Management ====================
 router.post("/library/subjects", contentCtrl.createSubject);

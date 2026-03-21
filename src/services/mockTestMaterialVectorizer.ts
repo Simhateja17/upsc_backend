@@ -3,14 +3,13 @@ import { supabaseAdmin } from "../config/supabase";
 import { chunkPDF } from "./chunking.service";
 import { embedText } from "./embedding.service";
 
-const LOG = "[STUDY-VECTORIZE]";
+const LOG = "[MOCK-TEST-VECTORIZE]";
 
 /**
- * Vectorization pipeline for study material PDFs (notes, chapters, textbooks).
- * Chunks the PDF, embeds each chunk with Gemini Embedding 2, stores via Supabase REST API.
- * Uses HTTPS (port 443) — reliable even when direct Postgres (port 5432) is blocked.
+ * Vectorization pipeline for mock test material PDFs.
+ * Chunks the PDF, embeds each chunk with Gemini Embedding 2, stores in mock_test_chunks.
  */
-export async function vectorizeStudyMaterial(
+export async function vectorizeMockTestMaterial(
   uploadId: string,
   pdfBuffer: Buffer
 ): Promise<void> {
@@ -19,7 +18,7 @@ export async function vectorizeStudyMaterial(
   try {
     // Fetch upload metadata via REST
     const { data: upload, error: uploadErr } = await supabaseAdmin
-      .from("study_material_uploads")
+      .from("mock_test_material_uploads")
       .select("*")
       .eq("id", uploadId)
       .single();
@@ -42,7 +41,7 @@ export async function vectorizeStudyMaterial(
 
     if (chunks.length === 0) {
       await supabaseAdmin
-        .from("study_material_uploads")
+        .from("mock_test_material_uploads")
         .update({ status: "failed" })
         .eq("id", uploadId);
       return;
@@ -65,9 +64,8 @@ export async function vectorizeStudyMaterial(
             uploadId,
           };
 
-          // Insert via Supabase REST — goes over HTTPS, no port 5432 needed
           const { error: insertErr } = await supabaseAdmin
-            .from("study_material_chunks")
+            .from("mock_test_chunks")
             .insert({
               id: randomUUID(),
               upload_id: uploadId,
@@ -86,7 +84,7 @@ export async function vectorizeStudyMaterial(
           if (stored % 10 === 0) {
             console.log(`${LOG} Progress: ${stored}/${chunks.length} chunks stored`);
           }
-          break; // success — move to next chunk
+          break;
         } catch (err: any) {
           if (attempt < MAX_RETRIES) {
             const delay = 2000 * attempt;
@@ -107,7 +105,7 @@ export async function vectorizeStudyMaterial(
 
     // Step 3: Update status via REST
     await supabaseAdmin
-      .from("study_material_uploads")
+      .from("mock_test_material_uploads")
       .update({ status: "vectorized", total_chunks: stored })
       .eq("id", uploadId);
 
@@ -117,7 +115,7 @@ export async function vectorizeStudyMaterial(
   } catch (error) {
     console.error(`${LOG} Failed for upload ${uploadId}:`, error);
     await supabaseAdmin
-      .from("study_material_uploads")
+      .from("mock_test_material_uploads")
       .update({ status: "failed" })
       .eq("id", uploadId)
       .then(() => {});

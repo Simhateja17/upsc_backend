@@ -2,14 +2,14 @@ import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
 import { supabaseAdmin } from "../../config/supabase";
 import { uploadFile, STORAGE_BUCKETS } from "../../config/storage";
-import { vectorizeStudyMaterial } from "../../services/studyMaterialVectorizer";
+import { vectorizeMockTestMaterial } from "../../services/mockTestMaterialVectorizer";
 
 /**
- * POST /api/admin/study-materials/upload
- * Upload a study material PDF (notes, chapters, textbooks) for RAG vectorization.
- * Uses Supabase REST API (HTTPS) — no direct Postgres connection needed.
+ * POST /api/admin/mock-test-materials/upload
+ * Upload a mock test material PDF for RAG vectorization.
+ * Chunks are stored in mock_test_chunks (not study_material_chunks).
  */
-export const uploadStudyMaterial = async (req: Request, res: Response, next: NextFunction) => {
+export const uploadMockTestMaterial = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
 
@@ -27,15 +27,13 @@ export const uploadStudyMaterial = async (req: Request, res: Response, next: Nex
       return res.status(400).json({ status: "error", message: "subject is required" });
     }
 
-    // Upload to Supabase Storage
-    const fileName = `study_${Date.now()}.pdf`;
-    const filePath = `rag-sources/${fileName}`;
+    const fileName = `mock_test_${Date.now()}.pdf`;
+    const filePath = `mock-test-sources/${fileName}`;
 
     await uploadFile(STORAGE_BUCKETS.STUDY_MATERIALS, filePath, req.file.buffer, "application/pdf");
 
-    // Create DB record via REST
     const { data: upload, error } = await supabaseAdmin
-      .from("study_material_uploads")
+      .from("mock_test_material_uploads")
       .insert({
         id: randomUUID(),
         file_name: req.file.originalname,
@@ -50,13 +48,12 @@ export const uploadStudyMaterial = async (req: Request, res: Response, next: Nex
       .single();
 
     if (error || !upload) {
-      console.error("Failed to create study material record:", error);
+      console.error("Failed to create mock test material record:", error);
       return res.status(500).json({ status: "error", message: "Failed to create upload record" });
     }
 
-    // Vectorize asynchronously
-    vectorizeStudyMaterial(upload.id, req.file.buffer)
-      .catch((err) => console.error("Study material vectorization error:", err));
+    vectorizeMockTestMaterial(upload.id, req.file.buffer)
+      .catch((err) => console.error("Mock test material vectorization error:", err));
 
     res.status(201).json({
       status: "success",
@@ -69,16 +66,16 @@ export const uploadStudyMaterial = async (req: Request, res: Response, next: Nex
 };
 
 /**
- * GET /api/admin/study-materials
- * List all study material uploads with status and chunk count.
+ * GET /api/admin/mock-test-materials
+ * List all mock test material uploads with status and chunk count.
  */
-export const getStudyMaterials = async (req: Request, res: Response, next: NextFunction) => {
+export const getMockTestMaterials = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const subject = req.query.subject as string | undefined;
     const status = req.query.status as string | undefined;
 
     let query = supabaseAdmin
-      .from("study_material_uploads")
+      .from("mock_test_material_uploads")
       .select("*, uploaded_by:users(email, first_name)")
       .order("created_at", { ascending: false });
 
@@ -88,8 +85,8 @@ export const getStudyMaterials = async (req: Request, res: Response, next: NextF
     const { data: uploads, error } = await query;
 
     if (error) {
-      console.error("Failed to fetch study materials:", error);
-      return res.status(500).json({ status: "error", message: "Failed to fetch study materials" });
+      console.error("Failed to fetch mock test materials:", error);
+      return res.status(500).json({ status: "error", message: "Failed to fetch mock test materials" });
     }
 
     res.json({ status: "success", data: uploads });
@@ -99,15 +96,15 @@ export const getStudyMaterials = async (req: Request, res: Response, next: NextF
 };
 
 /**
- * DELETE /api/admin/study-materials/:id
- * Delete a study material upload and all its chunks.
+ * DELETE /api/admin/mock-test-materials/:id
+ * Delete a mock test material upload and all its chunks.
  */
-export const deleteStudyMaterial = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteMockTestMaterial = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = req.params.id as string;
 
     const { data: upload } = await supabaseAdmin
-      .from("study_material_uploads")
+      .from("mock_test_material_uploads")
       .select("id")
       .eq("id", id)
       .single();
@@ -116,11 +113,10 @@ export const deleteStudyMaterial = async (req: Request, res: Response, next: Nex
       return res.status(404).json({ status: "error", message: "Upload not found" });
     }
 
-    // Delete chunks first, then upload
-    await supabaseAdmin.from("study_material_chunks").delete().eq("upload_id", id);
-    await supabaseAdmin.from("study_material_uploads").delete().eq("id", id);
+    await supabaseAdmin.from("mock_test_chunks").delete().eq("upload_id", id);
+    await supabaseAdmin.from("mock_test_material_uploads").delete().eq("id", id);
 
-    res.json({ status: "success", message: "Study material and all chunks deleted" });
+    res.json({ status: "success", message: "Mock test material and all chunks deleted" });
   } catch (error) {
     next(error);
   }

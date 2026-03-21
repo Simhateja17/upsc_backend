@@ -25,6 +25,10 @@ const UPSC_SUBJECTS = [
   "International Relations",
 ];
 
+// Matches common UPSC question numbering: "1." "1)" "Q.1" "Q1." "Q 1" etc.
+// ^\s* + \s+ guards prevent false positives on numbers inside option text.
+export const QUESTION_BOUNDARY_RE = /^\s*(?:\d+[\.\)]|Q[\.\s]?\d+[\.\)]?)\s+/m;
+
 const LOG_PREFIX = "[PYQ-PIPELINE]";
 const AI_MAX_RETRIES = 3;
 const CHUNK_CONCURRENCY = 3;
@@ -92,37 +96,93 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 }
 
 /**
- * Split text into chunks of roughly pageSize characters
+ * Fallback: split text by \n\n paragraph boundaries up to chunkSize.
+ */
+function paragraphFallbackSplit(text: string, chunkSize: number): string[] {
+  const chunks: string[] = [];
+  let current = "";
+  for (const para of text.split(/\n\n+/)) {
+    if (current.length + para.length > chunkSize && current.length > 0) {
+      chunks.push(current.trim());
+      current = "";
+    }
+    current += para + "\n\n";
+  }
+  if (current.trim().length > 0) chunks.push(current.trim());
+  return chunks;
+}
+
+/**
+ * Split text into chunks of roughly chunkSize characters.
+ * Question-boundary-aware: keeps each UPSC MCQ (stem + all options) together.
+ * Falls back to paragraph splitting when no question markers are found.
  */
 function splitIntoChunks(text: string, chunkSize = 3000): string[] {
   log("CHUNKING", `Starting chunking with max chunk size: ${chunkSize} chars`);
   const startTime = Date.now();
 
+  // Find all question start positions using global+multiline flag
+  const boundaryRe = new RegExp(QUESTION_BOUNDARY_RE.source, "gm");
+  const matches: RegExpExecArray[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = boundaryRe.exec(text)) !== null) {
+    matches.push(m);
+  }
+
+  log("CHUNKING", `Question boundaries detected: ${matches.length}`);
+
+  if (matches.length === 0) {
+    // No question markers — fall back to paragraph splitting
+    const fallback = paragraphFallbackSplit(text, chunkSize);
+    const elapsed = Date.now() - startTime;
+    log("CHUNKING", `Paragraph fallback: ${fallback.length} chunks in ${elapsed}ms`);
+    return fallback;
+  }
+
+  // Slice text at question boundaries to get one "unit" per question
+  const units: string[] = [];
+
+  // Preamble: text before first question
+  const preamble = text.slice(0, matches[0].index).trim();
+  if (preamble.length > 0) {
+    paragraphFallbackSplit(preamble, chunkSize).forEach((c) => units.push(c));
+  }
+
+  for (let i = 0; i < matches.length; i++) {
+    const unitStart = matches[i].index;
+    const unitEnd = i + 1 < matches.length ? matches[i + 1].index : text.length;
+    units.push(text.slice(unitStart, unitEnd).trim());
+  }
+
+  // Group complete question units into chunks up to chunkSize
   const chunks: string[] = [];
   let current = "";
 
-  const paragraphs = text.split(/\n\n+/);
-  log("CHUNKING", `Total paragraphs found: ${paragraphs.length}`);
-
-  for (const para of paragraphs) {
-    if (current.length + para.length > chunkSize && current.length > 0) {
+  for (const unit of units) {
+    if (unit.length > chunkSize) {
+      // Single oversized question — fall back to paragraph splitting for it
+      if (current.length > 0) {
+        chunks.push(current.trim());
+        current = "";
+      }
+      paragraphFallbackSplit(unit, chunkSize).forEach((c) => chunks.push(c));
+      continue;
+    }
+    if (current.length + unit.length + 2 > chunkSize && current.length > 0) {
       chunks.push(current.trim());
-      log("CHUNKING", `Chunk #${chunks.length} created: ${current.trim().length} chars`);
       current = "";
     }
-    current += para + "\n\n";
+    current += (current.length > 0 ? "\n\n" : "") + unit;
   }
-
-  if (current.trim().length > 0) {
-    chunks.push(current.trim());
-    log("CHUNKING", `Chunk #${chunks.length} created (final): ${current.trim().length} chars`);
-  }
+  if (current.trim().length > 0) chunks.push(current.trim());
 
   const elapsed = Date.now() - startTime;
   log("CHUNKING", `Chunking complete in ${elapsed}ms — ${chunks.length} total chunks`);
 
   const sizes = chunks.map((c) => c.length);
-  log("CHUNKING", `Chunk sizes: min=${Math.min(...sizes)}, max=${Math.max(...sizes)}, avg=${Math.round(sizes.reduce((a, b) => a + b, 0) / sizes.length)}`);
+  if (sizes.length > 0) {
+    log("CHUNKING", `Chunk sizes: min=${Math.min(...sizes)}, max=${Math.max(...sizes)}, avg=${Math.round(sizes.reduce((a, b) => a + b, 0) / sizes.length)}`);
+  }
 
   return chunks;
 }

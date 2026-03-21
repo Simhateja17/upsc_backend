@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from "express";
-import prisma from "../config/database";
+import { randomUUID } from "crypto";
+import { supabaseAdmin } from "../config/supabase";
 import { generateMCQQuestions } from "../services/questionGenerator";
 import { generateMockTestFromRAG, hasStudyMaterial } from "../services/mockTestRag.service";
 
 /**
  * GET /api/mock-tests/subjects
- * Available subjects with question counts
  */
 export const getSubjects = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -20,19 +20,21 @@ export const getSubjects = async (req: Request, res: Response, next: NextFunctio
       { name: "Art & Culture", count: 145 },
     ];
 
-    const questionCounts = await prisma.mockTestQuestion.groupBy({
-      by: ["subject"],
-      _count: { id: true },
-    });
+    const { data: questions } = await supabaseAdmin
+      .from("mock_test_questions")
+      .select("subject");
 
-    if (questionCounts.length > 0) {
-      const countMap = new Map(questionCounts.map(q => [q.subject, q._count.id]));
+    if (questions && questions.length > 0) {
+      const countMap = new Map<string, number>();
+      for (const q of questions) {
+        countMap.set(q.subject, (countMap.get(q.subject) || 0) + 1);
+      }
       for (const s of subjects) {
         if (s.name !== "All Subjects" && countMap.has(s.name)) {
           s.count = countMap.get(s.name)!;
         }
       }
-      subjects[0].count = questionCounts.reduce((sum, q) => sum + q._count.id, 0);
+      subjects[0].count = questions.length;
     }
 
     res.json({ status: "success", data: subjects });
@@ -91,20 +93,28 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
     const duration = Math.round(count * 1.6);
     const totalMarks = count * 2;
 
-    const mockTest = await prisma.mockTest.create({
-      data: {
+    const { data: mockTest, error: createErr } = await supabaseAdmin
+      .from("mock_tests")
+      .insert({
+        id: randomUUID(),
         title: `${subject || "Mixed"} - ${examMode || "Prelims"} Practice`,
         source: source || "mixed",
-        examMode: examMode || "prelims",
-        paperType,
+        exam_mode: examMode || "prelims",
+        paper_type: paperType,
         subject: subject === "All Subjects" ? null : subject,
         difficulty: difficulty || "mixed",
-        questionCount: count,
+        question_count: count,
         duration,
-        totalMarks,
-        isGenerated: true,
-      },
-    });
+        total_marks: totalMarks,
+        is_generated: true,
+      })
+      .select("id, title, question_count, duration, total_marks")
+      .single();
+
+    if (createErr || !mockTest) {
+      console.error("Failed to create mock test:", createErr);
+      return res.status(500).json({ status: "error", message: "Failed to create test" });
+    }
 
     const targetSubject = subject && subject !== "All Subjects" ? subject : "General Studies";
 
@@ -133,23 +143,30 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
     // ── Fallback: PYQ bank + AI generation if RAG didn't produce enough ──
     let pyqQuestions: any[] = [];
     let aiQuestions: any[] = [];
+    let pyqCount = 0;
+    let aiCount = 0;
     if (finalQuestions.length < count) {
       const remaining = count - finalQuestions.length;
 
       pyqQuestions = [];
       if (source === "pyq" || source === "mixed" || finalQuestions.length === 0) {
-        const pyqWhere: any = { status: "approved" };
+        let pyqQuery = supabaseAdmin
+          .from("pyq_questions")
+          .select("*")
+          .eq("status", "approved")
+          .limit(Math.ceil(remaining / 2))
+          .order("created_at", { ascending: false });
+
         if (subject && subject !== "All Subjects") {
-          pyqWhere.subject = { contains: subject, mode: "insensitive" };
+          pyqQuery = pyqQuery.ilike("subject", `%${subject}%`);
         }
-        pyqQuestions = await prisma.pYQQuestion.findMany({
-          where: pyqWhere,
-          take: Math.ceil(remaining / 2),
-          orderBy: { createdAt: "desc" },
-        });
+
+        const { data } = await pyqQuery;
+        pyqQuestions = data || [];
       }
 
-      const aiCount = remaining - pyqQuestions.length;
+      pyqCount = pyqQuestions.length;
+      aiCount = remaining - pyqQuestions.length;
       if (aiCount > 0) {
         aiQuestions = await generateMCQQuestions({
           subject: targetSubject,
@@ -158,13 +175,14 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
           examMode: examMode || "prelims",
         });
       }
+      aiCount = aiQuestions.length;
 
       finalQuestions = [
         ...finalQuestions,
-        ...pyqQuestions.map((q) => ({
-          questionText: q.questionText,
+        ...pyqQuestions.map((q: any) => ({
+          questionText: q.question_text,
           options: q.options,
-          correctOption: q.correctOption || "A",
+          correctOption: q.correct_option || "A",
           subject: q.subject,
           category: q.subject,
           difficulty: q.difficulty,
@@ -176,40 +194,44 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
 
     // ── Save questions ───────────────────────────────────────────────
     let questionNum = 1;
-    for (const q of finalQuestions.slice(0, count)) {
-      await prisma.mockTestQuestion.create({
-        data: {
-          mockTestId: mockTest.id,
-          questionNum: questionNum++,
-          questionText: q.questionText,
-          subject: q.subject || targetSubject,
-          category: q.category || q.subject || targetSubject,
-          difficulty: q.difficulty || difficulty || "Medium",
-          options: q.options || [
-            { id: "A", text: "Option A" },
-            { id: "B", text: "Option B" },
-            { id: "C", text: "Option C" },
-            { id: "D", text: "Option D" },
-          ],
-          correctOption: q.correctOption || "A",
-          explanation: q.explanation || "",
-        },
-      });
+    const questionsToInsert = finalQuestions.slice(0, count).map((q: any) => ({
+      mock_test_id: mockTest.id,
+      question_num: questionNum++,
+      question_text: q.questionText,
+      subject: q.subject || targetSubject,
+      category: q.category || q.subject || targetSubject,
+      difficulty: q.difficulty || difficulty || "Medium",
+      options: q.options || [
+        { id: "A", text: "Option A" },
+        { id: "B", text: "Option B" },
+        { id: "C", text: "Option C" },
+        { id: "D", text: "Option D" },
+      ],
+      correct_option: q.correctOption || "A",
+      explanation: q.explanation || "",
+    }));
+
+    if (questionsToInsert.length > 0) {
+      await supabaseAdmin.from("mock_test_questions").insert(questionsToInsert);
     }
 
-    await prisma.userActivity.create({
-      data: { userId, type: "mock_test", title: "Generated Mock Test", description: `${count} questions on ${subject || "Mixed"}` },
+    await supabaseAdmin.from("user_activities").insert({
+      id: randomUUID(),
+      user_id: userId,
+      type: "mock_test",
+      title: "Generated Mock Test",
+      description: `${count} questions on ${subject || "Mixed"}`,
     });
 
-    console.log(`[Mock Test] Generated: ${mockTest.id} with ${questionNum - 1} questions (${pyqQuestions.length} PYQ + ${aiQuestions.length} AI)`);
+    console.log(`[Mock Test] Generated: ${mockTest.id} with ${questionNum - 1} questions (${pyqCount} PYQ + ${aiCount} AI)`);
     res.json({
       status: "success",
       data: {
         testId: mockTest.id,
         title: mockTest.title,
-        questionCount: mockTest.questionCount,
+        questionCount: mockTest.question_count,
         duration: mockTest.duration,
-        totalMarks: mockTest.totalMarks,
+        totalMarks: mockTest.total_marks,
       },
     });
   } catch (error) {
@@ -224,19 +246,21 @@ export const getTestQuestions = async (req: Request, res: Response, next: NextFu
   try {
     const testId = req.params.testId as string;
 
-    const test = await prisma.mockTest.findUnique({
-      where: { id: testId },
-      include: {
-        questions: {
-          orderBy: { questionNum: "asc" },
-          select: { id: true, questionNum: true, questionText: true, subject: true, category: true, difficulty: true, options: true },
-        },
-      },
-    });
+    const { data: test } = await supabaseAdmin
+      .from("mock_tests")
+      .select("id, title, duration, total_marks")
+      .eq("id", testId)
+      .single();
 
     if (!test) {
       return res.status(404).json({ status: "error", message: "Test not found" });
     }
+
+    const { data: questions } = await supabaseAdmin
+      .from("mock_test_questions")
+      .select("id, question_num, question_text, subject, category, difficulty, options")
+      .eq("mock_test_id", testId)
+      .order("question_num", { ascending: true });
 
     res.json({
       status: "success",
@@ -244,8 +268,16 @@ export const getTestQuestions = async (req: Request, res: Response, next: NextFu
         testId: test.id,
         title: test.title,
         duration: test.duration,
-        totalMarks: test.totalMarks,
-        questions: test.questions,
+        totalMarks: test.total_marks,
+        questions: (questions || []).map((q: any) => ({
+          id: q.id,
+          questionNum: q.question_num,
+          questionText: q.question_text,
+          subject: q.subject,
+          category: q.category,
+          difficulty: q.difficulty,
+          options: q.options,
+        })),
       },
     });
   } catch (error) {
@@ -263,28 +295,34 @@ export const submitTest = async (req: Request, res: Response, next: NextFunction
     const { answers, timeTaken } = req.body;
     console.log(`[Mock Test] Submit: user=${userId}, testId=${testId}, timeTaken=${timeTaken}`);
 
-    const test = await prisma.mockTest.findUnique({
-      where: { id: testId },
-      include: { questions: true },
-    });
+    const { data: test } = await supabaseAdmin
+      .from("mock_tests")
+      .select("id, question_count, total_marks")
+      .eq("id", testId)
+      .single();
 
     if (!test) {
       return res.status(404).json({ status: "error", message: "Test not found" });
     }
+
+    const { data: questions } = await supabaseAdmin
+      .from("mock_test_questions")
+      .select("id, subject, correct_option")
+      .eq("mock_test_id", testId);
 
     let correctCount = 0;
     let wrongCount = 0;
     let skippedCount = 0;
     const subjectWise: Record<string, { correct: number; wrong: number; total: number }> = {};
 
-    for (const q of test.questions) {
+    for (const q of (questions || [])) {
       const selected = answers?.[q.id] || null;
       if (!subjectWise[q.subject]) subjectWise[q.subject] = { correct: 0, wrong: 0, total: 0 };
       subjectWise[q.subject].total++;
 
       if (!selected) {
         skippedCount++;
-      } else if (selected === q.correctOption) {
+      } else if (selected === q.correct_option) {
         correctCount++;
         subjectWise[q.subject].correct++;
       } else {
@@ -297,34 +335,46 @@ export const submitTest = async (req: Request, res: Response, next: NextFunction
     const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
     const score = correctCount * 2 - wrongCount * 0.66;
 
-    const analysis = generateAnalysis(correctCount, wrongCount, skippedCount, test.questionCount, subjectWise);
+    const analysis = generateAnalysis(correctCount, wrongCount, skippedCount, test.question_count, subjectWise);
 
-    const attempt = await prisma.mockTestAttempt.create({
-      data: {
-        userId,
-        mockTestId: testId,
+    const { data: attempt, error: attemptErr } = await supabaseAdmin
+      .from("mock_test_attempts")
+      .insert({
+        id: randomUUID(),
+        user_id: userId,
+        mock_test_id: testId,
         answers: answers || {},
         score: Math.max(0, Math.round(score * 10) / 10),
-        totalMarks: test.totalMarks,
-        correctCount,
-        wrongCount,
-        skippedCount,
+        total_marks: test.total_marks,
+        correct_count: correctCount,
+        wrong_count: wrongCount,
+        skipped_count: skippedCount,
         accuracy: Math.round(accuracy * 10) / 10,
-        timeTaken: timeTaken || 0,
-        subjectWise,
+        time_taken: timeTaken || 0,
+        subject_wise: subjectWise,
         analysis,
-        completedAt: new Date(),
-      },
+        completed_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+
+    if (attemptErr) {
+      console.error("Failed to save attempt:", attemptErr);
+      return res.status(500).json({ status: "error", message: "Failed to save attempt" });
+    }
+
+    await supabaseAdmin.from("user_activities").insert({
+      id: randomUUID(),
+      user_id: userId,
+      type: "mock_test",
+      title: "Completed Mock Test",
+      description: `Score: ${Math.round(score)}/${test.total_marks}`,
     });
 
-    await prisma.userActivity.create({
-      data: { userId, type: "mock_test", title: "Completed Mock Test", description: `Score: ${Math.round(score)}/${test.totalMarks}` },
-    });
-
-    console.log(`[Mock Test] User ${userId} scored ${Math.round(score)}/${test.totalMarks} (${Math.round(accuracy)}%)`);
+    console.log(`[Mock Test] User ${userId} scored ${Math.round(score)}/${test.total_marks} (${Math.round(accuracy)}%)`);
     res.json({
       status: "success",
-      data: { attemptId: attempt.id, testId },
+      data: { attemptId: attempt!.id, testId },
     });
   } catch (error) {
     next(error);
@@ -339,18 +389,28 @@ export const saveProgress = async (req: Request, res: Response, next: NextFuncti
     const userId = req.user!.id;
     const testId = req.params.testId as string;
     const { answers } = req.body;
+    const draftId = `${userId}_${testId}_draft`;
 
-    await prisma.mockTestAttempt.upsert({
-      where: { id: `${userId}_${testId}_draft` },
-      create: {
-        id: `${userId}_${testId}_draft`,
-        userId,
-        mockTestId: testId,
+    const { data: existing } = await supabaseAdmin
+      .from("mock_test_attempts")
+      .select("id")
+      .eq("id", draftId)
+      .single();
+
+    if (existing) {
+      await supabaseAdmin
+        .from("mock_test_attempts")
+        .update({ answers: answers || {} })
+        .eq("id", draftId);
+    } else {
+      await supabaseAdmin.from("mock_test_attempts").insert({
+        id: draftId,
+        user_id: userId,
+        mock_test_id: testId,
         answers: answers || {},
-        totalMarks: 0,
-      },
-      update: { answers: answers || {} },
-    });
+        total_marks: 0,
+      });
+    }
 
     res.json({ status: "success", message: "Progress saved" });
   } catch (error) {
@@ -366,30 +426,36 @@ export const getTestResults = async (req: Request, res: Response, next: NextFunc
     const userId = req.user!.id;
     const testId = req.params.testId as string;
 
-    const attempt = await prisma.mockTestAttempt.findFirst({
-      where: { userId, mockTestId: testId, completedAt: { not: null } },
-      orderBy: { completedAt: "desc" },
-    });
+    const { data: attempt } = await supabaseAdmin
+      .from("mock_test_attempts")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("mock_test_id", testId)
+      .not("completed_at", "is", null)
+      .order("completed_at", { ascending: false })
+      .limit(1)
+      .single();
 
     if (!attempt) {
       return res.status(404).json({ status: "error", message: "No completed attempt found" });
     }
 
-    const test = await prisma.mockTest.findUnique({
-      where: { id: testId },
-      include: { questions: { orderBy: { questionNum: "asc" } } },
-    });
+    const { data: questions } = await supabaseAdmin
+      .from("mock_test_questions")
+      .select("*")
+      .eq("mock_test_id", testId)
+      .order("question_num", { ascending: true });
 
     const answers = (attempt.answers || {}) as Record<string, string>;
-    const questionReview = test?.questions.map((q: any) => ({
+    const questionReview = (questions || []).map((q: any) => ({
       id: q.id,
-      questionNum: q.questionNum,
-      questionText: q.questionText,
+      questionNum: q.question_num,
+      questionText: q.question_text,
       subject: q.subject,
       options: q.options,
-      correctOption: q.correctOption,
+      correctOption: q.correct_option,
       selectedOption: answers[q.id] || null,
-      isCorrect: answers[q.id] === q.correctOption,
+      isCorrect: answers[q.id] === q.correct_option,
       explanation: q.explanation,
     }));
 
@@ -413,16 +479,25 @@ export const getRecommendations = async (req: Request, res: Response, next: Next
     const userId = req.user!.id;
     const testId = req.params.testId as string;
 
-    const attempt = await prisma.mockTestAttempt.findFirst({
-      where: { userId, mockTestId: testId, completedAt: { not: null } },
-    });
+    const { data: attempt } = await supabaseAdmin
+      .from("mock_test_attempts")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("mock_test_id", testId)
+      .not("completed_at", "is", null)
+      .limit(1)
+      .single();
 
-    const streak = await prisma.userStreak.findUnique({ where: { userId } });
+    const { data: streak } = await supabaseAdmin
+      .from("user_streaks")
+      .select("current_streak")
+      .eq("user_id", userId)
+      .single();
 
     const recommendations = [];
 
     if (attempt) {
-      const subjectWise = (attempt.subjectWise || {}) as Record<string, { correct: number; wrong: number; total: number }>;
+      const subjectWise = (attempt.subject_wise || {}) as Record<string, { correct: number; wrong: number; total: number }>;
       const weakSubjects = Object.entries(subjectWise)
         .filter(([, v]) => v.total > 0 && v.correct / v.total < 0.5)
         .map(([k]) => k);
@@ -455,7 +530,7 @@ export const getRecommendations = async (req: Request, res: Response, next: Next
 
     res.json({
       status: "success",
-      data: { recommendations, streak: streak || { currentStreak: 0 } },
+      data: { recommendations, streak: { currentStreak: streak?.current_streak || 0 } },
     });
   } catch (error) {
     next(error);
@@ -471,14 +546,21 @@ export const getPracticeStats = async (req: Request, res: Response, next: NextFu
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [todayTests, streak] = await Promise.all([
-      prisma.mockTestAttempt.count({ where: { userId, completedAt: { gte: today } } }),
-      prisma.userStreak.findUnique({ where: { userId } }),
-    ]);
+    const { count } = await supabaseAdmin
+      .from("mock_test_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("completed_at", today.toISOString());
+
+    const { data: streak } = await supabaseAdmin
+      .from("user_streaks")
+      .select("current_streak")
+      .eq("user_id", userId)
+      .single();
 
     res.json({
       status: "success",
-      data: { todayCount: todayTests, streak: streak?.currentStreak || 0 },
+      data: { todayCount: count || 0, streak: streak?.current_streak || 0 },
     });
   } catch (error) {
     next(error);

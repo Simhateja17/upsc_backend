@@ -36,11 +36,12 @@ model User {
   syllabusCoverage  SyllabusCoverage[]
   mentorQuestions   MentorQuestion[]
   mentorBookings    MentorBooking[]
-  pyqUploads            PYQUpload[]
-  seenMcqQuestions      UserSeenMCQ[]
-  chatConversations     ChatConversation[]
-  studyMaterialUploads  StudyMaterialUpload[]
-  seriesEnrollments     UserSeriesEnrollment[]
+  pyqUploads                PYQUpload[]
+  seenMcqQuestions          UserSeenMCQ[]
+  chatConversations         ChatConversation[]
+  studyMaterialUploads      StudyMaterialUpload[]
+  mockTestMaterialUploads   MockTestMaterialUpload[]
+  seriesEnrollments         UserSeriesEnrollment[]
 
   @@map("users")
 }
@@ -614,6 +615,42 @@ model PYQQuestion {
   @@index([subject, status])
   @@index([year, paper])
   @@map("pyq_questions")
+}
+
+// ==================== MOCK TEST CHUNKS (RAG) ====================
+
+model MockTestMaterialUpload {
+  id           String   @id @default(cuid())
+  fileName     String   @map("file_name")
+  fileUrl      String   @map("file_url")
+  subject      String
+  topic        String?
+  source       String?
+  status       String   @default("processing") // processing, vectorized, failed
+  totalChunks  Int      @default(0) @map("total_chunks")
+  uploadedById String   @map("uploaded_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  uploadedBy User              @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  chunks     MockTestChunk[]
+
+  @@index([subject])
+  @@map("mock_test_material_uploads")
+}
+
+model MockTestChunk {
+  id         String                   @id @default(cuid())
+  uploadId   String                   @map("upload_id")
+  upload     MockTestMaterialUpload   @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  pageNumber Int                      @map("page_number")
+  chunkIndex Int                      @map("chunk_index")
+  chunkText  String                   @map("chunk_text")
+  embedding  Unsupported("vector(1536)")?
+  metadata   Json
+  createdAt  DateTime                 @default(now()) @map("created_at")
+
+  @@index([uploadId])
+  @@map("mock_test_chunks")
 }
 
 // ==================== MOCK TEST STUDY MATERIAL (RAG) ====================

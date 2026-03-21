@@ -4,9 +4,9 @@
   "description": "UPSC Backend API with Express, TypeScript, Prisma and Supabase",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first tsx watch src/index.ts",
     "build": "prisma generate && tsc",
-    "start": "node dist/index.js",
+    "start": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
@@ -44,6 +44,7 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
+    "jose": "^6.2.1",
     "multer": "^2.1.0",
     "node-cron": "^4.2.1",
     "pdf-parse": "^2.4.5",
@@ -51,9 +52,11 @@
     "resend": "^6.9.3",
     "rss-parser": "^3.13.0",
     "string-similarity": "^4.0.4",
+    "undici": "^7.24.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "nodemon": "^3.1.14",
     "prisma": "^7.4.1",
     "ts-node": "^10.9.2",
