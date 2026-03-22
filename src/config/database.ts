@@ -22,9 +22,10 @@ dns.lookup = function (
   return (originalLookup as any).call(dns, hostname, opts, cb);
 } as typeof dns.lookup;
 
-// Resolve Supabase hostname to IPv4 before creating the pool
-// This is the most reliable way to avoid IPv6 on networks where it's broken
-const databaseUrl = process.env.DATABASE_URL!;
+// Use DIRECT_URL (session mode pooler, no pgbouncer flag) for the pg pool.
+// DATABASE_URL has ?pgbouncer=true which causes Prisma v7 to look for a direct
+// Supabase connection (db.<ref>.supabase.co) — using DIRECT_URL avoids this.
+const databaseUrl = process.env.DIRECT_URL || process.env.DATABASE_URL!;
 
 function resolveToIPv4AndConnect(): pg.Pool {
   const parsedUrl = new URL(databaseUrl);

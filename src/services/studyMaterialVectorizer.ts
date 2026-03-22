@@ -3,7 +3,24 @@ import { supabaseAdmin } from "../config/supabase";
 import { chunkPDF } from "./chunking.service";
 import { embedText } from "./embedding.service";
 
-const LOG = "[STUDY-VECTORIZE]";
+const LOG = "[RAG-VECTORIZE]";
+
+function log(step: string, msg: string, data?: any) {
+  const ts = new Date().toISOString();
+  console.log(`${LOG} [${ts}] [${step}] ${msg}`);
+  if (data !== undefined) {
+    console.log(`${LOG} [${ts}] [${step}]   └─ ${typeof data === "string" ? data : JSON.stringify(data)}`);
+  }
+}
+
+function logError(step: string, msg: string, error: any) {
+  const ts = new Date().toISOString();
+  console.error(`${LOG} [${ts}] [${step}] ERROR: ${msg}`);
+  console.error(`${LOG} [${ts}] [${step}]   └─`, error instanceof Error ? error.message : error);
+  if (error instanceof Error && error.stack) {
+    console.error(`${LOG} [${ts}] [${step}]   └─ Stack:`, error.stack.split("\n").slice(1, 4).join("\n      "));
+  }
+}
 
 /**
  * Vectorization pipeline for study material PDFs (notes, chapters, textbooks).
@@ -14,10 +31,13 @@ export async function vectorizeStudyMaterial(
   uploadId: string,
   pdfBuffer: Buffer
 ): Promise<void> {
-  console.log(`${LOG} Starting vectorization for upload ${uploadId}`);
+  console.log("\n" + "=".repeat(70));
+  log("START", `Starting RAG vectorization pipeline for upload ${uploadId}`);
+  console.log("=".repeat(70));
 
   try {
     // Fetch upload metadata via REST
+    log("METADATA", `Fetching upload metadata from study_material_uploads`);
     const { data: upload, error: uploadErr } = await supabaseAdmin
       .from("study_material_uploads")
       .select("*")
@@ -25,9 +45,16 @@ export async function vectorizeStudyMaterial(
       .single();
 
     if (uploadErr || !upload) {
-      console.error(`${LOG} Upload ${uploadId} not found — skipping`);
+      logError("METADATA", `Upload ${uploadId} not found — skipping`, uploadErr);
       return;
     }
+
+    log("METADATA", `Upload found`, {
+      fileName: upload.file_name,
+      subject: upload.subject,
+      topic: upload.topic,
+      source: upload.source,
+    });
 
     const metadata = {
       year: 0,
@@ -37,10 +64,14 @@ export async function vectorizeStudyMaterial(
     };
 
     // Step 1: Chunk the PDF
+    console.log("\n" + "─".repeat(50));
+    log("CHUNK", `Step 1: Chunking PDF (${(pdfBuffer.length / 1024 / 1024).toFixed(2)} MB)`);
     const chunks = await chunkPDF(pdfBuffer, metadata);
-    console.log(`${LOG} Created ${chunks.length} chunks`);
+    log("CHUNK", `Created ${chunks.length} chunks from PDF`);
+    console.log("─".repeat(50));
 
     if (chunks.length === 0) {
+      logError("CHUNK", "No chunks extracted — marking upload as failed", null);
       await supabaseAdmin
         .from("study_material_uploads")
         .update({ status: "failed" })
@@ -49,7 +80,12 @@ export async function vectorizeStudyMaterial(
     }
 
     // Step 2: Embed and store each chunk via REST API (with retry)
+    console.log("\n" + "─".repeat(50));
+    log("EMBED", `Step 2: Embedding and storing ${chunks.length} chunks`);
+    console.log("─".repeat(50));
+
     let stored = 0;
+    let failed = 0;
     for (const chunk of chunks) {
       const MAX_RETRIES = 3;
       for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -65,7 +101,6 @@ export async function vectorizeStudyMaterial(
             uploadId,
           };
 
-          // Insert via Supabase REST — goes over HTTPS, no port 5432 needed
           const { error: insertErr } = await supabaseAdmin
             .from("study_material_chunks")
             .insert({
@@ -84,21 +119,19 @@ export async function vectorizeStudyMaterial(
 
           stored++;
           if (stored % 10 === 0) {
-            console.log(`${LOG} Progress: ${stored}/${chunks.length} chunks stored`);
+            log("EMBED", `Progress: ${stored}/${chunks.length} chunks stored (${Math.round((stored / chunks.length) * 100)}%)`);
           }
-          break; // success — move to next chunk
+          break;
         } catch (err: any) {
           if (attempt < MAX_RETRIES) {
             const delay = 2000 * attempt;
             console.warn(
-              `${LOG} Chunk ${chunk.chunkIndex} failed (attempt ${attempt}/${MAX_RETRIES}), retrying in ${delay}ms...`
+              `${LOG} [EMBED] Chunk ${chunk.chunkIndex} failed (attempt ${attempt}/${MAX_RETRIES}), retrying in ${delay}ms...`
             );
             await new Promise((r) => setTimeout(r, delay));
           } else {
-            console.error(
-              `${LOG} Failed to embed chunk ${chunk.chunkIndex} (attempt ${attempt}):`,
-              err
-            );
+            logError("EMBED", `Failed to embed chunk ${chunk.chunkIndex} after ${MAX_RETRIES} attempts`, err);
+            failed++;
             break;
           }
         }
@@ -106,16 +139,22 @@ export async function vectorizeStudyMaterial(
     }
 
     // Step 3: Update status via REST
+    console.log("\n" + "─".repeat(50));
+    log("STATUS", `Step 3: Updating upload status`);
     await supabaseAdmin
       .from("study_material_uploads")
       .update({ status: "vectorized", total_chunks: stored })
       .eq("id", uploadId);
 
-    console.log(
-      `${LOG} Done: ${stored}/${chunks.length} chunks stored for upload ${uploadId}`
-    );
+    console.log("=".repeat(70));
+    log("DONE", `RAG pipeline complete for upload ${uploadId}`, {
+      stored,
+      failed,
+      total: chunks.length,
+    });
+    console.log("=".repeat(70) + "\n");
   } catch (error) {
-    console.error(`${LOG} Failed for upload ${uploadId}:`, error);
+    logError("PIPELINE", `Fatal error for upload ${uploadId}`, error);
     await supabaseAdmin
       .from("study_material_uploads")
       .update({ status: "failed" })

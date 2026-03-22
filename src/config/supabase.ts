@@ -37,4 +37,13 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   global: { fetch: ipv4Fetch },
 });
 
+// Storage-only admin client — uses default fetch (no custom IPv4 agent).
+// The ipv4Agent breaks resumable (TUS) uploads for files >6 MB because
+// @supabase/storage-js switches to a streaming TUS protocol that is
+// incompatible with the undici Agent's connect.family:4 override.
+// Storage CDN is reachable via the OS default (IPv4 on macOS) without forcing.
+export const supabaseAdminStorage = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: { persistSession: false },
+});
+
 export default supabase;
