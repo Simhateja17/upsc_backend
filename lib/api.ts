@@ -9,13 +9,14 @@ interface ApiResponse<T> {
 
 interface RequestConfig extends RequestInit {
   token?: string;
+  timeout?: number; // milliseconds
 }
 
 async function request<T>(
   endpoint: string,
   config: RequestConfig = {}
 ): Promise<ApiResponse<T>> {
-  const { token, ...fetchConfig } = config;
+  const { token, timeout = 15000, ...fetchConfig } = config;
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -26,18 +27,35 @@ async function request<T>(
     (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...fetchConfig,
-    headers,
-  });
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-  const data = await response.json();
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...fetchConfig,
+      headers,
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    throw new Error(data.message || 'An error occurred');
+    clearTimeout(timeoutId);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || `Error: ${response.status} ${response.statusText}`);
+    }
+
+    return data;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout — backend server may be unavailable');
+      }
+      throw error;
+    }
+    throw new Error('Request failed');
   }
-
-  return data;
 }
 
 export const api = {

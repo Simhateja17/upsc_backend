@@ -161,7 +161,6 @@ function MockTestResultsInner() {
           analysis: [],
           testLabel: title,
           // stash for render
-          // @ts-expect-error - stored for sample render only
           _sample: data,
         } as any);
         setLoading(false);
@@ -311,7 +310,6 @@ function MockTestResultsInner() {
   }
 
   const { total, correct, wrong, skipped, scorePct } = results;
-  // @ts-expect-error - sample-only payload
   const sample = (results as any)._sample as any | undefined;
 
   return (

@@ -119,15 +119,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authService.login(data);
       setUser(response.user);
-      // If role is missing from callback response, fetch it from /auth/me
+      // If role is missing from callback response, try to fetch it from /auth/me
       if (!response.user.role) {
         try {
           const { user: fullUser } = await authService.getMe();
           setUser(fullUser);
-        } catch {
-          // Keep the user from login response — role will be fetched by onAuthStateChange
+        } catch (err) {
+          // Backend may be unavailable — use user from login response
+          console.warn('Could not fetch full user profile:', err);
         }
       }
+    } catch (err) {
+      setIsLoading(false);
+      throw err; // Re-throw to let the component handle it
     } finally {
       setIsLoading(false);
     }
@@ -141,6 +145,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(response.user);
       }
       // If requiresEmailVerification, don't set user — login page shows success tab
+    } catch (err) {
+      setIsLoading(false);
+      throw err; // Re-throw to let the component handle it
     } finally {
       setIsLoading(false);
     }

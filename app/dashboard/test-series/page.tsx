@@ -3,639 +3,486 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import '../../../styles/test-series-v2.css';
 
-const heroStats = [
-  { value: '847', label: 'Active', valueColor: '#D4AF37' },
-  { value: '1.2L+', label: 'Students', valueColor: '#00D492' },
-  { value: '42,980+', label: 'Tests Taken', valueColor: '#FFFFFF' },
-  { value: '68%', label: 'Success Rate', valueColor: '#FF8904' },
-  { value: '10', label: 'TESTS', valueColor: '#FFFFFF', labelWeight: 600 },
-];
+// Import font from Google Fonts for Playfair Display
+import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 
-const activeSeries = [
-  { icon: '🏛️', title: 'Prelims Assault 2026', progress: '8/20 tests done', bg: '#E9D4FF' },
-  { icon: '📡', title: 'Current Affairs Radar', progress: '4/16 tests done', bg: '#D1FAE5' },
-  { icon: '✍️', title: 'Ink & Insight Series', progress: 'Q/FI started', bg: '#FBCFE8' },
-];
+const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-plus-jakarta' });
+const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair', style: ['normal', 'italic'] });
 
-const filters = [
-  { key: 'all', label: '📚 All Series' },
-  { key: 'prelims', label: '🏛️ Prelims' },
-  { key: 'mains', label: '✍️ Mains' },
-  { key: 'current-affairs', label: '📰 Current Affairs' },
-  { key: 'pyq', label: '📋 PYQ' },
-  { key: 'csat', label: '📊 CSAT' },
-  { key: 'foundation', label: '🏁 Foundation' },
-  { key: 'gs-papers', label: '📑 GS Papers' },
-  { key: 'optional', label: '🎓 Optional' },
-  { key: 'free', label: '🎁 Free' },
-];
-
-const enrolledPrograms = [
+// Test Series Data
+const SERIES_DATA = [
   {
-    icon: '📄',
-    iconBg: '#E9D4FF',
-    tags: ['FULL MOCK', 'OPEN'],
-    statusTag: 'OPEN' as const,
-    title: 'Prelims(llr)z 2026',
-    stats: { count: '16.3K', tests: '20 Tests', duration: '2 Months', rating: '4.9' },
-    description: '200-question Full Prelims mocks with All-India rank, negative marking simulation, video solutions and AI analysis.',
-    price: '₹1,299',
-    originalPrice: null,
-    discount: null,
-    enrolled: true,
+    id: 'ncert',
+    cat: 'foundation',
+    name: 'जड़ें मज़बूत Series',
+    nameEn: 'NCERT Foundation Blitz',
+    tagline: 'Build roots so strong, no examiner can shake you.',
+    icon: '📖',
+    cardGrad: 'linear-gradient(135deg,#d4e9df 0%,#b8d9c8 100%)',
+    color: '#2D6A4F',
+    colorBg: '#F0FDF4',
+    tags: ['NCERT Cl.6–12', 'All Subjects', 'Chapter-wise'],
+    diff: 'Beginner',
+    tests: 60,
+    dur: '3 Months',
+    enrolled: 4820,
+    rating: 4.8,
+    reviews: 312,
+    status: 'open',
+    progress: null,
+    price: 799,
+    oldPrice: 1499,
+    desc: 'Chapter-wise NCERT tests covering Polity, History, Geography, Economy & Science. Concept explanations with every question.',
   },
   {
-    icon: '📡',
-    iconBg: '#DBEAFE',
-    tags: ['CURRENT AFFAIRS', 'LIVE'],
-    statusTag: 'LIVE' as const,
-    title: 'Current Affairs Radar',
-    stats: { count: '2.1K', tests: '16 Tests', duration: 'Ongoing', rating: '4.8' },
-    description: 'Weekly current affairs MCQs from The Hindu, PIB & Yojana. 30 questions per test covering editorial analysis and news events.',
-    price: '₹1,199',
-    originalPrice: '₹1,999',
-    discount: '-40%',
-    enrolled: true,
+    id: 'current',
+    cat: 'current-affairs',
+    name: 'Rozana Ladon Series',
+    nameEn: 'Daily Current Affairs Challenge',
+    tagline: 'Every day is a new battle — fight it with knowledge.',
+    icon: '📰',
+    cardGrad: 'linear-gradient(135deg,#ddd6f3 0%,#c9bfee 100%)',
+    color: '#9A3412',
+    colorBg: '#FFF7ED',
+    tags: ['Daily 10 Qs', 'The Hindu · PIB', 'Monthly Test'],
+    diff: 'Intermediate',
+    tests: 365,
+    dur: '1 Year',
+    enrolled: 11240,
+    rating: 4.9,
+    reviews: 824,
+    status: 'open',
+    progress: 34,
+    price: 1199,
+    oldPrice: 2499,
+    desc: 'Daily 10 MCQs from The Hindu, PIB & Yojana. Weekly 40-Q recaps and monthly 100-Q mega test.',
   },
   {
+    id: 'pyq',
+    cat: 'pyq',
+    name: 'Topper Ki Pathshala',
+    nameEn: 'PYQ Challenge Series',
+    tagline: "The examiner's mind is hidden in old questions.",
+    icon: '🏛️',
+    cardGrad: 'linear-gradient(135deg,#fde8c8 0%,#f5d5a0 100%)',
+    color: '#B45309',
+    colorBg: '#FFFBEB',
+    tags: ['PYQ 1979–2025', 'Trend Analysis', 'All Subjects'],
+    diff: 'Advanced',
+    tests: 45,
+    dur: '2 Months',
+    enrolled: 7634,
+    rating: 4.9,
+    reviews: 580,
+    status: 'open',
+    progress: null,
+    price: 999,
+    oldPrice: 1999,
+    desc: 'Complete UPSC PYQ bank 1979–2025. Topic-wise & year-wise tests with trend analysis and frequency mapping.',
+  },
+  {
+    id: 'prelims',
+    cat: 'mock',
+    name: 'PrelimsBlitz 2026',
+    nameEn: 'Full Mock Prelims Series',
+    tagline: "Train like it's exam day — every single time.",
+    icon: '⚡',
+    cardGrad: 'linear-gradient(135deg,#fad5d5 0%,#f5bbbb 100%)',
+    color: '#B91C1C',
+    colorBg: '#FFF1F2',
+    tags: ['200 Questions', 'All-India Rank', 'UPSC Pattern'],
+    diff: 'Advanced',
+    tests: 20,
+    dur: '2 Months',
+    enrolled: 14320,
+    rating: 4.9,
+    reviews: 1124,
+    status: 'open',
+    progress: 35,
+    price: 1299,
+    oldPrice: 2499,
+    desc: '200-question full Prelims mocks with All-India Rank, negative marking simulation and video solutions.',
+  },
+  {
+    id: 'basics',
+    cat: 'foundation',
+    name: 'Zero Se Hero Series',
+    nameEn: 'Basics & Concepts Booster',
+    tagline: 'Every topper started from zero — this is your zero.',
+    icon: '🌱',
+    cardGrad: 'linear-gradient(135deg,#c8eedd 0%,#a8e0c8 100%)',
+    color: '#065F46',
+    colorBg: '#ECFDF5',
+    tags: ['Beginners', 'Concept Based', 'No Neg. Marking'],
+    diff: 'Beginner',
+    tests: 30,
+    dur: '6 Weeks',
+    enrolled: 22400,
+    rating: 4.6,
+    reviews: 1850,
+    status: 'free',
+    progress: null,
+    price: 0,
+    oldPrice: null,
+    desc: '20-question concept tests, no negative marking. Perfect Day 1 start for fresh aspirants. Fully free.',
+  },
+  {
+    id: 'csat',
+    cat: 'csat',
+    name: 'CSAT Crack Code',
+    nameEn: 'CSAT Mastery Program',
+    tagline: 'Paper 2 fears no more — crack the code, own the exam.',
+    icon: '🧮',
+    cardGrad: 'linear-gradient(135deg,#ccdff7 0%,#b0ceef 100%)',
+    color: '#0F766E',
+    colorBg: '#F0FDFA',
+    tags: ['CSAT Paper II', 'Aptitude', 'Comprehension'],
+    diff: 'Intermediate',
+    tests: 25,
+    dur: '6 Weeks',
+    enrolled: 6240,
+    rating: 4.7,
+    reviews: 388,
+    status: 'open',
+    progress: null,
+    price: 799,
+    oldPrice: 1499,
+    desc: 'Comprehension, Maths, Reasoning & Data Interpretation. CSAT full mocks with speed-building drills.',
+  },
+  {
+    id: 'daw',
+    cat: 'mains',
+    name: 'Ink & Insight Series',
+    nameEn: 'Daily Answer Writing Program',
+    tagline: 'The pen that writes every day — wins ultimately.',
     icon: '✍️',
-    iconBg: '#FEF3C7',
-    tags: ['MAINS', 'DAILY LIVE', 'OPEN'],
-    statusTag: 'DAILY LIVE' as const,
-    title: 'Ink & Insight Series',
-    stats: { count: '3.8K', tests: '180 Tests', duration: '6 Months', rating: '4.8' },
-    description: '2 answer-writing questions daily, evaluated by experts within 24 hrs. Keywords, model answers & personalized feedback.',
-    price: '₹1,799',
-    originalPrice: '₹3,499',
-    discount: '-49%',
-    enrolled: true,
+    cardGrad: 'linear-gradient(135deg,#d0dcf8 0%,#b8c8f4 100%)',
+    color: '#1D4ED8',
+    colorBg: '#EEF2FF',
+    tags: ['Daily Writing', 'Expert Evaluation', 'GS I–IV'],
+    diff: 'Advanced',
+    tests: 180,
+    dur: '6 Months',
+    enrolled: 3840,
+    rating: 4.8,
+    reviews: 260,
+    status: 'open',
+    progress: 12,
+    price: 1799,
+    oldPrice: 3499,
+    desc: '2 answer-writing questions daily, evaluated by experts within 24 hrs. Keywords, model answers & feedback.',
+  },
+  {
+    id: 'mains',
+    cat: 'mains',
+    name: 'Mains Manifest Series',
+    nameEn: 'Full Mains Test Series 2026',
+    tagline: 'Manifest your IAS selection — write your destiny.',
+    icon: '🗺️',
+    cardGrad: 'linear-gradient(135deg,#e2d4f5 0%,#d0bef0 100%)',
+    color: '#4C1D95',
+    colorBg: '#F5F3FF',
+    tags: ['Mains 2026', 'GS I–IV', 'Expert Evaluated'],
+    diff: 'Expert',
+    tests: 12,
+    dur: '3 Months',
+    enrolled: 2640,
+    rating: 4.9,
+    reviews: 190,
+    status: 'enrolling',
+    progress: null,
+    price: 2999,
+    oldPrice: 5999,
+    desc: 'Full-length GS I–IV + Essay mocks evaluated by Ex-IAS officers. All-India Mains Rank after each paper.',
+  },
+  {
+    id: 'gsfoundation',
+    cat: 'gs',
+    name: 'GS Masterstroke Series',
+    nameEn: 'GS Foundation Mastery',
+    tagline: 'Four papers, one warrior — dominate every front.',
+    icon: '⚔️',
+    cardGrad: 'linear-gradient(135deg,#ccdaf5 0%,#b4c8f0 100%)',
+    color: '#1E3A5F',
+    colorBg: '#EFF6FF',
+    tags: ['GS I', 'GS II', 'GS III', 'GS IV'],
+    diff: 'Intermediate',
+    tests: 80,
+    dur: '4 Months',
+    enrolled: 5920,
+    rating: 4.7,
+    reviews: 420,
+    status: 'open',
+    progress: null,
+    price: 1499,
+    oldPrice: 2999,
+    desc: 'Subject-wise tests across all 4 GS Papers — Prelims MCQs + Mains answer writing in one series.',
   },
 ];
 
-const explorePrograms = [
-  { icon: '📜', iconBg: '#E9D4FF', tags: ['PYQ', 'OPEN'], statusTag: 'OPEN' as const, title: 'PYQ Decoder Pro', stats: { count: '8.2K', tests: '12 Tests', duration: '1 Month', rating: '4.9' }, description: 'Topic-wise PYQ mocks with detailed solutions.', price: '₹999', originalPrice: '₹1,299', discount: '-23%', free: false },
-  { icon: '🎯', iconBg: '#D1FAE5', tags: ['CONCEPT', 'FREE'], statusTag: 'Free' as const, title: 'Zero Se Hero Series', stats: { count: '5.1K', tests: '30 Tests', duration: 'Ongoing', rating: '4.7' }, description: 'Foundation building with NCERT-aligned tests.', price: 'Free - No Fees', originalPrice: null, discount: null, free: true },
-  { icon: '📐', iconBg: '#DBEAFE', tags: ['CSAT', 'OPEN'], statusTag: 'OPEN' as const, title: 'CSAT Crack Code', stats: { count: '4.3K', tests: '15 Tests', duration: '2 Months', rating: '4.8' }, description: 'Dedicated CSAT paper practice and strategy.', price: '₹799', originalPrice: '₹1,299', discount: '-38%', free: false },
-  { icon: '📋', iconBg: '#FEF3C7', tags: ['MAINS', 'OPENS FEB 2026', 'ENROLLING'], statusTag: 'ENROLLING' as const, title: 'Mains Manifest Series', stats: { count: '1.2K', tests: '90 Tests', duration: '4 Months', rating: '4.9' }, description: 'GS I–IV + Essay mocks with evaluation.', price: '₹2,999', originalPrice: '₹4,999', discount: '-40%', free: false },
-  { icon: '📚', iconBg: '#E9D4FF', tags: ['GS PAPER', 'OPEN'], statusTag: 'OPEN' as const, title: 'GS Masterstroke Series', stats: { count: '6.4K', tests: '48 Tests', duration: '3 Months', rating: '4.8' }, description: 'Subject-wise GS papers with rank and analysis.', price: '₹1,499', originalPrice: '₹2,999', discount: '-50%', free: false },
-  { icon: '✍️', iconBg: '#FEF3C7', tags: ['MAINS', 'OPEN'], statusTag: 'OPEN' as const, title: 'Ink & Insight Series', stats: { count: '3.8K', tests: '180 Tests', duration: '6 Months', rating: '4.8' }, description: 'Daily answer writing with expert evaluation.', price: '₹1,799', originalPrice: '₹3,499', discount: '-49%', free: false },
+const FILTERS = [
+  { id: 'all', label: 'All Series' },
+  { id: 'foundation', label: 'Foundation' },
+  { id: 'current-affairs', label: 'Current Affairs' },
+  { id: 'pyq', label: 'PYQ' },
+  { id: 'mock', label: 'Full Mocks' },
+  { id: 'mains', label: 'Mains' },
+  { id: 'csat', label: 'CSAT' },
+  { id: 'gs', label: 'GS Papers' },
 ];
 
 export default function TestSeriesPage() {
+  const router = useRouter();
+  const [filter, setFilter] = useState('all');
+
+  const filteredSeries = filter === 'all' ? SERIES_DATA : SERIES_DATA.filter((s) => s.cat === filter);
+
+  const handleStartTest = (seriesId: string) => {
+    router.push(`/dashboard/mock-tests/attempt?series=${seriesId}`);
+  };
+
   return (
-    <div
-      style={{
-        background: '#F9FAFB',
-        minHeight: 'calc(100vh - 111px)',
-        fontFamily: 'Inter, system-ui, sans-serif',
-        overflowX: 'hidden',
-      }}
-    >
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <div
-            style={{
-              width: '100%',
-              maxWidth: 1687,
-              margin: '0 auto',
-              padding: '35px 24px 48px',
-              boxSizing: 'border-box',
-            }}
-          >
-            {/* Hero */}
-            <div
-              style={{
-                width: '100%',
-                maxWidth: 1478,
-                height: 233,
-                marginBottom: 32,
-                borderRadius: 16,
-                background: 'linear-gradient(90.38deg, #10182D 0.28%, #17223E 99.72%)',
-                display: 'flex',
-                gap: 16,
-                padding: 16,
-                boxSizing: 'border-box',
-                marginLeft: 'auto',
-                marginRight: 'auto',
-                overflow: 'hidden',
-              }}
-            >
-              {/* Left */}
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 12 }}>
-                <div>
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      fontFamily: 'Inter',
-                      fontWeight: 600,
-                      fontSize: 12,
-                      lineHeight: '16px',
-                      color: '#0B1120',
-                      background: '#FDC700',
-                      padding: '4px 10px',
-                      borderRadius: 8,
-                      marginBottom: 10,
-                    }}
-                  >
-                    ⚡ TEST SERIES · ALL PROGRAMS
+    <div className={`${plusJakarta.variable} ${playfair.variable}`} style={{ fontFamily: 'var(--font-plus-jakarta), sans-serif', background: 'var(--bg)', minHeight: 'calc(100vh - 111px)', padding: '28px 20px 100px' }}>
+      <div style={{ maxWidth: '1140px', margin: '0 auto' }}>
+        {/* Hero Section */}
+        <div className="cat-hero fade">
+          <div className="ch-noise"></div>
+          <div className="ch-line"></div>
+          <div className="ch-inner">
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              <div className="ch-eyebrow">
+                <span className="ch-dot"></span>
+                India&apos;s Smartest UPSC Test Platform · 2026
+              </div>
+              <h1 className="ch-h1">
+                Rise with <span className="it">Jeet</span> —<br />
+                Test Series That <span className="it">Transforms</span>
+              </h1>
+              <p className="ch-sub">10 battle-tested series. 600+ tests. From NCERT basics to Mains writing — every step of your UPSC journey covered with intelligence, analytics & mentorship.</p>
+              <div className="ch-pills">
+                <div className="chp">
+                  <span className="chpv">10</span>
+                  <span className="chpl">Series</span>
+                </div>
+                <div className="chp">
+                  <span className="chpv">600+</span>
+                  <span className="chpl">Tests</span>
+                </div>
+                <div className="chp">
+                  <span className="chpv" style={{ color: '#86EFAC' }}>
+                    80K+
                   </span>
-                  <h1
-                    style={{
-                      fontFamily: 'Inter',
-                      fontWeight: 700,
-                      fontSize: 40,
-                      lineHeight: '44px',
-                      color: '#FFFFFF',
-                      marginBottom: 6,
-                    }}
-                  >
-                    Choose Your <span style={{ color: '#FDC700', fontStyle: 'italic' }}>Battle Plan.</span>
-                  </h1>
-                  <p
-                    style={{
-                      fontFamily: 'Inter',
-                      fontWeight: 400,
-                      fontSize: 12,
-                      lineHeight: '16px',
-                      color: '#D1D5DC',
-                      maxWidth: 650,
-                      marginBottom: 10,
-                    }}
-                  >
-                    From NCERT foundations to full Prelims war-room simulations — each series is crafted to mirror real UPSC patterns. Rise every day. Rise with Jeet.
-                  </p>
+                  <span className="chpl">Students</span>
                 </div>
-                {/* Stats strip */}
-                <div style={{ display: 'flex', borderRadius: 14, overflow: 'hidden', border: '0.8px solid #364153' }}>
-                  {heroStats.map((card, index) => (
-                    <div
-                      key={card.label}
-                      style={{
-                        width: index === 0 ? 117.375 : index === 1 ? 144.8 : index === 2 ? 181.225 : index === 3 ? 160 : 107,
-                        height: 101.5875,
-                        background: '#1C273B',
-                        borderTop: '0.8px solid #364153',
-                        padding: '24.8px 32.8px 0.8px',
-                        borderLeft: index === 0 ? undefined : '0.8px solid #364153',
-                        borderTopLeftRadius: index === 0 ? 14 : 0,
-                        borderBottomLeftRadius: index === 0 ? 14 : 0,
-                        borderTopRightRadius: index === heroStats.length - 1 ? 14 : 0,
-                        borderBottomRightRadius: index === heroStats.length - 1 ? 14 : 0,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        boxSizing: 'border-box',
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontFamily: 'Inter',
-                          fontWeight: 700,
-                          fontSize: index === heroStats.length - 1 ? 36 : 30,
-                          lineHeight: index === heroStats.length - 1 ? '40px' : '36px',
-                          color: card.valueColor,
-                        }}
-                      >
-                        {card.value}
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: 'Inter',
-                          fontWeight: (card as { labelWeight?: number }).labelWeight ?? 400,
-                          fontSize: 12,
-                          lineHeight: '16px',
-                          color: index === heroStats.length - 1 ? '#99A1AF' : '#6A7282',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.3px',
-                          marginTop: 4,
-                        }}
-                      >
-                        {card.label}
-                      </span>
-                    </div>
-                  ))}
+                <div className="chp">
+                  <span className="chpv" style={{ color: '#FCD34D' }}>
+                    340+
+                  </span>
+                  <span className="chpl">Selections</span>
                 </div>
-              </div>
-              {/* Your Active Series */}
-              <div
-                style={{
-                  width: 256,
-                  height: 212,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 16,
-                  marginTop: 2,
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: 'Inter',
-                    fontWeight: 600,
-                    fontSize: 12,
-                    lineHeight: '16px',
-                    color: '#0B1120',
-                    background: '#FF8904',
-                    padding: '4px 10px',
-                    borderRadius: 6,
-                    width: 'fit-content',
-                  }}
-                >
-                  ⚡ YOUR ACTIVE SERIES
-                </span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {activeSeries.map((s) => (
-                    <Link
-                      key={s.title}
-                      href="/dashboard/test-series"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        padding: '12px',
-                        borderRadius: 10,
-                        border: '0.8px solid rgba(255,255,255,0.2)',
-                        background: 'rgba(255,255,255,0.1)',
-                        borderTop: '0.8px solid rgba(255,255,255,0.2)',
-                        textDecoration: 'none',
-                        color: 'inherit',
-                        height: 61.5875,
-                        boxSizing: 'border-box',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 4,
-                          background: s.bg,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 18,
-                        }}
-                      >
-                        {s.icon}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 14, lineHeight: '20px', color: '#FFFFFF' }}>{s.title}</div>
-                        <div style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 12, lineHeight: '16px', color: '#99A1AF' }}>{s.progress}</div>
-                      </div>
-                      <span style={{ fontFamily: 'Inter', fontSize: 16, lineHeight: '24px', color: '#FFFFFF' }}>→</span>
-                    </Link>
-                  ))}
+                <div className="chp">
+                  <span className="chpv" style={{ color: '#FCD34D' }}>
+                    4.9 ★
+                  </span>
+                  <span className="chpl">Rating</span>
                 </div>
               </div>
             </div>
-
-            {/* Filter bar */}
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: 8,
-                marginBottom: 24,
-                padding: '12px 0',
-                width: '100%',
-                maxWidth: 1639,
-              }}
-            >
-              {filters.map((f, i) => (
-                <button
-                  key={f.key}
-                  type="button"
-                  style={{
-                    fontFamily: 'Inter',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    lineHeight: '20px',
-                    height: 37.6,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    borderRadius: 26843500,
-                    padding: '8px 16px',
-                    boxSizing: 'border-box',
-                    color: i === 0 ? '#FFFFFF' : '#364153',
-                    background: i === 0 ? '#101828' : '#FFFFFF',
-                    border: i === 0 ? '0.8px solid #101828' : '0.8px solid #E5E7EB',
-                    borderTop: i === 0 ? '0.8px solid #101828' : '0.8px solid #E5E7EB',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <Link
-                  href="/dashboard/test-analytics"
-                  style={{
-                    height: 38,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    borderRadius: 10,
-                    padding: '8px 16px',
-                    boxSizing: 'border-box',
-                    fontFamily: 'Inter',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    lineHeight: '20px',
-                    color: '#364153',
-                    background: 'linear-gradient(89.92deg, #F1A901 0.07%, #FD7302 99.93%)',
-                    border: '0.8px solid #E5E7EB',
-                    borderTop: '0.8px solid #E5E7EB',
-                    textDecoration: 'none',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  📊&nbsp; Analytics
-                </Link>
-              </div>
-            </div>
-
-            {/* Content block (matches #F9FAFB 1639×2214) */}
-            <div
-              style={{
-                width: '100%',
-                maxWidth: 1639,
-                minHeight: 2214,
-                background: '#F9FAFB',
-                boxSizing: 'border-box',
-              }}
-            >
-              {/* Your Enrolled Series */}
-              <div style={{ marginBottom: 32 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8, width: '100%' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                    <span
-                      aria-hidden="true"
-                      style={{
-                        width: 18,
-                        height: 18,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#F97316',
-                        fontSize: 18,
-                        lineHeight: '18px',
-                        flexShrink: 0,
-                      }}
-                    >
-                      🧡
-                    </span>
-                    <h2 style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 24, lineHeight: '32px', color: '#101828', margin: 0, whiteSpace: 'nowrap' }}>
-                      Your Enrolled Series
-                    </h2>
-                  </div>
-                  <Link href="/dashboard/test-series" style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 14, lineHeight: '20px', color: '#155DFC', textDecoration: 'none' }}>View all →</Link>
-                </div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                    gap: 24,
-                    width: '100%',
-                  }}
-                >
-                  {enrolledPrograms.map((p) => (
-                    <ProgramCard key={p.title} program={p} enrolled />
-                  ))}
-                </div>
-              </div>
-
-              {/* Explore All Programs */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                  <span aria-hidden="true" style={{ fontSize: 18, lineHeight: '18px' }}>🧭</span>
-                  <h2 style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 20, lineHeight: '28px', color: '#101828', margin: 0 }}>Explore All Programs</h2>
-                </div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                    gap: 24,
-                    width: '100%',
-                  }}
-                >
-                  {explorePrograms.map((p, idx) => (
-                    <ProgramCard key={'explore-' + idx} program={p} enrolled={false} />
-                  ))}
-                </div>
+            <div className="ch-ring" style={{ position: 'relative', zIndex: 2 }}>
+              <svg viewBox="0 0 108 108">
+                <defs>
+                  <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#D97706" />
+                    <stop offset="100%" stopColor="#F59E0B" />
+                  </linearGradient>
+                </defs>
+                <circle cx="54" cy="54" r="42" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="7" />
+                <circle cx="54" cy="54" r="42" fill="none" stroke="url(#rg)" strokeWidth="7" strokeDasharray="263.9" strokeDashoffset="47.5" strokeLinecap="round" />
+              </svg>
+              <div className="ch-ring-lbl">
+                <span className="ch-ring-v">340+</span>
+                <span className="ch-ring-s">Selections</span>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Filter Bar */}
+        <div className="fbar fade d1">
+          {FILTERS.map((f) => (
+            <button key={f.id} className={`fb ${filter === f.id ? 'on' : ''}`} onClick={() => setFilter(f.id)}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Series Grid */}
+        <div className="sgrid">
+          {filteredSeries.map((series, i) => (
+            <SeriesCard key={series.id} series={series} index={i} onStartTest={handleStartTest} />
+          ))}
+        </div>
       </div>
+
+      {/* Toast (for notifications) */}
+      <div className="toast" id="toast"></div>
     </div>
   );
 }
 
-const statusTagStyles: Record<string, { bg: string; color: string }> = {
-  OPEN: { bg: '#D1FAE5', color: '#065F46' },
-  LIVE: { bg: '#FEE2E2', color: '#991B1B' },
-  'DAILY LIVE': { bg: '#FEE2E2', color: '#991B1B' },
-  ENROLLING: { bg: '#FFEDD5', color: '#9A3412' },
-  Free: { bg: '#D1FAE5', color: '#065F46' },
-};
-
-function ProgramCard({
-  program,
-  enrolled,
-}: {
-  program: {
-    icon: string;
-    iconBg?: string;
-    tags: string[];
-    statusTag?: string;
-    title: string;
-    stats: { count: string; tests: string; duration: string; rating: string };
-    description: string;
-    price: string;
-    originalPrice: string | null;
-    discount: string | null;
-    enrolled?: boolean;
-    free?: boolean;
-  };
-  enrolled: boolean;
-}) {
+// Series Card Component
+function SeriesCard({ series, index, onStartTest }: { series: any; index: number; onStartTest: (id: string) => void }) {
   const router = useRouter();
-  const [starting, setStarting] = useState(false);
-  const statusStyle = program.statusTag ? statusTagStyles[program.statusTag] ?? { bg: '#F3F4F6', color: '#374151' } : { bg: '#F3F4F6', color: '#374151' };
-  const categoryLine = program.tags.join(' · ');
-  const descriptionWidth = program.title === 'Ink & Insight Series' ? 473 : 484;
+  const delay = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6'][index % 6];
 
-  const handleResume = async () => {
-    if (starting) return;
-    setStarting(true);
-    try {
-      router.push(`/dashboard/mock-tests/attempt?title=${encodeURIComponent(program.title)}`);
-    } finally {
-      setStarting(false);
+  const catMap: Record<string, string> = {
+    foundation: 'Foundation',
+    'current-affairs': 'Current Affairs',
+    pyq: 'PYQ Series',
+    mock: 'Full Mock',
+    mains: 'Mains Writing',
+    csat: 'CSAT Prep',
+    gs: 'GS Papers',
+    optional: 'Optional Subject',
+  };
+  const catLabel = catMap[series.cat] || series.cat;
+
+  const statusMap: Record<string, string> = {
+    open: 'Open',
+    live: 'Live',
+    free: 'Free',
+    enrolling: 'Enrolling',
+    upcoming: 'Upcoming',
+  };
+  const statusLabel = statusMap[series.status] || 'Open';
+  const dotCls = series.status === 'live' ? 'live' : series.status === 'free' ? 'free' : '';
+
+  const done = series.progress !== null ? Math.round((series.tests * series.progress) / 100) : 0;
+  const left = series.progress !== null ? series.tests - done : series.tests;
+  const progPct = series.progress || 0;
+  const hasProgress = series.progress !== null;
+
+  const isFree = series.price === 0;
+
+  const handleCardClick = () => {
+    router.push(`/dashboard/test-series/${series.id}`);
+  };
+
+  const handlePrimaryAction = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isFree || hasProgress) {
+      onStartTest(series.id);
+    } else {
+      // Open payment modal (implement later)
+      alert(`Enroll in ${series.name}`);
     }
   };
 
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: 524,
-        minHeight: 303,
-        borderRadius: 24,
-        border: '0.8px solid #E5E7EB',
-        background: '#FFFFFF',
-        display: 'flex',
-        flexDirection: 'column',
-        boxSizing: 'border-box',
-        overflow: 'hidden',
-        boxShadow: '0px 2px 4px -2px rgba(0,0,0,0.10), 0px 4px 6px -1px rgba(0,0,0,0.10)',
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          height: 84.8,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0.8px 24px 0px',
-          background: 'linear-gradient(135deg, #EFF6FF 0%, #FAF5FF 100%)',
-          borderBottom: '0.8px solid #E5E7EB',
-          boxSizing: 'border-box',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 14,
-              background: 'rgba(255,255,255,0.8)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 24,
-              flexShrink: 0,
-              boxShadow: '0px 1px 2px -1px rgba(0,0,0,0.10), 0px 1px 3px rgba(0,0,0,0.10)',
-            }}
-          >
-            {program.icon}
+    <div className={`sc fade ${delay}`} onClick={handleCardClick}>
+      {/* DARK HEADER BAND */}
+      <div className="sc-header" style={{ background: series.cardGrad }}>
+        <div className="sc-header-icon">{series.icon}</div>
+        <div className="sc-header-text">
+          <div className="sc-header-title">{series.name}</div>
+          <div className="sc-header-tags">
+            <span className="sc-htag">{catLabel}</span>
+            <span className="sc-htag-sep">·</span>
+            <span className="sc-htag">{statusLabel}</span>
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h3
-              style={{
-                fontFamily: 'var(--font-playfair), "Playfair Display", serif',
-                fontWeight: 700,
-                fontSize: 18,
-                lineHeight: '28px',
-                color: '#101828',
-                margin: 0,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {program.title}
-            </h3>
-            <div style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 12, lineHeight: '16px', color: '#99A1AF', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-              {categoryLine}
+        </div>
+        <div className={`sc-status-dot ${dotCls}`}></div>
+      </div>
+
+      {/* META PILLS */}
+      <div className="sc-meta-strip">
+        <div className="sc-meta-pill">
+          <span className="mp-ico">👥</span>
+          {series.enrolled >= 1000 ? (series.enrolled / 1000).toFixed(1) + 'K' : series.enrolled}
+        </div>
+        <div className="sc-meta-pill">
+          <span className="mp-ico">📝</span>
+          {series.tests} tests
+        </div>
+        <div className="sc-meta-pill">
+          <span className="mp-ico">⏱</span>
+          {series.dur}
+        </div>
+        <div className="sc-meta-pill">
+          <span className="mp-ico">★</span>
+          {series.rating}
+        </div>
+      </div>
+
+      {/* WHITE BODY */}
+      <div className="sc-body">
+        <div className="sc-desc">{series.desc}</div>
+
+        {/* TESTS / DONE / LEFT stats */}
+        <div className="sc-stats">
+          <div className="sc-stat">
+            <div className="sc-stat-v">{series.tests}</div>
+            <div className="sc-stat-l">Tests</div>
+          </div>
+          <div className="sc-stat">
+            <div className="sc-stat-v done">{done}</div>
+            <div className="sc-stat-l">Done</div>
+          </div>
+          <div className="sc-stat">
+            <div className="sc-stat-v left">{left}</div>
+            <div className="sc-stat-l">Left</div>
+          </div>
+        </div>
+
+        {/* PROGRESS */}
+        <div className="sc-prog-row">
+          <span className="sc-prog-lbl">Progress</span>
+          <span className="sc-prog-val">{hasProgress ? `${done} / ${series.tests}` : 'Not started'}</span>
+        </div>
+        <div className="sc-prog">
+          <div className="sc-prog-fill" style={{ width: `${progPct}%`, background: hasProgress ? '#4F46E5' : '#E4E4E7' }}></div>
+        </div>
+
+        {/* FOOTER: price + buttons */}
+        <div className="sc-foot">
+          {!isFree && (
+            <div className="sc-price-block">
+              {series.oldPrice && <div className="sc-price-old">₹{series.oldPrice}</div>}
+              <div className="sc-price-new">₹{series.price.toLocaleString('en-IN')}</div>
+              {series.oldPrice && <div className="sc-price-tag">-{Math.round(((series.oldPrice - series.price) / series.oldPrice) * 100)}%</div>}
             </div>
-          </div>
-        </div>
-        {program.statusTag && (
-          <span
-            style={{
-              fontFamily: 'Inter',
-              fontWeight: 600,
-              fontSize: 12,
-              lineHeight: '16px',
-              color: statusStyle.color,
-              background: statusStyle.bg,
-              padding: '6px 12px',
-              borderRadius: 10,
-              textTransform: 'uppercase',
-              flexShrink: 0,
+          )}
+          {isFree && <div className="sc-price-free">FREE</div>}
+          <button
+            className="sc-btn-outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/dashboard/test-series/${series.id}`);
             }}
           >
-            {program.statusTag}
-          </span>
-        )}
-      </div>
-
-      {/* Body */}
-      <div style={{ padding: '24px 24px 0px', boxSizing: 'border-box', flex: 1 }}>
-        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#364153', marginBottom: 12 }}>
-          <span>👥 {program.stats.count}</span>
-          <span>📄 {program.stats.tests}</span>
-          <span>🕐 {program.stats.duration}</span>
-          <span>★ {program.stats.rating}</span>
-        </div>
-        <p
-          style={{
-            width: descriptionWidth,
-            height: 46,
-            fontFamily: 'Inter',
-            fontWeight: 400,
-            fontSize: 14,
-            lineHeight: '22.75px',
-            color: '#6A7282',
-            margin: 0,
-            overflow: 'hidden',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-          }}
-        >
-          {program.description}
-        </p>
-      </div>
-
-      {/* Footer */}
-      <div style={{ padding: '16px 24px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'var(--font-playfair), "Playfair Display", serif', fontWeight: 700, fontSize: 24, lineHeight: '32px', color: '#101828' }}>{program.price}</span>
-          {program.originalPrice && (
-            <span style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 13, color: '#9CA3AF', textDecoration: 'line-through' }}>{program.originalPrice}</span>
-          )}
-          {program.discount && (
-            <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '2px 6px', borderRadius: 4 }}>{program.discount}</span>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {enrolled ? (
+            Details
+          </button>
+          {hasProgress ? (
             <>
-              <button type="button" style={{ width: 101, height: 40, fontFamily: 'Inter', fontWeight: 600, fontSize: 14, color: '#4A5565', background: '#F3F4F6', border: 'none', borderRadius: 10, cursor: 'pointer' }}>📊 Analytics</button>
+              <button className="sc-btn-primary resume" onClick={handlePrimaryAction}>
+                ▶ Resume
+              </button>
               <button
-                type="button"
-                onClick={handleResume}
-                disabled={starting}
-                style={{
-                  width: 113.4,
-                  height: 40,
-                  fontFamily: 'Inter',
-                  fontWeight: 700,
-                  fontSize: 14,
-                  color: '#FFFFFF',
-                  background: starting ? '#4A5565' : '#1E2939',
-                  border: 'none',
-                  borderRadius: 10,
-                  cursor: starting ? 'not-allowed' : 'pointer',
-                  opacity: starting ? 0.8 : 1,
+                className="sc-analytics-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/dashboard/test-series/${series.id}/results/1`);
                 }}
               >
-                ▶ {starting ? 'Starting…' : 'Resume'}
+                📊 Analytics
               </button>
             </>
           ) : (
-            <>
-              <button type="button" style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: '#374151', background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 14px', cursor: 'pointer' }}>Details</button>
-              <button type="button" style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, color: program.free ? '#065F46' : '#FFFFFF', background: program.free ? '#D1FAE5' : '#101828', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer' }}>{program.free ? '► Start Free' : '► Enroll Now'}</button>
-            </>
+            <button className={`sc-btn-primary ${isFree ? 'free' : ''}`} onClick={handlePrimaryAction}>
+              {isFree ? '▶ Start Free' : 'Enroll Now'}
+            </button>
           )}
         </div>
       </div>

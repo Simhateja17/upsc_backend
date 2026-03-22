@@ -100,7 +100,12 @@ export const authService = {
     }
 
     storeTokens(authData.session.access_token, authData.session.refresh_token ?? '');
-    const synced = await syncUserToBackend(authData.session.access_token, authData.session.refresh_token ?? '');
+    
+    // Sync with backend, but don't fail if backend is unavailable
+    const synced = await syncUserToBackend(authData.session.access_token, authData.session.refresh_token ?? '').catch(err => {
+      console.warn('Backend sync failed during signup:', err);
+      return null;
+    });
 
     return synced ?? {
       user: {
@@ -127,7 +132,12 @@ export const authService = {
     if (!authData.user || !authData.session) throw new Error('Login failed');
 
     storeTokens(authData.session.access_token, authData.session.refresh_token ?? '');
-    const synced = await syncUserToBackend(authData.session.access_token, authData.session.refresh_token ?? '');
+    
+    // Sync with backend, but don't fail if backend is unavailable
+    const synced = await syncUserToBackend(authData.session.access_token, authData.session.refresh_token ?? '').catch(err => {
+      console.warn('Backend sync failed during login:', err);
+      return null;
+    });
 
     return synced ?? {
       user: {
