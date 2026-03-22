@@ -1,5 +1,43 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { supabaseAdmin } from "../config/supabase";
+
+/**
+ * GET /api/test-series/stats
+ * Public stats for the hero section
+ */
+export const getSeriesStats = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const [activeSeriesCount, enrollmentAgg, uniqueStudents] = await Promise.all([
+      prisma.testSeries.count({ where: { isActive: true } }),
+      prisma.userSeriesEnrollment.aggregate({ _sum: { testsCompleted: true } }),
+      prisma.userSeriesEnrollment.findMany({ distinct: ["userId"], select: { userId: true } }),
+    ]);
+
+    // Pull average accuracy from mock_test_attempts (stored in Supabase)
+    const { data: attemptsData } = await supabaseAdmin
+      .from("mock_test_attempts")
+      .select("accuracy");
+
+    let successRate = 0;
+    if (attemptsData && attemptsData.length > 0) {
+      const totalAccuracy = attemptsData.reduce((sum: number, a: any) => sum + (a.accuracy || 0), 0);
+      successRate = Math.round(totalAccuracy / attemptsData.length);
+    }
+
+    res.json({
+      status: "success",
+      data: {
+        activeSeries: activeSeriesCount,
+        totalStudents: uniqueStudents.length,
+        testsTaken: enrollmentAgg._sum.testsCompleted ?? 0,
+        successRate,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * GET /api/test-series

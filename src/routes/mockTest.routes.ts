@@ -3,6 +3,7 @@ import { authenticate } from "../middleware/auth.middleware";
 import {
   getSubjects,
   getConfig,
+  getPlatformStats,
   generateTest,
   getTestQuestions,
   submitTest,
@@ -16,6 +17,7 @@ const router = Router();
 
 router.get("/subjects", getSubjects);
 router.get("/config", getConfig);
+router.get("/platform-stats", getPlatformStats);
 router.post("/generate", authenticate, generateTest);
 router.get("/:testId/questions", authenticate, getTestQuestions);
 router.post("/:testId/submit", authenticate, submitTest);

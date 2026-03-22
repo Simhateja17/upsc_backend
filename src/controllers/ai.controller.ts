@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import { invokeModel, BedrockMessage } from "../config/bedrock";
+import { supabaseAdmin } from "../config/supabase";
+import { embedText } from "../services/embedding.service";
 
 const JEET_AI_SYSTEM_PROMPT = `You are Jeet AI, an intelligent UPSC preparation assistant for the "Rise with Jeet IAS" platform. You help Indian civil services aspirants with their exam preparation.
 
@@ -27,6 +29,55 @@ Response format:
 - Always end topic explanations with "Related PYQs or Exam Relevance" if applicable
 
 You can answer general questions too, but always try to relate them back to UPSC preparation when possible.`;
+
+const SIMILARITY_THRESHOLD = 0.60;
+
+/**
+ * Retrieve relevant study material chunks for a given query via vector similarity search.
+ * Returns a formatted context string, or empty string if nothing relevant found.
+ */
+async function retrieveRelevantContext(query: string): Promise<string> {
+  try {
+    if (!supabaseAdmin) return "";
+
+    const queryEmbedding = await embedText(query, "RETRIEVAL_QUERY");
+
+    const [studyRes, mockRes] = await Promise.all([
+      supabaseAdmin.rpc("search_study_chunks", {
+        query_embedding: queryEmbedding,
+        match_count: 5,
+        filter_subject: null,
+        filter_topic: null,
+      }),
+      supabaseAdmin.rpc("search_mock_test_chunks", {
+        query_embedding: queryEmbedding,
+        match_count: 3,
+        filter_subject: null,
+        filter_topic: null,
+      }),
+    ]);
+
+    const chunks: Array<{ chunk_text: string; metadata: any; similarity: number }> = [
+      ...(studyRes.data || []),
+      ...(mockRes.data || []),
+    ].filter((c: any) => c.similarity >= SIMILARITY_THRESHOLD);
+
+    if (chunks.length === 0) return "";
+
+    chunks.sort((a, b) => b.similarity - a.similarity);
+
+    return chunks
+      .slice(0, 6)
+      .map(
+        (c, i) =>
+          `[Source ${i + 1}${c.metadata?.subject ? ` — ${c.metadata.subject}` : ""}${c.metadata?.topic ? ` / ${c.metadata.topic}` : ""}]\n${c.chunk_text}`
+      )
+      .join("\n\n");
+  } catch (err) {
+    console.warn("[Jeet AI] RAG context retrieval failed (non-fatal):", err);
+    return "";
+  }
+}
 
 /**
  * POST /api/ai/chat
@@ -86,12 +137,18 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
       { role: "user" as const, content: trimmedMessage },
     ];
 
+    // Retrieve relevant study material context via RAG
+    const ragContext = await retrieveRelevantContext(trimmedMessage);
+    const systemPrompt = ragContext
+      ? `${JEET_AI_SYSTEM_PROMPT}\n\n---\nRelevant Study Material:\n${ragContext}\n---\nWhen answering, ground your response in the above material where applicable.`
+      : JEET_AI_SYSTEM_PROMPT;
+
     // Call Claude
-    console.log(`[AI Chat] Sending ${claudeMessages.length} messages to Claude`);
+    console.log(`[AI Chat] Sending ${claudeMessages.length} messages to Claude, RAG context: ${ragContext ? "yes" : "none"}`);
     const aiReply = await invokeModel(claudeMessages, {
       maxTokens: 2048,
       temperature: 0.5,
-      system: JEET_AI_SYSTEM_PROMPT,
+      system: systemPrompt,
     });
 
     // Persist both messages

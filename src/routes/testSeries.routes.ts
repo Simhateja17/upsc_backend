@@ -8,9 +8,13 @@ import {
   createSeries,
   updateSeries,
   deleteSeries,
+  getSeriesStats,
 } from "../controllers/testSeries.controller";
 
 const router = Router();
+
+// Public — stats for hero section
+router.get("/stats", getSeriesStats);
 
 // Public — list all active series
 router.get("/", listSeries);

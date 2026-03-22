@@ -27,6 +27,7 @@ router.get("/pyq/questions", pyqCtrl.getQuestions);
 router.put("/pyq/questions/:id", pyqCtrl.updateQuestion);
 router.post("/pyq/questions/bulk-approve", pyqCtrl.bulkUpdateStatus);
 router.get("/pyq/stats", pyqCtrl.getStats);
+router.post("/pyq/vectorize", pyqCtrl.triggerPYQVectorization);
 
 // ==================== Editorial Management ====================
 router.get("/editorials", editorialCtrl.getEditorials);

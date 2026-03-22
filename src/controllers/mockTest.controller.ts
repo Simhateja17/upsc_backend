@@ -9,35 +9,71 @@ import { generateMockTestFromRAG, hasStudyMaterial } from "../services/mockTestR
  */
 export const getSubjects = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const subjects = [
-      { name: "All Subjects", count: 0 },
-      { name: "History", count: 348 },
-      { name: "Geography", count: 398 },
-      { name: "Indian Polity", count: 348 },
-      { name: "Economy", count: 368 },
-      { name: "Science & Technology", count: 215 },
-      { name: "Environment", count: 180 },
-      { name: "Art & Culture", count: 145 },
-    ];
+    // Pull real subject counts from pyq_questions (approved only)
+    const { data: pyqRows } = await supabaseAdmin
+      .from("pyq_questions")
+      .select("subject")
+      .eq("status", "approved");
 
-    const { data: questions } = await supabaseAdmin
-      .from("mock_test_questions")
-      .select("subject");
-
-    if (questions && questions.length > 0) {
-      const countMap = new Map<string, number>();
-      for (const q of questions) {
-        countMap.set(q.subject, (countMap.get(q.subject) || 0) + 1);
+    const countMap = new Map<string, number>();
+    for (const row of pyqRows || []) {
+      if (row.subject) {
+        countMap.set(row.subject, (countMap.get(row.subject) || 0) + 1);
       }
-      for (const s of subjects) {
-        if (s.name !== "All Subjects" && countMap.has(s.name)) {
-          s.count = countMap.get(s.name)!;
-        }
-      }
-      subjects[0].count = questions.length;
     }
 
+    // Also include subjects from uploaded study/mock-test materials
+    const { data: studySubjects } = await supabaseAdmin
+      .from("study_material_uploads")
+      .select("subject")
+      .eq("status", "vectorized");
+
+    const { data: mockSubjects } = await supabaseAdmin
+      .from("mock_test_material_uploads")
+      .select("subject")
+      .eq("status", "vectorized");
+
+    for (const row of [...(studySubjects || []), ...(mockSubjects || [])]) {
+      if (row.subject && !countMap.has(row.subject)) {
+        countMap.set(row.subject, 0);
+      }
+    }
+
+    const total = Array.from(countMap.values()).reduce((a, b) => a + b, 0);
+
+    const subjects = [
+      { name: "All Subjects", count: total },
+      ...Array.from(countMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, count]) => ({ name, count })),
+    ];
+
     res.json({ status: "success", data: subjects });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/mock-tests/platform-stats
+ * Returns real platform-wide counts for the hero section.
+ */
+export const getPlatformStats = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const [questionsRes, attemptsRes, usersRes] = await Promise.all([
+      supabaseAdmin.from("pyq_questions").select("id", { count: "exact", head: true }).eq("status", "approved"),
+      supabaseAdmin.from("mock_test_attempts").select("id", { count: "exact", head: true }),
+      supabaseAdmin.from("users").select("id", { count: "exact", head: true }),
+    ]);
+
+    res.json({
+      status: "success",
+      data: {
+        questionsCount: questionsRes.count || 0,
+        testsCount: attemptsRes.count || 0,
+        usersCount: usersRes.count || 0,
+      },
+    });
   } catch (error) {
     next(error);
   }

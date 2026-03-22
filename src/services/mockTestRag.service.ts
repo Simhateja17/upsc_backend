@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "../config/supabase";
-import { invokeModelJSON } from "../config/bedrock";
+import { generateJSON } from "../config/gemini";
 import { embedText } from "./embedding.service";
 
 export interface RAGGeneratedQuestion {
@@ -51,17 +51,58 @@ export async function generateMockTestFromRAG(params: {
   const queryText = [subject, topic, "UPSC study material concepts"].filter(Boolean).join(" ");
   const queryEmbedding = await embedText(queryText, "RETRIEVAL_QUERY");
 
-  // Step 2: Vector similarity search in study material chunks
-  const { data: chunks, error } = await supabaseAdmin.rpc("search_study_chunks", {
+  const SIMILARITY_THRESHOLD = 0.65;
+  const fetchCount = Math.min(questionCount * 2, 20);
+
+  // Step 2a: Vector similarity search in study material chunks
+  const { data: studyChunks, error: studyError } = await supabaseAdmin.rpc("search_study_chunks", {
     query_embedding: queryEmbedding,
-    match_count: Math.min(questionCount * 2, 20), // fetch more than needed for quality
+    match_count: fetchCount,
     filter_subject: subject || null,
     filter_topic: topic || null,
   });
 
-  if (error) throw new Error(`Study material search failed: ${error.message}`);
+  if (studyError) throw new Error(`Study material search failed: ${studyError.message}`);
 
-  const results: StudyChunkResult[] = chunks || [];
+  // Step 2b: Also search mock test chunks and PYQs in parallel
+  const [mockChunksRes, pyqRes] = await Promise.all([
+    supabaseAdmin.rpc("search_mock_test_chunks", {
+      query_embedding: queryEmbedding,
+      match_count: Math.min(questionCount, 10),
+      filter_subject: subject || null,
+      filter_topic: topic || null,
+    }),
+    supabaseAdmin.rpc("search_pyq_questions", {
+      query_embedding: queryEmbedding,
+      match_count: Math.ceil(fetchCount * 0.3), // PYQs capped at 30% of context
+      filter_subject: subject || null,
+    }),
+  ]);
+
+  // Normalise PYQ results to same shape as chunk results
+  const pyqChunks: StudyChunkResult[] = ((pyqRes.data || []) as any[]).map((q) => ({
+    id: q.id,
+    chunk_text: q.question_text,
+    metadata: {
+      subject: q.subject,
+      topic: q.topic || null,
+      source: `PYQ ${q.year}`,
+      fileName: `PYQ ${q.year}`,
+      pageNumber: 0,
+    },
+    similarity: q.similarity,
+  }));
+
+  // Merge all sources and filter by minimum similarity
+  const allChunks: StudyChunkResult[] = [
+    ...(studyChunks || []),
+    ...(mockChunksRes.data || []),
+    ...pyqChunks,
+  ].filter((c) => c.similarity >= SIMILARITY_THRESHOLD);
+
+  // Sort combined results by similarity descending, cap at fetchCount
+  allChunks.sort((a, b) => b.similarity - a.similarity);
+  const results: StudyChunkResult[] = allChunks.slice(0, fetchCount);
 
   if (results.length === 0) {
     return []; // No study material uploaded for this subject — caller handles fallback
@@ -104,15 +145,7 @@ Return a JSON array with this exact structure:
   }
 ]`;
 
-  const questions = await invokeModelJSON<RAGGeneratedQuestion[]>(
-    [{ role: "user", content: prompt }],
-    {
-      system,
-      maxTokens: 4096,
-      temperature: 0.3,
-      serviceName: "mockTestRag",
-    }
-  );
+  const questions = await generateJSON<RAGGeneratedQuestion[]>(prompt, system, 0.3);
 
   return Array.isArray(questions) ? questions.slice(0, questionCount) : [];
 }
@@ -124,11 +157,18 @@ Return a JSON array with this exact structure:
 export async function hasStudyMaterial(subject: string): Promise<boolean> {
   if (!supabaseAdmin) return false;
 
-  const { count } = await supabaseAdmin
-    .from("study_material_uploads")
-    .select("id", { count: "exact", head: true })
-    .ilike("subject", `%${subject}%`)
-    .eq("status", "vectorized");
+  const [studyResult, mockResult] = await Promise.all([
+    supabaseAdmin
+      .from("study_material_uploads")
+      .select("id", { count: "exact", head: true })
+      .ilike("subject", `%${subject}%`)
+      .eq("status", "vectorized"),
+    supabaseAdmin
+      .from("mock_test_material_uploads")
+      .select("id", { count: "exact", head: true })
+      .ilike("subject", `%${subject}%`)
+      .eq("status", "vectorized"),
+  ]);
 
-  return (count || 0) > 0;
+  return (studyResult.count || 0) + (mockResult.count || 0) > 0;
 }

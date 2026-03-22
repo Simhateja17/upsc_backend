@@ -1,4 +1,4 @@
-import { invokeModelJSON } from "../config/bedrock";
+import { generateJSON } from "../config/gemini";
 
 interface GeneratedQuestion {
   questionText: string;
@@ -59,10 +59,7 @@ Return a JSON array of objects, each with:
   const system = `You are a UPSC exam question paper setter. Generate high-quality, factually accurate MCQ questions suitable for UPSC Civil Services Examination. Always return valid JSON arrays only.`;
 
   try {
-    const result = await invokeModelJSON<GeneratedQuestion[]>(
-      [{ role: "user", content: prompt }],
-      { system, maxTokens: 4096, temperature: 0.7, serviceName: "questionGenerator" }
-    );
+    const result = await generateJSON<GeneratedQuestion[]>(prompt, system, 0.7);
 
     return Array.isArray(result) ? result : [];
   } catch (error) {

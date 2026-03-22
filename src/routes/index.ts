@@ -17,6 +17,7 @@ import flashcardsRoutes from "./flashcards.routes";
 import spacedRepetitionRoutes from "./spacedRepetition.routes";
 import mindmapRoutes from "./mindmap.routes";
 import testSeriesRoutes from "./testSeries.routes";
+import searchRoutes from "./search.routes";
 import * as cmsPublicCtrl from "../controllers/cms.public.controller";
 
 const router = Router();
@@ -87,6 +88,9 @@ router.use("/mindmaps", mindmapRoutes);
 
 // Test Series routes
 router.use("/test-series", testSeriesRoutes);
+
+// Semantic search routes
+router.use("/search", searchRoutes);
 
 // Public CMS route (no auth - slug is URL-encoded for nested paths)
 router.get("/cms/:slug", cmsPublicCtrl.getPageContent);

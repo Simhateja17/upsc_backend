@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../../config/database";
 import { uploadFile, STORAGE_BUCKETS, getSignedUrl } from "../../config/storage";
 import { parsePYQPdf } from "../../services/pyqParser";
+import { vectorizeAllPYQs } from "../../services/pyqVectorizer";
 
 function qs(val: string | string[] | undefined): string | undefined {
   return Array.isArray(val) ? val[0] : val;
@@ -274,6 +275,28 @@ export const getStats = async (_req: Request, res: Response, next: NextFunction)
         byYear: byYear.map((y) => ({ year: y.year, count: y._count.id })),
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/pyq/vectorize
+ * Trigger batch vectorization of all approved PYQs without embeddings.
+ * Runs asynchronously — returns immediately.
+ */
+export const triggerPYQVectorization = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.json({ status: "success", message: "PYQ vectorization started in background" });
+
+    // Run async after response is sent
+    vectorizeAllPYQs()
+      .then(({ processed, failed }) => {
+        console.log(`PYQ vectorization complete: ${processed} processed, ${failed} failed`);
+      })
+      .catch((err) => {
+        console.error("PYQ vectorization error:", err);
+      });
   } catch (error) {
     next(error);
   }
