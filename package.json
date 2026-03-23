@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first tsx watch src/index.ts",
     "build": "prisma generate && tsc",
-    "start": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first node dist/index.js",
+    "start": "NODE_OPTIONS=--dns-result-order=ipv4first node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
