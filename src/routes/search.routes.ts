@@ -23,7 +23,7 @@ router.post("/", authenticate, async (req: Request, res: Response, next: NextFun
 
     const queryEmbedding = await embedText(query.trim(), "RETRIEVAL_QUERY");
 
-    const searches: Promise<any>[] = [];
+    const searches: PromiseLike<any>[] = [];
 
     if (sources.includes("study")) {
       searches.push(
