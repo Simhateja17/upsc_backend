@@ -1,4 +1,4 @@
-import { generateJSON } from "../config/gemini";
+import { generateJSON } from "../config/azure";
 
 interface GeneratedQuestion {
   questionText: string;

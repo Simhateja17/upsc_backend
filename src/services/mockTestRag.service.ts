@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "../config/supabase";
-import { generateJSON } from "../config/gemini";
+import { generateJSON } from "../config/azure";
 import { embedText } from "./embedding.service";
 
 export interface RAGGeneratedQuestion {
