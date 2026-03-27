@@ -114,6 +114,7 @@ export const deleteMockTestMaterial = async (req: Request, res: Response, next: 
     }
 
     await supabaseAdmin.from("mock_test_chunks").delete().eq("upload_id", id);
+    await supabaseAdmin.from("mock_test_chunks_01").delete().eq("upload_id", id);
     await supabaseAdmin.from("mock_test_material_uploads").delete().eq("id", id);
 
     res.json({ status: "success", message: "Mock test material and all chunks deleted" });

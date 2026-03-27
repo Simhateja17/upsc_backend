@@ -145,8 +145,9 @@ export const deleteStudyMaterial = async (req: Request, res: Response, next: Nex
       return res.status(404).json({ status: "error", message: "Upload not found" });
     }
 
-    // Delete chunks first, then upload
+    // Delete chunks from both old table and new unified table, then upload
     await supabaseAdmin.from("study_material_chunks").delete().eq("upload_id", id);
+    await supabaseAdmin.from("mock_test_chunks_01").delete().eq("upload_id", id);
     await supabaseAdmin.from("study_material_uploads").delete().eq("id", id);
 
     res.json({ status: "success", message: "Study material and all chunks deleted" });

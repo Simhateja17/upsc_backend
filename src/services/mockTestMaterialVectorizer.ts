@@ -65,10 +65,11 @@ export async function vectorizeMockTestMaterial(
           };
 
           const { error: insertErr } = await supabaseAdmin
-            .from("mock_test_chunks")
+            .from("mock_test_chunks_01")
             .insert({
               id: randomUUID(),
               upload_id: uploadId,
+              upload_type: "mock_test",
               page_number: chunk.pageNumber,
               chunk_index: chunk.chunkIndex,
               chunk_text: chunk.text,

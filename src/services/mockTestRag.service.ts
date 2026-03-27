@@ -54,30 +54,27 @@ export async function generateMockTestFromRAG(params: {
   const SIMILARITY_THRESHOLD = 0.65;
   const fetchCount = Math.min(questionCount * 2, 20);
 
-  // Step 2a: Vector similarity search in study material chunks
-  const { data: studyChunks, error: studyError } = await supabaseAdmin.rpc("search_study_chunks", {
+  // Step 2a: Vector similarity search in unified mock_test_chunks_01 table
+  const { data: unifiedChunks, error: chunksError } = await supabaseAdmin.rpc("search_mock_test_chunks_01", {
     query_embedding: queryEmbedding,
     match_count: fetchCount,
     filter_subject: subject || null,
     filter_topic: topic || null,
   });
 
-  if (studyError) throw new Error(`Study material search failed: ${studyError.message}`);
+  if (chunksError) {
+    console.error("[RAG] search_mock_test_chunks_01 error:", chunksError.message);
+    throw new Error(`Chunk search failed: ${chunksError.message}`);
+  }
 
-  // Step 2b: Also search mock test chunks and PYQs in parallel
-  const [mockChunksRes, pyqRes] = await Promise.all([
-    supabaseAdmin.rpc("search_mock_test_chunks", {
-      query_embedding: queryEmbedding,
-      match_count: Math.min(questionCount, 10),
-      filter_subject: subject || null,
-      filter_topic: topic || null,
-    }),
-    supabaseAdmin.rpc("search_pyq_questions", {
-      query_embedding: queryEmbedding,
-      match_count: Math.ceil(fetchCount * 0.3), // PYQs capped at 30% of context
-      filter_subject: subject || null,
-    }),
-  ]);
+  console.log(`[RAG] search_mock_test_chunks_01 returned ${(unifiedChunks || []).length} chunks`);
+
+  // Step 2b: Also search PYQs in parallel (capped at 30% of context)
+  const pyqRes = await supabaseAdmin.rpc("search_pyq_questions", {
+    query_embedding: queryEmbedding,
+    match_count: Math.ceil(fetchCount * 0.3),
+    filter_subject: subject || null,
+  });
 
   // Normalise PYQ results to same shape as chunk results
   const pyqChunks: StudyChunkResult[] = ((pyqRes.data || []) as any[]).map((q) => ({
@@ -95,8 +92,7 @@ export async function generateMockTestFromRAG(params: {
 
   // Merge all sources and filter by minimum similarity
   const allChunks: StudyChunkResult[] = [
-    ...(studyChunks || []),
-    ...(mockChunksRes.data || []),
+    ...(unifiedChunks || []),
     ...pyqChunks,
   ].filter((c) => c.similarity >= SIMILARITY_THRESHOLD);
 
@@ -157,6 +153,16 @@ Return a JSON array with this exact structure:
 export async function hasStudyMaterial(subject: string): Promise<boolean> {
   if (!supabaseAdmin) return false;
 
+  // Check if any chunks exist in mock_test_chunks_01 for this subject
+  const { count } = await supabaseAdmin
+    .from("mock_test_chunks_01")
+    .select("id", { count: "exact", head: true })
+    .ilike("metadata->>subject", `%${subject}%`);
+
+  if ((count || 0) > 0) return true;
+
+  // Also check upload tables (for subjects that may have been marked vectorized
+  // but chunks written to old tables — graceful fallback)
   const [studyResult, mockResult] = await Promise.all([
     supabaseAdmin
       .from("study_material_uploads")

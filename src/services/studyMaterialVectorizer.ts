@@ -102,10 +102,11 @@ export async function vectorizeStudyMaterial(
           };
 
           const { error: insertErr } = await supabaseAdmin
-            .from("study_material_chunks")
+            .from("mock_test_chunks_01")
             .insert({
               id: randomUUID(),
               upload_id: uploadId,
+              upload_type: "study_material",
               page_number: chunk.pageNumber,
               chunk_index: chunk.chunkIndex,
               chunk_text: chunk.text,
