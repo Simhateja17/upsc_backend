@@ -507,7 +507,7 @@ function MockTestResultsInner() {
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {q.options.map((opt) => {
+                        {q.options.map((opt: any) => {
                           const isCorrect = opt.label === q.correct;
                           const isSelected = selected === opt.label;
                           const isWrongSelected = isSelected && !isCorrect;
@@ -547,7 +547,7 @@ function MockTestResultsInner() {
                         <div style={{ marginTop: 12, fontSize: 12, color: '#6B7280' }}>
                           You picked:{' '}
                           <span style={{ fontWeight: 800, color: row.status === 'wrong' ? '#DC2626' : '#16A34A' }}>
-                            {selected} — {(q.options.find(o => o.label === selected)?.text ?? '')}
+                            {selected} — {(q.options.find((o: any) => o.label === selected)?.text ?? '')}
                           </span>
                         </div>
                       ) : (
