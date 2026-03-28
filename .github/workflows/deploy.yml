@@ -1,0 +1,19 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.BACKEND_EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.BACKEND_EC2_SSH_KEY }}
+          script: |
+            bash /var/www/backend/deploy/2-deploy.sh
