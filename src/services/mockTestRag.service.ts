@@ -51,7 +51,7 @@ export async function generateMockTestFromRAG(params: {
   const queryText = [subject, topic, "UPSC study material concepts"].filter(Boolean).join(" ");
   const queryEmbedding = await embedText(queryText, "RETRIEVAL_QUERY");
 
-  const SIMILARITY_THRESHOLD = 0.65;
+  const SIMILARITY_THRESHOLD = 0.35;
   const fetchCount = Math.min(questionCount * 2, 20);
 
   // Step 2a: Vector similarity search in unified mock_test_chunks_01 table
@@ -90,11 +90,20 @@ export async function generateMockTestFromRAG(params: {
     similarity: q.similarity,
   }));
 
-  // Merge all sources and filter by minimum similarity
+  // Merge all sources and filter by minimum similarity + remove meta/TOC chunks
+  const META_PATTERNS = /table\s+of\s+contents|chapter[\s-]*wise\s+segregation|contents\s*\.\.\.|\.{4,}|\bpage\s+no\b|\bsr\.?\s*no\b|\bindex\b.*\bpage\b|^\s*\d+\.\s+[A-Z][A-Z\s&]+\.{3,}/im;
+
   const allChunks: StudyChunkResult[] = [
     ...(unifiedChunks || []),
     ...pyqChunks,
-  ].filter((c) => c.similarity >= SIMILARITY_THRESHOLD);
+  ].filter((c) => {
+    if (c.similarity < SIMILARITY_THRESHOLD) return false;
+    // Filter out table of contents, index pages, and meta-content
+    if (META_PATTERNS.test(c.chunk_text)) return false;
+    // Filter out very short chunks (likely headers/footers)
+    if (c.chunk_text.trim().length < 80) return false;
+    return true;
+  });
 
   // Sort combined results by similarity descending, cap at fetchCount
   allChunks.sort((a, b) => b.similarity - a.similarity);
@@ -113,7 +122,7 @@ export async function generateMockTestFromRAG(params: {
     .join("\n\n");
 
   // Step 4: Generate questions via Claude
-  const system = `You are a UPSC exam question creator. Generate MCQ questions ONLY from the provided study material excerpts. Every question must be directly answerable from the given content. Return only valid JSON.`;
+  const system = `You are a UPSC exam question creator. Generate MCQ questions ONLY from the provided study material excerpts. Every question must test factual knowledge from the actual content — NOT about the structure, layout, table of contents, chapter titles, or meta-information of the study material itself. Return only valid JSON.`;
 
   const prompt = `Using ONLY the study material excerpts below, generate ${questionCount} UPSC ${examMode} MCQ questions on the topic of "${subject}${topic ? ` — ${topic}` : ""}".
 
@@ -123,7 +132,10 @@ Study Material:
 ${context}
 
 Requirements for each question:
-- Must be directly grounded in the excerpts above
+- Must test substantive factual knowledge from the excerpts (historical facts, concepts, definitions, principles, etc.)
+- NEVER ask about the study material itself (e.g. "Which chapter covers...", "What is listed in the contents...", "According to the book...")
+- NEVER ask about page numbers, chapter names, book structure, or authors of the study material
+- Questions should read as if they appear in an actual UPSC exam paper
 - 4 options labeled A, B, C, D
 - One clearly correct answer
 - A concise explanation citing which excerpt supports the answer

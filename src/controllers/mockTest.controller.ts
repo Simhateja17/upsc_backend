@@ -231,6 +231,7 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
     // ── Save questions ───────────────────────────────────────────────
     let questionNum = 1;
     const questionsToInsert = finalQuestions.slice(0, count).map((q: any) => ({
+      id: randomUUID(),
       mock_test_id: mockTest.id,
       question_num: questionNum++,
       question_text: q.questionText,
@@ -248,7 +249,10 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
     }));
 
     if (questionsToInsert.length > 0) {
-      await supabaseAdmin.from("mock_test_questions").insert(questionsToInsert);
+      const { error: qInsertErr } = await supabaseAdmin.from("mock_test_questions").insert(questionsToInsert);
+      if (qInsertErr) {
+        console.error("[Mock Test] Failed to insert questions:", qInsertErr.message);
+      }
     }
 
     await supabaseAdmin.from("user_activities").insert({
@@ -294,7 +298,7 @@ export const getTestQuestions = async (req: Request, res: Response, next: NextFu
 
     const { data: questions } = await supabaseAdmin
       .from("mock_test_questions")
-      .select("id, question_num, question_text, subject, category, difficulty, options")
+      .select("id, question_num, question_text, subject, category, difficulty, options, correct_option, explanation")
       .eq("mock_test_id", testId)
       .order("question_num", { ascending: true });
 
@@ -308,11 +312,16 @@ export const getTestQuestions = async (req: Request, res: Response, next: NextFu
         questions: (questions || []).map((q: any) => ({
           id: q.id,
           questionNum: q.question_num,
-          questionText: q.question_text,
+          text: q.question_text,
           subject: q.subject,
           category: q.category,
           difficulty: q.difficulty,
-          options: q.options,
+          correct: q.correct_option,
+          explanation: q.explanation || "",
+          options: (q.options || []).map((o: any) => ({
+            label: o.id || o.label,
+            text: o.text,
+          })),
         })),
       },
     });
