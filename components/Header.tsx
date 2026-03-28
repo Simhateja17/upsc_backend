@@ -4,7 +4,6 @@ import Link from 'next/link';
 
 const Header = () => {
   return (
-    // Transparent header over the hero background
     <nav className="w-full bg-transparent absolute top-0 left-0 pt-4 pb-2 px-8 flex items-center justify-between z-50 border-b border-[#D8C784]/30">
       {/* Logo Section */}
       <Link href="/" className="flex flex-col items-center">
@@ -12,7 +11,7 @@ const Header = () => {
         <img src="/logo.png" alt="RiseWithJeet Logo" className="w-[78px] h-auto object-contain" />
       </Link>
       {/* Nav Links - Using a clean flex layout with no separators */}
-      <div className="flex items-center gap-16">
+      <div className="flex items-center gap-8">
         <Link href="/" className="text-white text-xl font-serif font-semibold hover:text-[#F5C75D] transition-colors">
           Home
         </Link>

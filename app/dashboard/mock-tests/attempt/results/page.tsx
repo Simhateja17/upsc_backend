@@ -139,6 +139,7 @@ function MockTestResultsInner() {
   const title = searchParams.get('title') || 'Test Series';
 
   const [results, setResults] = useState<ResultsData | null>(null);
+  const [reviewQuestions, setReviewQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(1);
@@ -192,12 +193,13 @@ function MockTestResultsInner() {
         }
 
         // Normalize the API response into our ResultsData shape
-        const total = data.total ?? data.totalQuestions ?? 0;
-        const correct = data.correct ?? data.correctCount ?? 0;
-        const wrong = data.wrong ?? data.wrongCount ?? 0;
-        const skipped = data.skipped ?? data.skippedCount ?? (total - correct - wrong);
-        const netScore = data.netScore ?? (correct * 2 - wrong * 0.67).toFixed(2);
-        const scorePct = data.scorePct ?? data.scorePercentage ?? (total > 0 ? Math.round((correct / total) * 100) : 0);
+        const correct = data.correct ?? data.correctCount ?? data.correct_count ?? 0;
+        const wrong = data.wrong ?? data.wrongCount ?? data.wrong_count ?? 0;
+        const skipped = data.skipped ?? data.skippedCount ?? data.skipped_count ?? 0;
+        const total = data.total ?? data.totalQuestions ?? data.question_count
+          ?? (correct + wrong + skipped > 0 ? correct + wrong + skipped : (data.questions?.length ?? 0));
+        const netScore = data.netScore ?? data.score ?? (correct * 2 - wrong * 0.67).toFixed(2);
+        const scorePct = data.scorePct ?? data.scorePercentage ?? data.accuracy ?? (total > 0 ? Math.round((correct / total) * 100) : 0);
 
         const perfLabel = data.perfLabel ?? data.performanceLabel ?? (
           scorePct >= 80 ? 'Excellent Work!' :
@@ -207,7 +209,13 @@ function MockTestResultsInner() {
         );
 
         // Subject stats - use API data or build from available info
-        const subjectStats: SubjectStat[] = data.subjectStats ?? data.subjectWise ?? [];
+        const subjectStats: SubjectStat[] = data.subjectStats ?? data.subjectWise ?? data.subject_wise
+          ? Object.entries(data.subject_wise || {}).map(([subject, v]: [string, any]) => ({
+              subject,
+              correct: v.correct ?? 0,
+              total: v.total ?? 0,
+            }))
+          : [];
 
         // Analysis - use API data or build fallbacks based on subject stats
         let analysis: AnalysisItem[] = data.analysis ?? data.insights ?? [];
@@ -220,6 +228,23 @@ function MockTestResultsInner() {
             { emoji: '🎯', text: 'Accuracy is improving. Attempt similar difficulty tests to consolidate.' },
             { emoji: '🏆', text: 'Top rankers average 82%+. You\'re building momentum!' },
           ];
+        }
+
+        // Store question review data from API
+        if (data.questions && Array.isArray(data.questions)) {
+          setReviewQuestions(data.questions.map((q: any, i: number) => ({
+            idx: i + 1,
+            text: q.questionText || q.text || '',
+            subject: q.subject || '',
+            options: (q.options || []).map((o: any) => ({ label: o.id || o.label, text: o.text })),
+            correct: q.correctOption || q.correct || '',
+            selected: q.selectedOption || q.selected || null,
+            isCorrect: q.isCorrect ?? false,
+            explanation: q.explanation || '',
+            status: !q.selectedOption && !q.selected ? 'skipped' : (q.isCorrect ? 'correct' : 'wrong'),
+            delta: !q.selectedOption && !q.selected ? 0 : (q.isCorrect ? 2 : -0.67),
+            timeSec: '-',
+          })));
         }
 
         setResults({
@@ -384,16 +409,26 @@ function MockTestResultsInner() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {(sample?.review ?? []).map((row: any) => {
+            {(sample?.review ?? reviewQuestions).map((row: any) => {
               const questions: Question[] = (sample?.questions as Question[] | undefined) ?? SAMPLE_QUESTIONS;
               const selectedOptions: Record<number, string> = (sample?.selectedOptions as Record<number, string> | undefined) ?? {};
-              const q = questions[(row.idx ?? 1) - 1];
-              const selected = selectedOptions[(row.idx ?? 1) - 1];
+              // For real tests, row itself contains full question data
+              const isSample = !!sample;
+              const q = isSample ? questions[(row.idx ?? 1) - 1] : {
+                text: row.text,
+                subject: row.subject,
+                options: row.options || [],
+                correct: row.correct,
+                explanation: row.explanation,
+                difficulty: 'Medium' as const,
+                id: row.idx,
+              };
+              const selected = isSample ? selectedOptions[(row.idx ?? 1) - 1] : row.selected;
               const isExpanded = expandedIdx === row.idx;
-              const borderColor = row.status === 'wrong' ? '#FB2C36' : '#E5E7EB';
-              const bg = row.status === 'wrong' ? '#FEF2F24D' : '#FFFFFF';
+              const borderColor = row.status === 'wrong' ? '#FB2C36' : row.status === 'correct' ? '#00C950' : '#E5E7EB';
+              const bg = row.status === 'wrong' ? '#FEF2F24D' : row.status === 'correct' ? '#F0FDF44D' : '#FFFFFF';
               const height = row.status === 'wrong' ? 73.5999984741211 : 65.5999984741211;
-              const rightText = row.status === 'skipped' ? 'Skipped' : (row.delta < 0 ? row.delta.toFixed(2) : row.delta.toString());
+              const rightText = row.status === 'skipped' ? 'Skipped' : (row.delta < 0 ? row.delta.toFixed(2) : `+${row.delta}`);
               const rightColor = row.status === 'wrong' ? '#FB2C36' : row.status === 'correct' ? '#00C950' : '#6B7280';
               return (
                 <div key={row.idx} style={{ width: 904.4000244140625 }}>
