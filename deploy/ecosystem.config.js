@@ -11,6 +11,7 @@ module.exports = {
         NODE_OPTIONS: "--dns-result-order=ipv4first",
         PORT: 5001,
       },
+      env_file: "/var/www/backend/.env.production",
       // Auto-restart on crash
       autorestart: true,
       watch: false,
