@@ -62,9 +62,18 @@ async function retrieveRelevantContext(query: string): Promise<string> {
       ...(mockRes.data || []),
     ].filter((c: any) => c.similarity >= SIMILARITY_THRESHOLD);
 
-    if (chunks.length === 0) return "";
+    if (chunks.length === 0) {
+      console.log(`[Jeet AI RAG] No chunks above threshold ${SIMILARITY_THRESHOLD} for query: "${query.slice(0, 80)}"`);
+      return "";
+    }
 
     chunks.sort((a, b) => b.similarity - a.similarity);
+
+    console.log(
+      `[Jeet AI RAG] Found ${chunks.length} relevant chunks (threshold: ${SIMILARITY_THRESHOLD}). ` +
+      `Top similarities: [${chunks.slice(0, 3).map(c => c.similarity.toFixed(3)).join(', ')}]. ` +
+      `Sources: [${chunks.slice(0, 6).map(c => c.metadata?.subject || 'unknown').join(', ')}]`
+    );
 
     return chunks
       .slice(0, 6)
@@ -140,7 +149,7 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
     // Retrieve relevant study material context via RAG
     const ragContext = await retrieveRelevantContext(trimmedMessage);
     const systemPrompt = ragContext
-      ? `${JEET_AI_SYSTEM_PROMPT}\n\n---\nRelevant Study Material:\n${ragContext}\n---\nWhen answering, ground your response in the above material where applicable.`
+      ? `${JEET_AI_SYSTEM_PROMPT}\n\n---\nRelevant Study Material from Rise with Jeet IAS:\n${ragContext}\n---\nIMPORTANT INSTRUCTIONS FOR USING THE ABOVE MATERIAL:\n1. Prioritize the study material above when answering — treat it as your primary source of truth for factual claims.\n2. When you use information from a source, cite it inline like [Source 1] or [Source 2].\n3. If the study material directly answers the question, base your response on it rather than relying solely on your general training.\n4. If the study material is only partially relevant, use what applies and supplement with your own knowledge — but clearly distinguish between the two.\n5. If the study material is not relevant to the query, you may ignore it and answer from your general knowledge.`
       : JEET_AI_SYSTEM_PROMPT;
 
     // Call Claude
