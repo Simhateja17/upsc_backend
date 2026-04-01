@@ -540,7 +540,17 @@ const PerformanceStatsWidget = () => {
         }}
       >
         <div className="flex items-center gap-[clamp(8px,0.52vw,10px)] mb-[clamp(12px,0.83vw,16px)]">
-          <img src="/calendar.png" alt="Calendar" className="w-[clamp(28px,1.82vw,35px)] h-[clamp(28px,1.82vw,35px)]" style={{ objectFit: 'contain', opacity: 1, filter: 'brightness(0) invert(1)' }} />
+          <svg
+            className="w-[clamp(28px,1.82vw,35px)] h-[clamp(28px,1.82vw,35px)]"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-label="Calendar"
+          >
+            <rect x="3.5" y="4.5" width="17" height="16" rx="2.5" stroke="white" strokeWidth="2" />
+            <path d="M8 2.5V6.5M16 2.5V6.5M3.5 9.5H20.5" stroke="white" strokeWidth="2" strokeLinecap="round" />
+            <path d="M7.5 13H10.5M13.5 13H16.5M7.5 16.5H10.5M13.5 16.5H16.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
           <h3 className="font-inter font-bold text-white" style={{ fontSize: 'clamp(18px,1.35vw,26px)', lineHeight: '1.2' }}>
             Upcoming Test
           </h3>
