@@ -587,7 +587,11 @@ const ResponsiveDashboardContent = () => {
                   : task.duration ? formatDuration(task.duration) : '';
 
                 return (
-                  <div key={task._id || task.id || index} className={`rounded-lg border-l-4 ${borderClass} p-[clamp(0.75rem,1vw,1.25rem)] mb-[clamp(0.75rem,1vw,1rem)] flex items-start justify-between`}>
+                  <div
+                    key={task._id || task.id || index}
+                    className={`rounded-lg border border-[#E5E7EB] border-l-4 ${borderClass} p-[clamp(0.75rem,1vw,1.25rem)] mb-[clamp(0.75rem,1vw,1rem)] flex items-start justify-between bg-[#F3F4F6]`}
+                    style={{ boxShadow: '0 1px 1px rgba(16, 24, 40, 0.04)' }}
+                  >
                     <div className="flex-1">
                       <h3 className="font-inter font-semibold text-[clamp(14px,0.94vw,16px)] text-[#1A1A1A] mb-2">
                         {task.title}
