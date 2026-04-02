@@ -1,10 +1,25 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { ensureTodayMCQ } from "../jobs/dailyContentJob";
 
 function getToday(): Date {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+/**
+ * Find or create today's MCQ. Returns the DailyMCQ record or null on failure.
+ */
+async function getOrCreateTodayMCQ() {
+  const today = getToday();
+  let mcq = await prisma.dailyMCQ.findUnique({ where: { date: today } });
+  if (!mcq) {
+    console.log("[Daily MCQ] No MCQ for today — generating on the fly...");
+    await ensureTodayMCQ();
+    mcq = await prisma.dailyMCQ.findUnique({ where: { date: today } });
+  }
+  return mcq;
 }
 
 /**
@@ -14,11 +29,7 @@ function getToday(): Date {
 export const getTodayMCQ = async (req: Request, res: Response, next: NextFunction) => {
   try {
     console.log(`[Daily MCQ] Fetching today's MCQ for user: ${req.user?.id}`);
-    const today = getToday();
-    const mcq = await prisma.dailyMCQ.findUnique({
-      where: { date: today },
-      select: { id: true, title: true, topic: true, tags: true, questionCount: true, timeLimit: true, totalMarks: true },
-    });
+    const mcq = await getOrCreateTodayMCQ();
 
     if (!mcq) {
       return res.status(404).json({ status: "error", message: "No MCQ challenge available for today" });
@@ -30,7 +41,8 @@ export const getTodayMCQ = async (req: Request, res: Response, next: NextFunctio
     });
     const attempted = !!attempt?.completedAt;
 
-    res.json({ status: "success", data: { ...mcq, attempted } });
+    const { id, title, topic, tags, questionCount, timeLimit, totalMarks } = mcq;
+    res.json({ status: "success", data: { id, title, topic, tags, questionCount, timeLimit, totalMarks, attempted } });
   } catch (error) {
     next(error);
   }
@@ -38,24 +50,21 @@ export const getTodayMCQ = async (req: Request, res: Response, next: NextFunctio
 
 /**
  * GET /api/daily-mcq/today/questions
- * Fetch all questions with options (no correct answers)
+ * Fetch all questions with options, correct answers, and explanations
  */
 export const getTodayQuestions = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const today = getToday();
-    const mcq = await prisma.dailyMCQ.findUnique({
-      where: { date: today },
-      include: {
-        questions: {
-          orderBy: { questionNum: "asc" },
-          select: { id: true, questionNum: true, questionText: true, category: true, difficulty: true, options: true, correctOption: true, explanation: true },
-        },
-      },
-    });
+    const mcq = await getOrCreateTodayMCQ();
 
     if (!mcq) {
       return res.status(404).json({ status: "error", message: "No MCQ challenge available for today" });
     }
+
+    const questions = await prisma.mCQQuestion.findMany({
+      where: { dailyMcqId: mcq.id },
+      orderBy: { questionNum: "asc" },
+      select: { id: true, questionNum: true, questionText: true, category: true, difficulty: true, options: true, correctOption: true, explanation: true },
+    });
 
     res.json({
       status: "success",
@@ -63,7 +72,7 @@ export const getTodayQuestions = async (req: Request, res: Response, next: NextF
         mcqId: mcq.id,
         timeLimit: mcq.timeLimit,
         totalMarks: mcq.totalMarks,
-        questions: mcq.questions,
+        questions,
       },
     });
   } catch (error) {

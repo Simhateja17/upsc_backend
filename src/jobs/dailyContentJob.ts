@@ -25,19 +25,34 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /**
- * Create daily MCQ set: 5 PYQ questions + 5 AI-generated questions, mixed randomly
+ * Ensure today's MCQ exists. Called on-demand when a user visits Daily MCQ.
+ */
+export async function ensureTodayMCQ(): Promise<void> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return createDailyMCQForDate(today);
+}
+
+/**
+ * Pre-generate tomorrow's MCQ (called by cron job)
  */
 export async function rotateDailyMCQ(): Promise<void> {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
+  return createDailyMCQForDate(tomorrow);
+}
 
+/**
+ * Create daily MCQ set for a given date: 5 PYQ + 5 AI-generated questions, mixed randomly
+ */
+async function createDailyMCQForDate(targetDate: Date): Promise<void> {
   // Check if already created
   const existing = await prisma.dailyMCQ.findUnique({
-    where: { date: tomorrow },
+    where: { date: targetDate },
   });
   if (existing) {
-    console.log("[DailyMCQ] Already created for tomorrow");
+    console.log(`[DailyMCQ] Already created for ${targetDate.toISOString().split("T")[0]}`);
     return;
   }
 
@@ -155,7 +170,7 @@ export async function rotateDailyMCQ(): Promise<void> {
   // Create DailyMCQ record
   const dailyMcq = await prisma.dailyMCQ.create({
     data: {
-      date: tomorrow,
+      date: targetDate,
       title: `Daily Challenge — ${primaryTopic}`,
       topic: primaryTopic,
       tags: Object.keys(subjectCounts),
@@ -184,7 +199,7 @@ export async function rotateDailyMCQ(): Promise<void> {
   }
 
   console.log(
-    `[DailyMCQ] Created for ${tomorrow.toISOString().split("T")[0]} with ${allQuestions.length} questions (${pyqQuestions.length} PYQ + ${aiQuestions.length} AI)`
+    `[DailyMCQ] Created for ${targetDate.toISOString().split("T")[0]} with ${allQuestions.length} questions (${pyqQuestions.length} PYQ + ${aiQuestions.length} AI)`
   );
 }
 
