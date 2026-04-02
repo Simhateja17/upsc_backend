@@ -11,7 +11,7 @@ interface Question {
   questionText: string;
   category: string;
   difficulty: string;
-  options: { id: string; text: string }[];
+  options: { id?: string; label?: string; text: string }[];
   correctOption: string;
   explanation: string | null;
 }
@@ -109,7 +109,7 @@ export default function DailyMcqChallengePage() {
       <main className="flex-1 px-[clamp(3rem,6.25vw,8rem)] py-8">
         <div className="max-w-[900px] mx-auto">
           <Link href="/dashboard" className="inline-flex items-center justify-center gap-2 mb-6 hover:opacity-70 transition-opacity"
-            style={{ height: '51px', borderRadius: '20px', background: '#1C50D40D', fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: '22px', color: '#17223E', padding: '0 20px', whiteSpace: 'nowrap' }}>
+            style={{ width: '237px', height: '51px', borderRadius: '20px', background: '#1C50D40D', fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: '22px', color: '#17223E' }}>
             ← Back to dashboard
           </Link>
 
@@ -166,8 +166,9 @@ export default function DailyMcqChallengePage() {
 
               <div className="space-y-3">
                 {q.options.map((option: any) => {
-                  const isSelected = answers[q.id] === option.id;
-                  const isCorrectOpt = option.id === q.correctOption;
+                  const optKey = option.id || option.label;
+                  const isSelected = answers[q.id] === optKey;
+                  const isCorrectOpt = optKey === q.correctOption;
                   const isWrongSelected = isSelected && !isCorrectOpt;
 
                   let bg = '#FFFFFF';
@@ -175,7 +176,7 @@ export default function DailyMcqChallengePage() {
                   let circleColor = '#CBD5E1';
                   let circleBg = 'transparent';
                   let circleText = '#64748B';
-                  let circleIcon: string = option.id;
+                  let circleIcon: string = optKey;
                   let textColor = '#1E293B';
                   let fontWeight = 400;
 
@@ -210,8 +211,8 @@ export default function DailyMcqChallengePage() {
 
                   return (
                     <button
-                      key={option.id}
-                      onClick={() => handleSelectAnswer(q.id, option.id)}
+                      key={optKey}
+                      onClick={() => handleSelectAnswer(q.id, optKey)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -350,4 +351,3 @@ export default function DailyMcqChallengePage() {
     </div>
   );
 }
-
