@@ -1,21 +1,16 @@
-import Anthropic from "@anthropic-ai/sdk";
-import config from "./index";
+import { azureClient, chatDeployment } from "./azure";
 import prisma from "./database";
-
-const anthropicClient = new Anthropic({
-  apiKey: config.anthropic.apiKey,
-});
 
 export interface BedrockMessage {
   role: "user" | "assistant";
   content: string | Array<{ type: string; text?: string; source?: any }>;
 }
 
-// Claude Sonnet 4.6 pricing (USD per million tokens)
-const PRICE_INPUT_PER_M = 3.0;
-const PRICE_OUTPUT_PER_M = 15.0;
+// GPT-5.4 mini pricing (USD per million tokens) — TODO: update with actual Azure pricing
+const PRICE_INPUT_PER_M = 0.15;
+const PRICE_OUTPUT_PER_M = 0.60;
 
-// USD → INR rate (configurable via env, default 90)
+// USD -> INR rate (configurable via env, default 90)
 const USD_TO_INR = parseFloat(process.env.USD_TO_INR || "90");
 
 function computeCost(inputTokens: number, outputTokens: number) {
@@ -37,7 +32,7 @@ async function logUsage(
     .create({
       data: {
         service,
-        model: config.anthropic.modelId,
+        model: chatDeployment,
         inputTokens,
         outputTokens,
         costUsd,
@@ -58,6 +53,12 @@ export async function invokeModel(
     serviceName?: string;
   } = {}
 ): Promise<string> {
+  if (!azureClient) {
+    throw new Error(
+      "Azure OpenAI is not configured. Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY."
+    );
+  }
+
   const {
     maxTokens = 4096,
     temperature = 0.3,
@@ -65,19 +66,37 @@ export async function invokeModel(
     serviceName = "unknown",
   } = options;
 
-  const response = await anthropicClient.messages.create({
-    model: config.anthropic.modelId,
+  // Build OpenAI-format messages
+  const openaiMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [];
+
+  if (system) {
+    openaiMessages.push({ role: "system", content: system });
+  }
+
+  for (const msg of messages) {
+    const content =
+      typeof msg.content === "string"
+        ? msg.content
+        : msg.content
+            .filter((b) => b.type === "text")
+            .map((b) => b.text || "")
+            .join("\n");
+    openaiMessages.push({ role: msg.role, content });
+  }
+
+  const response = await azureClient.chat.completions.create({
+    model: chatDeployment,
+    messages: openaiMessages,
     max_tokens: maxTokens,
     temperature,
-    system,
-    messages: messages as any,
   });
 
   // Log token usage asynchronously
-  const { input_tokens, output_tokens } = response.usage;
-  logUsage(serviceName, input_tokens, output_tokens);
+  const inputTokens = response.usage?.prompt_tokens ?? 0;
+  const outputTokens = response.usage?.completion_tokens ?? 0;
+  logUsage(serviceName, inputTokens, outputTokens);
 
-  return response.content[0]?.type === "text" ? response.content[0].text : "";
+  return response.choices[0]?.message?.content ?? "";
 }
 
 export async function invokeModelJSON<T = any>(
@@ -97,5 +116,3 @@ export async function invokeModelJSON<T = any>(
 
   return JSON.parse(jsonStr);
 }
-
-export default anthropicClient;

@@ -1,4 +1,4 @@
-import { invokeModel } from "../config/bedrock";
+import { invokeModel } from "../config/llm";
 import prisma from "../config/database";
 
 /**

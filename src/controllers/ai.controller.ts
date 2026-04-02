@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
-import { invokeModel, BedrockMessage } from "../config/bedrock";
+import { invokeModel, BedrockMessage } from "../config/llm";
 import { supabaseAdmin } from "../config/supabase";
 import { embedText } from "../services/embedding.service";
 

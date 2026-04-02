@@ -32,40 +32,45 @@ async function testResend() {
   }
 }
 
-// Test Anthropic API
-async function testAnthropic() {
-  console.log("\n🔧 Testing Anthropic API...");
+// Test Azure OpenAI API
+async function testAzureOpenAI() {
+  console.log("\n🔧 Testing Azure OpenAI API...");
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  const modelId = process.env.ANTHROPIC_MODEL_ID || "claude-sonnet-4-6";
+  const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
+  const apiKey = process.env.AZURE_OPENAI_API_KEY;
+  const deployment = process.env.AZURE_OPENAI_CHAT_DEPLOYMENT || "gpt-5.4-mini";
 
-  if (!apiKey) {
-    console.error("❌ ANTHROPIC_API_KEY not found in .env");
+  if (!endpoint || !apiKey) {
+    console.error("❌ AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_API_KEY not found in .env");
     return false;
   }
 
   try {
-    const Anthropic = (await import("@anthropic-ai/sdk")).default;
-    const client = new Anthropic({ apiKey });
+    const { AzureOpenAI } = await import("openai");
+    const client = new AzureOpenAI({
+      endpoint,
+      apiKey,
+      apiVersion: process.env.AZURE_OPENAI_API_VERSION || "2024-02-01",
+    });
 
-    const response = await client.messages.create({
-      model: modelId,
+    const response = await client.chat.completions.create({
+      model: deployment,
       max_tokens: 100,
-      messages: [{ role: "user", content: "Say 'Hello from Anthropic!' and nothing else." }],
+      messages: [{ role: "user", content: "Say 'Hello from Azure OpenAI!' and nothing else." }],
       temperature: 0,
     });
 
-    const text = response.content[0]?.type === "text" ? response.content[0].text : "";
-    console.log("✅ Anthropic API connected successfully!");
-    console.log(`   Model: ${modelId}`);
+    const text = response.choices[0]?.message?.content ?? "";
+    console.log("✅ Azure OpenAI API connected successfully!");
+    console.log(`   Deployment: ${deployment}`);
     console.log("   Response:", text);
     return true;
   } catch (err: any) {
-    console.error("❌ Anthropic test failed:", err.message);
+    console.error("❌ Azure OpenAI test failed:", err.message);
     if (err.status === 401) {
-      console.log("   Check your ANTHROPIC_API_KEY in .env");
+      console.log("   Check your AZURE_OPENAI_API_KEY in .env");
     } else if (err.status === 404) {
-      console.log("   Model not found. Check ANTHROPIC_MODEL_ID in .env");
+      console.log("   Deployment not found. Check AZURE_OPENAI_CHAT_DEPLOYMENT in .env");
     }
     return false;
   }
@@ -123,7 +128,7 @@ async function runTests() {
 
   const results = {
     resend: await testResend(),
-    anthropic: await testAnthropic(),
+    azureOpenAI: await testAzureOpenAI(),
     supabase: await testSupabaseStorage(),
   };
 
@@ -131,10 +136,10 @@ async function runTests() {
   console.log("📊 Test Results Summary");
   console.log("====================================");
   console.log(`Resend:    ${results.resend ? "✅ Working" : "❌ Failed"}`);
-  console.log(`Anthropic: ${results.anthropic ? "✅ Working" : "❌ Failed"}`);
+  console.log(`Azure AI:  ${results.azureOpenAI ? "✅ Working" : "❌ Failed"}`);
   console.log(`Supabase:  ${results.supabase ? "✅ Working" : "❌ Failed"}`);
 
-  if (!results.resend || !results.anthropic) {
+  if (!results.resend || !results.azureOpenAI) {
     console.log("\n📝 Required Environment Variables:");
     console.log("-----------------------------------");
     if (!results.resend) {
@@ -142,15 +147,15 @@ async function runTests() {
       console.log("  RESEND_API_KEY=re_xxxxxxxxxxxxx");
       console.log("  Get it from: https://resend.com/api-keys");
     }
-    if (!results.anthropic) {
-      console.log("\nFor Anthropic:");
-      console.log("  ANTHROPIC_API_KEY=sk-ant-...");
-      console.log("  ANTHROPIC_MODEL_ID=claude-sonnet-4-6");
-      console.log("\n  Get your API key from: https://console.anthropic.com/settings/keys");
+    if (!results.azureOpenAI) {
+      console.log("\nFor Azure OpenAI:");
+      console.log("  AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/");
+      console.log("  AZURE_OPENAI_API_KEY=your-key");
+      console.log("  AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-5.4-mini");
     }
   }
 
-  process.exit(results.resend && results.anthropic && results.supabase ? 0 : 1);
+  process.exit(results.resend && results.azureOpenAI && results.supabase ? 0 : 1);
 }
 
 // Run tests

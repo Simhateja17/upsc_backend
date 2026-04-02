@@ -15,10 +15,6 @@ export const config = {
     anonKey: process.env.SUPABASE_ANON_KEY || "",
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   },
-  anthropic: {
-    apiKey: process.env.ANTHROPIC_API_KEY || "",
-    modelId: process.env.ANTHROPIC_MODEL_ID || "claude-sonnet-4-6",
-  },
   resend: {
     apiKey: process.env.RESEND_API_KEY || "",
     fromEmail: process.env.RESEND_FROM_EMAIL || "noreply@example.com",

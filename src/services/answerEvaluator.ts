@@ -1,4 +1,4 @@
-import { invokeModelJSON, BedrockMessage } from "../config/bedrock";
+import { invokeModelJSON, BedrockMessage } from "../config/llm";
 import prisma from "../config/database";
 
 interface EvaluationResult {

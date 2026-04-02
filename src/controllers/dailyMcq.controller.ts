@@ -48,7 +48,7 @@ export const getTodayQuestions = async (req: Request, res: Response, next: NextF
       include: {
         questions: {
           orderBy: { questionNum: "asc" },
-          select: { id: true, questionNum: true, questionText: true, category: true, difficulty: true, options: true },
+          select: { id: true, questionNum: true, questionText: true, category: true, difficulty: true, options: true, correctOption: true, explanation: true },
         },
       },
     });
