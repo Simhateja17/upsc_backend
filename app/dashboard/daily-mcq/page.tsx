@@ -52,7 +52,7 @@ export default function DailyMcqIntroPage() {
   }
 
   const displayTitle = mcq.title
-    .replace(/\s*(?:-{1,3}|\u2013|\u2014)\s*[^-\u2013\u2014]+$/u, '')
+    .replace(/\s*(?:-{1,3}|\u2013|\u2014)\s*[^-\u2013\u2014]+$/, '')
     .trim();
 
   return (

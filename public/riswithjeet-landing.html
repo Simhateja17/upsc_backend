@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RiseWithJeet – India's #1 AI-Powered UPSC Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* CHANGE 1: Royal Navy Blue palette */
+  --hero-bg: #070E1E;
+  --navy-deep: #070E1E;
+  --navy: #0B1530;
+  --navy-mid: #0F1E42;
+  --navy-light: #132550;
+  --light-bg: #F4F6FA;
+  --light-bg2: #EEF1F8;
+  --card-white: #FFFFFF;
+  --gold: #E8B84B;
+  --gold-light: #F5CC6A;
+  --gold-dark: #C8960A;
+  --emerald: #10B981;
+  --cyan: #06B6D4;
+  --rose: #F43F5E;
+  --violet: #8B5CF6;
+  --teal-green: #059669;
+  --teal-green-light: #34D399;
+  --text-dark: #0B1D3A;
+  --text-mid: #4A5A7A;
+  --text-light: #8A96B0;
+  --white: #FFFFFF;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { font-family:'Outfit',sans-serif; background:var(--light-bg); color:var(--text-dark); overflow-x:hidden; }
+
+/* ── NAV ── */
+nav {
+  position:fixed; top:0; left:0; right:0; z-index:200;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 56px; height:66px;
+  background:rgba(7,14,30,0.95);
+  backdrop-filter:blur(24px) saturate(200%);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  transition:background 0.3s;
+}
+.logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.logo-mark {
+  width:36px; height:36px;
+  background:linear-gradient(135deg,var(--gold),var(--gold-dark));
+  border-radius:9px; display:flex; align-items:center; justify-content:center;
+  font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:700; color:var(--navy);
+  box-shadow:0 0 20px rgba(232,184,75,0.35);
+}
+.logo-text { font-family:'Cormorant Garamond',serif; font-size:21px; font-weight:700; color:var(--white); letter-spacing:-0.2px; }
+.logo-jeet { color:var(--gold); }
+.nav-links { display:flex; gap:32px; list-style:none; }
+.nav-links a { color:rgba(255,255,255,0.58); text-decoration:none; font-size:14px; font-weight:500; transition:color 0.2s; }
+.nav-links a:hover { color:var(--gold); }
+.nav-btns { display:flex; gap:10px; }
+.btn-nav-ghost { padding:8px 20px; border:1px solid rgba(255,255,255,0.15); border-radius:8px; background:transparent; color:rgba(255,255,255,0.88); font-size:13.5px; font-weight:500; cursor:pointer; font-family:'Outfit',sans-serif; transition:all 0.2s; }
+.btn-nav-ghost:hover { border-color:var(--gold); color:var(--gold); }
+.btn-nav-gold { padding:8px 22px; border-radius:8px; background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:var(--navy); font-size:13.5px; font-weight:700; cursor:pointer; border:none; font-family:'Outfit',sans-serif; transition:all 0.25s; box-shadow:0 4px 16px rgba(232,184,75,0.3); }
+.btn-nav-gold:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(232,184,75,0.45); }
+
+/* ══════════════════════════════════════════
+   HERO  – Royal Navy Blue + white top-left
+   glow + dim checkbox grid
+══════════════════════════════════════════ */
+.hero {
+  min-height:100vh;
+  background:var(--navy-deep);
+  position:relative;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;
+  padding:120px 40px 80px;
+  overflow:hidden;
+}
+
+/* Canvas draws background atmosphere */
+#heroCanvas {
+  position:absolute; inset:0; width:100%; height:100%;
+  pointer-events:none; z-index:0;
+}
+
+/* CHANGE 1: Dim checkbox / grid overlay */
+.hero::before {
+  content:''; position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.028) 1px, transparent 1px);
+  background-size:52px 52px;
+  pointer-events:none; z-index:1;
+  mask-image:radial-gradient(ellipse 80% 70% at 50% 50%, black 40%, transparent 100%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 50%, black 40%, transparent 100%);
+}
+
+/* CHANGE 1: White/light glow – top-left corner */
+.hero::after {
+  content:''; position:absolute;
+  top:-120px; left:-120px;
+  width:600px; height:600px;
+  background:radial-gradient(circle, rgba(180,210,255,0.10) 0%, rgba(100,160,255,0.06) 35%, transparent 70%);
+  pointer-events:none; z-index:1;
+  animation:topLeftBreath 6s ease-in-out infinite;
+}
+@keyframes topLeftBreath {
+  0%,100%{opacity:0.7;transform:scale(1);}
+  50%{opacity:1;transform:scale(1.08);}
+}
+
+/* Small dim floating checkbox marks in grid */
+.hero-grid-marks {
+  position:absolute; inset:0; z-index:1; pointer-events:none; overflow:hidden;
+}
+.hgm {
+  position:absolute;
+  width:12px; height:12px;
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:2px;
+  display:flex; align-items:center; justify-content:center;
+}
+.hgm::after {
+  content:'✓';
+  font-size:7px;
+  color:rgba(232,184,75,0.12);
+}
+
+/* Hero content z-index */
+.hero > *:not(#heroCanvas):not(.hero-grid-marks) { position:relative; z-index:2; }
+
+/* CHANGE 2: No glitter – clean pill */
+.hero-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:9px 22px;
+  background:rgba(10,20,48,0.75);
+  border:1px solid rgba(232,184,75,0.3);
+  border-radius:100px;
+  font-size:12.5px; font-weight:600; color:var(--gold);
+  letter-spacing:0.6px;
+  backdrop-filter:blur(10px);
+  margin-bottom:32px;
+  animation:fadeUp 0.7s ease both;
+  box-shadow:0 4px 24px rgba(232,184,75,0.12), inset 0 1px 0 rgba(255,255,255,0.07);
+}
+.badge-star { animation:rotateStar 8s linear infinite; display:inline-block; }
+@keyframes rotateStar { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+/* CHANGE 3: Hero headline – single line + Simplified on next */
+.hero h1 {
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(38px,5.5vw,78px);
+  font-weight:700; line-height:1.05;
+  letter-spacing:-2px; color:var(--white);
+  max-width:1000px;
+  animation:fadeUp 0.7s ease 0.1s both;
+}
+.hero h1 .line1 { display:block; white-space:nowrap; }
+.hero h1 .line2 { display:block; }
+
+.gold-word {
+  color:var(--gold);
+  position:relative; display:inline-block;
+}
+.gold-word::after {
+  content:'';
+  position:absolute;
+  bottom:-6px; left:0; width:0; height:3px;
+  background:linear-gradient(90deg, var(--gold-light), var(--gold), transparent);
+  border-radius:2px;
+  animation:underlineOnce 1.4s cubic-bezier(0.4,0,0.2,1) 1.2s forwards;
+}
+@keyframes underlineOnce {
+  0%{width:0;opacity:1;} 65%{width:100%;opacity:1;} 100%{width:100%;opacity:0.65;}
+}
+
+.hero-sub { font-size:clamp(15px,1.8vw,18px); color:rgba(255,255,255,0.52); max-width:540px; line-height:1.75; font-weight:400; margin:28px auto 42px; animation:fadeUp 0.7s ease 0.2s both; }
+.hero-ctas { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; animation:fadeUp 0.7s ease 0.3s both; margin-bottom:64px; }
+
+.cta-primary { padding:15px 38px; background:linear-gradient(135deg,var(--gold),#B8780A); color:var(--navy); border:none; border-radius:12px; font-size:15.5px; font-weight:700; cursor:pointer; font-family:'Outfit',sans-serif; transition:all 0.25s; box-shadow:0 8px 28px rgba(232,184,75,0.38); }
+.cta-primary:hover { transform:translateY(-2px); box-shadow:0 16px 44px rgba(232,184,75,0.5); }
+.cta-secondary { padding:15px 36px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.16); color:var(--white); border-radius:12px; font-size:15.5px; font-weight:600; cursor:pointer; font-family:'Outfit',sans-serif; backdrop-filter:blur(8px); transition:all 0.25s; }
+.cta-secondary:hover { background:rgba(255,255,255,0.11); transform:translateY(-2px); border-color:rgba(255,255,255,0.28); }
+
+.hero-stats { display:flex; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:18px; overflow:hidden; backdrop-filter:blur(16px); animation:fadeUp 0.7s ease 0.4s both; box-shadow:0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.07); }
+.hstat { padding:22px 40px; text-align:center; border-right:1px solid rgba(255,255,255,0.06); }
+.hstat:last-child { border-right:none; }
+.hstat-val { font-family:'Cormorant Garamond',serif; font-size:40px; font-weight:700; color:var(--gold); line-height:1; display:block; }
+.hstat-label { font-size:12px; color:rgba(255,255,255,0.46); margin-top:5px; letter-spacing:0.4px; }
+
+/* ── SHARED ── */
+.section-eyebrow { display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:2.5px; text-transform:uppercase; font-weight:600; margin-bottom:14px; }
+.eyebrow-dark { color:var(--gold-dark); }
+.eyebrow-dark::before { content:''; display:inline-block; width:18px; height:2px; background:var(--gold-dark); border-radius:2px; }
+.eyebrow-light { color:var(--gold); }
+.eyebrow-light::before { content:''; display:inline-block; width:18px; height:2px; background:var(--gold); border-radius:2px; }
+.section-h2-dark { font-family:'Cormorant Garamond',serif; font-size:clamp(32px,4.5vw,54px); font-weight:700; letter-spacing:-1.5px; line-height:1.05; color:var(--navy); }
+.section-h2-light { font-family:'Cormorant Garamond',serif; font-size:clamp(32px,4.5vw,54px); font-weight:700; letter-spacing:-1.5px; line-height:1.05; color:var(--white); }
+.section-p-dark { font-size:16.5px; color:var(--text-mid); line-height:1.7; }
+.section-p-light { font-size:16.5px; color:rgba(255,255,255,0.58); line-height:1.7; }
+
+/* ══════════════════════════════════════════
+   MODULES
+══════════════════════════════════════════ */
+.modules-section { background:var(--light-bg); padding:110px 56px; }
+.modules-header { text-align:center; margin-bottom:64px; }
+.modules-grid-full {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:20px; max-width:1200px; margin:0 auto;
+}
+.mod-card {
+  background:var(--card-white); border:1.5px solid #E4EAF5; border-radius:22px;
+  padding:32px 26px; display:flex; flex-direction:column; justify-content:space-between;
+  min-height:230px; cursor:pointer;
+  transition:all 0.35s cubic-bezier(0.25,0.46,0.45,0.94);
+  position:relative; overflow:hidden;
+}
+.mod-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; opacity:0; transition:opacity 0.3s; border-radius:22px 22px 0 0; }
+.mc-gold::before { background:linear-gradient(90deg,var(--gold),var(--gold-light)); }
+.mc-cyan::before { background:linear-gradient(90deg,var(--cyan),#38BDF8); }
+.mc-emerald::before { background:linear-gradient(90deg,var(--emerald),#34D399); }
+.mc-violet::before { background:linear-gradient(90deg,var(--violet),#A78BFA); }
+.mc-rose::before { background:linear-gradient(90deg,var(--rose),#FB7185); }
+.mc-navy::before { background:linear-gradient(90deg,var(--navy),#1E3A5F); }
+.mc-teal::before { background:linear-gradient(90deg,#14B8A6,#2DD4BF); }
+.mc-amber::before { background:linear-gradient(90deg,#F59E0B,#FCD34D); }
+.mod-card:hover { transform:translateY(-7px); border-color:transparent; box-shadow:0 24px 64px rgba(11,29,58,0.14); }
+.mod-card:hover::before { opacity:1; }
+.mod-icon-wrap { width:52px; height:52px; border-radius:15px; display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px; }
+.mw-gold{background:#FEF3C7;} .mw-cyan{background:#E0F7FA;} .mw-emerald{background:#D1FAE5;} .mw-violet{background:#EDE9FE;} .mw-rose{background:#FFE4E6;} .mw-navy{background:#E8EDF5;} .mw-teal{background:#CCFBF1;} .mw-amber{background:#FEF3C7;}
+.mod-title { font-size:16px; font-weight:700; color:var(--navy); margin-bottom:7px; }
+.mod-desc { font-size:13px; color:var(--text-mid); line-height:1.55; flex:1; }
+.mod-tag { display:inline-flex; align-items:center; padding:4px 12px; border-radius:100px; font-size:11px; font-weight:700; letter-spacing:0.4px; margin-top:14px; width:fit-content; }
+.tag-gold{background:#FEF3C7;color:#92400E;} .tag-cyan{background:#E0F2FE;color:#075985;} .tag-emerald{background:#D1FAE5;color:#065F46;} .tag-violet{background:#EDE9FE;color:#5B21B6;} .tag-rose{background:#FFE4E6;color:#9F1239;} .tag-navy{background:#E8EDF5;color:var(--navy);} .tag-teal{background:#CCFBF1;color:#134E4A;} .tag-amber{background:#FEF3C7;color:#92400E;}
+
+/* ══════════════════════════════════════════
+   AI SECTION
+══════════════════════════════════════════ */
+.ai-section {
+  background:linear-gradient(160deg,#060E1E 0%,#040A18 50%,#091C3A 100%);
+  padding:110px 56px; position:relative; overflow:hidden;
+}
+.ai-section::before { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px); background-size:56px 56px; pointer-events:none; }
+.ai-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:72px; align-items:center; position:relative; z-index:1; }
+.ai-features-switcher { margin-top:44px; display:flex; flex-direction:column; gap:4px; }
+.ai-feat { padding:18px 20px; border-radius:14px; border:1px solid transparent; cursor:pointer; transition:all 0.3s; }
+.ai-feat.active { background:rgba(255,255,255,0.05); border-color:rgba(232,184,75,0.22); }
+.ai-feat-header { display:flex; align-items:center; gap:14px; }
+.ai-feat-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.ai-feat-title { font-size:15.5px; font-weight:700; color:var(--white); }
+.ai-feat-desc { font-size:13.5px; color:rgba(255,255,255,0.55); line-height:1.6; margin-top:9px; margin-left:54px; max-height:0; overflow:hidden; transition:max-height 0.4s ease, opacity 0.3s; opacity:0; }
+.ai-feat.active .ai-feat-desc { max-height:80px; opacity:1; }
+.ai-feat-progress { height:2px; background:rgba(255,255,255,0.07); border-radius:2px; margin-top:9px; margin-left:54px; display:none; }
+.ai-feat.active .ai-feat-progress { display:block; }
+.ai-feat-progress-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--gold),var(--gold-light)); animation:progressFill 4s linear infinite; }
+@keyframes progressFill { from{width:0%} to{width:100%} }
+.demo-device {
+  background:#FFFFFF; border:1px solid rgba(255,255,255,0.15);
+  border-radius:22px; overflow:hidden;
+  box-shadow:0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+}
+.device-bar { background:#F1F3F8; border-bottom:1px solid #E4EAF5; padding:11px 16px; display:flex; align-items:center; gap:8px; }
+.d-dot { width:10px; height:10px; border-radius:50%; }
+.device-title { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-mid); margin-left:6px; }
+.demo-content { padding:0; min-height:370px; position:relative; overflow:hidden; background:#FFFFFF; }
+.demo-slide { position:absolute; inset:0; padding:24px; opacity:0; transition:opacity 0.5s ease; display:flex; flex-direction:column; background:#FFFFFF; }
+.demo-slide.active { opacity:1; position:relative; }
+.eval-q { font-size:12.5px; color:var(--navy); padding:13px; background:#F4F6FA; border-radius:10px; border-left:3px solid var(--gold-dark); line-height:1.6; margin-bottom:12px; font-weight:500; }
+.eval-ans { font-size:12px; color:var(--text-mid); padding:11px; background:#F8F9FC; border-radius:10px; line-height:1.6; font-style:italic; margin-bottom:12px; border:1px solid #E4EAF5; }
+.eval-bar { height:4px; background:#E4EAF5; border-radius:2px; margin-bottom:10px; overflow:hidden; }
+.eval-bar-fill { height:100%; background:linear-gradient(90deg,var(--gold-dark),var(--gold-light)); border-radius:2px; animation:evalLoad 1.5s ease 0.3s both; }
+@keyframes evalLoad { from{width:0%} to{width:85%} }
+.eval-scores { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
+.es-item { background:#F4F6FA; border-radius:10px; padding:13px; text-align:center; border:1px solid #E4EAF5; }
+.es-val { font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:600; line-height:1; margin-bottom:3px; }
+.es-label { font-size:10px; color:var(--text-light); }
+.eval-fb { font-size:12px; color:#065F46; padding:10px 13px; background:#D1FAE5; border:1px solid #A7F3D0; border-radius:8px; line-height:1.5; }
+.chat-wrap { display:flex; flex-direction:column; gap:10px; }
+.chat-bubble { padding:10px 14px; border-radius:12px; font-size:12.5px; line-height:1.5; max-width:85%; }
+.cb-user { background:linear-gradient(135deg,#0F1E42,#132550); color:#fff; align-self:flex-end; border-radius:12px 12px 2px 12px; }
+.cb-ai { background:#F4F6FA; border:1px solid #E4EAF5; color:var(--navy); border-radius:12px 12px 12px 2px; }
+.cb-typing { display:flex; gap:4px; align-items:center; padding:12px 16px; }
+.cb-dot { width:7px; height:7px; border-radius:50%; background:var(--text-light); animation:typing 1.2s ease-in-out infinite; }
+.cb-dot:nth-child(2){animation-delay:0.2s} .cb-dot:nth-child(3){animation-delay:0.4s}
+@keyframes typing { 0%,80%,100%{opacity:0.3;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+.tgen-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.tgen-title { font-size:14px; font-weight:700; color:var(--navy); }
+.tgen-badge { padding:4px 12px; background:#EDE9FE; border:1px solid #C4B5FD; border-radius:100px; font-size:11px; color:#5B21B6; font-weight:600; }
+.tg-q { background:#F4F6FA; border-radius:10px; padding:14px; margin-bottom:8px; border:1px solid #E4EAF5; }
+.tg-q-text { font-size:12.5px; color:var(--navy); line-height:1.5; margin-bottom:10px; font-weight:500; }
+.tg-option { display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:8px; font-size:12px; color:var(--text-mid); cursor:pointer; margin-bottom:4px; border:1px solid transparent; }
+.tg-option.correct { background:#D1FAE5; border-color:#A7F3D0; color:#065F46; }
+.tg-option.wrong { background:#FFE4E6; border-color:#FCA5A5; color:#9F1239; }
+.tg-opt-mark { width:18px; height:18px; border-radius:50%; border:1px solid currentColor; display:flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0; }
+.ca-wrap { display:flex; flex-direction:column; gap:8px; }
+.ca-item { display:flex; gap:12px; align-items:flex-start; padding:12px; background:#F4F6FA; border-radius:12px; border:1px solid #E4EAF5; }
+.ca-dot-item { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+.ca-text { font-size:12.5px; color:var(--navy); line-height:1.5; font-weight:500; }
+.ca-tag { font-size:10.5px; font-weight:600; margin-top:3px; }
+
+/* ══════════════════════════════════════════
+   CHANGE 4: REVISION TOOLS – green radial
+   corner ornament on each card
+══════════════════════════════════════════ */
+.tools-section {
+  background:var(--light-bg2);
+  padding:110px 56px;
+  position:relative; overflow:hidden;
+}
+/* Big ambient green orb behind section */
+.tools-section::before {
+  content:''; position:absolute;
+  bottom:-180px; right:-180px;
+  width:600px; height:600px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(5,150,105,0.10) 0%, rgba(16,185,129,0.06) 35%, transparent 70%);
+  pointer-events:none;
+}
+.tools-grid-2 { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
+.tool-card {
+  background:var(--card-white); border:1.5px solid #E4EAF5; border-radius:22px;
+  padding:32px 24px; transition:all 0.35s; cursor:pointer;
+  position:relative; overflow:hidden;
+}
+/* CHANGE 4: Green radial from bottom-right on every card */
+.tool-card::after {
+  content:''; position:absolute;
+  bottom:-60px; right:-60px;
+  width:200px; height:200px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(16,185,129,0.13) 0%, rgba(5,150,105,0.07) 40%, transparent 70%);
+  pointer-events:none;
+  transition:transform 0.4s ease, opacity 0.4s ease;
+  opacity:0.7;
+}
+.tool-card:hover::after { transform:scale(1.2); opacity:1; }
+.tool-card:hover { transform:translateY(-7px); box-shadow:0 24px 56px rgba(11,29,58,0.12); }
+.tc-gold:hover{border-color:rgba(232,184,75,0.35);}
+.tc-cyan:hover{border-color:rgba(6,182,212,0.35);}
+.tc-emerald:hover{border-color:rgba(16,185,129,0.35);}
+.tc-violet:hover{border-color:rgba(139,92,246,0.35);}
+.tool-icon-box { width:56px; height:56px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:26px; margin-bottom:18px; position:relative; z-index:1; }
+.tib-gold{background:#FEF3C7;} .tib-cyan{background:#E0F7FA;} .tib-emerald{background:#D1FAE5;} .tib-violet{background:#EDE9FE;}
+.tool-card h4 { font-size:17px; font-weight:700; color:var(--navy); margin-bottom:7px; position:relative; z-index:1; }
+.tool-card p { font-size:13px; color:var(--text-mid); line-height:1.55; position:relative; z-index:1; }
+.tool-arrow { display:inline-flex; align-items:center; font-size:13px; font-weight:600; color:var(--teal-green); margin-top:14px; gap:4px; transition:gap 0.2s; position:relative; z-index:1; }
+.tool-card:hover .tool-arrow { gap:8px; }
+
+/* ══════════════════════════════════════════
+   ANALYTICS  – distinctly different bg
+══════════════════════════════════════════ */
+.analytics-section {
+  background:linear-gradient(160deg,#F9FBFF 0%,#EFF3FC 50%,#E8EEF8 100%);
+  padding:110px 56px;
+  position:relative; overflow:hidden;
+}
+.analytics-section::before {
+  content:''; position:absolute;
+  top:-200px; left:-200px;
+  width:700px; height:700px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(46,93,179,0.06) 0%, transparent 65%);
+  pointer-events:none;
+}
+.analytics-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; }
+.dash-card { background:var(--card-white); border:1.5px solid #E4EAF5; border-radius:26px; padding:28px; box-shadow:0 24px 64px rgba(11,29,58,0.10); }
+.dc-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; }
+.dc-header h5 { font-size:15px; font-weight:700; color:var(--navy); }
+.dc-date { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-light); }
+.dc-metrics { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:18px; }
+.dc-metric { background:var(--light-bg); border-radius:12px; padding:14px; text-align:center; border:1px solid #E4EAF5; }
+.dc-metric .mv { font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:600; line-height:1; margin-bottom:3px; }
+.dc-metric .ml { font-size:11px; color:var(--text-light); }
+.dc-line-chart { background:var(--light-bg); border-radius:12px; padding:16px; margin-bottom:16px; border:1px solid #E4EAF5; position:relative; height:100px; overflow:hidden; }
+.dc-line-chart svg { width:100%; height:100%; }
+.dc-chart { background:var(--light-bg2); border-radius:12px; padding:14px 14px 8px; margin-bottom:16px; height:90px; display:flex; align-items:flex-end; gap:5px; border:1px solid #E4EAF5; }
+.dcbar { flex:1; border-radius:3px 3px 0 0; }
+.dcbar-filled { background:linear-gradient(to top,var(--gold-dark),var(--gold-light)); }
+.dcbar-empty { background:#DCE3F0; }
+.dc-subjects { display:flex; flex-direction:column; gap:8px; }
+.dc-sub-row { display:flex; align-items:center; gap:10px; }
+.dc-sub-name { font-size:12px; color:var(--text-mid); width:85px; flex-shrink:0; }
+.dc-sub-track { flex:1; height:6px; background:#E4EAF5; border-radius:3px; overflow:hidden; }
+.dc-sub-fill { height:100%; border-radius:3px; }
+.dc-sub-pct { font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--navy); font-weight:600; width:32px; text-align:right; }
+.analytics-right h2 { margin-bottom:16px; }
+.analytics-points { display:flex; flex-direction:column; gap:18px; }
+.apoint { display:flex; gap:14px; align-items:flex-start; }
+.apoint-icon { width:44px; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0; }
+.apoint-body h4 { font-size:15px; font-weight:700; color:var(--navy); margin-bottom:4px; }
+.apoint-body p { font-size:13px; color:var(--text-mid); line-height:1.5; }
+
+/* ── MENTORSHIP ── */
+.mentor-section { background:linear-gradient(135deg,#060E1E 0%,#040A18 60%,#0B1E3C 100%); padding:110px 56px; position:relative; overflow:hidden; }
+.mentor-section::before { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px); background-size:56px 56px; pointer-events:none; }
+.mentor-inner { max-width:1100px; margin:0 auto; position:relative; z-index:1; }
+.mentor-top { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; margin-bottom:56px; }
+.mentor-quote-card { background:rgba(255,255,255,0.04); border:1px solid rgba(232,184,75,0.18); border-radius:26px; padding:40px; position:relative; overflow:hidden; }
+.mqc-mark { font-family:'Cormorant Garamond',serif; font-size:130px; color:rgba(232,184,75,0.07); line-height:1; position:absolute; top:-20px; left:22px; pointer-events:none; }
+.mqc-text { font-family:'Cormorant Garamond',serif; font-size:20px; font-style:italic; color:rgba(255,255,255,0.88); line-height:1.6; margin-bottom:24px; position:relative; z-index:1; }
+.mqc-author { display:flex; align-items:center; gap:14px; }
+.mqc-av { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,var(--gold),var(--gold-dark)); display:flex; align-items:center; justify-content:center; font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:700; color:var(--navy); box-shadow:0 4px 16px rgba(232,184,75,0.3); }
+.mqc-name { font-size:15px; font-weight:700; color:var(--white); }
+.mqc-role { font-size:13px; color:var(--gold); }
+.mentor-cta-row { display:flex; align-items:center; gap:14px; margin-top:24px; flex-wrap:wrap; }
+.btn-schedule { display:inline-flex; align-items:center; gap:8px; padding:12px 24px; background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:var(--navy); border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:'Outfit',sans-serif; transition:all 0.25s; box-shadow:0 4px 16px rgba(232,184,75,0.3); }
+.btn-schedule:hover { transform:translateY(-2px); box-shadow:0 10px 32px rgba(232,184,75,0.45); }
+.btn-schedule-ghost { display:inline-flex; align-items:center; gap:6px; padding:12px 22px; background:transparent; border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.75); border-radius:10px; font-size:14px; font-weight:500; cursor:pointer; font-family:'Outfit',sans-serif; transition:all 0.2s; }
+.btn-schedule-ghost:hover { border-color:var(--gold); color:var(--gold); }
+.mentor-features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.mf-item { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:18px; padding:26px; transition:all 0.3s; }
+.mf-item:hover { background:rgba(255,255,255,0.07); border-color:rgba(232,184,75,0.22); transform:translateY(-4px); }
+.mf-icon { font-size:28px; margin-bottom:14px; }
+.mf-title { font-size:15px; font-weight:700; color:var(--white); margin-bottom:7px; }
+.mf-desc { font-size:13px; color:rgba(255,255,255,0.52); line-height:1.55; }
+
+/* ══════════════════════════════════════════
+   CHANGE 5: COMMUNITY  – distinctly different bg (warm slate)
+══════════════════════════════════════════ */
+.live-section {
+  background:linear-gradient(160deg,#F0F4FF 0%,#EAF0FB 50%,#E4ECF8 100%);
+  padding:110px 56px;
+  position:relative; overflow:hidden;
+}
+.live-section::before {
+  content:''; position:absolute;
+  bottom:-150px; right:-100px;
+  width:500px; height:500px; border-radius:50%;
+  background:radial-gradient(circle, rgba(232,184,75,0.07) 0%, transparent 65%);
+  pointer-events:none;
+}
+.live-inner { max-width:1000px; margin:0 auto; text-align:center; }
+.live-section-header { margin-bottom:0; }
+.live-section-header .section-eyebrow { justify-content:center; }
+.live-pulse {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:7px 18px;
+  background:rgba(244,63,94,0.08); border:1px solid rgba(244,63,94,0.2);
+  border-radius:100px; font-size:12.5px; color:var(--rose); font-weight:600;
+  margin-top:16px;
+}
+.pulse-dot { width:7px; height:7px; border-radius:50%; background:var(--rose); animation:pulseDot 1.6s ease-in-out infinite; }
+@keyframes pulseDot { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(244,63,94,0.4)} 50%{opacity:0.6;box-shadow:0 0 0 5px rgba(244,63,94,0)} }
+.live-card { background:var(--card-white); border:1.5px solid #E4EAF5; border-radius:26px; padding:32px 36px; margin:40px 0 32px; box-shadow:0 16px 56px rgba(11,29,58,0.09); display:flex; align-items:center; justify-content:space-between; gap:24px; }
+.live-avatars { display:flex; }
+.lavatar { width:40px; height:40px; border-radius:50%; border:2.5px solid var(--card-white); background:linear-gradient(135deg,var(--navy),#1E3A5F); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--white); margin-left:-11px; box-shadow:0 2px 8px rgba(0,0,0,0.15); }
+.lavatar:first-child { margin-left:0; }
+.lavatar-more { background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:var(--navy); font-size:10px; }
+.live-info h4 { font-size:15px; font-weight:700; color:var(--navy); margin-bottom:4px; }
+.live-info p { font-size:13px; color:var(--text-mid); }
+.live-stats { display:flex; gap:28px; }
+.lstat { text-align:center; }
+.lstat-val { font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:600; color:var(--navy); display:block; line-height:1; }
+.lstat-label { font-size:11px; color:var(--text-light); margin-top:3px; }
+.live-tools-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+.lt-item { background:var(--card-white); border:1.5px solid #E4EAF5; border-radius:18px; padding:22px 16px; text-align:center; transition:all 0.3s; cursor:pointer; }
+.lt-item:hover { transform:translateY(-5px); box-shadow:0 14px 36px rgba(11,29,58,0.10); border-color:rgba(232,184,75,0.35); }
+.lt-icon { font-size:30px; margin-bottom:10px; }
+.lt-item h5 { font-size:13.5px; font-weight:700; color:var(--navy); margin-bottom:4px; }
+.lt-item p { font-size:12px; color:var(--text-mid); }
+.btn-join-live { margin-top:32px; padding:15px 48px; background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:var(--navy); border:none; border-radius:12px; font-size:15.5px; font-weight:700; cursor:pointer; font-family:'Outfit',sans-serif; transition:all 0.25s; box-shadow:0 8px 28px rgba(232,184,75,0.35); }
+.btn-join-live:hover { transform:translateY(-2px); box-shadow:0 14px 40px rgba(232,184,75,0.5); }
+
+/* ══════════════════════════════════════════
+   CHANGE 5+6: MOBILE APP – distinct bg
+   + iPhone-style Dynamic Island mockup
+══════════════════════════════════════════ */
+.app-section {
+  background:linear-gradient(160deg,#F7F9FF 0%,#EEF3FD 60%,#E8EFF9 100%);
+  padding:110px 56px;
+  position:relative; overflow:hidden;
+}
+.app-section::before {
+  content:''; position:absolute;
+  top:-180px; right:-120px;
+  width:580px; height:580px; border-radius:50%;
+  background:radial-gradient(circle, rgba(11,21,58,0.05) 0%, transparent 65%);
+  pointer-events:none;
+}
+.app-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; position:relative; z-index:1; }
+.app-left h2 { margin-bottom:14px; }
+.app-left p { margin-bottom:32px; }
+.app-features { display:flex; flex-direction:column; gap:16px; margin-bottom:40px; }
+.app-feat { display:flex; align-items:center; gap:14px; }
+.app-feat-icon { width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0; }
+.app-feat-text h5 { font-size:15px; font-weight:700; color:var(--navy); margin-bottom:2px; }
+.app-feat-text p { font-size:13px; color:var(--text-mid); }
+.app-store-btns { display:flex; gap:12px; flex-wrap:wrap; }
+.app-store-btn { display:flex; align-items:center; gap:10px; padding:12px 22px; background:var(--navy); border:1px solid rgba(11,29,58,0.1); border-radius:12px; cursor:pointer; transition:all 0.25s; text-decoration:none; }
+.app-store-btn:hover { background:var(--navy-mid); border-color:var(--gold); transform:translateY(-2px); box-shadow:0 10px 28px rgba(11,29,58,0.22); }
+.asb-icon { font-size:24px; }
+.asb-text { text-align:left; }
+.asb-sub { font-size:10px; color:rgba(255,255,255,0.5); display:block; }
+.asb-name { font-size:14px; font-weight:700; color:var(--white); display:block; }
+
+/* CHANGE 6: iPhone Dynamic Island Style */
+.app-phone-wrap { display:flex; justify-content:center; position:relative; }
+.phone-shadow { position:absolute; bottom:-28px; left:50%; transform:translateX(-50%); width:240px; height:48px; background:rgba(11,29,58,0.25); filter:blur(28px); border-radius:50%; }
+
+/* Outer chassis with precise iPhone curves */
+.phone-frame {
+  width:282px; height:580px;
+  background:linear-gradient(170deg,#2A3A52 0%,#141E2E 40%,#0D1420 100%);
+  border-radius:52px;
+  border:1px solid rgba(255,255,255,0.18);
+  padding:0;
+  position:relative;
+  box-shadow:
+    0 60px 100px rgba(7,14,30,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 -1px 0 rgba(0,0,0,0.5),
+    inset 1px 0 0 rgba(255,255,255,0.08),
+    inset -1px 0 0 rgba(0,0,0,0.3);
+}
+
+/* Physical side buttons */
+.phone-frame::before {
+  content:'';
+  position:absolute;
+  right:-3px; top:110px;
+  width:4px; height:38px;
+  background:linear-gradient(180deg,#2A3A52,#1A2838);
+  border-radius:0 3px 3px 0;
+  box-shadow:0 46px 0 #1A2838, 0 56px 0 #1A2838;
+}
+.phone-frame::after {
+  content:'';
+  position:absolute;
+  left:-3px; top:90px;
+  width:4px; height:28px;
+  background:linear-gradient(180deg,#2A3A52,#1A2838);
+  border-radius:3px 0 0 3px;
+  box-shadow:0 40px 0 #1A2838, 0 80px 0 #1A2838;
+}
+
+/* Screen container with iPhone corner radius */
+.phone-screen-wrap {
+  position:absolute;
+  inset:12px;
+  border-radius:42px;
+  overflow:hidden;
+  background:#000;
+}
+
+/* Screen content */
+.phone-screen {
+  width:100%; height:100%;
+  background:#F0F3FA;
+  border-radius:42px;
+  overflow:hidden;
+  position:relative;
+}
+
+/* CHANGE 6: Dynamic Island */
+.dynamic-island {
+  position:absolute;
+  top:14px; left:50%; transform:translateX(-50%);
+  width:110px; height:30px;
+  background:#000;
+  border-radius:20px;
+  z-index:10;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.5);
+  transition:width 0.4s cubic-bezier(0.4,0,0.2,1), height 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+.dynamic-island:hover {
+  width:200px; height:46px;
+  cursor:pointer;
+}
+.di-camera { width:10px; height:10px; border-radius:50%; background:#1A1A1A; border:1px solid rgba(255,255,255,0.08); margin-left:auto; margin-right:12px; position:relative; }
+.di-camera::after { content:''; position:absolute; inset:2px; border-radius:50%; background:#0A0A0A; box-shadow:0 0 0 1px rgba(255,255,255,0.05); }
+.di-speaker { width:44px; height:5px; background:#1C1C1E; border-radius:3px; margin:0 auto; }
+.di-content { display:flex; align-items:center; gap:6px; padding:0 12px; width:100%; }
+.di-flame { font-size:12px; }
+.di-text { font-size:9px; color:#fff; font-weight:600; font-family:'Outfit',sans-serif; opacity:0; transition:opacity 0.3s; white-space:nowrap; }
+.dynamic-island:hover .di-text { opacity:1; }
+.dynamic-island:hover .di-speaker { display:none; }
+
+/* Status bar */
+.phone-status-bar { padding:54px 20px 0; display:flex; justify-content:space-between; align-items:center; background:linear-gradient(180deg,#0D1B2E,#0F2040); }
+.psb-time { font-size:13px; font-weight:700; color:#fff; font-family:'Outfit',sans-serif; }
+.psb-icons { display:flex; gap:4px; align-items:center; font-size:11px; color:rgba(255,255,255,0.85); }
+
+/* Hero banner inside phone */
+.ps-top-bar { background:linear-gradient(135deg,#0D1B2E,#132550); padding:14px 14px 20px; }
+.ps-topbar-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.ps-logo-s { font-family:'Cormorant Garamond',serif; font-size:14px; font-weight:700; color:#fff; }
+.ps-logo-s span { color:var(--gold); }
+.ps-notif-btn { width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; font-size:13px; border:1px solid rgba(255,255,255,0.1); }
+.ps-welcome { font-size:10px; color:rgba(255,255,255,0.55); }
+.ps-name-big { font-size:17px; font-weight:700; color:#fff; margin-top:1px; font-family:'Cormorant Garamond',serif; }
+.ps-streak-pill { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:linear-gradient(90deg,var(--gold),var(--gold-dark)); border-radius:100px; font-size:10px; font-weight:700; color:var(--navy); margin-top:8px; box-shadow:0 2px 8px rgba(232,184,75,0.35); }
+.ps-body { padding:10px; display:flex; flex-direction:column; gap:7px; }
+.ps-progress-row { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+.ps-mini-card { background:#fff; border-radius:14px; padding:11px 10px; border:1px solid #E4EAF5; box-shadow:0 2px 8px rgba(11,29,58,0.06); }
+.ps-mini-card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; }
+.ps-mini-icon { font-size:14px; }
+.ps-mini-badge { font-size:9px; font-weight:700; padding:2px 6px; border-radius:100px; }
+.badge-up { background:#D1FAE5; color:#065F46; }
+.badge-warn { background:#FEF3C7; color:#92400E; }
+.ps-mini-val { font-family:'JetBrains Mono',monospace; font-size:20px; font-weight:600; color:var(--navy); line-height:1; }
+.ps-mini-label { font-size:9px; color:var(--text-light); margin-top:2px; }
+.ps-mini-bar { height:4px; background:#E4EAF5; border-radius:2px; margin-top:6px; overflow:hidden; }
+.ps-mini-fill { height:100%; border-radius:2px; }
+.ps-tasks-card { background:#fff; border-radius:14px; padding:11px; border:1px solid #E4EAF5; box-shadow:0 2px 8px rgba(11,29,58,0.06); }
+.ps-tasks-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.ps-tasks-title { font-size:11px; font-weight:700; color:var(--navy); }
+.ps-tasks-count { font-size:9px; color:var(--text-light); background:#F4F6FA; padding:2px 6px; border-radius:100px; }
+.ps-task-row { display:flex; align-items:center; gap:7px; padding:5px 0; border-bottom:1px solid #F4F6FA; }
+.ps-task-row:last-child { border-bottom:none; padding-bottom:0; }
+.ps-task-check { width:14px; height:14px; border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:8px; }
+.tc-done { background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:var(--navy); }
+.tc-pending { background:#F0F3FA; border:1px solid #D8E0F0; }
+.ps-task-text { font-size:10px; color:var(--navy); font-weight:500; flex:1; line-height:1.3; }
+.ps-task-text.done { color:var(--text-light); text-decoration:line-through; }
+.ps-task-chip { font-size:8px; font-weight:700; padding:2px 6px; border-radius:100px; flex-shrink:0; }
+.chip-mcq { background:#E0F2FE; color:#075985; }
+.chip-mains { background:#EDE9FE; color:#5B21B6; }
+.chip-ca { background:#FFE4E6; color:#9F1239; }
+.chip-rev { background:#D1FAE5; color:#065F46; }
+.ps-eval-card { background:linear-gradient(135deg,#0D1B2E,#132550); border-radius:14px; padding:11px; display:flex; align-items:center; gap:9px; box-shadow:0 4px 14px rgba(7,14,30,0.3); }
+.ps-eval-icon { width:32px; height:32px; border-radius:10px; background:rgba(232,184,75,0.2); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+.ps-eval-text { flex:1; }
+.ps-eval-title { font-size:11px; font-weight:700; color:#fff; }
+.ps-eval-sub { font-size:9px; color:rgba(255,255,255,0.5); margin-top:1px; }
+.ps-eval-arrow { font-size:16px; color:var(--gold); }
+
+/* ── PRICING ── */
+.pricing-section { background:linear-gradient(160deg,#060E1E 0%,#040A18 100%); padding:110px 56px; position:relative; overflow:hidden; }
+.pricing-section::before { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px); background-size:56px 56px; pointer-events:none; }
+.pricing-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+.pricing-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; max-width:960px; margin:56px auto 0; align-items:center; }
+.plan { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09); border-radius:24px; padding:38px; text-align:left; transition:all 0.3s; position:relative; }
+.plan:hover { transform:translateY(-4px); border-color:rgba(255,255,255,0.16); }
+.plan-featured { background:rgba(255,255,255,0.07); border-color:rgba(232,184,75,0.38); transform:scale(1.04); box-shadow:0 0 70px rgba(232,184,75,0.10); }
+.plan-featured:hover { transform:scale(1.04) translateY(-4px); }
+.plan-pop { position:absolute; top:-15px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:var(--navy); font-size:11.5px; font-weight:700; padding:5px 18px; border-radius:100px; white-space:nowrap; box-shadow:0 4px 14px rgba(232,184,75,0.4); }
+.plan-tier { font-size:13px; color:rgba(255,255,255,0.55); margin-bottom:12px; font-weight:500; }
+.plan-price { font-family:'Cormorant Garamond',serif; font-size:52px; font-weight:700; color:var(--white); line-height:1; margin-bottom:6px; }
+.plan-price span { font-size:20px; }
+.plan-featured .plan-price { color:var(--gold); }
+.plan-period { font-size:13px; color:rgba(255,255,255,0.55); margin-bottom:28px; }
+.plan-feats { list-style:none; display:flex; flex-direction:column; gap:12px; margin-bottom:32px; }
+.plan-feats li { display:flex; align-items:center; gap:10px; font-size:14px; color:rgba(255,255,255,0.8); }
+.plan-feats li::before { content:'✓'; color:var(--gold); font-weight:700; flex-shrink:0; }
+.plan-feats li.off { color:rgba(255,255,255,0.3); }
+.plan-feats li.off::before { content:'—'; color:rgba(255,255,255,0.18); }
+.plan-btn-outline { width:100%; padding:14px; border-radius:10px; background:transparent; border:1px solid rgba(255,255,255,0.18); color:var(--white); font-size:15px; font-weight:600; cursor:pointer; font-family:'Outfit',sans-serif; transition:all 0.2s; }
+.plan-btn-outline:hover { border-color:var(--gold); color:var(--gold); }
+.plan-btn-gold { width:100%; padding:14px; border-radius:10px; background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:var(--navy); border:none; font-size:15px; font-weight:700; cursor:pointer; font-family:'Outfit',sans-serif; transition:all 0.2s; box-shadow:0 4px 16px rgba(232,184,75,0.3); }
+.plan-btn-gold:hover { box-shadow:0 10px 32px rgba(232,184,75,0.45); }
+
+/* ── CTA ── */
+.cta-section { background:var(--light-bg); padding:80px 56px; }
+.cta-box { max-width:700px; margin:0 auto; background:linear-gradient(135deg,#0B1530 0%,#0F2050 100%); border-radius:24px; padding:60px 64px; text-align:center; position:relative; overflow:hidden; box-shadow:0 40px 80px rgba(11,29,58,0.24); border:1px solid rgba(255,255,255,0.07); }
+.cta-box::before { content:''; position:absolute; top:-80px; left:-80px; width:320px; height:320px; border-radius:50%; background:rgba(232,184,75,0.06); pointer-events:none; }
+.cta-box::after { content:''; position:absolute; bottom:-60px; right:-60px; width:250px; height:250px; border-radius:50%; background:rgba(46,93,179,0.08); pointer-events:none; }
+.cta-box h2 { font-family:'Cormorant Garamond',serif; font-size:clamp(30px,4vw,50px); font-weight:700; letter-spacing:-1.2px; color:var(--white); margin-bottom:14px; position:relative; z-index:1; line-height:1.08; }
+.cta-box p { font-size:16px; color:rgba(255,255,255,0.58); max-width:420px; margin:0 auto 36px; line-height:1.65; position:relative; z-index:1; }
+.cta-btns { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; position:relative; z-index:1; }
+
+/* ── FOOTER ── */
+footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px solid rgba(255,255,255,0.06); }
+.footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:60px; max-width:1200px; margin:0 auto 52px; }
+.fb-desc { font-size:14px; color:rgba(255,255,255,0.48); line-height:1.7; max-width:260px; margin:14px 0 22px; }
+.fb-socials { display:flex; gap:10px; }
+.fsoc { width:38px; height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; font-size:15px; cursor:pointer; transition:all 0.2s; color:rgba(255,255,255,0.5); }
+.fsoc:hover { border-color:var(--gold); color:var(--gold); background:rgba(232,184,75,0.08); }
+.fc-title { font-size:13px; font-weight:700; color:var(--white); margin-bottom:18px; letter-spacing:0.3px; }
+.fc-links { list-style:none; display:flex; flex-direction:column; gap:11px; }
+.fc-links a { font-size:14px; color:rgba(255,255,255,0.48); text-decoration:none; transition:color 0.2s; }
+.fc-links a:hover { color:var(--gold); }
+.footer-bottom { display:flex; align-items:center; justify-content:space-between; padding-top:24px; border-top:1px solid rgba(255,255,255,0.07); max-width:1200px; margin:0 auto; }
+.footer-bottom p { font-size:13px; color:rgba(255,255,255,0.42); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+.reveal { opacity:0; transform:translateY(22px); transition:opacity 0.65s ease, transform 0.65s ease; }
+.reveal.visible { opacity:1; transform:translateY(0); }
+.reveal-delay-1{transition-delay:0.1s} .reveal-delay-2{transition-delay:0.2s} .reveal-delay-3{transition-delay:0.3s} .reveal-delay-4{transition-delay:0.4s}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1100px) {
+  .modules-grid-full{grid-template-columns:repeat(2,1fr);}
+  .ai-inner,.analytics-inner,.app-inner{grid-template-columns:1fr;gap:48px;}
+  .mentor-top{grid-template-columns:1fr;gap:40px;}
+  .tools-grid-2{grid-template-columns:repeat(2,1fr);}
+  .app-phone-wrap{display:none;}
+}
+@media(max-width:768px) {
+  nav{padding:0 20px;} .nav-links{display:none;}
+  .hero,.modules-section,.ai-section,.tools-section,.analytics-section,.mentor-section,.live-section,.app-section,.pricing-section,.cta-section{padding-left:20px;padding-right:20px;}
+  footer{padding-left:20px;padding-right:20px;}
+  .hero-stats{flex-direction:column;}
+  .hstat{border-right:none;border-bottom:1px solid rgba(255,255,255,0.06);}
+  .hstat:last-child{border-bottom:none;}
+  .modules-grid-full{grid-template-columns:1fr;}
+  .tools-grid-2,.live-tools-grid{grid-template-columns:repeat(2,1fr);}
+  .pricing-grid{grid-template-columns:1fr;max-width:380px;}
+  .plan-featured{transform:scale(1);}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:36px;}
+  .mentor-features-grid{grid-template-columns:1fr;}
+  .live-card{flex-direction:column;}
+  .cta-box{padding:44px 24px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav id="main-nav">
+  <a href="#" class="logo">
+    <div class="logo-mark">J</div>
+    <span class="logo-text">RiseWith<span class="logo-jeet">Jeet</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#modules">Modules</a></li>
+    <li><a href="#ai">Jeet AI</a></li>
+    <li><a href="#analytics">Analytics</a></li>
+    <li><a href="#community">Community</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <div class="nav-btns">
+    <button class="btn-nav-ghost">Login</button>
+    <button class="btn-nav-gold">Start Free →</button>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <canvas id="heroCanvas"></canvas>
+
+  <!-- CHANGE 1: Dim floating checkboxes -->
+  <div class="hero-grid-marks">
+    <div class="hgm" style="top:18%;left:8%"></div>
+    <div class="hgm" style="top:22%;left:14%"></div>
+    <div class="hgm" style="top:36%;left:5%"></div>
+    <div class="hgm" style="top:52%;left:11%"></div>
+    <div class="hgm" style="top:68%;left:7%"></div>
+    <div class="hgm" style="top:76%;left:16%"></div>
+    <div class="hgm" style="top:18%;right:8%"></div>
+    <div class="hgm" style="top:28%;right:14%"></div>
+    <div class="hgm" style="top:44%;right:6%"></div>
+    <div class="hgm" style="top:60%;right:11%"></div>
+    <div class="hgm" style="top:72%;right:7%"></div>
+    <div class="hgm" style="top:14%;left:28%"></div>
+    <div class="hgm" style="top:80%;right:22%"></div>
+    <div class="hgm" style="top:85%;left:32%"></div>
+  </div>
+
+  <!-- CHANGE 2: No glitter canvas – clean pill badge -->
+  <div class="hero-badge" style="position:relative;z-index:2;display:inline-flex;">
+    <span class="badge-star">✦</span> India's #1 AI-Powered UPSC Platform
+  </div>
+
+  <!-- CHANGE 3: Single line + Simplified on next line -->
+  <h1>
+    <span class="line1">Everything you need to crack UPSC,</span>
+    <span class="line2"><span class="gold-word">Simplified</span></span>
+  </h1>
+
+  <p class="hero-sub">Trusted by 50,000+ aspirants. AI-powered learning, daily MCQs, instant mains evaluation, expert mentorship &amp; smart revision — all under one roof.</p>
+
+  <div class="hero-ctas">
+    <button class="cta-primary">Start Your Free Trial →</button>
+    <button class="cta-secondary">▶ &nbsp;Watch Platform Demo</button>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hstat"><span class="hstat-val">50K+</span><div class="hstat-label">Active Aspirants</div></div>
+    <div class="hstat"><span class="hstat-val">10K+</span><div class="hstat-label">MCQ Library</div></div>
+    <div class="hstat"><span class="hstat-val">95%</span><div class="hstat-label">Prelims Accuracy</div></div>
+    <div class="hstat"><span class="hstat-val">500+</span><div class="hstat-label">Video Hours</div></div>
+  </div>
+</section>
+
+<!-- ═══ MODULES ═══ -->
+<section class="modules-section" id="modules">
+  <div class="modules-header reveal">
+    <div class="section-eyebrow eyebrow-dark">Core Modules</div>
+    <h2 class="section-h2-dark">Your Complete UPSC<br>Preparation Ecosystem</h2>
+    <p class="section-p-dark" style="max-width:500px;margin:16px auto 0">Every tool you need — thoughtfully built and AI-enhanced — to take you from aspirant to officer.</p>
+  </div>
+  <div class="modules-grid-full">
+    <div class="mod-card mc-gold reveal reveal-delay-1"><div><div class="mod-icon-wrap mw-gold">📝</div><div class="mod-title">Daily MCQ Practice</div><div class="mod-desc">Subject-wise &amp; topic-wise MCQs with detailed explanations. New questions every day, curated by experts.</div></div><div class="mod-tag tag-gold">Daily Practice</div></div>
+    <div class="mod-card mc-cyan reveal reveal-delay-2"><div><div class="mod-icon-wrap mw-cyan">🎯</div><div class="mod-title">Mock Tests</div><div class="mod-desc">Full-length Prelims &amp; Mains simulations in UPSC pattern. Timed, scored, ranked.</div></div><div class="mod-tag tag-cyan">Test Series</div></div>
+    <div class="mod-card mc-violet reveal reveal-delay-3"><div><div class="mod-icon-wrap mw-violet">📚</div><div class="mod-title">Previous Year Questions</div><div class="mod-desc">30 years of PYQs with trend analysis, topic clustering, and examiner insights.</div></div><div class="mod-tag tag-violet">PYQ Bank</div></div>
+    <div class="mod-card mc-emerald reveal reveal-delay-4"><div><div class="mod-icon-wrap mw-emerald">✍️</div><div class="mod-title">Answer Writing</div><div class="mod-desc">Daily mains practice with AI-powered instant evaluation and UPSC-style marking schemes.</div></div><div class="mod-tag tag-emerald">AI Evaluated</div></div>
+    <div class="mod-card mc-rose reveal reveal-delay-1"><div><div class="mod-icon-wrap mw-rose">🌐</div><div class="mod-title">Current Affairs</div><div class="mod-desc">Curated daily news, monthly magazines, and UPSC-relevant analysis. Never miss what matters.</div></div><div class="mod-tag tag-rose">Daily Updates</div></div>
+    <div class="mod-card mc-navy reveal reveal-delay-2"><div><div class="mod-icon-wrap mw-navy">🎬</div><div class="mod-title">Video Lectures</div><div class="mod-desc">India's best educators. Interactive quizzes, notes &amp; timestamped bookmarks. 500+ hours.</div></div><div class="mod-tag tag-navy">500+ Hours</div></div>
+    <div class="mod-card mc-teal reveal reveal-delay-3"><div><div class="mod-icon-wrap mw-teal">📋</div><div class="mod-title">Syllabus Tracker</div><div class="mod-desc">Visual progress across GS I–IV &amp; Optional. Know your coverage, never leave a topic behind.</div></div><div class="mod-tag tag-teal">Smart Tracking</div></div>
+    <div class="mod-card mc-amber reveal reveal-delay-4"><div><div class="mod-icon-wrap mw-amber">📊</div><div class="mod-title">Performance Analytics</div><div class="mod-desc">Test-level breakdowns, weak-area detection, and daily UPSC readiness scores. Know where you stand.</div></div><div class="mod-tag tag-amber">Smart Insights</div></div>
+  </div>
+</section>
+
+<!-- ═══ AI FEATURES ═══ -->
+<section class="ai-section" id="ai">
+  <div class="ai-inner">
+    <div class="ai-left reveal">
+      <div class="section-eyebrow eyebrow-light">Jeet AI</div>
+      <h2 class="section-h2-light">Experience the Power<br>of <span style="color:var(--gold)">AI-First Learning</span></h2>
+      <p class="section-p-light" style="margin-top:12px">Our AI doesn't just grade. It understands your gaps, adapts your plan, and coaches you like a personal mentor — 24/7.</p>
+      <div class="ai-features-switcher" id="aiFeatSwitcher">
+        <div class="ai-feat active" data-slide="0"><div class="ai-feat-header"><div class="ai-feat-icon" style="background:rgba(232,184,75,0.14)">📖</div><div class="ai-feat-title">Instant Mains Evaluator</div></div><div class="ai-feat-desc">Upload handwritten or typed answers. Get structured feedback, marks, and improvement tips in under 60 seconds — UPSC-examiner style.</div><div class="ai-feat-progress"><div class="ai-feat-progress-fill"></div></div></div>
+        <div class="ai-feat" data-slide="1"><div class="ai-feat-header"><div class="ai-feat-icon" style="background:rgba(6,182,212,0.14)">🤖</div><div class="ai-feat-title">UPSC GPT Assistant</div></div><div class="ai-feat-desc">Ask anything UPSC — syllabus queries, current affairs context, answer structuring, or doubt clearing. Always sharp.</div><div class="ai-feat-progress"><div class="ai-feat-progress-fill"></div></div></div>
+        <div class="ai-feat" data-slide="2"><div class="ai-feat-header"><div class="ai-feat-icon" style="background:rgba(139,92,246,0.14)">⚡</div><div class="ai-feat-title">Adaptive Test Generator</div></div><div class="ai-feat-desc">AI builds personalised mock tests targeting your weakest areas — ensuring every session moves the needle.</div><div class="ai-feat-progress"><div class="ai-feat-progress-fill"></div></div></div>
+        <div class="ai-feat" data-slide="3"><div class="ai-feat-header"><div class="ai-feat-icon" style="background:rgba(16,185,129,0.14)">🌐</div><div class="ai-feat-title">Current Affairs Digest</div></div><div class="ai-feat-desc">AI curates and connects daily news to UPSC syllabus tags — so you see relevance instantly, not after reading 10 pages.</div><div class="ai-feat-progress"><div class="ai-feat-progress-fill"></div></div></div>
+      </div>
+    </div>
+    <div class="ai-right reveal reveal-delay-2">
+      <div class="demo-device">
+        <div class="device-bar">
+          <div class="d-dot" style="background:#FF5F57"></div>
+          <div class="d-dot" style="background:#FFBD2E"></div>
+          <div class="d-dot" style="background:#28CA41"></div>
+          <span class="device-title" id="deviceTitle">Mains Evaluator — AI Mode</span>
+        </div>
+        <div class="demo-content" id="demoContent">
+          <div class="demo-slide active" id="slide-0">
+            <div class="eval-q">Q: Discuss the role of Interstate Councils in maintaining cooperative federalism in India. (150 words)</div>
+            <div class="eval-ans">Interstate Councils serve as a crucial forum for Centre-State deliberation… leading to concerns about "Decline of Parliament". Interstate councils will lead to reduction in trust deficit between the Centre &amp; States…</div>
+            <div class="eval-bar"><div class="eval-bar-fill"></div></div>
+            <div style="font-size:11px;color:var(--text-light);margin-bottom:10px;font-family:'JetBrains Mono',monospace">AI analysing answer… 85% complete</div>
+            <div class="eval-scores">
+              <div class="es-item"><div class="es-val" style="color:var(--gold-dark)">7.5</div><div class="es-label">Content</div></div>
+              <div class="es-item"><div class="es-val" style="color:var(--cyan)">8.0</div><div class="es-label">Structure</div></div>
+              <div class="es-item"><div class="es-val" style="color:var(--emerald)">7.0</div><div class="es-label">Analysis</div></div>
+            </div>
+            <div class="eval-fb">✓ Good constitutional grounding. Add 2024 examples. Conclusion needs forward-looking dimension.</div>
+          </div>
+          <div class="demo-slide" id="slide-1">
+            <div class="chat-wrap">
+              <div class="chat-bubble cb-user">How should I structure an answer on "Judicial Overreach"?</div>
+              <div class="chat-bubble cb-ai"><strong>Ideal UPSC structure:</strong><br><br>📌 <strong>Intro:</strong> Define judicial overreach vs activism<br>📌 <strong>Body 1:</strong> Constitutional provisions (Art 13, 32, 226)<br>📌 <strong>Body 2:</strong> Key SC judgements as examples<br>📌 <strong>Conclusion:</strong> Balance separation of powers</div>
+              <div class="chat-bubble cb-user">Give me 3 recent examples for the body?</div>
+              <div class="chat-bubble cb-ai"><div class="cb-typing"><div class="cb-dot"></div><div class="cb-dot"></div><div class="cb-dot"></div></div></div>
+            </div>
+          </div>
+          <div class="demo-slide" id="slide-2">
+            <div class="tgen-header"><div class="tgen-title">Adaptive Test — Weak Areas</div><div class="tgen-badge">Modern History · 10Q</div></div>
+            <div class="tg-q">
+              <div class="tg-q-text">Which of the following about the INC's Lahore Session (1929) is CORRECT?</div>
+              <div class="tg-option"><div class="tg-opt-mark">A</div>It adopted the Poorna Swaraj resolution only</div>
+              <div class="tg-option correct"><div class="tg-opt-mark">✓</div>Jawaharlal Nehru was elected President</div>
+              <div class="tg-option wrong"><div class="tg-opt-mark">✗</div>Gandhi ji presided over the session</div>
+              <div class="tg-option"><div class="tg-opt-mark">D</div>It was held in December 1930</div>
+            </div>
+            <div style="font-size:12px;color:#065F46;padding:10px 13px;background:#D1FAE5;border:1px solid #A7F3D0;border-radius:8px">✓ Correct! Nehru presided &amp; passed the Poorna Swaraj resolution on 31 Dec 1929.</div>
+          </div>
+          <div class="demo-slide" id="slide-3">
+            <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:14px;">Today's UPSC-Relevant News</div>
+            <div class="ca-wrap">
+              <div class="ca-item"><div><div class="ca-dot-item" style="background:var(--gold-dark)"></div></div><div><div class="ca-text">RBI's MPC holds repo rate at 6.5% amid inflation concerns — GS3 Economy</div><div class="ca-tag" style="color:var(--gold-dark)">Economy · Prelims + Mains</div></div></div>
+              <div class="ca-item"><div><div class="ca-dot-item" style="background:var(--cyan)"></div></div><div><div class="ca-text">SC upholds Right to Privacy in digital data — link to PDPA 2023</div><div class="ca-tag" style="color:var(--cyan)">Polity · Ethics</div></div></div>
+              <div class="ca-item"><div><div class="ca-dot-item" style="background:var(--emerald)"></div></div><div><div class="ca-text">India's forest cover increases by 1540 sq km — State of Forest Report 2025</div><div class="ca-tag" style="color:var(--emerald)">Environment · Geography</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ REVISION TOOLS – CHANGE 4: Green radial per card ═══ -->
+<section class="tools-section" id="revision">
+  <div style="max-width:1200px;margin:0 auto;position:relative;z-index:1;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:60px;" class="reveal">
+      <div style="max-width:480px">
+        <div class="section-eyebrow eyebrow-dark">Revision Suite</div>
+        <h2 class="section-h2-dark">Master. Retain. Recall.</h2>
+        <p class="section-p-dark" style="margin-top:10px">Science-backed tools to make every revision session count.</p>
+      </div>
+    </div>
+    <div class="tools-grid-2">
+      <div class="tool-card tc-gold reveal reveal-delay-1"><div class="tool-icon-box tib-gold">🃏</div><h4>Flashcards</h4><p>5,000+ pre-built smart cards across all GS topics. Scheduled by difficulty, never boring.</p><div class="tool-arrow">Explore →</div></div>
+      <div class="tool-card tc-cyan reveal reveal-delay-2"><div class="tool-icon-box tib-cyan">🧠</div><h4>Mind Maps</h4><p>Visual concept maps linking ideas across GS. Build connections, not isolated notes.</p><div class="tool-arrow">Explore →</div></div>
+      <div class="tool-card tc-emerald reveal reveal-delay-3"><div class="tool-icon-box tib-emerald">🔁</div><h4>Spaced Repetition</h4><p>Ebbinghaus-powered review scheduling. Study smarter — revisit topics exactly when needed.</p><div class="tool-arrow">Explore →</div></div>
+      <div class="tool-card tc-violet reveal reveal-delay-4"><div class="tool-icon-box tib-violet">📅</div><h4>Study Planner</h4><p>AI-generated daily plans adapting to your pace, goals, and exam date. Zero manual planning.</p><div class="tool-arrow">Explore →</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ ANALYTICS – CHANGE 5: Distinct bg ═══ -->
+<section class="analytics-section" id="analytics">
+  <div class="analytics-inner">
+    <div class="dash-card reveal">
+      <div class="dc-header"><h5>Performance Dashboard</h5><span class="dc-date">Mar 14, 2026</span></div>
+      <div class="dc-metrics">
+        <div class="dc-metric"><div class="mv" style="color:var(--gold-dark)">84%</div><div class="ml">Prelims Accuracy</div></div>
+        <div class="dc-metric"><div class="mv" style="color:var(--cyan)">47</div><div class="ml">Day Streak 🔥</div></div>
+        <div class="dc-metric"><div class="mv" style="color:var(--emerald)">238</div><div class="ml">Answers Written</div></div>
+      </div>
+      <div class="dc-line-chart">
+        <svg viewBox="0 0 320 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#C8960A" stop-opacity="0.3"/><stop offset="100%" stop-color="#C8960A" stop-opacity="0"/></linearGradient></defs>
+          <path d="M0,65 L32,58 L64,52 L96,44 L128,48 L160,36 L192,28 L224,22 L256,18 L288,12 L320,8 L320,80 L0,80 Z" fill="url(#lineGrad)"/>
+          <polyline points="0,65 32,58 64,52 96,44 128,48 160,36 192,28 224,22 256,18 288,12 320,8" fill="none" stroke="#C8960A" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="96" cy="44" r="3" fill="#C8960A"/>
+          <circle cx="192" cy="28" r="3" fill="#C8960A"/>
+          <circle cx="320" cy="8" r="4" fill="#C8960A" stroke="#FEF3C7" stroke-width="2"/>
+          <line x1="0" y1="20" x2="320" y2="20" stroke="#E4EAF5" stroke-width="1"/>
+          <line x1="0" y1="40" x2="320" y2="40" stroke="#E4EAF5" stroke-width="1"/>
+          <line x1="0" y1="60" x2="320" y2="60" stroke="#E4EAF5" stroke-width="1"/>
+          <text x="5" y="75" font-size="7" fill="#8A96B0" font-family="JetBrains Mono">Jan</text>
+          <text x="90" y="75" font-size="7" fill="#8A96B0" font-family="JetBrains Mono">Feb</text>
+          <text x="183" y="75" font-size="7" fill="#8A96B0" font-family="JetBrains Mono">Mar</text>
+        </svg>
+        <div style="position:absolute;top:8px;left:14px;font-size:10px;color:var(--text-light);font-family:'JetBrains Mono',monospace">Score Trend</div>
+        <div style="position:absolute;top:8px;right:14px;font-size:10px;font-weight:700;color:var(--gold-dark);font-family:'JetBrains Mono',monospace">↑ +18 pts</div>
+      </div>
+      <div class="dc-chart">
+        <div class="dcbar dcbar-empty" style="height:42%"></div>
+        <div class="dcbar dcbar-filled" style="height:58%"></div>
+        <div class="dcbar dcbar-empty" style="height:48%"></div>
+        <div class="dcbar dcbar-filled" style="height:72%"></div>
+        <div class="dcbar dcbar-filled" style="height:64%"></div>
+        <div class="dcbar dcbar-empty" style="height:52%"></div>
+        <div class="dcbar dcbar-filled" style="height:80%"></div>
+        <div class="dcbar dcbar-filled" style="height:88%"></div>
+        <div class="dcbar dcbar-filled" style="height:82%"></div>
+        <div class="dcbar dcbar-filled" style="height:95%"></div>
+      </div>
+      <div class="dc-subjects">
+        <div class="dc-sub-row"><span class="dc-sub-name">History</span><div class="dc-sub-track"><div class="dc-sub-fill" style="width:88%;background:var(--gold-dark)"></div></div><span class="dc-sub-pct">88%</span></div>
+        <div class="dc-sub-row"><span class="dc-sub-name">Polity</span><div class="dc-sub-track"><div class="dc-sub-fill" style="width:76%;background:var(--cyan)"></div></div><span class="dc-sub-pct">76%</span></div>
+        <div class="dc-sub-row"><span class="dc-sub-name">Geography</span><div class="dc-sub-track"><div class="dc-sub-fill" style="width:62%;background:var(--violet)"></div></div><span class="dc-sub-pct">62%</span></div>
+        <div class="dc-sub-row"><span class="dc-sub-name">Economy</span><div class="dc-sub-track"><div class="dc-sub-fill" style="width:55%;background:var(--rose)"></div></div><span class="dc-sub-pct">55%</span></div>
+        <div class="dc-sub-row"><span class="dc-sub-name">Environment</span><div class="dc-sub-track"><div class="dc-sub-fill" style="width:80%;background:var(--emerald)"></div></div><span class="dc-sub-pct">80%</span></div>
+      </div>
+    </div>
+    <div class="analytics-right reveal reveal-delay-2">
+      <div class="section-eyebrow eyebrow-dark">Smart Analytics</div>
+      <h2 class="section-h2-dark">Know Exactly<br>Where You Stand</h2>
+      <p class="section-p-dark" style="margin:14px 0 32px">Our Performance Analytics Dashboard tracks every question, test, and answer — identifying weak areas before they cost you marks.</p>
+      <div class="analytics-points">
+        <div class="apoint"><div class="apoint-icon" style="background:#FEF3C7">📈</div><div class="apoint-body"><h4>Test Analytics</h4><p>Question-level breakdown, time-per-question, and rank prediction after every mock.</p></div></div>
+        <div class="apoint"><div class="apoint-icon" style="background:#E0F7FA">🎯</div><div class="apoint-body"><h4>Weak Area Identification</h4><p>AI pinpoints your weakest sub-topics and auto-schedules targeted revision sessions.</p></div></div>
+        <div class="apoint"><div class="apoint-icon" style="background:#D1FAE5">🏆</div><div class="apoint-body"><h4>UPSC Readiness Score</h4><p>A composite score updated daily — telling you how ready you are for the actual exam.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MENTORSHIP ═══ -->
+<section class="mentor-section">
+  <div class="mentor-inner">
+    <div class="mentor-top">
+      <div class="reveal">
+        <div class="section-eyebrow eyebrow-light">Expert Mentorship</div>
+        <h2 class="section-h2-light">The Right Strategy<br>Changes Everything</h2>
+        <p class="section-p-light" style="margin-top:12px;max-width:380px">Personal guidance from mentors who have walked the UPSC path — and made it.</p>
+        <div class="mentor-cta-row">
+          <button class="btn-schedule">📅 Schedule Mentor Session</button>
+          <button class="btn-schedule-ghost">↗ View All Mentors</button>
+        </div>
+      </div>
+      <div class="mentor-quote-card reveal reveal-delay-2">
+        <div class="mqc-mark">"</div>
+        <div class="mqc-text">"The difference between aspirants and officers is often not knowledge — it is strategy. We help you build the right one."</div>
+        <div class="mqc-author">
+          <div class="mqc-av">J</div>
+          <div><div class="mqc-name">Jeet Sharma</div><div class="mqc-role">Founder &amp; Mentor · Ex-Civil Servant</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="mentor-features-grid">
+      <div class="mf-item reveal reveal-delay-1"><div class="mf-icon">📞</div><div class="mf-title">Weekly 1-on-1 Sessions</div><div class="mf-desc">Personal strategy calls with your assigned mentor. Adjust, refine, and stay on course.</div></div>
+      <div class="mf-item reveal reveal-delay-2"><div class="mf-icon">🗺️</div><div class="mf-title">Jeet Path Roadmap</div><div class="mf-desc">Your personalised preparation roadmap built around your strengths, gaps, and timeline.</div></div>
+      <div class="mf-item reveal reveal-delay-3"><div class="mf-icon">🔄</div><div class="mf-title">Dynamic Plan Updates</div><div class="mf-desc">Your study plan evolves weekly based on performance data and live mentor feedback.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ COMMUNITY – CHANGE 5: Distinct warm bg ═══ -->
+<section class="live-section" id="community">
+  <div class="live-inner">
+    <div class="live-section-header reveal">
+      <div class="section-eyebrow eyebrow-dark" style="justify-content:center">Community</div>
+      <h2 class="section-h2-dark">Study With 10,000+<br>UPSC Aspirants</h2>
+      <div style="display:flex;justify-content:center;margin-top:14px">
+        <div class="live-pulse"><div class="pulse-dot"></div>532 students studying right now</div>
+      </div>
+      <p class="section-p-dark" style="margin-top:14px">Accountability, peer learning, and community — because the UPSC journey is better together.</p>
+    </div>
+    <div class="live-card reveal reveal-delay-1">
+      <div style="display:flex;align-items:center;gap:18px">
+        <div class="live-avatars">
+          <div class="lavatar">A</div><div class="lavatar">R</div><div class="lavatar">P</div><div class="lavatar">S</div>
+          <div class="lavatar lavatar-more">+120</div>
+        </div>
+        <div class="live-info"><h4>Live Study Room — Silent Mode</h4><p>Currently studying: Modern History · Focus Guard ON</p></div>
+      </div>
+      <div class="live-stats">
+        <div class="lstat"><span class="lstat-val">124</span><div class="lstat-label">Online Now</div></div>
+        <div class="lstat"><span class="lstat-val">2h 14m</span><div class="lstat-label">Session</div></div>
+      </div>
+      <button class="btn-join-live">Join Study Room →</button>
+    </div>
+    <div class="live-tools-grid reveal reveal-delay-2">
+      <div class="lt-item"><div class="lt-icon">⏱️</div><h5>Pomodoro Timer</h5><p>Stay deep in focus with proven time blocks</p></div>
+      <div class="lt-item"><div class="lt-icon">🏆</div><h5>Leaderboards</h5><p>Track rankings and compete with peers</p></div>
+      <div class="lt-item"><div class="lt-icon">📋</div><h5>Task Cards</h5><p>Share daily goals, stay accountable</p></div>
+      <div class="lt-item"><div class="lt-icon">🔍</div><h5>Peer Review</h5><p>Get answer feedback from fellow aspirants</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MOBILE APP – CHANGE 5+6: Distinct bg + iPhone Dynamic Island ═══ -->
+<section class="app-section">
+  <div class="app-inner">
+    <div class="app-left reveal">
+      <div class="section-eyebrow eyebrow-dark">Mobile App</div>
+      <h2 class="section-h2-dark">Your UPSC Prep,<br>Always in Your Pocket</h2>
+      <p class="section-p-dark" style="margin-top:12px;margin-bottom:32px">Practice on the go. The full platform, beautifully optimised for mobile — so you never miss a day.</p>
+      <div class="app-features">
+        <div class="app-feat"><div class="app-feat-icon" style="background:#FEF3C7">📝</div><div class="app-feat-text"><h5>Daily MCQ Notifications</h5><p>Never miss your daily practice with smart reminders</p></div></div>
+        <div class="app-feat"><div class="app-feat-icon" style="background:#E0F7FA">📷</div><div class="app-feat-text"><h5>Click &amp; Evaluate Answers</h5><p>Photograph handwritten answers for instant AI evaluation</p></div></div>
+        <div class="app-feat"><div class="app-feat-icon" style="background:#D1FAE5">🔄</div><div class="app-feat-text"><h5>Offline Flashcards</h5><p>Study even without internet — all flashcards work offline</p></div></div>
+        <div class="app-feat"><div class="app-feat-icon" style="background:#EDE9FE">🔔</div><div class="app-feat-text"><h5>Streak &amp; Goal Reminders</h5><p>Stay accountable with intelligent habit-building nudges</p></div></div>
+      </div>
+      <div class="app-store-btns">
+        <a href="#" class="app-store-btn"><div class="asb-icon">🍎</div><div class="asb-text"><span class="asb-sub">Download on the</span><span class="asb-name">App Store</span></div></a>
+        <a href="#" class="app-store-btn"><div class="asb-icon">▶</div><div class="asb-text"><span class="asb-sub">Get it on</span><span class="asb-name">Google Play</span></div></a>
+      </div>
+    </div>
+
+    <!-- CHANGE 6: iPhone Dynamic Island Phone -->
+    <div class="app-phone-wrap reveal reveal-delay-2">
+      <div class="phone-shadow"></div>
+      <div class="phone-frame">
+        <div class="phone-screen-wrap">
+          <div class="phone-screen">
+
+            <!-- Dynamic Island -->
+            <div class="dynamic-island">
+              <div class="di-content">
+                <span class="di-flame">🔥</span>
+                <span class="di-text">47-day streak!</span>
+                <div class="di-speaker"></div>
+                <div class="di-camera"></div>
+              </div>
+            </div>
+
+            <!-- Status bar -->
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 18px 0;background:linear-gradient(180deg,#0D1B2E,#0F2040);">
+              <span style="font-size:11px;font-weight:700;color:#fff;font-family:'Outfit',sans-serif;">9:41</span>
+              <div style="display:flex;gap:4px;align-items:center;">
+                <span style="font-size:10px;color:rgba(255,255,255,0.8)">●●●●</span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.8)">WiFi</span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.8)">🔋</span>
+              </div>
+            </div>
+
+            <!-- Hero bar -->
+            <div class="ps-top-bar">
+              <div class="ps-topbar-row">
+                <div class="ps-logo-s">Rise<span>WithJeet</span></div>
+                <div class="ps-notif-btn">🔔</div>
+              </div>
+              <div class="ps-welcome">Good morning, Rahul 👋</div>
+              <div class="ps-name-big">Ready to rise today?</div>
+              <div class="ps-streak-pill">🔥 47-Day Streak · Keep it up!</div>
+            </div>
+
+            <!-- Body -->
+            <div class="ps-body">
+              <div class="ps-progress-row">
+                <div class="ps-mini-card">
+                  <div class="ps-mini-card-top"><span class="ps-mini-icon">📝</span><span class="ps-mini-badge badge-up">↑ +6%</span></div>
+                  <div class="ps-mini-val">84%</div>
+                  <div class="ps-mini-label">MCQ Accuracy</div>
+                  <div class="ps-mini-bar"><div class="ps-mini-fill" style="width:84%;background:linear-gradient(90deg,var(--gold-dark),var(--gold-light))"></div></div>
+                </div>
+                <div class="ps-mini-card">
+                  <div class="ps-mini-card-top"><span class="ps-mini-icon">✍️</span><span class="ps-mini-badge badge-warn">238 total</span></div>
+                  <div class="ps-mini-val">8.2</div>
+                  <div class="ps-mini-label">Avg Mains Score</div>
+                  <div class="ps-mini-bar"><div class="ps-mini-fill" style="width:82%;background:linear-gradient(90deg,var(--violet),#A78BFA)"></div></div>
+                </div>
+              </div>
+              <div class="ps-tasks-card">
+                <div class="ps-tasks-header"><span class="ps-tasks-title">Today's Plan</span><span class="ps-tasks-count">3 / 5 done</span></div>
+                <div class="ps-task-row"><div class="ps-task-check tc-done">✓</div><span class="ps-task-text done">Daily MCQ Practice (20 Q)</span><span class="ps-task-chip chip-mcq">MCQ</span></div>
+                <div class="ps-task-row"><div class="ps-task-check tc-done">✓</div><span class="ps-task-text done">Current Affairs Reading</span><span class="ps-task-chip chip-ca">CA</span></div>
+                <div class="ps-task-row"><div class="ps-task-check tc-done">✓</div><span class="ps-task-text done">Flashcard Review (50)</span><span class="ps-task-chip chip-rev">Rev</span></div>
+                <div class="ps-task-row"><div class="ps-task-check tc-pending"></div><span class="ps-task-text">Mains Answer Writing</span><span class="ps-task-chip chip-mains">Mains</span></div>
+                <div class="ps-task-row"><div class="ps-task-check tc-pending"></div><span class="ps-task-text">Mock Test — GS2 Paper</span><span class="ps-task-chip chip-mcq">Test</span></div>
+              </div>
+              <div class="ps-eval-card">
+                <div class="ps-eval-icon">🤖</div>
+                <div class="ps-eval-text"><div class="ps-eval-title">Submit Mains Answer</div><div class="ps-eval-sub">AI evaluates in &lt;60 seconds</div></div>
+                <div class="ps-eval-arrow">→</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRICING ═══ -->
+<section class="pricing-section" id="pricing">
+  <div class="pricing-inner">
+    <div class="reveal">
+      <div class="section-eyebrow eyebrow-light" style="justify-content:center">Simple Pricing</div>
+      <h2 class="section-h2-light">Invest in Your IAS Dream</h2>
+      <p class="section-p-light" style="margin-top:12px">No hidden fees. Cancel anytime. Start free.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="plan reveal reveal-delay-1">
+        <div class="plan-tier">Starter</div>
+        <div class="plan-price"><span>₹</span>0</div>
+        <div class="plan-period">Forever Free</div>
+        <ul class="plan-feats"><li>10 MCQs / day</li><li>Current Affairs</li><li>Live Study Room</li><li class="off">Mock Tests</li><li class="off">AI Mains Evaluator</li><li class="off">Mentorship</li></ul>
+        <button class="plan-btn-outline">Get Started Free</button>
+      </div>
+      <div class="plan plan-featured reveal reveal-delay-2">
+        <div class="plan-pop">⭐ Most Popular</div>
+        <div class="plan-tier">Pro Aspirant</div>
+        <div class="plan-price"><span>₹</span>999</div>
+        <div class="plan-period">per month · billed annually</div>
+        <ul class="plan-feats"><li>Unlimited Daily MCQs</li><li>Full Mock Test Series</li><li>AI Mains Evaluator</li><li>UPSC GPT Assistant</li><li>Revision Suite — All Tools</li><li>Performance Analytics</li></ul>
+        <button class="plan-btn-gold">Start Free Trial</button>
+      </div>
+      <div class="plan reveal reveal-delay-3">
+        <div class="plan-tier">Mentorship Pro</div>
+        <div class="plan-price"><span>₹</span>2,499</div>
+        <div class="plan-period">per month · billed annually</div>
+        <ul class="plan-feats"><li>Everything in Pro</li><li>Weekly 1-on-1 Mentorship</li><li>Jeet Path Roadmap</li><li>Priority Answer Review</li><li>Interview Prep Module</li><li>Direct Mentor Access</li></ul>
+        <button class="plan-btn-outline">Book a Call</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CTA ═══ -->
+<section class="cta-section">
+  <div class="cta-box reveal">
+    <h2>Your UPSC Journey<br>Starts <span style="color:var(--gold)">Today</span></h2>
+    <p>Join 50,000+ aspirants already preparing smarter. No credit card needed.</p>
+    <div class="cta-btns">
+      <button class="cta-primary">Start Free Trial →</button>
+      <button class="cta-secondary" style="border-color:rgba(255,255,255,0.2)">Explore Modules</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <a href="#" class="logo" style="text-decoration:none"><div class="logo-mark">J</div><span class="logo-text">RiseWith<span class="logo-jeet">Jeet</span></span></a>
+      <div class="fb-desc">India's #1 AI-powered UPSC preparation platform. Everything you need — simplified, personalised, always evolving.</div>
+      <div class="fb-socials"><div class="fsoc">𝕏</div><div class="fsoc">in</div><div class="fsoc">▶</div><div class="fsoc">📸</div></div>
+    </div>
+    <div><div class="fc-title">Platform</div><ul class="fc-links"><li><a href="#">Daily MCQ</a></li><li><a href="#">Mock Tests</a></li><li><a href="#">Answer Writing</a></li><li><a href="#">Video Lectures</a></li><li><a href="#">Current Affairs</a></li></ul></div>
+    <div><div class="fc-title">Revision Tools</div><ul class="fc-links"><li><a href="#">Flashcards</a></li><li><a href="#">Mind Maps</a></li><li><a href="#">Spaced Repetition</a></li><li><a href="#">Study Planner</a></li><li><a href="#">Syllabus Tracker</a></li></ul></div>
+    <div><div class="fc-title">Company</div><ul class="fc-links"><li><a href="#">About Us</a></li><li><a href="#">Mentorship</a></li><li><a href="#">Pricing</a></li><li><a href="#">Help Center</a></li><li><a href="#">Privacy Policy</a></li></ul></div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 RiseWithJeet. All rights reserved.</p>
+    <p>Made with <span style="color:var(--gold)">♥</span> for every UPSC aspirant</p>
+  </div>
+</footer>
+
+<script>
+// ── Scroll Reveal ──
+const revealEls = document.querySelectorAll('.reveal');
+new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.08 }).observe ? (() => {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.08 });
+  revealEls.forEach(el => obs.observe(el));
+})() : revealEls.forEach(el => el.classList.add('visible'));
+
+// ── AI Section Auto-Switcher ──
+const slides = document.querySelectorAll('.demo-slide');
+const feats = document.querySelectorAll('.ai-feat');
+const deviceTitle = document.getElementById('deviceTitle');
+const titles = ['Mains Evaluator — AI Mode','UPSC GPT Assistant','Adaptive Test Generator','Current Affairs Digest'];
+let currentSlide = 0, autoTimer;
+
+function switchSlide(idx) {
+  slides.forEach(s => { s.classList.remove('active'); s.style.position='absolute'; s.style.opacity='0'; });
+  feats.forEach(f => f.classList.remove('active'));
+  slides[idx].classList.add('active');
+  slides[idx].style.position='relative'; slides[idx].style.opacity='1';
+  feats[idx].classList.add('active');
+  deviceTitle.textContent = titles[idx];
+  currentSlide = idx;
+}
+function startAuto() { autoTimer = setInterval(() => switchSlide((currentSlide+1)%slides.length), 4000); }
+feats.forEach((f,i) => f.addEventListener('click', () => { clearInterval(autoTimer); switchSlide(i); startAuto(); }));
+slides.forEach((s,i) => { if(i!==0) { s.style.position='absolute'; s.style.opacity='0'; } });
+startAuto();
+
+// ── Nav Scroll ──
+const nav = document.getElementById('main-nav');
+window.addEventListener('scroll', () => {
+  nav.style.background = window.scrollY > 60 ? 'rgba(7,14,30,0.98)' : 'rgba(7,14,30,0.95)';
+});
+
+// ── HERO CANVAS ──
+// CHANGE 1: Royal Navy Blue with whitish top-left glow + diagonal light rays
+(function() {
+  const canvas = document.getElementById('heroCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+  resize();
+  window.addEventListener('resize', () => { resize(); drawHero(); });
+
+  function drawHero() {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+
+    // Royal Navy Deep base
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0,'#0A1220');
+    bg.addColorStop(0.45,'#070E1E');
+    bg.addColorStop(1,'#050A16');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0,0,W,H);
+
+    // CHANGE 1: Whitish / cool-blue glow at TOP LEFT
+    const tlGlow = ctx.createRadialGradient(-60, -60, 0, -60, -60, W*0.65);
+    tlGlow.addColorStop(0, 'rgba(160,195,255,0.12)');
+    tlGlow.addColorStop(0.3, 'rgba(120,165,255,0.07)');
+    tlGlow.addColorStop(0.6, 'rgba(80,120,200,0.04)');
+    tlGlow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = tlGlow;
+    ctx.fillRect(0,0,W,H);
+
+    // Warm royal blue radial at center-top
+    const centerGlow = ctx.createRadialGradient(W/2, -50, 0, W/2, -50, W*0.7);
+    centerGlow.addColorStop(0, 'rgba(22,50,130,0.5)');
+    centerGlow.addColorStop(0.4, 'rgba(14,32,90,0.28)');
+    centerGlow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = centerGlow;
+    ctx.fillRect(0,0,W,H);
+
+    // Subtle right-side deep blue
+    const rightGlow = ctx.createRadialGradient(W*0.9, H*0.3, 0, W*0.9, H*0.3, W*0.45);
+    rightGlow.addColorStop(0, 'rgba(20,45,110,0.18)');
+    rightGlow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = rightGlow;
+    ctx.fillRect(0,0,W,H);
+
+    // Diagonal light rays — soft royal blue
+    const rays = [
+      { cx: W*0.3, angle:-36, opacity:0.032, width:3 },
+      { cx: W*0.5, angle:-36, opacity:0.022, width:2 },
+      { cx: W*0.7, angle:-36, opacity:0.018, width:2 },
+      { cx: W*0.85, angle:36, opacity:0.02, width:2 },
+    ];
+    rays.forEach(r => {
+      ctx.save();
+      ctx.translate(r.cx, H/2);
+      ctx.rotate(r.angle * Math.PI/180);
+      const rg = ctx.createLinearGradient(0,-H,0,H);
+      rg.addColorStop(0,'rgba(80,140,255,0)');
+      rg.addColorStop(0.35,`rgba(80,140,255,${r.opacity})`);
+      rg.addColorStop(0.65,`rgba(80,140,255,${r.opacity})`);
+      rg.addColorStop(1,'rgba(80,140,255,0)');
+      ctx.fillStyle = rg;
+      ctx.fillRect(-r.width/2,-H*1.6,r.width,H*3.2);
+      ctx.restore();
+    });
+  }
+  drawHero();
+})();
+
+// ── Dynamic Island hover animation ──
+const di = document.querySelector('.dynamic-island');
+if (di) {
+  let diTimer;
+  di.addEventListener('mouseenter', () => {
+    clearTimeout(diTimer);
+  });
+  di.addEventListener('mouseleave', () => {
+    diTimer = setTimeout(() => {}, 300);
+  });
+}
+</script>
+</body>
+</html>
