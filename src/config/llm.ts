@@ -87,7 +87,7 @@ export async function invokeModel(
   const response = await azureClient.chat.completions.create({
     model: chatDeployment,
     messages: openaiMessages,
-    max_tokens: maxTokens,
+    max_completion_tokens: maxTokens,
     temperature,
   });
 
