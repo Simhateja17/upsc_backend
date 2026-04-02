@@ -36,7 +36,6 @@ const subjects = [
   { emoji: '\uD83C\uDF0D', label: 'IR', bg: '#DBEAFE', border: '#BFDBFE' },
   { emoji: '\uD83C\uDF0E', label: 'Environment', bg: '#F0FDF4', border: '#BBF7D0', icon: '/environment.png' },
   { emoji: '\uD83D\uDCBB', label: 'Tech', bg: '#DBEAFE', border: '#BFDBFE' },
-  { emoji: '\uD83C\uDFDB', label: 'Polity', bg: '#F3E8FF', border: '#DDD6FE' },
 ];
 
 const defaultLearningStats = [
