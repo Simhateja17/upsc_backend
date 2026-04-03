@@ -4,26 +4,177 @@ import React, { useState, useEffect } from 'react';
 import { dashboardService } from '@/lib/services';
 import { useAuth } from '@/contexts/AuthContext';
 
+type TrendPoint = { label: string; value: number };
+type DayActivity = { questionsAttempted: number; hours: number };
+
+function MCQTrendChart({ data }: { data: TrendPoint[] }) {
+  if (!data.length) return null;
+
+  const width = 620;
+  const height = 180;
+  const pad = { top: 20, right: 16, bottom: 34, left: 16 };
+  const innerW = width - pad.left - pad.right;
+  const innerH = height - pad.top - pad.bottom;
+
+  const values = data.map((d) => d.value);
+  const minV = Math.min(0, ...values);
+  const maxV = Math.max(10, ...values);
+  const range = maxV - minV || 1;
+
+  const points = data.map((d, i) => ({
+    x: pad.left + (i / Math.max(data.length - 1, 1)) * innerW,
+    y: pad.top + (1 - (d.value - minV) / range) * innerH,
+  }));
+
+  const linePath = points
+    .map((point, i) => `${i === 0 ? 'M' : 'L'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
+    .join(' ');
+
+  const areaPath = `${linePath} L${points.at(-1)!.x.toFixed(1)} ${(pad.top + innerH).toFixed(1)} L${points[0].x.toFixed(1)} ${(pad.top + innerH).toFixed(1)} Z`;
+
+  const lastPoint = points.at(-1)!;
+  const lastValue = data.at(-1)?.value ?? 0;
+  const badgeWidth = 54;
+  const badgeX = Math.min(width - badgeWidth - 8, Math.max(8, lastPoint.x - badgeWidth / 2));
+  const badgeY = Math.max(8, lastPoint.y - 34);
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      width="100%"
+      height={height}
+      style={{ display: 'block', background: 'transparent' }}
+    >
+      <defs>
+        <linearGradient id="mcqTrendFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#A78BFA" stopOpacity="0.42" />
+          <stop offset="100%" stopColor="#A78BFA" stopOpacity="0.06" />
+        </linearGradient>
+      </defs>
+
+      <path d={areaPath} fill="url(#mcqTrendFill)" />
+      <path d={linePath} fill="none" stroke="#8B7BF6" strokeWidth="3" strokeLinecap="round" />
+
+      {points.map((point, i) => (
+        <circle
+          // eslint-disable-next-line react/no-array-index-key
+          key={i}
+          cx={point.x}
+          cy={point.y}
+          r={3.5}
+          fill="#8B7BF6"
+          stroke="#C4B5FD"
+          strokeWidth={1.2}
+        />
+      ))}
+
+      <rect x={badgeX} y={badgeY} width={badgeWidth} height={20} rx={4} fill="#6D28D9" />
+      <text
+        x={badgeX + badgeWidth / 2}
+        y={badgeY + 14}
+        textAnchor="middle"
+        fontFamily="Inter"
+        fontSize="10"
+        fontWeight="700"
+        fill="#FFFFFF"
+      >
+        {(lastValue / 10).toFixed(1)}/10
+      </text>
+
+      {data.map((point, i) => (
+        <text
+          // eslint-disable-next-line react/no-array-index-key
+          key={i}
+          x={points[i].x}
+          y={height - 8}
+          textAnchor="middle"
+          fontFamily="Inter"
+          fontSize="10"
+          fill="#99A1AF"
+        >
+          {point.label}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
 export default function PerformancePage() {
   const [data, setData] = useState<any>(null);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
-    dashboardService.getPerformance()
-      .then(res => setData(res.data))
-      .finally(() => setLoading(false));
+    let mounted = true;
+
+    Promise.allSettled([
+      dashboardService.getPerformance(),
+      dashboardService.getTestAnalytics(),
+    ])
+      .then(([performanceResult, analyticsResult]) => {
+        if (!mounted) return;
+
+        if (performanceResult.status === 'fulfilled') {
+          setData(performanceResult.value.data);
+        }
+
+        if (analyticsResult.status === 'fulfilled') {
+          setAnalyticsData(analyticsResult.value.data);
+        }
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const mcq = data?.mcq ?? {};
   const streak = data?.streak ?? {};
   const mockTests = data?.mockTests ?? {};
+  const weeklyMcqTrend = analyticsData?.weeklyMcqTrend ?? [];
+  const dailyActivity = analyticsData?.dailyActivity ?? [];
 
   const totalTests = (mcq.totalAttempts ?? 0) + (mockTests.totalAttempts ?? 0);
   const avgAccuracy = mcq.avgAccuracy ?? 0;
   const bestPercentile = mcq.bestPercentile ?? 0;
   const currentStreak = streak.currentStreak ?? 0;
   const totalQuestions = (mcq.totalCorrect ?? 0) + (mcq.totalWrong ?? 0) + (mcq.totalSkipped ?? 0);
+
+  const chartTrendData: TrendPoint[] = weeklyMcqTrend.length > 0
+    ? weeklyMcqTrend.slice(-8).map((week: any, index: number) => ({
+      label: week.week ?? `W${index + 1}`,
+      value: Number(week.score ?? 0),
+    }))
+    : Array.from({ length: 8 }, (_, index) => ({
+      label: `W${index + 1}`,
+      value: 0,
+    }));
+
+  const orderedDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const activityMap = new Map<string, DayActivity>(
+    dailyActivity.map((entry: any) => [
+      String(entry.day),
+      {
+        questionsAttempted: Number(entry.questionsAttempted ?? 0),
+        hours: Number(entry.hours ?? 0),
+      },
+    ]),
+  );
+
+  const dailyBars = orderedDays.map((day) => ({
+    day,
+    questions: activityMap.get(day)?.questionsAttempted ?? 0,
+    hours: activityMap.get(day)?.hours ?? 0,
+  }));
+
+  const maxQuestions = Math.max(...dailyBars.map((day) => day.questions), 1);
+  const highlightedDay = dailyBars.reduce((top, current) => (
+    current.questions > top.questions ? current : top
+  ), dailyBars[0]).day;
 
   const topStripCards = [
     { label: 'test taken', value: String(totalTests), valueColor: '#D4AF37' },
@@ -332,29 +483,47 @@ export default function PerformancePage() {
                   </div>
                 </div>
 
-                {/* Chart placeholder - replace `/mcq-trend.png` with your asset */}
-                <div className="mb-4">
-                  <div
-                    className="w-full rounded-[12px] overflow-hidden bg-[#0E182D] flex items-center justify-center"
-                    style={{ height: 192 }}
-                  >
-                    <img
-                      src="/mcq-trend.png"
-                      alt="MCQ performance chart"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                <div
+                  className="overflow-hidden px-3 pt-3 pb-2 mb-5"
+                  style={{ height: 244 }}
+                >
+                  <MCQTrendChart data={chartTrendData} />
                 </div>
 
-                <div className="flex items-center justify-between text-[12px] uppercase tracking-[0.6px] text-[#99A1AF]">
-                  <span style={{ fontFamily: 'Inter' }}>Questions attempted this week</span>
-                  <div className="flex gap-3">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
-                      <span key={d} style={{ fontFamily: 'Inter' }}>
-                        {d}
-                      </span>
-                    ))}
-                  </div>
+                <div className="text-[11px] uppercase tracking-[0.6px] mb-3 text-[#99A1AF]" style={{ fontFamily: 'Inter' }}>
+                  Questions attempted this week
+                </div>
+
+                <div className="flex items-end gap-2 h-[88px]">
+                  {dailyBars.map((item) => {
+                    const barHeight = item.questions > 0
+                      ? Math.max((item.questions / maxQuestions) * 46, 8)
+                      : 4;
+
+                    const barColor = item.questions === 0
+                      ? '#C7CDD7'
+                      : item.day === highlightedDay
+                        ? '#F4BC34'
+                        : '#0E1830';
+
+                    return (
+                      <div key={item.day} className="flex-1 flex flex-col items-center gap-1">
+                        <div
+                          className="w-full rounded-[4px]"
+                          style={{
+                            height: barHeight,
+                            background: barColor,
+                          }}
+                        />
+                        <span className="text-[10px] text-[#6A7282]" style={{ fontFamily: 'Inter' }}>
+                          {item.day}
+                        </span>
+                        <span className="text-[10px] text-[#99A1AF]" style={{ fontFamily: 'Inter' }}>
+                          {item.hours > 0 ? `${item.hours.toFixed(1)}h` : '0h'}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
