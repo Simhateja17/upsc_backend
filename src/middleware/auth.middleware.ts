@@ -80,6 +80,7 @@ async function createUser(authUser: {
   email_confirmed_at?: string;
 }) {
   const metadata = authUser.user_metadata || {};
+  const now = new Date().toISOString();
   const { data, error } = await supabaseAdmin
     .from("users")
     .insert({
@@ -96,6 +97,8 @@ async function createUser(authUser: {
         null,
       avatar_url: metadata.avatar_url || metadata.picture || null,
       email_verified: !!authUser.email_confirmed_at,
+      created_at: now,
+      updated_at: now,
     })
     .select("id, supabase_id, email, first_name, last_name, role")
     .single();

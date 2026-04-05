@@ -968,3 +968,50 @@ model SyllabusTrackerState {
 
   @@map("syllabus_tracker_states")
 }
+
+model SyllabusSubject {
+  id        String   @id @default(uuid())
+  stage     String   // prelims, mains, optional
+  name      String
+  short     String
+  icon      String
+  color     String
+  bg        String
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  topics SyllabusTopic[]
+
+  @@unique([stage, name])
+  @@map("syllabus_subjects")
+}
+
+model SyllabusTopic {
+  id        String   @id @default(uuid())
+  subjectId String   @map("subject_id")
+  name      String
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  subject  SyllabusSubject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subTopics SyllabusSubTopic[]
+
+  @@unique([subjectId, name])
+  @@map("syllabus_topics")
+}
+
+model SyllabusSubTopic {
+  id        String   @id @default(uuid())
+  topicId   String   @map("topic_id")
+  name      String
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  topic SyllabusTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, name])
+  @@map("syllabus_sub_topics")
+}
