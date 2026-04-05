@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { SYLLABUS_DATA, Subject } from '@/data/syllabus/syllabusData';
+import { userService } from '@/lib/services';
 import HeroSection from './components/HeroSection';
 import StageTabs from './components/StageTabs';
 import SubjectList from './components/SubjectList';
@@ -39,24 +40,42 @@ export default function SyllabusTrackerPage() {
     subTopicIndex: number;
   } | null>(null);
 
-  // Load state from localStorage on mount
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Load state from API on mount, fall back to localStorage
   useEffect(() => {
-    const savedState = localStorage.getItem('syllabusTrackerState');
-    if (savedState) {
-      try {
-        setStates(JSON.parse(savedState));
-      } catch (e) {
-        console.error('Failed to load saved state:', e);
-      }
-    }
+    userService.getSyllabusTracker()
+      .then(res => {
+        if (res.data && Object.keys(res.data.states).length > 0) {
+          setStates(res.data.states);
+          setMode(res.data.mode || 'prelims');
+          localStorage.setItem('syllabusTrackerState', JSON.stringify(res.data.states));
+        } else {
+          // Fall back to localStorage
+          const saved = localStorage.getItem('syllabusTrackerState');
+          if (saved) try { setStates(JSON.parse(saved)); } catch {}
+        }
+      })
+      .catch(() => {
+        const saved = localStorage.getItem('syllabusTrackerState');
+        if (saved) try { setStates(JSON.parse(saved)); } catch {}
+      });
   }, []);
 
-  // Save state to localStorage whenever it changes
+  // Debounced save to API + localStorage whenever state changes
+  const debouncedSave = useCallback((newStates: TrackerState, currentMode: string) => {
+    localStorage.setItem('syllabusTrackerState', JSON.stringify(newStates));
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      userService.saveSyllabusTracker({ mode: currentMode, states: newStates }).catch(() => {});
+    }, 1500);
+  }, []);
+
   useEffect(() => {
     if (Object.keys(states).length > 0) {
-      localStorage.setItem('syllabusTrackerState', JSON.stringify(states));
+      debouncedSave(states, mode);
     }
-  }, [states]);
+  }, [states, mode, debouncedSave]);
 
   const getKey = (subjectId: string, topicIndex: number, subTopicIndex: number) => 
     `${subjectId}__${topicIndex}__${subTopicIndex}`;

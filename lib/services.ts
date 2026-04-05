@@ -247,6 +247,28 @@ export const mindmapService = {
     api.patch<any>(`/mindmaps/${mindmapId}/progress`, { mastery, viewed }, authConfig()),
 };
 
+// ==================== User Profile & Settings ====================
+
+export const userService = {
+  getProfile: () => api.get<any>('/user/profile', authConfig()),
+  updateProfile: (data: { firstName?: string; lastName?: string; phone?: string; bio?: string }) =>
+    api.put<any>('/user/profile', data, authConfig()),
+  updateSettings: (data: { notifications?: any; preferences?: any; privacy?: any }) =>
+    api.put<any>('/user/settings', data, authConfig()),
+  submitFeedback: (data: { rating: number; category?: string; workingWell?: string; couldBeBetter?: string }) =>
+    api.post<any>('/user/feedback', data, authConfig()),
+  getSyllabusTracker: () => api.get<any>('/user/syllabus-tracker', authConfig()),
+  saveSyllabusTracker: (data: { mode: string; states: any }) =>
+    api.put<any>('/user/syllabus-tracker', data, authConfig()),
+};
+
+// ==================== Contact ====================
+
+export const contactService = {
+  submit: (data: { firstName: string; lastName: string; email: string; subject: string; message: string }) =>
+    api.post<any>('/contact', data),
+};
+
 // ==================== Admin ====================
 
 export const adminService = {

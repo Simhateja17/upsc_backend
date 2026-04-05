@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { userService } from '@/lib/services';
 
 const SIDEBAR_ITEMS = [
   { id: 'profile', label: 'Profile', icon: '/mAN.png' },
@@ -65,6 +66,85 @@ export default function SettingsPage() {
   const [privStudyRoom, setPrivStudyRoom] = useState(true);
   const [privAnalytics, setPrivAnalytics] = useState(true);
 
+  // Save state
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+
+  // Load profile & settings from backend
+  useEffect(() => {
+    userService.getProfile().then(res => {
+      const d = res.data;
+      if (d.firstName) setFirstName(d.firstName);
+      if (d.lastName) setLastName(d.lastName);
+      if (d.bio) setBio(d.bio);
+      const s = d.settings || {};
+      if (s.notifications) {
+        setNotifMcq(s.notifications.mcq ?? true);
+        setNotifAnswer(s.notifications.answer ?? true);
+        setNotifDigest(s.notifications.digest ?? true);
+        setNotifStreak(s.notifications.streak ?? false);
+        setNotifPromo(s.notifications.promo ?? true);
+      }
+      if (s.preferences) {
+        setDailyTarget(s.preferences.dailyTarget || '');
+        setAnswerReminder(s.preferences.answerReminder || '');
+        setLanguage(s.preferences.language || '');
+      }
+      if (s.privacy) {
+        setPrivLeaderboard(s.privacy.leaderboard ?? true);
+        setPrivStudyRoom(s.privacy.studyRoom ?? true);
+        setPrivAnalytics(s.privacy.analytics ?? true);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const showSaved = (msg = 'Saved!') => {
+    setSaveMsg(msg);
+    setTimeout(() => setSaveMsg(''), 2500);
+  };
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      await userService.updateProfile({ firstName, lastName, bio });
+      showSaved();
+    } catch { setSaveMsg('Error saving'); }
+    setSaving(false);
+  };
+
+  const handleSaveNotifications = async () => {
+    setSaving(true);
+    try {
+      await userService.updateSettings({
+        notifications: { mcq: notifMcq, answer: notifAnswer, digest: notifDigest, streak: notifStreak, promo: notifPromo },
+      });
+      showSaved();
+    } catch { setSaveMsg('Error saving'); }
+    setSaving(false);
+  };
+
+  const handleSavePreferences = async () => {
+    setSaving(true);
+    try {
+      await userService.updateSettings({
+        preferences: { dailyTarget, answerReminder, language },
+      });
+      showSaved();
+    } catch { setSaveMsg('Error saving'); }
+    setSaving(false);
+  };
+
+  const handleSavePrivacy = async () => {
+    setSaving(true);
+    try {
+      await userService.updateSettings({
+        privacy: { leaderboard: privLeaderboard, studyRoom: privStudyRoom, analytics: privAnalytics },
+      });
+      showSaved();
+    } catch { setSaveMsg('Error saving'); }
+    setSaving(false);
+  };
+
   const renderProfileTab = () => (
     <div className="bg-white border-[0.8px] border-[#e2e8f0] rounded-[10px] p-8 flex flex-col gap-6" style={cardStyle}>
       <h2 className="font-semibold text-[20px] leading-[28px] text-[#0f172b]">Profile Information</h2>
@@ -86,7 +166,10 @@ export default function SettingsPage() {
         <label className={labelClass}>Bio</label>
         <textarea value={bio} onChange={(e) => setBio(e.target.value)} className="w-full h-[118px] px-4 py-[10px] rounded-[10px] border-[0.8px] border-[#cad5e2] bg-white font-normal text-[16px] leading-[24px] text-[#0f172b] resize-none focus:outline-none focus:ring-2 focus:ring-[#1d293d] focus:border-transparent" />
       </div>
-      <div><button className={btnPrimary}>Save changes</button></div>
+      <div className="flex items-center gap-3">
+        <button className={btnPrimary} onClick={handleSaveProfile} disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</button>
+        {saveMsg && <span className="text-sm text-green-600 font-medium">{saveMsg}</span>}
+      </div>
     </div>
   );
 
@@ -155,7 +238,10 @@ export default function SettingsPage() {
         </div>
       ))}
 
-      <div><button className={btnPrimary}>Save</button></div>
+      <div className="flex items-center gap-3">
+        <button className={btnPrimary} onClick={handleSaveNotifications} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+        {saveMsg && <span className="text-sm text-green-600 font-medium">{saveMsg}</span>}
+      </div>
     </div>
   );
 
@@ -176,7 +262,10 @@ export default function SettingsPage() {
         <input type="text" value={language} onChange={(e) => setLanguage(e.target.value)} className={inputClass} />
       </div>
 
-      <div><button className={btnPrimary}>Save</button></div>
+      <div className="flex items-center gap-3">
+        <button className={btnPrimary} onClick={handleSavePreferences} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+        {saveMsg && <span className="text-sm text-green-600 font-medium">{saveMsg}</span>}
+      </div>
     </div>
   );
 
@@ -197,6 +286,11 @@ export default function SettingsPage() {
           <Toggle enabled={item.enabled} onChange={item.toggle} />
         </div>
       ))}
+
+      <div className="flex items-center gap-3">
+        <button className={btnPrimary} onClick={handleSavePrivacy} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+        {saveMsg && <span className="text-sm text-green-600 font-medium">{saveMsg}</span>}
+      </div>
 
       <div>
         <button className="h-[44px] px-5 rounded-[10px] border-[0.8px] border-[#155dfc] bg-white font-medium text-[16px] leading-[24px] text-[#155dfc] hover:bg-[#eff6ff] transition-colors flex items-center gap-2">

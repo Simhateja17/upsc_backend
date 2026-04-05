@@ -34,6 +34,16 @@ const nextConfig = {
         destination: '/dashboard/test-series',
         permanent: false,
       },
+      {
+        source: '/dashboard/test-series-new',
+        destination: '/dashboard/test-series',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/test-series-new/:path*',
+        destination: '/dashboard/test-series/:path*',
+        permanent: true,
+      },
     ];
   },
 }

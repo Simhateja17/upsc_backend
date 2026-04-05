@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { contactService } from '@/lib/services';
 
 const contactOptions = [
   {
@@ -119,11 +120,20 @@ export default function ContactPage() {
   });
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 4000);
-    setFormData({ firstName: '', lastName: '', email: '', subject: '', message: '' });
+    setSubmitting(true);
+    try {
+      await contactService.submit(formData);
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 4000);
+      setFormData({ firstName: '', lastName: '', email: '', subject: '', message: '' });
+    } catch {
+      // silently handle
+    }
+    setSubmitting(false);
   };
 
   return (

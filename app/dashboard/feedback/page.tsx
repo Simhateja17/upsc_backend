@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { userService } from '@/lib/services';
 
 const cardStyle = {
   boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px 0px rgba(0,0,0,0.1)',
@@ -24,16 +25,20 @@ export default function FeedbackPage() {
   const handleSubmit = async () => {
     if (!workingWell.trim()) return;
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1000));
+    try {
+      await userService.submitFeedback({ rating, category, workingWell, couldBeBetter });
+      setSubmitted(true);
+      setTimeout(() => {
+        setSubmitted(false);
+        setRating(4);
+        setCategory('');
+        setWorkingWell('');
+        setCouldBeBetter('');
+      }, 3000);
+    } catch {
+      // silently handle
+    }
     setSubmitting(false);
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setRating(4);
-      setCategory('');
-      setWorkingWell('');
-      setCouldBeBetter('');
-    }, 3000);
   };
 
   const activeStars = hoveredStar || rating;

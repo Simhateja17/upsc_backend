@@ -90,7 +90,8 @@ export default function VideoManager() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/videos/${encodeURIComponent(subjectId)}`);
       const data = await res.json();
-      setVideos(data.data || []);
+      const arr = Array.isArray(data.data) ? data.data : data.data?.videos;
+      setVideos(Array.isArray(arr) ? arr : []);
     } catch {
       setVideos([]);
     }
