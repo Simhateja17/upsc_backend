@@ -1,29 +1,20 @@
 import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
-import { importJWK, jwtVerify, JWK } from "jose";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { supabaseAdmin } from "../config/supabase";
 
-// ── Local JWKS key — fetched once from Supabase, embedded here ──────────────
-// Source: https://<project>.supabase.co/auth/v1/.well-known/jwks.json
-// This eliminates ALL network calls for JWT verification.
-const SUPABASE_JWKS_KEY: JWK = {
-  alg: "ES256",
-  crv: "P-256",
-  kty: "EC",
-  use: "sig",
-  kid: "50978651-0bc9-4363-a4fd-e4e86ace7d8d",
-  x: "3FmMGQHM8e_lx-O4cpbzr1byQtrTnb4IyY_RMV66_HM",
-  y: "en9X02c6fbDYdwRr_K9-eg6ZwneUu8zgPIgJgHLBHus",
-};
+// ── Dynamic JWKS — fetches keys from Supabase, cached in-memory ────────────
+// Survives key rotation: on kid mismatch, re-fetches automatically.
+const SUPABASE_URL = process.env.SUPABASE_URL;
+if (!SUPABASE_URL) throw new Error("Missing SUPABASE_URL env var");
 
-let cachedKey: CryptoKey | null = null;
-
-async function getVerifyKey(): Promise<CryptoKey> {
-  if (!cachedKey) {
-    cachedKey = (await importJWK(SUPABASE_JWKS_KEY, "ES256")) as CryptoKey;
+const JWKS = createRemoteJWKSet(
+  new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`),
+  {
+    cacheMaxAge: 3_600_000,    // cache keys for 1 hour
+    cooldownDuration: 30_000,  // wait 30s between re-fetches on failure
   }
-  return cachedKey;
-}
+);
 
 // Extend Express Request type
 declare global {
@@ -151,8 +142,7 @@ export const authenticate = async (
     // Verify token using embedded public key — zero network calls
     let payload: SupabaseJwtPayload;
     try {
-      const key = await getVerifyKey();
-      const { payload: jwtPayload } = await jwtVerify(token, key);
+      const { payload: jwtPayload } = await jwtVerify(token, JWKS);
       payload = jwtPayload as unknown as SupabaseJwtPayload;
     } catch (err) {
       console.log(
@@ -217,8 +207,7 @@ export const optionalAuth = async (
 
     let payload: SupabaseJwtPayload;
     try {
-      const key = await getVerifyKey();
-      const { payload: jwtPayload } = await jwtVerify(token, key);
+      const { payload: jwtPayload } = await jwtVerify(token, JWKS);
       payload = jwtPayload as unknown as SupabaseJwtPayload;
     } catch (err) {
       return next();

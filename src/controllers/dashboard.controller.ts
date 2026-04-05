@@ -29,7 +29,7 @@ export const getDashboard = async (req: Request, res: Response, next: NextFuncti
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [todayTasks, recentActivity, streak] = await Promise.all([
+    const [todayTasks, recentActivity, streak, todayMcq, todayEditorial, todayMains, mcqAttemptToday, mainsAttemptToday] = await Promise.all([
       prisma.studyPlanTask.count({ where: { userId, date: today, isCompleted: false } }),
       prisma.userActivity.findMany({
         where: { userId },
@@ -37,11 +37,39 @@ export const getDashboard = async (req: Request, res: Response, next: NextFuncti
         take: 5,
       }),
       prisma.userStreak.findUnique({ where: { userId } }),
+      prisma.dailyMCQ.findUnique({ where: { date: today }, select: { id: true, title: true, questions: { select: { id: true } } } }),
+      prisma.editorial.findFirst({ where: { createdAt: { gte: today } }, select: { id: true, title: true } }),
+      prisma.dailyMainsQuestion.findFirst({ where: { date: today }, select: { id: true, subject: true } }),
+      prisma.mCQAttempt.findFirst({ where: { userId, createdAt: { gte: today } } }),
+      prisma.mainsAttempt.findFirst({ where: { userId, createdAt: { gte: today } } }),
     ]);
+
+    // Compute days remaining until UPSC Prelims 2026 (approx May 24, 2026)
+    const prelimsDate = new Date(2026, 4, 24); // May 24, 2026
+    const daysRemaining = Math.max(0, Math.ceil((prelimsDate.getTime() - Date.now()) / 86400000));
+
+    // Today's trio status
+    const trio = {
+      mcq: {
+        status: mcqAttemptToday ? 'completed' : (todayMcq ? 'available' : 'unavailable'),
+        topic: todayMcq?.title || 'Daily MCQ Challenge',
+        questionCount: todayMcq?.questions?.length || 10,
+      },
+      editorial: {
+        status: todayEditorial ? 'available' : 'unavailable',
+        topic: todayEditorial?.title || 'Current Affairs',
+      },
+      mains: {
+        status: mainsAttemptToday ? 'completed' : (todayMains ? 'available' : 'unavailable'),
+        topic: todayMains?.subject || 'Answer Writing',
+      },
+    };
 
     res.json({
       status: "success",
       data: {
+        daysRemaining,
+        trio,
         todayTasksCount: todayTasks,
         recentActivity,
         streak: streak || { currentStreak: 0, longestStreak: 0, weekActivity: [false, false, false, false, false, false, false] },
@@ -68,7 +96,12 @@ export const getStreak = async (req: Request, res: Response, next: NextFunction)
       });
     }
 
-    res.json({ status: "success", data: streak });
+    // Frontend expects weekDays (alias for weekActivity)
+    const data = {
+      ...streak,
+      weekDays: streak.weekActivity,
+    };
+    res.json({ status: "success", data });
   } catch (error) {
     next(error);
   }
@@ -104,7 +137,10 @@ export const getPerformance = async (req: Request, res: Response, next: NextFunc
     const userId = req.user!.id;
     console.log(`[Dashboard] Fetching performance for user: ${userId}`);
 
-    const [mcqAgg, recentMcqAttempts, mainsCount, mockCount, streak] = await Promise.all([
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [mcqAgg, recentMcqAttempts, mainsCount, mockCount, streak, todayActivities, syllabusCov] = await Promise.all([
       prisma.mCQAttempt.aggregate({
         where: { userId },
         _count: { id: true },
@@ -116,6 +152,8 @@ export const getPerformance = async (req: Request, res: Response, next: NextFunc
       prisma.mainsAttempt.count({ where: { userId } }),
       prisma.mockTestAttempt.count({ where: { userId } }),
       prisma.userStreak.findUnique({ where: { userId } }),
+      prisma.userActivity.findMany({ where: { userId, createdAt: { gte: today } } }),
+      prisma.syllabusCoverage.findMany({ where: { userId } }),
     ]);
 
     // Collect strong/weak topics from last 20 MCQ attempts
@@ -139,9 +177,36 @@ export const getPerformance = async (req: Request, res: Response, next: NextFunc
     const strongTopics = sortedTopics.slice(0, 5);
     const weakTopics = sortedTopics.slice(-5).reverse();
 
+    // Compute study time today from activity count (estimate ~15min per activity)
+    const estimatedMinutes = todayActivities.length * 15;
+    const studyHours = Math.floor(estimatedMinutes / 60);
+    const studyMinutes = estimatedMinutes % 60;
+    const studyTimeToday = `${studyHours}h ${studyMinutes}m`;
+
+    // Total tests taken (MCQ + mock)
+    const testsTaken = mcqAgg._count.id + mockCount;
+
+    // Rank — placeholder (could be computed from leaderboard later)
+    const rank = null;
+    const rankPercentile = mcqAgg._max.percentile ?? null;
+
+    // Jeet coins — placeholder
+    const jeetCoins = 0;
+
+    // Syllabus coverage average
+    const totalCovered = syllabusCov.reduce((s, c) => s + c.coveredTopics, 0);
+    const totalTopics = syllabusCov.reduce((s, c) => s + c.totalTopics, 0);
+    const syllabusCoverage = totalTopics > 0 ? Math.round((totalCovered / totalTopics) * 100) : 0;
+
     res.json({
       status: "success",
       data: {
+        studyTimeToday,
+        testsTaken,
+        rank,
+        rankPercentile,
+        jeetCoins,
+        syllabusCoverage,
         mcq: {
           totalAttempts: mcqAgg._count.id,
           totalCorrect: mcqAgg._sum.correctCount ?? 0,

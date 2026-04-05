@@ -20,10 +20,15 @@ model User {
   isActive      Boolean  @default(true) @map("is_active")
   emailVerified Boolean  @default(false) @map("email_verified")
   createdAt     DateTime @default(now()) @map("created_at")
+  bio           String?
+  settings      Json?    // { notifications, preferences, privacy }
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
   activities        UserActivity[]
+  feedbacks              Feedback[]
+  contactSubmissions     ContactSubmission[]
+  syllabusTrackerState   SyllabusTrackerState?
   streak            UserStreak?
   mcqAttempts       MCQAttempt[]
   mainsAttempts     MainsAttempt[]
@@ -914,4 +919,52 @@ model SpacedRepSeed {
   createdAt    DateTime @default(now()) @map("created_at")
 
   @@map("spaced_rep_seeds")
+}
+
+// ==================== FEEDBACK ====================
+
+model Feedback {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  rating        Int      // 1-5
+  category      String?
+  workingWell   String?  @map("working_well")
+  couldBeBetter String?  @map("could_be_better")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("feedbacks")
+}
+
+// ==================== CONTACT SUBMISSIONS ====================
+
+model ContactSubmission {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  email     String
+  subject   String
+  message   String
+  status    String   @default("new") // new, read, replied
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("contact_submissions")
+}
+
+// ==================== SYLLABUS TRACKER ====================
+
+model SyllabusTrackerState {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  mode      String   @default("prelims")
+  states    Json     @default("{}")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("syllabus_tracker_states")
 }

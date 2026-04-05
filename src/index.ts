@@ -12,25 +12,25 @@ import config from "./config";
 import routes from "./routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { generalLimiter } from "./middleware/rateLimit";
+import { requestId } from "./middleware/requestId";
+import logger from "./config/logger";
+import pinoHttp from "pino-http";
 import { initStorageBuckets } from "./config/storage";
 import { initScheduler } from "./jobs/scheduler";
 import { runLatestNewsJob } from "./jobs/latestNewsJob";
 
 const app: Application = express();
 
-// Request logger middleware
-app.use((req, res, next) => {
-  const start = Date.now();
-  const { method, originalUrl } = req;
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    const { statusCode } = res;
-    console.log(`[${new Date().toISOString()}] ${method} ${originalUrl} → ${statusCode} (${duration}ms)`);
-  });
-
-  next();
-});
+// Request ID + structured logging
+app.use(requestId);
+app.use(pinoHttp({
+  logger,
+  genReqId: (req) => (req as any).id,
+  serializers: {
+    req: (req) => ({ method: req.method, url: req.url, id: req.id }),
+    res: (res) => ({ statusCode: res.statusCode }),
+  },
+}));
 
 // Middleware
 app.use(cors({

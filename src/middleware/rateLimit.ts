@@ -1,45 +1,57 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { Options } from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
+import { redisClient } from "../config/redis";
+
+function createLimiter(opts: Partial<Options>) {
+  const config: Partial<Options> = {
+    standardHeaders: true,
+    legacyHeaders: false,
+    ...opts,
+  };
+
+  if (redisClient) {
+    config.store = new RedisStore({
+      // @ts-expect-error - ioredis sendCommand is compatible
+      sendCommand: (...args: string[]) => redisClient!.call(...(args as [string, ...string[]])),
+      prefix: "rl:",
+    });
+  }
+
+  return rateLimit(config);
+}
 
 /**
  * General API rate limiter — 100 requests per 15 minutes
  */
-export const generalLimiter = rateLimit({
+export const generalLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
   max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
   message: { status: "error", message: "Too many requests, please try again later" },
 });
 
 /**
  * Auth rate limiter — 20 requests per 15 minutes
  */
-export const authLimiter = rateLimit({
+export const authLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
   message: { status: "error", message: "Too many authentication attempts, please try again later" },
 });
 
 /**
  * Submission rate limiter — 30 requests per 15 minutes
  */
-export const submissionLimiter = rateLimit({
+export const submissionLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
   max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
   message: { status: "error", message: "Too many submissions, please try again later" },
 });
 
 /**
  * AI rate limiter — 10 requests per 15 minutes (expensive operations)
  */
-export const aiLimiter = rateLimit({
+export const aiLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
   max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
   message: { status: "error", message: "Too many AI requests, please try again later" },
 });

@@ -1,4 +1,6 @@
 import { Router, Request, Response } from "express";
+import prisma from "../config/database";
+import { supabaseAdmin } from "../config/supabase";
 import authRoutes from "./auth.routes";
 import aiRoutes from "./ai.routes";
 import dashboardRoutes from "./dashboard.routes";
@@ -18,6 +20,8 @@ import spacedRepetitionRoutes from "./spacedRepetition.routes";
 import mindmapRoutes from "./mindmap.routes";
 import testSeriesRoutes from "./testSeries.routes";
 import searchRoutes from "./search.routes";
+import userRoutes from "./user.routes";
+import contactRoutes from "./contact.routes";
 import * as cmsPublicCtrl from "../controllers/cms.public.controller";
 
 const router = Router();
@@ -35,6 +39,38 @@ router.get("/health", (req: Request, res: Response) => {
     status: "healthy",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
+  });
+});
+
+router.get("/health/deep", async (req: Request, res: Response) => {
+  const checks: Record<string, { status: string; latencyMs: number; error?: string }> = {};
+
+  // Database check
+  const dbStart = Date.now();
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    checks.database = { status: "ok", latencyMs: Date.now() - dbStart };
+  } catch (e: any) {
+    checks.database = { status: "error", latencyMs: Date.now() - dbStart, error: e.message };
+  }
+
+  // Supabase Storage check
+  const stStart = Date.now();
+  try {
+    await supabaseAdmin.storage.listBuckets();
+    checks.storage = { status: "ok", latencyMs: Date.now() - stStart };
+  } catch (e: any) {
+    checks.storage = { status: "error", latencyMs: Date.now() - stStart, error: e.message };
+  }
+
+  const allOk = Object.values(checks).every(c => c.status === "ok");
+  const anyError = Object.values(checks).some(c => c.status === "error");
+
+  res.status(allOk ? 200 : 503).json({
+    status: allOk ? "healthy" : anyError ? "unhealthy" : "degraded",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    checks,
   });
 });
 
@@ -91,6 +127,12 @@ router.use("/test-series", testSeriesRoutes);
 
 // Semantic search routes
 router.use("/search", searchRoutes);
+
+// User profile, settings & feedback routes
+router.use("/user", userRoutes);
+
+// Contact form (public)
+router.use("/contact", contactRoutes);
 
 // Public CMS route (no auth - slug is URL-encoded for nested paths)
 router.get("/cms/:slug", cmsPublicCtrl.getPageContent);
