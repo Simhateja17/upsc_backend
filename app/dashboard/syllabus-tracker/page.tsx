@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { SYLLABUS_DATA, Subject } from '@/data/syllabus/syllabusData';
-import { userService } from '@/lib/services';
+import { userService, syllabusService } from '@/lib/services';
+import { useAuth } from '@/contexts/AuthContext';
 import HeroSection from './components/HeroSection';
 import StageTabs from './components/StageTabs';
 import SubjectList from './components/SubjectList';
@@ -13,6 +13,22 @@ import StatusModal from './components/StatusModal';
 
 export type Mode = 'prelims' | 'mains' | 'optional';
 export type Status = 'none' | 'done' | 'in-progress' | 'needs-revision' | 'weak';
+
+export interface Subject {
+  id: string;
+  name: string;
+  short: string;
+  icon: string;
+  color: string;
+  bg: string;
+  topics: { name: string; subs: string[] }[];
+}
+
+export interface SyllabusData {
+  prelims: Subject[];
+  mains: Subject[];
+  optional: Subject[];
+}
 
 export interface SubTopicState {
   status: Status;
@@ -25,6 +41,7 @@ export interface TrackerState {
 }
 
 export default function SyllabusTrackerPage() {
+  const { user } = useAuth();
   const [mode, setMode] = useState<Mode>('prelims');
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
   const [openTopics, setOpenTopics] = useState<Set<string>>(new Set());
@@ -32,6 +49,8 @@ export default function SyllabusTrackerPage() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'done' | 'important'>('all');
   const [states, setStates] = useState<TrackerState>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [syllabusData, setSyllabusData] = useState<SyllabusData | null>(null);
+  const [syllabusLoading, setSyllabusLoading] = useState(true);
   const [modalData, setModalData] = useState<{
     key: string;
     name: string;
@@ -42,7 +61,21 @@ export default function SyllabusTrackerPage() {
 
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Load state from API on mount, fall back to localStorage
+  // Load syllabus structure from API
+  useEffect(() => {
+    syllabusService.getSyllabus()
+      .then(res => {
+        if (res.data) {
+          setSyllabusData(res.data);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load syllabus data:', err);
+      })
+      .finally(() => setSyllabusLoading(false));
+  }, []);
+
+  // Load tracker state from API on mount, fall back to localStorage
   useEffect(() => {
     userService.getSyllabusTracker()
       .then(res => {
@@ -51,7 +84,6 @@ export default function SyllabusTrackerPage() {
           setMode(res.data.mode || 'prelims');
           localStorage.setItem('syllabusTrackerState', JSON.stringify(res.data.states));
         } else {
-          // Fall back to localStorage
           const saved = localStorage.getItem('syllabusTrackerState');
           if (saved) try { setStates(JSON.parse(saved)); } catch {}
         }
@@ -121,10 +153,10 @@ export default function SyllabusTrackerPage() {
   };
 
   const handleExpandAll = () => {
-    if (!activeSubject) return;
-    const subject = SYLLABUS_DATA[mode].find(s => s.id === activeSubject);
+    if (!activeSubject || !syllabusData) return;
+    const subject = syllabusData[mode].find(s => s.id === activeSubject);
     if (!subject) return;
-    
+
     const newOpenTopics = new Set<string>();
     subject.topics.forEach((_, index) => {
       newOpenTopics.add(`${activeSubject}__${index}`);
@@ -163,9 +195,20 @@ export default function SyllabusTrackerPage() {
     updateSubTopicState(key, { important: !current });
   };
 
-  const currentSubjects = SYLLABUS_DATA[mode];
-  const currentSubject = activeSubject 
-    ? currentSubjects.find(s => s.id === activeSubject) 
+  if (syllabusLoading || !syllabusData) {
+    return (
+      <div className="flex items-center justify-center h-full bg-[#f3f6fb]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-3 border-[#e8a820] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-[#3c4f6d] text-sm">Loading syllabus...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentSubjects = syllabusData[mode];
+  const currentSubject = activeSubject
+    ? currentSubjects.find(s => s.id === activeSubject)
     : null;
 
   return (
@@ -206,14 +249,15 @@ export default function SyllabusTrackerPage() {
       {/* Page Content - scrollable */}
       <div className="flex-1 overflow-y-auto">
         {/* Hero Section */}
-        <HeroSection mode={mode} states={states} />
+        <HeroSection mode={mode} states={states} syllabusData={syllabusData} userName={user?.firstName} />
 
         {/* Stage Tabs */}
         <div className="px-[18px] pt-[14px] pb-0">
-          <StageTabs 
-            mode={mode} 
+          <StageTabs
+            mode={mode}
             onModeChange={handleModeChange}
             states={states}
+            syllabusData={syllabusData}
           />
         </div>
 

@@ -262,6 +262,12 @@ export const userService = {
     api.put<any>('/user/syllabus-tracker', data, authConfig()),
 };
 
+// ==================== Syllabus Data ====================
+
+export const syllabusService = {
+  getSyllabus: () => api.get<any>('/syllabus'),
+};
+
 // ==================== Contact ====================
 
 export const contactService = {

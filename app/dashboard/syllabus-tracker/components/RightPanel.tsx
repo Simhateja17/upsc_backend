@@ -1,7 +1,6 @@
 'use client';
 
-import { Subject } from '@/data/syllabus/syllabusData';
-import { TrackerState } from '../page';
+import { Subject, TrackerState } from '../page';
 
 interface RightPanelProps {
   subjects: Subject[];

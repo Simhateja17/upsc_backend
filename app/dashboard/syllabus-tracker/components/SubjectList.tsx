@@ -1,7 +1,6 @@
 'use client';
 
-import { Subject } from '@/data/syllabus/syllabusData';
-import { Mode, TrackerState } from '../page';
+import { Subject, Mode, TrackerState } from '../page';
 
 interface SubjectListProps {
   subjects: Subject[];

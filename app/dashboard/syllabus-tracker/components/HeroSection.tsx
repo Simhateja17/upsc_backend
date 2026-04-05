@@ -1,17 +1,18 @@
 'use client';
 
-import { SYLLABUS_DATA } from '@/data/syllabus/syllabusData';
-import { Mode, TrackerState } from '../page';
+import { Mode, TrackerState, SyllabusData } from '../page';
 
 interface HeroSectionProps {
   mode: Mode;
   states: TrackerState;
+  syllabusData: SyllabusData;
+  userName?: string;
 }
 
-export default function HeroSection({ mode, states }: HeroSectionProps) {
+export default function HeroSection({ mode, states, syllabusData, userName }: HeroSectionProps) {
   // Calculate overall stats across all modes
   const calculateModeStats = (modeKey: Mode) => {
-    const subjects = SYLLABUS_DATA[modeKey];
+    const subjects = syllabusData[modeKey];
     let total = 0;
     let done = 0;
     let reading = 0;
@@ -80,7 +81,7 @@ export default function HeroSection({ mode, states }: HeroSectionProps) {
             </div>
             
             <h1 className="font-playfair text-[27px] text-white mb-[7px] leading-tight font-bold">
-              Know Exactly Where<br />You Stand, <em className="italic text-[#e8a820]">Arjun.</em>
+              Know Exactly Where<br />You Stand, <em className="italic text-[#e8a820]">{userName || 'Aspirant'}.</em>
             </h1>
             
             <p className="text-[11.5px] text-white/40 max-w-[400px] leading-relaxed mb-[14px]">

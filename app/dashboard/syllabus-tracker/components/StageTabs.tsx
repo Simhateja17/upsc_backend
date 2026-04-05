@@ -1,18 +1,18 @@
 'use client';
 
-import { SYLLABUS_DATA } from '@/data/syllabus/syllabusData';
-import { Mode, TrackerState } from '../page';
+import { Mode, TrackerState, SyllabusData } from '../page';
 
 interface StageTabsProps {
   mode: Mode;
   onModeChange: (mode: Mode) => void;
   states: TrackerState;
+  syllabusData: SyllabusData;
 }
 
-export default function StageTabs({ mode, onModeChange, states }: StageTabsProps) {
+export default function StageTabs({ mode, onModeChange, states, syllabusData }: StageTabsProps) {
   // Calculate percentage for each mode
   const calculateModePct = (modeKey: Mode) => {
-    const subjects = SYLLABUS_DATA[modeKey];
+    const subjects = syllabusData[modeKey];
     let total = 0;
     let done = 0;
 

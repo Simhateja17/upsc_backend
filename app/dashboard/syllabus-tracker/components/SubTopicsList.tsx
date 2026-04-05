@@ -1,7 +1,6 @@
 'use client';
 
-import { Subject } from '@/data/syllabus/syllabusData';
-import { Status, TrackerState } from '../page';
+import { Subject, Status, TrackerState } from '../page';
 
 interface SubTopicsListProps {
   subject: Subject | null | undefined;
