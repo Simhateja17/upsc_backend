@@ -35,6 +35,19 @@
 html { scroll-behavior:smooth; }
 body { font-family:'Outfit',sans-serif; background:var(--light-bg); color:var(--text-dark); overflow-x:hidden; }
 
+/* ════════════════════════════════════════
+   LOGO POSITION — edit these to move logo
+   ════════════════════════════════════════
+   --logo-x  : horizontal shift (+ = right, - = left)
+   --logo-y  : vertical  shift (+ = down,  - = up)
+   --logo-h  : logo image height
+   ════════════════════════════════════════ */
+:root {
+  --logo-x: 0px;   /* ← change me */
+  --logo-y: 0px;   /* ← change me */
+  --logo-h: 62px;  /* ← change me */
+}
+
 /* ── NAV ── */
 nav {
   position:fixed; top:0; left:0; right:0; z-index:200;
@@ -45,7 +58,13 @@ nav {
   border-bottom:1px solid rgba(255,255,255,0.06);
   transition:background 0.3s;
 }
-.logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.logo {
+  display:flex; align-items:center; gap:10px; text-decoration:none;
+  position:relative;
+  left: var(--logo-x);
+  top:  var(--logo-y);
+}
+.logo img { height: var(--logo-h); width:auto; object-fit:contain; }
 .logo-mark {
   width:36px; height:36px;
   background:linear-gradient(135deg,var(--gold),var(--gold-dark));
@@ -710,8 +729,7 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
 <!-- ═══ NAV ═══ -->
 <nav id="main-nav">
   <a href="#" class="logo">
-    <div class="logo-mark">J</div>
-    <span class="logo-text">RiseWith<span class="logo-jeet">Jeet</span></span>
+    <img src="logo...png" alt="RiseWithJeet" />
   </a>
   <ul class="nav-links">
     <li><a href="#modules">Modules</a></li>
@@ -721,8 +739,8 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
     <li><a href="#pricing">Pricing</a></li>
   </ul>
   <div class="nav-btns">
-    <button class="btn-nav-ghost">Login</button>
-    <button class="btn-nav-gold">Start Free →</button>
+    <button class="btn-nav-ghost" onclick="go('/login?tab=login')">Login</button>
+    <button class="btn-nav-gold" onclick="go('/login?tab=signup')">Start Free →</button>
   </div>
 </nav>
 
@@ -762,8 +780,8 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
   <p class="hero-sub">Trusted by 50,000+ aspirants. AI-powered learning, daily MCQs, instant mains evaluation, expert mentorship &amp; smart revision — all under one roof.</p>
 
   <div class="hero-ctas">
-    <button class="cta-primary">Start Your Free Trial →</button>
-    <button class="cta-secondary">▶ &nbsp;Watch Platform Demo</button>
+    <button class="cta-primary" onclick="go('/login?tab=signup')">Start Your Free Trial →</button>
+    <button class="cta-secondary" onclick="go('/dashboard/video-lectures')">▶ &nbsp;Watch Platform Demo</button>
   </div>
 
   <div class="hero-stats">
@@ -950,8 +968,8 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
         <h2 class="section-h2-light">The Right Strategy<br>Changes Everything</h2>
         <p class="section-p-light" style="margin-top:12px;max-width:380px">Personal guidance from mentors who have walked the UPSC path — and made it.</p>
         <div class="mentor-cta-row">
-          <button class="btn-schedule">📅 Schedule Mentor Session</button>
-          <button class="btn-schedule-ghost">↗ View All Mentors</button>
+          <button class="btn-schedule" onclick="go('/dashboard/free-trial')">📅 Schedule Mentor Session</button>
+          <button class="btn-schedule-ghost" onclick="go('/dashboard/free-trial')">↗ View All Mentors</button>
         </div>
       </div>
       <div class="mentor-quote-card reveal reveal-delay-2">
@@ -994,7 +1012,7 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
         <div class="lstat"><span class="lstat-val">124</span><div class="lstat-label">Online Now</div></div>
         <div class="lstat"><span class="lstat-val">2h 14m</span><div class="lstat-label">Session</div></div>
       </div>
-      <button class="btn-join-live">Join Study Room →</button>
+      <button class="btn-join-live" onclick="go('/login?tab=signup')">Join Study Room →</button>
     </div>
     <div class="live-tools-grid reveal reveal-delay-2">
       <div class="lt-item"><div class="lt-icon">⏱️</div><h5>Pomodoro Timer</h5><p>Stay deep in focus with proven time blocks</p></div>
@@ -1114,7 +1132,7 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
         <div class="plan-price"><span>₹</span>0</div>
         <div class="plan-period">Forever Free</div>
         <ul class="plan-feats"><li>10 MCQs / day</li><li>Current Affairs</li><li>Live Study Room</li><li class="off">Mock Tests</li><li class="off">AI Mains Evaluator</li><li class="off">Mentorship</li></ul>
-        <button class="plan-btn-outline">Get Started Free</button>
+        <button class="plan-btn-outline" onclick="go('/login?tab=signup')">Get Started Free</button>
       </div>
       <div class="plan plan-featured reveal reveal-delay-2">
         <div class="plan-pop">⭐ Most Popular</div>
@@ -1122,14 +1140,14 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
         <div class="plan-price"><span>₹</span>999</div>
         <div class="plan-period">per month · billed annually</div>
         <ul class="plan-feats"><li>Unlimited Daily MCQs</li><li>Full Mock Test Series</li><li>AI Mains Evaluator</li><li>UPSC GPT Assistant</li><li>Revision Suite — All Tools</li><li>Performance Analytics</li></ul>
-        <button class="plan-btn-gold">Start Free Trial</button>
+        <button class="plan-btn-gold" onclick="go('/login?tab=signup')">Start Free Trial</button>
       </div>
       <div class="plan reveal reveal-delay-3">
         <div class="plan-tier">Mentorship Pro</div>
         <div class="plan-price"><span>₹</span>2,499</div>
         <div class="plan-period">per month · billed annually</div>
         <ul class="plan-feats"><li>Everything in Pro</li><li>Weekly 1-on-1 Mentorship</li><li>Jeet Path Roadmap</li><li>Priority Answer Review</li><li>Interview Prep Module</li><li>Direct Mentor Access</li></ul>
-        <button class="plan-btn-outline">Book a Call</button>
+        <button class="plan-btn-outline" onclick="go('/contact')">Book a Call</button>
       </div>
     </div>
   </div>
@@ -1141,8 +1159,8 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
     <h2>Your UPSC Journey<br>Starts <span style="color:var(--gold)">Today</span></h2>
     <p>Join 50,000+ aspirants already preparing smarter. No credit card needed.</p>
     <div class="cta-btns">
-      <button class="cta-primary">Start Free Trial →</button>
-      <button class="cta-secondary" style="border-color:rgba(255,255,255,0.2)">Explore Modules</button>
+      <button class="cta-primary" onclick="go('/login?tab=signup')">Start Free Trial →</button>
+      <button class="cta-secondary" style="border-color:rgba(255,255,255,0.2)" onclick="document.getElementById('modules').scrollIntoView({behavior:'smooth'})">Explore Modules</button>
     </div>
   </div>
 </section>
@@ -1151,13 +1169,13 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
 <footer>
   <div class="footer-grid">
     <div>
-      <a href="#" class="logo" style="text-decoration:none"><div class="logo-mark">J</div><span class="logo-text">RiseWith<span class="logo-jeet">Jeet</span></span></a>
+      <a href="#" class="logo" style="text-decoration:none"><img src="logo...png" alt="RiseWithJeet" style="height:44px;width:auto;object-fit:contain;" /></a>
       <div class="fb-desc">India's #1 AI-powered UPSC preparation platform. Everything you need — simplified, personalised, always evolving.</div>
       <div class="fb-socials"><div class="fsoc">𝕏</div><div class="fsoc">in</div><div class="fsoc">▶</div><div class="fsoc">📸</div></div>
     </div>
-    <div><div class="fc-title">Platform</div><ul class="fc-links"><li><a href="#">Daily MCQ</a></li><li><a href="#">Mock Tests</a></li><li><a href="#">Answer Writing</a></li><li><a href="#">Video Lectures</a></li><li><a href="#">Current Affairs</a></li></ul></div>
-    <div><div class="fc-title">Revision Tools</div><ul class="fc-links"><li><a href="#">Flashcards</a></li><li><a href="#">Mind Maps</a></li><li><a href="#">Spaced Repetition</a></li><li><a href="#">Study Planner</a></li><li><a href="#">Syllabus Tracker</a></li></ul></div>
-    <div><div class="fc-title">Company</div><ul class="fc-links"><li><a href="#">About Us</a></li><li><a href="#">Mentorship</a></li><li><a href="#">Pricing</a></li><li><a href="#">Help Center</a></li><li><a href="#">Privacy Policy</a></li></ul></div>
+    <div><div class="fc-title">Platform</div><ul class="fc-links"><li><a href="#" onclick="go('/dashboard/daily-mcq')">Daily MCQ</a></li><li><a href="#" onclick="go('/dashboard/mock-tests')">Mock Tests</a></li><li><a href="#" onclick="go('/dashboard/daily-answer')">Answer Writing</a></li><li><a href="#" onclick="go('/dashboard/video-lectures')">Video Lectures</a></li><li><a href="#" onclick="go('/dashboard/daily-editorial')">Current Affairs</a></li></ul></div>
+    <div><div class="fc-title">Revision Tools</div><ul class="fc-links"><li><a href="#" onclick="go('/dashboard/flashcards')">Flashcards</a></li><li><a href="#" onclick="go('/dashboard/mindmap')">Mind Maps</a></li><li><a href="#" onclick="go('/dashboard/spaced-repetition')">Spaced Repetition</a></li><li><a href="#" onclick="go('/dashboard/study-planner')">Study Planner</a></li><li><a href="#" onclick="go('/dashboard/syllabus-tracker')">Syllabus Tracker</a></li></ul></div>
+    <div><div class="fc-title">Company</div><ul class="fc-links"><li><a href="#" onclick="go('/our-story')">About Us</a></li><li><a href="#" onclick="go('/dashboard/free-trial')">Mentorship</a></li><li><a href="#" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">Pricing</a></li><li><a href="#" onclick="go('/faq')">Help Center</a></li><li><a href="#" onclick="go('/privacy')">Privacy Policy</a></li></ul></div>
   </div>
   <div class="footer-bottom">
     <p>© 2026 RiseWithJeet. All rights reserved.</p>
@@ -1166,6 +1184,11 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
 </footer>
 
 <script>
+// ── Navigation helper (works inside iframe or standalone) ──
+function go(path) {
+  try { window.top.location.href = path; } catch(e) { window.location.href = path; }
+}
+
 // ── Scroll Reveal ──
 const revealEls = document.querySelectorAll('.reveal');
 new IntersectionObserver((entries) => {

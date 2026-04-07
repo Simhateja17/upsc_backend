@@ -43,7 +43,7 @@ const DashboardHeader = () => {
       <Link href="/dashboard" className="flex items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/logo.png"
+          src="/logo...png"
           alt="RiseWithJeet Logo"
           className="w-[clamp(100px,6vw,120px)] h-[clamp(100px,6vw,120px)] object-contain"
         />
