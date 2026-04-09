@@ -11,8 +11,7 @@ function createLimiter(opts: Partial<Options>) {
 
   if (redisClient) {
     config.store = new RedisStore({
-      // @ts-expect-error - ioredis sendCommand is compatible
-      sendCommand: (...args: string[]) => redisClient!.call(...(args as [string, ...string[]])),
+      sendCommand: ((...args: string[]) => redisClient!.call(...(args as [string, ...string[]]))) as any,
       prefix: "rl:",
     });
   }

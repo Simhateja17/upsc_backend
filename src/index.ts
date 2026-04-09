@@ -25,10 +25,10 @@ const app: Application = express();
 app.use(requestId);
 app.use(pinoHttp({
   logger,
-  genReqId: (req) => (req as any).id,
+  genReqId: (req: any) => req.id,
   serializers: {
-    req: (req) => ({ method: req.method, url: req.url, id: req.id }),
-    res: (res) => ({ statusCode: res.statusCode }),
+    req: (req: any) => ({ method: req.method, url: req.url, id: req.id }),
+    res: (res: any) => ({ statusCode: res.statusCode }),
   },
 }));
 
