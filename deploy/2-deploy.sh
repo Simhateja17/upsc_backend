@@ -7,8 +7,12 @@ set -e
 APP_DIR="/var/www/backend"
 cd "$APP_DIR"
 
-echo "=== Pulling latest code ==="
-git pull origin main
+# Pull first, then re-exec so bash always runs the latest version of this script
+if [ "$1" != "post-update" ]; then
+  echo "=== Pulling latest code ==="
+  git pull origin main
+  exec bash "$0" post-update
+fi
 
 echo "=== Installing dependencies ==="
 npm ci --production=false
