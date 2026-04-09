@@ -109,7 +109,7 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
     }
 
     // Build a question lookup
-    const questionMap = new Map(mcq.questions.map(q => [q.id, q]));
+    const questionMap = new Map(mcq.questions.map((q: any) => [q.id, q]));
 
     let correctCount = 0;
     let wrongCount = 0;
@@ -295,9 +295,9 @@ export const getTodayReview = async (req: Request, res: Response, next: NextFunc
       return res.status(404).json({ status: "error", message: "No attempt found" });
     }
 
-    const responseMap = new Map(attempt.responses.map(r => [r.questionId, r]));
+    const responseMap = new Map(attempt.responses.map((r: any) => [r.questionId, r]));
 
-    const reviewData = mcq.questions.map(q => {
+    const reviewData = mcq.questions.map((q: any) => {
       const response = responseMap.get(q.id);
       return {
         id: q.id,

@@ -23,7 +23,7 @@ async function main() {
   let pyqCount = 0;
   let aiCount = 0;
 
-  mcq.questions.forEach((q) => {
+  mcq.questions.forEach((q: any) => {
     const opts = q.options as any[];
     const hasLabel = opts?.[0]?.label !== undefined;
     const hasId = opts?.[0]?.id !== undefined;

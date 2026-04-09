@@ -100,7 +100,7 @@ export const getDownloadUrl = async (req: Request, res: Response, next: NextFunc
 
     // Generate signed download URLs for materials that are in Supabase Storage
     const materialsWithUrls = await Promise.all(
-      materials.map(async (m) => {
+      materials.map(async (m: any) => {
         let downloadUrl = m.fileUrl;
         if (m.fileUrl && !m.fileUrl.startsWith("http")) {
           try {

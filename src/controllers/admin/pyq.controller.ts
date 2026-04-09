@@ -271,8 +271,8 @@ export const getStats = async (_req: Request, res: Response, next: NextFunction)
         approved,
         draft,
         rejected,
-        bySubject: bySubject.map((s) => ({ subject: s.subject, count: s._count.id })),
-        byYear: byYear.map((y) => ({ year: y.year, count: y._count.id })),
+        bySubject: bySubject.map((s: any) => ({ subject: s.subject, count: s._count.id })),
+        byYear: byYear.map((y: any) => ({ year: y.year, count: y._count.id })),
       },
     });
   } catch (error) {

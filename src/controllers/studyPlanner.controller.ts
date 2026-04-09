@@ -167,7 +167,7 @@ export const getWeeklyGoals = async (req: Request, res: Response, next: NextFunc
       orderBy: { createdAt: "asc" },
     });
 
-    res.json({ status: "success", data: goals.map(g => ({ id: g.id, title: g.title, completed: g.isCompleted })) });
+    res.json({ status: "success", data: goals.map((g: any) => ({ id: g.id, title: g.title, completed: g.isCompleted })) });
   } catch (error) {
     next(error);
   }
@@ -206,7 +206,7 @@ export const saveWeeklyGoals = async (req: Request, res: Response, next: NextFun
         )
     );
 
-    res.json({ status: "success", data: created.map(g => ({ id: g.id, title: g.title, completed: g.isCompleted })) });
+    res.json({ status: "success", data: created.map((g: any) => ({ id: g.id, title: g.title, completed: g.isCompleted })) });
   } catch (error) {
     next(error);
   }
@@ -239,8 +239,8 @@ export const getSyllabusCoverage = async (req: Request, res: Response, next: Nex
       }),
     ]);
 
-    const totalMap = new Map(allTasks.map(r => [r.subject!, r._count.id]));
-    const doneMap  = new Map(completedTasks.map(r => [r.subject!, r._count.id]));
+    const totalMap = new Map(allTasks.map((r: any) => [r.subject!, r._count.id]));
+    const doneMap  = new Map(completedTasks.map((r: any) => [r.subject!, r._count.id]));
 
     const data = SUBJECTS.map(subject => {
       const total     = totalMap.get(subject) ?? 0;
