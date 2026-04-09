@@ -19,10 +19,6 @@ npx prisma generate
 echo "=== Building TypeScript ==="
 npm run build
 
-echo "=== Running DB migrations ==="
-# Remove --skip-seed if you want to seed on each deploy
-npx prisma migrate deploy
-
 echo "=== Restarting PM2 ==="
 pm2 startOrReload "$APP_DIR/deploy/ecosystem.config.js" --env production
 
