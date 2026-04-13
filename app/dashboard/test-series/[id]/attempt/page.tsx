@@ -1,14 +1,26 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import '../../../../../styles/test-series-v2.css';
 import { Plus_Jakarta_Sans } from 'next/font/google';
+import { testSeriesService } from '@/lib/services';
 
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-plus-jakarta' });
 
-// Mock questions data
-const MOCK_QUESTIONS = [
+function isUuid(id: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
+type QuestionRow = {
+  text: string;
+  opts: string[];
+  subject: string;
+  topic: string;
+};
+
+// Demo questions when series id is not a CMS UUID
+const FALLBACK_QUESTIONS: QuestionRow[] = [
   {
     id: 1,
     text: 'Which of the following statements about the Indus Valley Civilization is/are correct?\n\n1. The Great Bath was found at Mohenjo-daro\n2. Bronze was not known to the Harappans\n3. The script has been fully deciphered\n\nSelect the correct answer using the code given below:',
@@ -65,7 +77,12 @@ const MOCK_QUESTIONS = [
     tags: ['NCERT Class 11', 'Must Know', 'Basics'],
     time: 40,
   },
-];
+].map((q) => ({
+  text: q.text,
+  opts: q.opts,
+  subject: q.subject,
+  topic: q.topic,
+}));
 
 const fmtTime = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
@@ -79,12 +96,68 @@ export default function TestAttemptPage() {
   const searchParams = useSearchParams();
   const seriesId = params?.id as string;
   const testNum = searchParams?.get('test') || '1';
+  const cms = isUuid(seriesId);
+
+  const [questions, setQuestions] = useState<QuestionRow[]>([]);
+  const [loadingQs, setLoadingQs] = useState(cms);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+  const apiTestIdRef = useRef<string | null>(null);
+  const [seriesTitle, setSeriesTitle] = useState('Test Series');
+  const initialSecondsRef = useRef(7200);
 
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<{ [key: number]: number }>({});
   const [bookmarks, setBookmarks] = useState<Set<number>>(new Set());
-  const [timer, setTimer] = useState(7200); // 2 hours = 7200 seconds
+  const [timer, setTimer] = useState(7200);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+
+  useEffect(() => {
+    if (!cms) {
+      setQuestions(FALLBACK_QUESTIONS);
+      initialSecondsRef.current = 7200;
+      setLoadingQs(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const det = await testSeriesService.getSeriesDetail(seriesId);
+        if (cancelled) return;
+        const tests = (det.data as { tests?: { id: string }[] })?.tests ?? [];
+        const idx = Math.max(1, parseInt(testNum, 10)) - 1;
+        const tr = tests[idx];
+        if (!tr?.id) {
+          setLoadErr('This test is not set up yet.');
+          setLoadingQs(false);
+          return;
+        }
+        const qRes = await testSeriesService.getQuestions(seriesId, tr.id);
+        if (cancelled) return;
+        const payload = (qRes.data as { questions?: { text: string; opts: string[] }[]; timeLimitMinutes?: number; title?: string }) ?? {};
+        const list = payload.questions ?? [];
+        apiTestIdRef.current = tr.id;
+        setSeriesTitle(payload.title ?? (det.data as { series?: { title?: string } })?.series?.title ?? 'Test');
+        const secs = Math.max(60, (payload.timeLimitMinutes ?? 120) * 60);
+        initialSecondsRef.current = secs;
+        setTimer(secs);
+        setQuestions(
+          list.map((q) => ({
+            text: q.text,
+            opts: q.opts?.length ? q.opts : ['A', 'B', 'C', 'D'],
+            subject: 'General',
+            topic: 'Test Series',
+          }))
+        );
+      } catch (e) {
+        if (!cancelled) setLoadErr(e instanceof Error ? e.message : 'Failed to load test');
+      } finally {
+        if (!cancelled) setLoadingQs(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cms, seriesId, testNum]);
 
   // Timer effect
   useEffect(() => {
@@ -109,7 +182,7 @@ export default function TestAttemptPage() {
   };
 
   const handleNext = () => {
-    if (currentQ < MOCK_QUESTIONS.length - 1) {
+    if (currentQ < questions.length - 1) {
       setCurrentQ(currentQ + 1);
     }
   };
@@ -138,21 +211,53 @@ export default function TestAttemptPage() {
     setBookmarks(newBookmarks);
   };
 
-  const handleSubmit = useCallback(() => {
-    if (confirm('Are you sure you want to submit the test? You cannot change answers after submission.')) {
-      // Save answers to localStorage or state management
+  const handleSubmit = useCallback(async () => {
+    if (!confirm('Are you sure you want to submit the test? You cannot change answers after submission.')) return;
+    const elapsed = initialSecondsRef.current - timer;
+    const apiId = apiTestIdRef.current;
+    if (apiId) {
+      try {
+        const payload: Record<string, number> = {};
+        questions.forEach((_, i) => {
+          if (answers[i] !== undefined) payload[String(i)] = answers[i];
+        });
+        const res = await testSeriesService.submitTest(seriesId, apiId, payload, Math.max(0, elapsed));
+        localStorage.setItem(`test-api-result-${seriesId}-${testNum}`, JSON.stringify(res.data ?? {}));
+      } catch (e) {
+        alert(e instanceof Error ? e.message : 'Submit failed');
+        return;
+      }
+    } else {
       localStorage.setItem(`test-${seriesId}-${testNum}-answers`, JSON.stringify(answers));
-      router.push(`/dashboard/test-series/${seriesId}/results/${testNum}`);
     }
-  }, [answers, router, seriesId, testNum]);
+    router.push(`/dashboard/test-series/${seriesId}/results/${testNum}`);
+  }, [answers, questions, router, seriesId, testNum, timer]);
 
-  const currentQuestion = MOCK_QUESTIONS[currentQ];
-  const totalQuestions = MOCK_QUESTIONS.length;
+  const currentQuestion = questions[currentQ];
+  const totalQuestions = questions.length;
   const answeredCount = Object.keys(answers).length;
   const progressPercent = ((currentQ + 1) / totalQuestions) * 100;
 
-  const seriesName = 'जड़ें मज़बूत Series';
   const seriesIcon = '📖';
+
+  if (loadingQs) {
+    return (
+      <div className={plusJakarta.variable} style={{ fontFamily: 'var(--font-plus-jakarta), sans-serif', padding: 48, textAlign: 'center' }}>
+        <p style={{ color: 'var(--ink3)' }}>Loading test…</p>
+      </div>
+    );
+  }
+
+  if (loadErr || !currentQuestion) {
+    return (
+      <div className={plusJakarta.variable} style={{ fontFamily: 'var(--font-plus-jakarta), sans-serif', padding: 48, textAlign: 'center' }}>
+        <p style={{ color: '#b91c1c', marginBottom: 16 }}>{loadErr || 'No questions available.'}</p>
+        <button type="button" onClick={() => router.push(`/dashboard/test-series/${seriesId}`)} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer' }}>
+          Back to series
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={plusJakarta.variable} style={{ fontFamily: 'var(--font-plus-jakarta), sans-serif', background: 'var(--bg)', minHeight: '100vh' }}>
@@ -173,7 +278,7 @@ export default function TestAttemptPage() {
       >
         <div>
           <div className="ttb-title" style={{ fontSize: '1rem', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
-            {seriesIcon} {seriesName}
+            {seriesIcon} {seriesTitle}
           </div>
           <div className="ttb-sub" style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)' }}>
             Mock Test #{testNum} · {totalQuestions} Questions · –0.67 per wrong
@@ -221,7 +326,7 @@ export default function TestAttemptPage() {
           </span>
           <span>›</span>
           <span className="bc-link" onClick={() => router.push(`/dashboard/test-series/${seriesId}`)} style={{ cursor: 'pointer', color: 'var(--ink3)' }}>
-            {seriesName}
+            {seriesTitle}
           </span>
           <span>›</span>
           <span style={{ fontWeight: 700, color: 'var(--ink)' }}>Mock Test #{testNum}</span>
@@ -417,7 +522,7 @@ export default function TestAttemptPage() {
                 Question Navigator
               </div>
               <div className="q-nav-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '16px' }}>
-                {MOCK_QUESTIONS.map((_, i) => {
+                {questions.map((_, i) => {
                   const isAnswered = answers[i] !== undefined;
                   const isBookmarked = bookmarks.has(i);
                   const isCurrent = i === currentQ;

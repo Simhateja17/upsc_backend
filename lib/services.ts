@@ -460,18 +460,109 @@ export const adminService = {
   },
 };
 
-// ==================== Test Series ====================
+// ==================== Test Series (Next.js /api/test-series + Supabase) ====================
+
+async function testSeriesRequest<T>(
+  path: string,
+  init?: RequestInit
+): Promise<{ status: 'success' | 'error'; data?: T; message?: string }> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    ...((init?.headers as Record<string, string> | undefined) ?? {}),
+  };
+  if (init?.body && typeof init.body === 'string' && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`/api/test-series${path}`, { ...init, headers });
+  const json = (await res.json().catch(() => ({}))) as {
+    status?: string;
+    data?: T;
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(json.message || `Request failed (${res.status})`);
+  }
+  return { status: (json.status as 'success') || 'success', data: json.data, message: json.message };
+}
 
 export const testSeriesService = {
-  getStats: () => api.get<any>('/test-series/stats'),
-  listSeries: () => api.get<any>('/test-series'),
-  getEnrolled: () => api.get<any>('/test-series/enrolled', authConfig()),
-  enroll: (seriesId: string) => api.post<any>(`/test-series/${seriesId}/enroll`, {}, authConfig()),
-  unenroll: (seriesId: string) => api.delete<any>(`/test-series/${seriesId}/enroll`, authConfig()),
-  // Admin
-  createSeries: (data: any) => api.post<any>('/test-series', data, authConfig()),
-  updateSeries: (seriesId: string, data: any) => api.put<any>(`/test-series/${seriesId}`, data, authConfig()),
-  deleteSeries: (seriesId: string) => api.delete<any>(`/test-series/${seriesId}`, authConfig()),
+  getStats: () => testSeriesRequest<any>('/stats'),
+  listSeries: () => testSeriesRequest<any[]>(''),
+  getSeriesDetail: (seriesId: string) => testSeriesRequest<any>(`/${encodeURIComponent(seriesId)}`),
+  getEnrolled: () => testSeriesRequest<any[]>('/enrolled'),
+  enroll: (seriesId: string) =>
+    testSeriesRequest<{ seriesId: string }>(`/${encodeURIComponent(seriesId)}/enroll`, { method: 'POST', body: '{}' }),
+  unenroll: (seriesId: string) =>
+    testSeriesRequest<{ seriesId: string }>(`/${encodeURIComponent(seriesId)}/enroll`, { method: 'DELETE' }),
+  getAnalytics: (seriesId: string) => testSeriesRequest<any>(`/${encodeURIComponent(seriesId)}/analytics`),
+  getQuestions: (seriesId: string, testId: string) =>
+    testSeriesRequest<any>(
+      `/${encodeURIComponent(seriesId)}/tests/${encodeURIComponent(testId)}/questions`
+    ),
+  submitTest: (seriesId: string, testId: string, answers: Record<string, number>, timeTaken: number) =>
+    testSeriesRequest<any>(`/${encodeURIComponent(seriesId)}/tests/${encodeURIComponent(testId)}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ answers, timeTaken }),
+    }),
+  // Admin — series
+  createSeries: (data: Record<string, unknown>) =>
+    testSeriesRequest<any>('', { method: 'POST', body: JSON.stringify(data) }),
+  updateSeries: (seriesId: string, data: Record<string, unknown>) =>
+    testSeriesRequest<any>(`/${encodeURIComponent(seriesId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteSeries: (seriesId: string) =>
+    testSeriesRequest<any>(`/${encodeURIComponent(seriesId)}`, { method: 'DELETE' }),
+  // Admin — tests
+  listAdminTests: (seriesId: string) =>
+    testSeriesRequest<any[]>(`/${encodeURIComponent(seriesId)}/tests`),
+  createTest: (seriesId: string, data: { title: string; sortOrder?: number }) =>
+    testSeriesRequest<any>(`/${encodeURIComponent(seriesId)}/tests`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getAdminTest: (seriesId: string, testId: string) =>
+    testSeriesRequest<any>(
+      `/${encodeURIComponent(seriesId)}/tests/${encodeURIComponent(testId)}`
+    ),
+  updateTest: (seriesId: string, testId: string, data: Record<string, unknown>) =>
+    testSeriesRequest<any>(`/${encodeURIComponent(seriesId)}/tests/${encodeURIComponent(testId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteTest: (seriesId: string, testId: string) =>
+    testSeriesRequest<any>(`/${encodeURIComponent(seriesId)}/tests/${encodeURIComponent(testId)}`, {
+      method: 'DELETE',
+    }),
+  putQuestions: (seriesId: string, testId: string, questions: unknown[]) =>
+    testSeriesRequest<any>(`/${encodeURIComponent(seriesId)}/tests/${encodeURIComponent(testId)}/questions`, {
+      method: 'PUT',
+      body: JSON.stringify({ questions }),
+    }),
+  extractPdfText: (seriesId: string, testId: string) =>
+    testSeriesRequest<any>(
+      `/${encodeURIComponent(seriesId)}/tests/${encodeURIComponent(testId)}/extract-pdf`,
+      { method: 'POST', body: '{}' }
+    ),
+  parsePdfQuestions: (seriesId: string, testId: string, autoSave = false) =>
+    testSeriesRequest<{ questions: any[]; totalParsed: number; saved: boolean }>(
+      `/${encodeURIComponent(seriesId)}/tests/${encodeURIComponent(testId)}/parse-pdf`,
+      { method: 'POST', body: JSON.stringify({ autoSave }) }
+    ),
+  uploadAsset: async (formData: FormData) => {
+    const token = getToken();
+    const res = await fetch('/api/test-series/upload', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Upload failed');
+    return json as { status: string; data: { url: string; path: string } };
+  },
 };
 
 // ==================== Study Materials (RAG) ====================

@@ -23,5 +23,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "upsc_backend"]
+  "exclude": ["node_modules", "upsc_backend", "upsc_frontend"]
 }

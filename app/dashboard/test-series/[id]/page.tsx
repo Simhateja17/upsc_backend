@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
+import { testSeriesService } from '@/lib/services';
 import '../../../../styles/test-series-v2.css';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 
@@ -193,14 +194,248 @@ const getSeriesData = (id: string) => {
   return seriesMap[id] || null;
 };
 
+function isCmsUuid(id: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
 export default function TestSeriesDetailPage() {
   const router = useRouter();
   const params = useParams();
   const seriesId = params?.id as string;
+  const cms = isCmsUuid(seriesId);
+  const [apiData, setApiData] = useState<{
+    series: Record<string, unknown>;
+    schedule: { id: string; num: number; name: string; qs: number; status: string; score: number | null }[];
+  } | null>(null);
+  const [apiLoading, setApiLoading] = useState(cms);
+  const [apiErr, setApiErr] = useState<string | null>(null);
+  const [startLoading, setStartLoading] = useState<string | null>(null);
+
   const series = getSeriesData(seriesId);
 
   const [activeAccordion, setActiveAccordion] = useState<number | null>(null);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!cms) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await testSeriesService.getSeriesDetail(seriesId);
+        if (!cancelled) setApiData(res.data as typeof apiData);
+      } catch (e) {
+        if (!cancelled) setApiErr(e instanceof Error ? e.message : 'Failed to load');
+      } finally {
+        if (!cancelled) setApiLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cms, seriesId]);
+
+  if (cms) {
+    if (apiLoading) {
+      return (
+        <div style={{ padding: 48, textAlign: 'center', fontFamily: 'Inter, sans-serif' }}>
+          <p style={{ color: '#6B7280' }}>Loading series…</p>
+        </div>
+      );
+    }
+    if (apiErr || !apiData) {
+      return (
+        <div style={{ padding: '40px', textAlign: 'center' }}>
+          <h2>Series not found</h2>
+          <p style={{ color: '#6B7280' }}>{apiErr}</p>
+          <Link href="/dashboard/test-series">← Back to Test Series</Link>
+        </div>
+      );
+    }
+    const s = apiData.series as Record<string, any>;
+    const cmsGradient = s.gradient || 'linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%)';
+    const cmsTags: string[] = s.tags || [];
+    const cmsWhyEnroll: Array<{ t: string; d: string }> = s.whyEnroll || [];
+    const cmsAchievements: string[] = s.achievements || [];
+    const cmsSyllabus: Array<{ t: string; n: string; topics: string[] }> = s.syllabus || [];
+    const cmsFaqs: Array<{ q: string; a: string }> = s.faqs || [];
+    const cmsIncludes: string[] = s.includes || [];
+
+    return (
+      <div
+        className={`${plusJakarta.variable} ${playfair.variable}`}
+        style={{ fontFamily: 'var(--font-plus-jakarta), sans-serif', background: 'var(--bg)', minHeight: 'calc(100vh - 111px)', padding: '28px 20px 80px' }}
+      >
+        <div style={{ maxWidth: 1140, margin: '0 auto' }}>
+          {/* Breadcrumb */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 8 }}>
+            <button onClick={() => router.push('/dashboard/test-series')} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--ink3)', cursor: 'pointer' }}>← Back</button>
+          </div>
+
+          {/* Hero */}
+          <div className="detail-hero fu" style={{ background: cmsGradient, borderRadius: 'var(--r2)', padding: '40px 48px', marginBottom: 20, position: 'relative', overflow: 'hidden' }}>
+            <div className="dh-noise"></div>
+            <div className="dh-glow"></div>
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 12px', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.9)', marginBottom: 12 }}>
+                ⚡ {(s.categoryLabel || 'SERIES').toUpperCase()}
+              </div>
+              <h1 className="serif" style={{ fontFamily: 'var(--font-playfair)', fontSize: '2.5rem', fontWeight: 700, color: '#fff', marginBottom: 12, fontStyle: 'italic' }}>
+                <em>{s.title}</em>
+              </h1>
+              {s.tagline && <div style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.8)', marginBottom: 20, maxWidth: 700 }}>{s.tagline}</div>}
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16, fontSize: '0.73rem', color: 'rgba(255,255,255,0.7)' }}>
+                <span>📝 {s.totalTests ?? apiData.schedule.length} Tests</span>
+                <span>⏱ {s.durationLabel || 'Ongoing'}</span>
+                <span>👥 {(s.enrollmentCount ?? 0).toLocaleString('en-IN')} enrolled</span>
+                <span>★ {s.rating ?? '—'}</span>
+                <span>📊 {s.difficulty}</span>
+              </div>
+              {cmsTags.length > 0 && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {cmsTags.map((tag: string, i: number) => (
+                    <span key={i} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6, padding: '4px 10px', fontSize: '0.68rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>{tag}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, alignItems: 'start' }}>
+            {/* Left column */}
+            <div>
+              {/* Description */}
+              <p style={{ color: '#4B5563', lineHeight: 1.7, marginBottom: 28 }}>{s.description}</p>
+
+              {/* Why Enroll */}
+              {cmsWhyEnroll.length > 0 && (
+                <div style={{ marginBottom: 28 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: 'var(--ink)' }}>Why Enroll?</h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    {cmsWhyEnroll.map((item, i) => (
+                      <div key={i} style={{ background: '#fff', borderRadius: 12, padding: 16, border: '1px solid var(--border)' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{item.t}</div>
+                        <div style={{ fontSize: '0.82rem', color: 'var(--ink3)', lineHeight: 1.5 }}>{item.d}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Achievements */}
+              {cmsAchievements.length > 0 && (
+                <div style={{ marginBottom: 28 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: 'var(--ink)' }}>What You&apos;ll Achieve</h2>
+                  <ul style={{ paddingLeft: 20, color: 'var(--ink2)', lineHeight: 1.8 }}>
+                    {cmsAchievements.map((a, i) => <li key={i}>{a}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {/* Test Schedule */}
+              <div style={{ marginBottom: 28 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: 'var(--ink)' }}>Tests ({apiData.schedule.length})</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {apiData.schedule.map((row) => (
+                    <div key={row.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, background: '#fff', borderRadius: 12, border: '1px solid var(--border)' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#111827' }}>#{row.num} · {row.name}</div>
+                        <div style={{ fontSize: 13, color: '#6B7280' }}>
+                          {row.qs} questions · {row.status}{row.score != null ? ` · Score ${row.score}` : ''}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={startLoading === row.id}
+                        onClick={async () => {
+                          setStartLoading(row.id);
+                          try { await testSeriesService.enroll(seriesId); } catch { /* ok */ }
+                          router.push(`/dashboard/test-series/${seriesId}/attempt?test=${row.num}`);
+                          setStartLoading(null);
+                        }}
+                        style={{ background: row.status === 'done' ? '#059669' : '#101828', color: '#fff', padding: '8px 16px', borderRadius: 8, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', opacity: startLoading === row.id ? 0.7 : 1 }}
+                      >
+                        {startLoading === row.id ? '…' : row.status === 'done' ? 'Review' : 'Start'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Syllabus */}
+              {cmsSyllabus.length > 0 && (
+                <div style={{ marginBottom: 28 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: 'var(--ink)' }}>Syllabus</h2>
+                  {cmsSyllabus.map((mod, i) => (
+                    <div key={i} style={{ background: '#fff', borderRadius: 12, padding: 16, border: '1px solid var(--border)', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{mod.t}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--ink4)' }}>{mod.n}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {mod.topics.map((topic, j) => (
+                          <span key={j} style={{ background: '#F3F4F6', borderRadius: 6, padding: '3px 8px', fontSize: '0.72rem', color: 'var(--ink3)' }}>{topic}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* FAQs */}
+              {cmsFaqs.length > 0 && (
+                <div style={{ marginBottom: 28 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: 'var(--ink)' }}>FAQs</h2>
+                  {cmsFaqs.map((faq, i) => (
+                    <div key={i} style={{ background: '#fff', borderRadius: 12, padding: 16, border: '1px solid var(--border)', marginBottom: 8, cursor: 'pointer' }} onClick={() => setActiveFaq(activeFaq === i ? null : i)}>
+                      <div style={{ fontWeight: 600, color: 'var(--ink)', display: 'flex', justifyContent: 'space-between' }}>
+                        {faq.q} <span>{activeFaq === i ? '−' : '+'}</span>
+                      </div>
+                      {activeFaq === i && <div style={{ marginTop: 8, color: 'var(--ink3)', fontSize: '0.88rem', lineHeight: 1.6 }}>{faq.a}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Right sidebar — Pricing card */}
+            <div style={{ position: 'sticky', top: 20 }}>
+              <div style={{ background: '#fff', borderRadius: 16, padding: 24, border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--ink)', marginBottom: 4 }}>
+                  {s.price === 0 ? 'Free' : `₹${s.price?.toLocaleString('en-IN')}`}
+                </div>
+                {s.compareAtPrice > 0 && (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--ink4)', marginBottom: 12 }}>
+                    <span style={{ textDecoration: 'line-through' }}>₹{s.compareAtPrice?.toLocaleString('en-IN')}</span>
+                    {s.discountPercent > 0 && <span style={{ color: '#059669', fontWeight: 700, marginLeft: 8 }}>-{s.discountPercent}%</span>}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try { await testSeriesService.enroll(seriesId); } catch { /* ok */ }
+                    if (apiData.schedule.length > 0) {
+                      router.push(`/dashboard/test-series/${seriesId}/attempt?test=1`);
+                    }
+                  }}
+                  style={{ width: '100%', background: '#101828', color: '#fff', padding: '14px', borderRadius: 10, fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', marginBottom: 16 }}
+                >
+                  Enroll & Start
+                </button>
+                {cmsIncludes.length > 0 && (
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--ink)', marginBottom: 8 }}>This series includes:</div>
+                    <ul style={{ paddingLeft: 18, fontSize: '0.8rem', color: 'var(--ink3)', lineHeight: 1.8 }}>
+                      {cmsIncludes.map((item, i) => <li key={i}>{item}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!series) {
     return (

@@ -47,6 +47,15 @@ interface SeriesItem {
   questionsPerTest: number;
   price: number;
   enrollmentCount?: number;
+  compareAtPrice?: number | null;
+  discountPercent?: number | null;
+  thumbnailUrl?: string | null;
+  categoryLabel?: string;
+  durationLabel?: string;
+  rating?: number;
+  listingStatus?: string;
+  published?: boolean;
+  features?: { analytics?: boolean; aiAnalysis?: boolean; videoSolutions?: boolean };
 }
 
 interface EnrolledItem {
@@ -568,6 +577,12 @@ const statusTagStyles: Record<string, { bg: string; color: string }> = {
   default: { bg: '#F3F4F6', color: '#374151' },
 };
 
+function formatEnrolled(n: number | undefined) {
+  if (n == null) return '—';
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
+}
+
 function ProgramCard({
   series,
   isEnrolled,
@@ -585,18 +600,21 @@ function ProgramCard({
   const statusStyle = statusTagStyles[series.examMode] ?? statusTagStyles.default;
   const icon = seriesIcon(series.examMode, series.subject);
   const isFree = series.price === 0;
-  const priceDisplay = isFree ? 'Free' : `₹${series.price}`;
+  const priceDisplay = isFree ? 'Free' : `₹${series.price.toLocaleString('en-IN')}`;
   const statusLabel = series.examMode.charAt(0).toUpperCase() + series.examMode.slice(1);
+  const showLive = series.listingStatus === 'open' && series.published !== false;
+  const duration = series.durationLabel ?? 'Ongoing';
+  const rating = series.rating ?? 4.5;
+  const compare = series.compareAtPrice;
 
   const handleResume = () => {
     if (starting) return;
     setStarting(true);
-    const params = new URLSearchParams({
-      seriesId: series.id,
-      difficulty: series.difficulty,
-    });
-    if (series.subject) params.set('subject', series.subject);
-    router.push(`/dashboard/mock-tests?${params.toString()}`);
+    router.push(`/dashboard/test-series/${series.id}/attempt?test=1`);
+  };
+
+  const openAnalytics = () => {
+    router.push(`/dashboard/test-analytics?series=${encodeURIComponent(series.id)}`);
   };
 
   return (
@@ -641,9 +659,15 @@ function ProgramCard({
               fontSize: 24,
               flexShrink: 0,
               boxShadow: '0px 1px 2px -1px rgba(0,0,0,0.10), 0px 1px 3px rgba(0,0,0,0.10)',
+              overflow: 'hidden',
             }}
           >
-            {icon}
+            {series.thumbnailUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={series.thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              icon
+            )}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3
@@ -662,7 +686,8 @@ function ProgramCard({
               {series.title}
             </h3>
             <div style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 12, lineHeight: '16px', color: '#99A1AF', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-              {series.examMode.toUpperCase()}{series.subject ? ` · ${series.subject}` : ''}
+              {(series.categoryLabel ?? series.examMode).toUpperCase()}
+              {series.subject ? ` · ${series.subject}` : ''}
             </div>
           </div>
         </div>
@@ -672,25 +697,25 @@ function ProgramCard({
             fontWeight: 600,
             fontSize: 12,
             lineHeight: '16px',
-            color: statusStyle.color,
-            background: statusStyle.bg,
+            color: showLive ? '#DC2626' : statusStyle.color,
+            background: showLive ? '#FEE2E2' : statusStyle.bg,
             padding: '6px 12px',
             borderRadius: 10,
             textTransform: 'uppercase',
             flexShrink: 0,
           }}
         >
-          {statusLabel}
+          {showLive ? 'Live' : statusLabel}
         </span>
       </div>
 
       {/* Body */}
       <div style={{ padding: '24px 24px 0px', boxSizing: 'border-box', flex: 1 }}>
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#364153', marginBottom: 12 }}>
-          <span>📄 {series.totalTests} Tests</span>
-          <span>❓ {series.questionsPerTest} Q/test</span>
-          <span>🎯 {series.difficulty.charAt(0).toUpperCase() + series.difficulty.slice(1)}</span>
-          {series.enrollmentCount !== undefined && <span>👥 {series.enrollmentCount}</span>}
+          <span style={{ color: '#7C3AED' }}>👤 {formatEnrolled(series.enrollmentCount)}</span>
+          <span style={{ color: '#EA580C' }}>📄 {series.totalTests} Tests</span>
+          <span style={{ color: '#2563EB' }}>🕐 {duration}</span>
+          <span style={{ color: '#CA8A04' }}>⭐ {rating.toFixed(1)}</span>
         </div>
         <p
           style={{
@@ -717,19 +742,33 @@ function ProgramCard({
 
       {/* Footer */}
       <div style={{ padding: '16px 24px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: 'var(--font-playfair), "Playfair Display", serif', fontWeight: 700, fontSize: 24, lineHeight: '32px', color: '#101828' }}>{priceDisplay}</span>
+          {compare != null && compare > series.price && (
+            <span style={{ fontFamily: 'Inter', fontSize: 14, color: '#9CA3AF', textDecoration: 'line-through' }}>₹{compare.toLocaleString('en-IN')}</span>
+          )}
+          {series.discountPercent != null && series.discountPercent > 0 && (
+            <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '4px 8px', borderRadius: 8 }}>
+              -{series.discountPercent}%
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {isEnrolled ? (
             <>
-              <button type="button" style={{ width: 101, height: 40, fontFamily: 'Inter', fontWeight: 600, fontSize: 14, color: '#4A5565', background: '#F3F4F6', border: 'none', borderRadius: 10, cursor: 'pointer' }}>📊 Analytics</button>
+              <button
+                type="button"
+                onClick={openAnalytics}
+                style={{ minWidth: 101, height: 40, fontFamily: 'Inter', fontWeight: 600, fontSize: 14, color: '#4A5565', background: '#F3F4F6', border: 'none', borderRadius: 10, cursor: 'pointer' }}
+              >
+                📊 Analytics
+              </button>
               <button
                 type="button"
                 onClick={handleResume}
                 disabled={starting}
                 style={{
-                  width: 113.4,
+                  minWidth: 104,
                   height: 40,
                   fontFamily: 'Inter',
                   fontWeight: 700,
@@ -747,7 +786,13 @@ function ProgramCard({
             </>
           ) : (
             <>
-              <button type="button" style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: '#374151', background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 14px', cursor: 'pointer' }}>Details</button>
+              <button
+                type="button"
+                onClick={() => router.push(`/dashboard/test-series/${series.id}`)}
+                style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: '#374151', background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 14px', cursor: 'pointer' }}
+              >
+                Open
+              </button>
               <button
                 type="button"
                 onClick={onEnroll}
