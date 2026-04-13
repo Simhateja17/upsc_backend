@@ -1,17 +1,15 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 
-const MAINS_PAPERS = ["GS-I", "GS-II", "GS-III", "GS-IV", "Essay"];
-
 function qs(val: string | string[] | undefined): string | undefined {
   return Array.isArray(val) ? val[0] : val;
 }
 
 /**
  * GET /api/pyq/questions
- * Public endpoint — returns approved questions with optional filters.
- * mode=prelims → excludes mains papers
- * mode=mains   → includes only mains papers
+ * Public endpoint - returns approved questions with optional filters.
+ * mode=prelims -> reads PYQQuestion
+ * mode=mains   -> reads PYQMainsQuestion
  */
 export const getPublicPYQQuestions = async (
   req: Request,
@@ -19,7 +17,7 @@ export const getPublicPYQQuestions = async (
   next: NextFunction
 ) => {
   try {
-    const mode = qs(req.query.mode as string);
+    const mode = (qs(req.query.mode as string) || "prelims").toLowerCase();
     const subject = qs(req.query.subject as string);
     const year = qs(req.query.year as string);
     const paper = qs(req.query.paper as string);
@@ -27,15 +25,11 @@ export const getPublicPYQQuestions = async (
     const limit = parseInt(qs(req.query.limit as string) || "20");
     const skip = (page - 1) * limit;
 
-    console.log(`[PYQ] Query params: mode=${mode}, subject=${subject}, year=${year}, paper=${paper}, page=${page}, limit=${limit}`);
+    console.log(
+      `[PYQ] Query params: mode=${mode}, subject=${subject}, year=${year}, paper=${paper}, page=${page}, limit=${limit}`
+    );
 
     const where: any = { status: "approved" };
-
-    if (mode === "mains") {
-      where.paper = { in: MAINS_PAPERS };
-    } else if (mode === "prelims") {
-      where.paper = { notIn: MAINS_PAPERS };
-    }
 
     if (subject && subject !== "All Papers") {
       where.subject = { contains: subject, mode: "insensitive" };
@@ -43,15 +37,27 @@ export const getPublicPYQQuestions = async (
     if (year) where.year = parseInt(year);
     if (paper) where.paper = paper;
 
-    const [questions, total] = await Promise.all([
-      prisma.pYQQuestion.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
-      prisma.pYQQuestion.count({ where }),
-    ]);
+    const [questions, total] = await Promise.all(
+      mode === "mains"
+        ? [
+            prisma.pYQMainsQuestion.findMany({
+              where,
+              orderBy: { createdAt: "desc" },
+              skip,
+              take: limit,
+            }),
+            prisma.pYQMainsQuestion.count({ where }),
+          ]
+        : [
+            prisma.pYQQuestion.findMany({
+              where,
+              orderBy: { createdAt: "desc" },
+              skip,
+              take: limit,
+            }),
+            prisma.pYQQuestion.count({ where }),
+          ]
+    );
 
     console.log(`[PYQ] Found ${questions.length} questions (total: ${total})`);
 

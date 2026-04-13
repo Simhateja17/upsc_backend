@@ -194,8 +194,8 @@ export const getPerformance = async (req: Request, res: Response, next: NextFunc
     const jeetCoins = 0;
 
     // Syllabus coverage average
-    const totalCovered = syllabusCov.reduce((s: number, c: any) => s + c.coveredTopics, 0);
-    const totalTopics = syllabusCov.reduce((s: number, c: any) => s + c.totalTopics, 0);
+    const totalCovered = syllabusCov.reduce((s, c) => s + c.coveredTopics, 0);
+    const totalTopics = syllabusCov.reduce((s, c) => s + c.totalTopics, 0);
     const syllabusCoverage = totalTopics > 0 ? Math.round((totalCovered / totalTopics) * 100) : 0;
 
     res.json({
@@ -321,9 +321,9 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
 
     // --- Mains trend ---
     const mainsTrend = mainsAttempts
-      .filter((a: any) => a.evaluation)
-      .map((a: any, i: number) => ({ attempt: `T${i + 1}`, score: a.evaluation!.score }));
-    const mainsScores = mainsTrend.map((t: any) => t.score);
+      .filter(a => a.evaluation)
+      .map((a, i) => ({ attempt: `T${i + 1}`, score: a.evaluation!.score }));
+    const mainsScores = mainsTrend.map(t => t.score);
     const mainsStats = {
       totalAnswers: mainsAttempts.length,
       avgScore: mainsScores.length > 0 ? Math.round(avg(mainsScores) * 10) / 10 : 0,
@@ -339,7 +339,7 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
     });
 
     // --- Test history ---
-    const testHistory = mockAttempts.map((a: any) => {
+    const testHistory = mockAttempts.map(a => {
       const createdAt = new Date(a.createdAt);
       const diffDays = Math.floor((now.getTime() - createdAt.getTime()) / 86400000);
       const dateStr = diffDays === 0 ? 'Today' : diffDays === 1 ? 'Yesterday' : `${diffDays}d ago`;

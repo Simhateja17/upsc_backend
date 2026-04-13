@@ -1,11 +1,40 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../../config/database";
-import { uploadFile, STORAGE_BUCKETS, getSignedUrl } from "../../config/storage";
-import { parsePYQPdf } from "../../services/pyqParser";
+import { uploadFile, STORAGE_BUCKETS } from "../../config/storage";
+import { parsePYQPdf, PYQParseMode } from "../../services/pyqParser";
 import { vectorizeAllPYQs } from "../../services/pyqVectorizer";
 
 function qs(val: string | string[] | undefined): string | undefined {
   return Array.isArray(val) ? val[0] : val;
+}
+
+function getMode(input: unknown): PYQParseMode {
+  return String(input || "prelims").toLowerCase() === "mains" ? "mains" : "prelims";
+}
+
+async function createPYQUploadCompat(data: {
+  fileName: string;
+  fileUrl: string;
+  year: number;
+  paper: string;
+  mode: PYQParseMode;
+  status: string;
+  uploadedById: string;
+}) {
+  try {
+    return await prisma.pYQUpload.create({
+      data: {
+        ...data,
+        errorMessage: null,
+      } as any,
+    });
+  } catch (err: any) {
+    const message = String(err?.message || "");
+    if (message.includes("Unknown argument `errorMessage`")) {
+      return prisma.pYQUpload.create({ data: data as any });
+    }
+    throw err;
+  }
 }
 
 /**
@@ -15,43 +44,32 @@ function qs(val: string | string[] | undefined): string | undefined {
 export const uploadPYQ = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
+    const mode = getMode(req.body?.mode);
 
     if (!req.file) {
       return res.status(400).json({ status: "error", message: "PDF file is required" });
     }
 
-    // Upload to Supabase Storage
     const fileName = `pyq_${Date.now()}.pdf`;
     const filePath = `uploads/${fileName}`;
 
-    await uploadFile(
-      STORAGE_BUCKETS.PYQ_PDFS,
-      filePath,
-      req.file.buffer,
-      "application/pdf"
-    );
+    await uploadFile(STORAGE_BUCKETS.PYQ_PDFS, filePath, req.file.buffer, "application/pdf");
 
-    const fileUrl = filePath;
-
-    // Create upload record — year/paper will be detected by AI during parsing
-    const upload = await prisma.pYQUpload.create({
-      data: {
-        fileName: req.file.originalname,
-        fileUrl,
-        year: 0,
-        paper: "unknown",
-        status: "processing",
-        uploadedById: userId,
-      },
+    const upload = await createPYQUploadCompat({
+      fileName: req.file.originalname,
+      fileUrl: filePath,
+      year: 0,
+      paper: "unknown",
+      mode,
+      status: "processing",
+      uploadedById: userId,
     });
 
-    // Start parsing asynchronously — AI detects year & paper from PDF content
-    parsePYQPdf(upload.id, req.file.buffer)
-      .catch((err) => console.error("PYQ parsing error:", err));
+    parsePYQPdf(upload.id, req.file.buffer, mode).catch((err) => console.error("PYQ parsing error:", err));
 
     res.status(201).json({
       status: "success",
-      data: { uploadId: upload.id, status: "processing" },
+      data: { uploadId: upload.id, status: "processing", mode },
       message: "PDF uploaded and parsing started. Check status with GET /api/admin/pyq/uploads/:id",
     });
   } catch (error) {
@@ -67,17 +85,19 @@ export const getUploads = async (req: Request, res: Response, next: NextFunction
   try {
     const status = qs(req.query.status as string);
     const year = qs(req.query.year as string);
+    const mode = qs(req.query.mode as string);
 
     const where: any = {};
     if (status) where.status = status;
     if (year) where.year = parseInt(year);
+    if (mode) where.mode = getMode(mode);
 
     const uploads = await prisma.pYQUpload.findMany({
       where,
       orderBy: { createdAt: "desc" },
       include: {
         uploadedBy: { select: { email: true, firstName: true } },
-        _count: { select: { questions: true } },
+        _count: { select: { questions: true, mainsQuestions: true } },
       },
     });
 
@@ -104,6 +124,9 @@ export const getUploadDetail = async (req: Request, res: Response, next: NextFun
             duplicateOf: { select: { id: true, questionText: true } },
           },
         },
+        mainsQuestions: {
+          orderBy: { createdAt: "asc" },
+        },
       },
     });
 
@@ -123,6 +146,7 @@ export const getUploadDetail = async (req: Request, res: Response, next: NextFun
  */
 export const getQuestions = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const mode = getMode(qs(req.query.mode as string));
     const status = qs(req.query.status as string);
     const subject = qs(req.query.subject as string);
     const year = qs(req.query.year as string);
@@ -136,27 +160,40 @@ export const getQuestions = async (req: Request, res: Response, next: NextFuncti
     if (year) where.year = parseInt(year);
     if (paper) where.paper = paper;
 
-    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const [questions, total] = await Promise.all([
-      prisma.pYQQuestion.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: parseInt(limit as string),
-      }),
-      prisma.pYQQuestion.count({ where }),
-    ]);
+    const [questions, total] = await Promise.all(
+      mode === "mains"
+        ? [
+            prisma.pYQMainsQuestion.findMany({
+              where,
+              orderBy: { createdAt: "desc" },
+              skip,
+              take: parseInt(limit),
+            }),
+            prisma.pYQMainsQuestion.count({ where }),
+          ]
+        : [
+            prisma.pYQQuestion.findMany({
+              where,
+              orderBy: { createdAt: "desc" },
+              skip,
+              take: parseInt(limit),
+            }),
+            prisma.pYQQuestion.count({ where }),
+          ]
+    );
 
     res.json({
       status: "success",
       data: {
         questions,
+        mode,
         pagination: {
           total,
-          page: parseInt(page as string),
-          limit: parseInt(limit as string),
-          totalPages: Math.ceil(total / parseInt(limit as string)),
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(total / parseInt(limit)),
         },
       },
     });
@@ -172,9 +209,14 @@ export const getQuestions = async (req: Request, res: Response, next: NextFuncti
 export const updateQuestion = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = req.params.id as string;
+    const mode = getMode(qs(req.query.mode as string));
     const { questionText, subject, topic, difficulty, options, correctOption, explanation, status } = req.body;
 
-    const existing = await prisma.pYQQuestion.findUnique({ where: { id } });
+    const existing =
+      mode === "mains"
+        ? await prisma.pYQMainsQuestion.findUnique({ where: { id } })
+        : await prisma.pYQQuestion.findUnique({ where: { id } });
+
     if (!existing) {
       return res.status(404).json({ status: "error", message: "Question not found" });
     }
@@ -184,21 +226,29 @@ export const updateQuestion = async (req: Request, res: Response, next: NextFunc
     if (subject !== undefined) updateData.subject = subject;
     if (topic !== undefined) updateData.topic = topic;
     if (difficulty !== undefined) updateData.difficulty = difficulty;
-    if (options !== undefined) updateData.options = options;
-    if (correctOption !== undefined) updateData.correctOption = correctOption;
-    if (explanation !== undefined) updateData.explanation = explanation;
     if (status !== undefined) updateData.status = status;
 
-    const question = await prisma.pYQQuestion.update({
-      where: { id },
-      data: updateData,
-    });
+    if (mode !== "mains") {
+      if (options !== undefined) updateData.options = options;
+      if (correctOption !== undefined) updateData.correctOption = correctOption;
+      if (explanation !== undefined) updateData.explanation = explanation;
+    }
 
-    // If approving, update the upload's approved count
+    const question =
+      mode === "mains"
+        ? await prisma.pYQMainsQuestion.update({ where: { id }, data: updateData })
+        : await prisma.pYQQuestion.update({ where: { id }, data: updateData });
+
     if (status === "approved" && existing.uploadId) {
-      const approvedCount = await prisma.pYQQuestion.count({
-        where: { uploadId: existing.uploadId, status: "approved" },
-      });
+      const approvedCount =
+        mode === "mains"
+          ? await prisma.pYQMainsQuestion.count({
+              where: { uploadId: existing.uploadId, status: "approved" },
+            })
+          : await prisma.pYQQuestion.count({
+              where: { uploadId: existing.uploadId, status: "approved" },
+            });
+
       await prisma.pYQUpload.update({
         where: { id: existing.uploadId },
         data: { totalApproved: approvedCount },
@@ -217,7 +267,9 @@ export const updateQuestion = async (req: Request, res: Response, next: NextFunc
  */
 export const bulkUpdateStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { questionIds, status } = req.body;
+    const mode = getMode(qs(req.query.mode as string));
+    const questionIds = req.body.questionIds || req.body.ids;
+    const { status } = req.body;
 
     if (!Array.isArray(questionIds) || !["approved", "rejected"].includes(status)) {
       return res.status(400).json({
@@ -226,10 +278,17 @@ export const bulkUpdateStatus = async (req: Request, res: Response, next: NextFu
       });
     }
 
-    await prisma.pYQQuestion.updateMany({
-      where: { id: { in: questionIds } },
-      data: { status },
-    });
+    if (mode === "mains") {
+      await prisma.pYQMainsQuestion.updateMany({
+        where: { id: { in: questionIds } },
+        data: { status },
+      });
+    } else {
+      await prisma.pYQQuestion.updateMany({
+        where: { id: { in: questionIds } },
+        data: { status },
+      });
+    }
 
     res.json({
       status: "success",
@@ -244,29 +303,53 @@ export const bulkUpdateStatus = async (req: Request, res: Response, next: NextFu
  * GET /api/admin/pyq/stats
  * PYQ bank statistics
  */
-export const getStats = async (_req: Request, res: Response, next: NextFunction) => {
+export const getStats = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const [total, approved, draft, rejected, bySubject, byYear] = await Promise.all([
-      prisma.pYQQuestion.count(),
-      prisma.pYQQuestion.count({ where: { status: "approved" } }),
-      prisma.pYQQuestion.count({ where: { status: "draft" } }),
-      prisma.pYQQuestion.count({ where: { status: "rejected" } }),
-      prisma.pYQQuestion.groupBy({
-        by: ["subject"],
-        _count: { id: true },
-        where: { status: "approved" },
-      }),
-      prisma.pYQQuestion.groupBy({
-        by: ["year"],
-        _count: { id: true },
-        where: { status: "approved" },
-        orderBy: { year: "desc" },
-      }),
-    ]);
+    const mode = getMode(qs(req.query.mode as string));
+    const isMains = mode === "mains";
+
+    const [total, approved, draft, rejected, bySubject, byYear] = await Promise.all(
+      isMains
+        ? [
+            prisma.pYQMainsQuestion.count(),
+            prisma.pYQMainsQuestion.count({ where: { status: "approved" } }),
+            prisma.pYQMainsQuestion.count({ where: { status: "draft" } }),
+            prisma.pYQMainsQuestion.count({ where: { status: "rejected" } }),
+            prisma.pYQMainsQuestion.groupBy({
+              by: ["subject"],
+              _count: { id: true },
+              where: { status: "approved" },
+            }),
+            prisma.pYQMainsQuestion.groupBy({
+              by: ["year"],
+              _count: { id: true },
+              where: { status: "approved" },
+              orderBy: { year: "desc" },
+            }),
+          ]
+        : [
+            prisma.pYQQuestion.count(),
+            prisma.pYQQuestion.count({ where: { status: "approved" } }),
+            prisma.pYQQuestion.count({ where: { status: "draft" } }),
+            prisma.pYQQuestion.count({ where: { status: "rejected" } }),
+            prisma.pYQQuestion.groupBy({
+              by: ["subject"],
+              _count: { id: true },
+              where: { status: "approved" },
+            }),
+            prisma.pYQQuestion.groupBy({
+              by: ["year"],
+              _count: { id: true },
+              where: { status: "approved" },
+              orderBy: { year: "desc" },
+            }),
+          ]
+    );
 
     res.json({
       status: "success",
       data: {
+        mode,
         total,
         approved,
         draft,
@@ -283,13 +366,12 @@ export const getStats = async (_req: Request, res: Response, next: NextFunction)
 /**
  * POST /api/admin/pyq/vectorize
  * Trigger batch vectorization of all approved PYQs without embeddings.
- * Runs asynchronously — returns immediately.
+ * Runs asynchronously and returns immediately.
  */
 export const triggerPYQVectorization = async (req: Request, res: Response, next: NextFunction) => {
   try {
     res.json({ status: "success", message: "PYQ vectorization started in background" });
 
-    // Run async after response is sent
     vectorizeAllPYQs()
       .then(({ processed, failed }) => {
         console.log(`PYQ vectorization complete: ${processed} processed, ${failed} failed`);

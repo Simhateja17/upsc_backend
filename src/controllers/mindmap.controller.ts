@@ -22,13 +22,13 @@ export const getSubjects = async (
     });
 
     const data = await Promise.all(
-      subjects.map(async (s: any) => {
+      subjects.map(async (s) => {
         const total = s.maps.length;
         let explored = 0;
 
         if (userId && total > 0) {
           explored = await prisma.userMindmapProgress.count({
-            where: { userId, viewed: true, mindmapId: { in: s.maps.map((m: any) => m.id) } },
+            where: { userId, viewed: true, mindmapId: { in: s.maps.map((m) => m.id) } },
           });
         }
 
@@ -86,7 +86,7 @@ export const getMindmaps = async (
       }
     }
 
-    const maps = subject.maps.map((m: any) => ({
+    const maps = subject.maps.map((m) => ({
       id: m.slug,
       title: m.title,
       slug: m.slug,

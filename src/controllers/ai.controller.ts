@@ -139,7 +139,7 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
 
     // Build messages array for Claude
     const claudeMessages: BedrockMessage[] = [
-      ...priorMessages.map((m: any) => ({
+      ...priorMessages.map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
       })),

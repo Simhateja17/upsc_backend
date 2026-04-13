@@ -178,32 +178,25 @@ export const login = async (
       user = newUser;
     }
 
-    if (!user) {
-      return res.status(500).json({
-        status: "error",
-        message: "Failed to load user profile after login",
-      });
-    }
-
     if (authData.user.email_confirmed_at && !user?.email_verified) {
       await supabaseAdmin
         .from("users")
         .update({ email_verified: true })
-        .eq("id", user.id);
+        .eq("id", user!.id);
     }
 
-    console.log(`[Login] Successful for: ${user.email} (${user.id})`);
+    console.log(`[Login] Successful for: ${user!.email} (${user!.id})`);
     res.json({
       status: "success",
       message: "Login successful",
       data: {
         user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          avatarUrl: user.avatar_url,
-          role: user.role,
+          id: user!.id,
+          email: user!.email,
+          firstName: user!.first_name,
+          lastName: user!.last_name,
+          avatarUrl: user!.avatar_url,
+          role: user!.role,
         },
         session: {
           accessToken: authData.session.access_token,

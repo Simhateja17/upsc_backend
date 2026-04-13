@@ -12,7 +12,7 @@ export const getPages = async (req: Request, res: Response) => {
 
     res.json({
       status: "success",
-      data: pages.map((p: any) => ({
+      data: pages.map((p) => ({
         id: p.id,
         slug: p.slug,
         title: p.title,

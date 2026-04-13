@@ -84,12 +84,34 @@ export async function invokeModel(
     openaiMessages.push({ role: msg.role, content });
   }
 
-  const response = await azureClient.chat.completions.create({
-    model: chatDeployment,
-    messages: openaiMessages,
-    max_completion_tokens: maxTokens,
-    temperature,
-  });
+  let response;
+  try {
+    response = await azureClient.chat.completions.create(
+      {
+        model: chatDeployment,
+        messages: openaiMessages,
+        max_completion_tokens: maxTokens,
+        temperature,
+      },
+      { signal: AbortSignal.timeout(45000) }
+    );
+  } catch (err: any) {
+    const msg = String(err?.message || err || "");
+    // Some Azure deployments/API versions still expect max_tokens instead.
+    if (msg.includes("max_completion_tokens")) {
+      response = await azureClient.chat.completions.create(
+        {
+          model: chatDeployment,
+          messages: openaiMessages,
+          max_tokens: maxTokens,
+          temperature,
+        },
+        { signal: AbortSignal.timeout(45000) }
+      );
+    } else {
+      throw err;
+    }
+  }
 
   // Log token usage asynchronously
   const inputTokens = response.usage?.prompt_tokens ?? 0;

@@ -11,7 +11,8 @@ function createLimiter(opts: Partial<Options>) {
 
   if (redisClient) {
     config.store = new RedisStore({
-      sendCommand: ((...args: string[]) => redisClient!.call(...(args as [string, ...string[]]))) as any,
+      // @ts-expect-error - ioredis sendCommand is compatible
+      sendCommand: (...args: string[]) => redisClient!.call(...(args as [string, ...string[]])),
       prefix: "rl:",
     });
   }
@@ -19,12 +20,14 @@ function createLimiter(opts: Partial<Options>) {
   return rateLimit(config);
 }
 
+const isDev = process.env.NODE_ENV !== "production";
+
 /**
- * General API rate limiter — 100 requests per 15 minutes
+ * General API rate limiter — 100 req/15min in production, 1000 in dev
  */
 export const generalLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: isDev ? 1000 : 100,
   message: { status: "error", message: "Too many requests, please try again later" },
 });
 

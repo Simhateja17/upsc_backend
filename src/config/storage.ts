@@ -119,6 +119,31 @@ export function getPublicUrl(bucket: string, path: string): string {
 }
 
 /**
+ * Download a file from a Supabase Storage bucket as a Buffer.
+ * Returns both the file bytes and the content type so callers (e.g. the
+ * Gemini OCR helper) can forward it to multimodal models without guessing
+ * the MIME type from the extension.
+ */
+export async function downloadFile(
+  bucket: string,
+  path: string
+): Promise<{ buffer: Buffer; contentType: string }> {
+  if (!supabaseAdminStorage) throw new Error("Supabase admin client not configured");
+
+  console.log(`[STORAGE] download → ${bucket}/${path}`);
+  const { data, error } = await supabaseAdminStorage.storage.from(bucket).download(path);
+  if (error || !data) {
+    throw new Error(`Download failed: ${error?.message || "no data returned"}`);
+  }
+
+  const arrayBuffer = await data.arrayBuffer();
+  return {
+    buffer: Buffer.from(arrayBuffer),
+    contentType: data.type || "application/octet-stream",
+  };
+}
+
+/**
  * Delete a file from storage
  */
 export async function deleteFile(bucket: string, path: string): Promise<void> {

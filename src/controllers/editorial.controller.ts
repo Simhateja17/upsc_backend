@@ -35,10 +35,10 @@ export const getTodayEditorials = async (req: Request, res: Response, next: Next
     if (req.user) {
       const [progress, bookmarks] = await Promise.all([
         prisma.editorialProgress.findMany({
-          where: { userId: req.user.id, editorialId: { in: editorials.map((e: any) => e.id) } },
+          where: { userId: req.user.id, editorialId: { in: editorials.map(e => e.id) } },
         }),
         prisma.editorialBookmark.findMany({
-          where: { userId: req.user.id, editorialId: { in: editorials.map((e: any) => e.id) } },
+          where: { userId: req.user.id, editorialId: { in: editorials.map(e => e.id) } },
         }),
       ]);
       for (const p of progress) {
@@ -50,7 +50,7 @@ export const getTodayEditorials = async (req: Request, res: Response, next: Next
       }
     }
 
-    const data = editorials.map((e: any) => ({
+    const data = editorials.map(e => ({
       ...e,
       isRead: progressMap[e.id]?.isRead || false,
       isSaved: progressMap[e.id]?.isSaved || false,
@@ -267,7 +267,7 @@ export const getLiveNews = async (req: Request, res: Response, next: NextFunctio
         orderBy: { publishedAt: "desc" },
       });
 
-      const data = editorials.map((e: any) => ({
+      const data = editorials.map(e => ({
         ...e,
         isRead: false,
         isSaved: false,

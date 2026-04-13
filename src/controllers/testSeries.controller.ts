@@ -53,7 +53,7 @@ export const listSeries = async (req: Request, res: Response, next: NextFunction
       orderBy: { createdAt: "desc" },
     });
 
-    const result = series.map((s: any) => ({
+    const result = series.map((s) => ({
       id: s.id,
       title: s.title,
       description: s.description,
@@ -93,7 +93,7 @@ export const getEnrolledSeries = async (req: Request, res: Response, next: NextF
       orderBy: { enrolledAt: "desc" },
     });
 
-    const result = enrollments.map((e: any) => ({
+    const result = enrollments.map((e) => ({
       enrollmentId: e.id,
       enrolledAt: e.enrolledAt,
       testsCompleted: e.testsCompleted,

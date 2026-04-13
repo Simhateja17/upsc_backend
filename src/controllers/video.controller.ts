@@ -12,7 +12,7 @@ export const getSubjects = async (_req: Request, res: Response, next: NextFuncti
       include: { _count: { select: { videos: true } } },
     });
 
-    const data = subjects.map((s: any) => ({
+    const data = subjects.map(s => ({
       id: s.id,
       name: s.name,
       description: s.description,
@@ -127,7 +127,7 @@ export const submitVideoQuiz = async (req: Request, res: Response, next: NextFun
       orderBy: { order: "asc" },
     });
 
-    const results = questions.map((q: any) => ({
+    const results = questions.map(q => ({
       id: q.id,
       question: q.question,
       options: q.options,
@@ -137,7 +137,7 @@ export const submitVideoQuiz = async (req: Request, res: Response, next: NextFun
       isCorrect: answers?.[q.id] === q.correctOption,
     }));
 
-    const correct = results.filter((r: any) => r.isCorrect).length;
+    const correct = results.filter(r => r.isCorrect).length;
     res.json({ status: "success", data: { results, score: correct, total: questions.length } });
   } catch (error) {
     next(error);

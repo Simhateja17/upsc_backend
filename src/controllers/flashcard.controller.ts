@@ -22,7 +22,7 @@ export const getSubjects = async (
     });
 
     const deckData = await Promise.all(
-      decks.map(async (deck: any) => {
+      decks.map(async (deck) => {
         const totalCards = deck.cards.length;
         let masteredCards = 0;
 
@@ -31,13 +31,13 @@ export const getSubjects = async (
             where: {
               userId,
               mastered: true,
-              cardId: { in: deck.cards.map((c: any) => c.id) },
+              cardId: { in: deck.cards.map((c) => c.id) },
             },
           });
         }
 
         const mastery = totalCards > 0 ? Math.round((masteredCards / totalCards) * 100) : 0;
-        const topics = new Set(deck.cards.map((c: any) => c.topicId)).size;
+        const topics = new Set(deck.cards.map((c) => c.topicId)).size;
 
         return {
           id: deck.subjectId,
@@ -149,7 +149,7 @@ export const getCards = async (
       }
     }
 
-    const data = cards.map((c: any) => ({
+    const data = cards.map((c) => ({
       id: c.id,
       question: c.question,
       answer: c.answer,
