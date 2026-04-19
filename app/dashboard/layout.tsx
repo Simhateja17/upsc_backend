@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +19,12 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const didTryRefreshRef = useRef(false);
   const hideSidebar = HIDE_SIDEBAR_ROUTES.includes(pathname);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (isLoading || isAuthenticated) return;
@@ -48,13 +54,15 @@ export default function DashboardLayout({
   if (isLoading || !isAuthenticated) return null;
 
   return (
-    <div className="flex flex-col" style={{ height: '100vh' }}>
-      <DashboardHeader />
+    <div className="flex flex-col" style={{ height: '100dvh' }}>
+      <DashboardHeader onMenuClick={() => setSidebarOpen(true)} />
       <div className="flex flex-1 overflow-hidden">
-        {!hideSidebar && <Sidebar />}
-        <div className="flex-1 overflow-y-auto">
+        {!hideSidebar && (
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        )}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
           {children}
-        </div>
+        </main>
       </div>
     </div>
   );

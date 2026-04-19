@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, Manrope, Roboto, Poppins, Arimo, Tinos, Fahkwang, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
@@ -51,6 +51,12 @@ const poppins = Poppins({
   variable: '--font-poppins',
   weight: ['400', '500', '600', '700'],
 })
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
 
 export const metadata: Metadata = {
   title: 'RiseWithJeet - UPSC Preparation Platform',

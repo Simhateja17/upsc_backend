@@ -6,7 +6,7 @@ import { useCmsContent } from '@/hooks/useCmsContent';
 const defaults = {
   hero_badge: "🏆 India's #1 AI-Powered UPSC Platform",
   hero_title: 'Everything you need to crack UPSC, <span class="text-[#FFD170]">Simplified</span>',
-  hero_subtitle: "Trusted by 50,000+ aspirants preparing with AI-powered learning, daily MCQs practice, instant mains answer evaluation, expert mentorship, and smart revision tools.",
+  hero_subtitle: "Trusted by 15,000+ aspirants preparing with AI-powered learning, daily MCQs practice, instant mains answer evaluation, expert mentorship, and smart revision tools.",
   hero_cta_primary: "Start Your Free Trial",
   hero_cta_secondary: "Watch Platform Demo",
 };

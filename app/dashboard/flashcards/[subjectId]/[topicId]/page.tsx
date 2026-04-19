@@ -72,7 +72,7 @@ export default function FlashcardReviewPage({ params }: { params: { subjectId: s
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center" style={{ background: '#FAFBFE', height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
+      <div className="flex items-center justify-center" style={{ background: '#FAFBFE', height: '100%' }}>
         <div className="animate-pulse text-gray-400">Loading cards...</div>
       </div>
     );
@@ -80,7 +80,7 @@ export default function FlashcardReviewPage({ params }: { params: { subjectId: s
 
   if (!loading && cards.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4" style={{ background: '#FAFBFE', height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
+      <div className="flex flex-col items-center justify-center gap-4" style={{ background: '#FAFBFE', height: '100%' }}>
         <p className="text-gray-500">No cards found for this topic.</p>
         <Link href={`/dashboard/flashcards/${subjectId}`} className="text-blue-600 underline text-sm">
           ← Back to Topics
@@ -90,7 +90,7 @@ export default function FlashcardReviewPage({ params }: { params: { subjectId: s
   }
 
   return (
-    <div className="flex overflow-hidden" style={{ background: '#FAFBFE', height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
+    <div className="flex overflow-hidden" style={{ background: '#FAFBFE', height: '100%' }}>
       <div className="flex-1 overflow-y-auto" style={{ background: '#FFFFFF' }}>
         <div className="w-full max-w-[1180px] mx-auto px-6 py-6">
           {/* Back to Topics */}

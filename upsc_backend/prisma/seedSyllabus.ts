@@ -113,17 +113,6 @@ const SYLLABUS_DATA = {
   ],
   mains: [
     {
-      name: "Essay Paper",
-      short: "Essay",
-      icon: "✍️",
-      color: "#d97706",
-      bg: "rgba(217,119,6,.09)",
-      topics: [
-        { name: "Essay Craft", subs: ["Impactful Introduction Styles","Thesis & Argument Building","Counter-Argument & Rebuttal","Use of Examples & Data","Strong Conclusion Techniques"] },
-        { name: "Thematic Areas", subs: ["Social Justice & Equality","Economic Development","Science Technology Ethics","Environment & Sustainability","Governance & Democracy"] },
-      ],
-    },
-    {
       name: "GS-I Heritage & Society",
       short: "GS-I",
       icon: "🏛",
@@ -171,6 +160,17 @@ const SYLLABUS_DATA = {
         { name: "Ethics Foundations", subs: ["Essence & Determinants of Ethics","Ethics in Public vs Private Life","Human Values from Great Leaders","Role of Family & Society"] },
         { name: "Moral Thinkers", subs: ["Gandhi — Satyagraha & Ahimsa","Ambedkar — Social Ethics","Kant — Categorical Imperative","Utilitarianism","Rawls — Theory of Justice"] },
         { name: "Governance & Probity", subs: ["Probity in Public Life","Corruption Causes & Remedies","Conflict of Interest","Code of Conduct Civil Servants","RTI & Transparency"] },
+      ],
+    },
+    {
+      name: "Essay Paper",
+      short: "Essay",
+      icon: "✍️",
+      color: "#d97706",
+      bg: "rgba(217,119,6,.09)",
+      topics: [
+        { name: "Essay Craft", subs: ["Impactful Introduction Styles","Thesis & Argument Building","Counter-Argument & Rebuttal","Use of Examples & Data","Strong Conclusion Techniques"] },
+        { name: "Thematic Areas", subs: ["Social Justice & Equality","Economic Development","Science Technology Ethics","Environment & Sustainability","Governance & Democracy"] },
       ],
     },
   ],

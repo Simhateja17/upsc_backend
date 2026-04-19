@@ -432,11 +432,18 @@ export default function OurStoryPage() {
             <span className="text-white text-lg" style={{ fontFamily: 'Georgia, serif' }}>RiseWithJeet</span>
           </div>
           <div className="flex items-center gap-8">
-            {['Your Privacy Matters', 'Terms of Service', 'Contact Us', 'Blog'].map((l) => (
-              <Link key={l} href="#" className="text-[#90a1b9] text-sm hover:text-white transition-colors">
-                {l}
-              </Link>
-            ))}
+            <Link href="/privacy" className="text-[#90a1b9] text-sm hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="text-[#90a1b9] text-sm hover:text-white transition-colors">
+              Terms of Service
+            </Link>
+            <Link href="/contact" className="text-[#90a1b9] text-sm hover:text-white transition-colors">
+              Contact Us
+            </Link>
+            <Link href="/blog" className="text-[#90a1b9] text-sm hover:text-white transition-colors">
+              Blog
+            </Link>
           </div>
           <p className="text-[#62748e] text-sm">
             © 2026 RiseWithJeet Edtech Pvt Ltd · Made with 💛 for every UPSC aspirant

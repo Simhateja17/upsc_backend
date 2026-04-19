@@ -17,7 +17,7 @@ export default function BillingPage() {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] px-6 py-8" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#f1f5f9] px-4 sm:px-6 py-6 md:py-8" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 mb-4">
         <Link href="/dashboard" className="font-normal text-[14px] leading-[20px] text-[#155dfc] hover:text-[#1248c9]">
@@ -28,7 +28,7 @@ export default function BillingPage() {
       </nav>
 
       {/* Page Title */}
-      <h1 className="text-[30px] leading-[36px] font-bold text-[#0f172b] mb-6" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <h1 className="text-xl md:text-2xl lg:text-[30px] leading-[36px] font-bold text-[#0f172b] mb-5 md:mb-6" style={{ fontFamily: "'Inter', sans-serif" }}>
         Billing & Subscription
       </h1>
 

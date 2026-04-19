@@ -10,6 +10,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, isLoading, isAuthenticated, refreshUser } = useAuth();
   const router = useRouter();
   const [roleVerified, setRoleVerified] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -59,16 +60,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <>
-      <DashboardHeader />
-      <div className="flex min-h-[calc(100vh-clamp(90px,5.78vw,111px))]">
-        <AdminSidebar />
+    <div className="flex flex-col" style={{ height: '100dvh' }}>
+      <DashboardHeader onMenuClick={() => setSidebarOpen(true)} />
+      <div className="flex flex-1 overflow-hidden">
+        <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className="flex-1 overflow-y-auto" style={{ background: '#F3F4F6' }}>
-          <div className="p-[clamp(1.5rem,2.5vw,3rem)]">
+          <div className="p-4 sm:p-[clamp(1.5rem,2.5vw,3rem)]">
             {children}
           </div>
         </main>
       </div>
-    </>
+    </div>
   );
 }

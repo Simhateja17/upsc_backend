@@ -6,12 +6,12 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 
 const featureCards = [
-  { label: 'AI Mains Evaluation',   icon: '/icon-ai-mains.png' },
-  { label: 'Personal Mentorship',   icon: '/icon-mentorship.png' },
+  { label: 'Daily Mains Challenge', icon: '/icons/dashboard/mains.png' },
+  { label: '1-on-1 Mentorship',     icon: '/icon-mentorship.png' },
   { label: 'Study Planner',         icon: '/icon-study-planner.png' },
-  { label: 'Mock Test Generator',   icon: '/icon-mock-test.png' },
+  { label: 'Mock Tests',            icon: '/icon-mock-test.png' },
   { label: 'Performance Analytics', icon: '/icon-analytics.png' },
-  { label: 'Study Group Forum',     icon: '/icon-forum.png' },
+  { label: 'Smart Revision Tools',  icon: '/icons/dashboard/brain.png' },
 ];
 
 const avatarColors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
@@ -139,12 +139,42 @@ function LoginPageContent() {
 
   return (
     <div className="flex w-full min-h-screen" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <style>{`
+        .login-left-panel { width: 478px; flex-shrink: 0; }
+        .login-right-panel { padding-top: 72px; }
+        .login-form-container { width: 448px; }
+        @media (max-width: 1023px) {
+          .login-left-panel { display: none !important; }
+          .login-right-panel {
+            padding-top: 40px;
+            padding-bottom: 40px;
+            padding-left: 24px;
+            padding-right: 24px;
+            align-items: center;
+            overflow-y: auto;
+          }
+          .login-form-container {
+            width: 100% !important;
+            max-width: 480px;
+          }
+        }
+        @media (max-width: 479px) {
+          .login-right-panel {
+            padding-top: 24px;
+            padding-bottom: 24px;
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+          .login-form-container {
+            max-width: 100%;
+          }
+        }
+      `}</style>
       {/* ── LEFT PANEL ── */}
       <div
-        className="relative flex-shrink-0 overflow-hidden"
+        className="relative flex-shrink-0 overflow-hidden login-left-panel"
         style={{
-          width: 478,
-          minHeight: 787,
+          minHeight: '100vh',
           background: '#0F1C2E',
         }}
       >
@@ -165,8 +195,8 @@ function LoginPageContent() {
           style={{ position: 'absolute', top: 31, left: 26 }}
         >
           <Image
-            src="/logo-jeet.png"
-            alt="Rise with Jeet IAS"
+            src="/footer-logo.png"
+            alt="RiseWithJeet"
             width={42}
             height={48}
             style={{ objectFit: 'contain' }}
@@ -182,9 +212,7 @@ function LoginPageContent() {
                 color: '#FFFFFF',
               }}
             >
-              Rise with{' '}
-              <span style={{ color: '#D9A84F' }}>Jeet</span>{' '}
-              IAS
+              Rise<span style={{ color: '#D9A84F' }}>WithJeet</span>
             </div>
             <div
               style={{
@@ -219,7 +247,7 @@ function LoginPageContent() {
                 color: '#99A1AF',
               }}
             >
-              Trusted by 2,400+ Aspirants
+              Trusted by 15,000+ Aspirants
             </span>
           </div>
 
@@ -234,7 +262,7 @@ function LoginPageContent() {
                 color: '#FFFFFF',
               }}
             >
-              Your UPSC journey
+              Your UPSC Journey
             </div>
             <div
               style={{
@@ -249,7 +277,7 @@ function LoginPageContent() {
               <span
                 style={{
                   fontStyle: 'italic',
-                  color: '#FF6900',
+                  color: '#D9A84F',
                 }}
               >
                 right here.
@@ -260,9 +288,13 @@ function LoginPageContent() {
           {/* Subtitle */}
           <div style={{ marginBottom: 36 }}>
             {[
-              'Structured PYQs, AI-powered Mains evaluation,',
-              'and personal mentorship from IAS toppers —',
-              'everything you need to crack UPSC in one place.',
+              'A comprehensive platform offering all resources',
+              'necessary to excel in the UPSC exam. Including Daily',
+              'Mains Challenge, Syllabus Tracker, Study Planner,',
+              'Smart Revision Tools, Simplified Video Lectures,',
+              'Mock Tests, detailed Performance Analytics,',
+              '1-on-1 Mentorship and structured Previous Year',
+              'Questions.',
             ].map((line, i) => (
               <div
                 key={i}
@@ -351,7 +383,7 @@ function LoginPageContent() {
                     color: '#fff',
                   }}
                 >
-                  {i < 4 ? ['AK', 'PS', 'RV', 'MF'][i] : '+2k'}
+                  {i < 4 ? ['AK', 'PS', 'RV', 'MF'][i] : '+15k'}
                 </div>
               ))}
             </div>
@@ -361,20 +393,10 @@ function LoginPageContent() {
                   fontFamily: 'Inter',
                   fontWeight: 700,
                   fontSize: 14,
-                  color: '#FF6900',
+                  color: '#D9A84F',
                 }}
               >
-                2,400+{' '}
-              </span>
-              <span
-                style={{
-                  fontFamily: 'Inter',
-                  fontWeight: 400,
-                  fontSize: 12,
-                  color: '#99A1AF',
-                }}
-              >
-                aspirants
+                15,000+ Aspirants
               </span>
               <div
                 style={{
@@ -393,81 +415,11 @@ function LoginPageContent() {
 
       {/* ── RIGHT PANEL ── */}
       <div
-        className="flex-1 flex flex-col items-center"
-        style={{ background: '#F9FAFB', minHeight: 787, paddingTop: 72 }}
+        className="flex-1 flex flex-col items-center login-right-panel"
+        style={{ background: '#F9FAFB', minHeight: '100vh' }}
       >
         {/* Single centered container for tab + form */}
-        <div style={{ width: 448 }}>
-
-        {/* Tab row */}
-        <div
-          style={{ visibility: activeTab === 'success' ? 'hidden' : 'visible', marginBottom: 32 }}
-        >
-          {/* Tab container */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              width: '100%',
-              height: 54,
-              borderRadius: 10,
-              border: '1px solid #D1D5DC',
-              background: '#EFF6FF',
-              padding: '4px',
-              boxSizing: 'border-box',
-            }}
-          >
-            {/* Log In — active tab */}
-            <button
-              onClick={() => { setActiveTab('login'); setError(null); }}
-              style={{
-                flex: 1,
-                height: 45.6,
-                fontFamily: 'Inter',
-                fontWeight: 600,
-                fontSize: 14,
-                lineHeight: '20px',
-                textAlign: 'center',
-                background: activeTab === 'login' ? '#101828' : 'transparent',
-                color: activeTab === 'login' ? '#FFFFFF' : '#4A5565',
-                border: activeTab === 'login' ? '0.8px solid #101828' : 'none',
-                cursor: 'pointer',
-                borderRadius: 10,
-                boxShadow: activeTab === 'login'
-                  ? '0px 1px 3px 0px rgba(0,0,0,0.10), 0px 1px 2px -1px rgba(0,0,0,0.10)'
-                  : 'none',
-                transition: 'all 0.2s',
-              }}
-            >
-              Log In
-            </button>
-
-            {/* Sign Up Free — inactive tab */}
-            <button
-              onClick={() => { setActiveTab('signup'); setError(null); }}
-              style={{
-                flex: 1,
-                height: 45.6,
-                fontFamily: 'Inter',
-                fontWeight: 600,
-                fontSize: 14,
-                lineHeight: '20px',
-                textAlign: 'center',
-                background: activeTab === 'signup' ? '#101828' : 'transparent',
-                color: activeTab === 'signup' ? '#FFFFFF' : '#4A5565',
-                border: activeTab === 'signup' ? '0.8px solid #101828' : 'none',
-                cursor: 'pointer',
-                borderRadius: 10,
-                boxShadow: activeTab === 'signup'
-                  ? '0px 1px 3px 0px rgba(0,0,0,0.10), 0px 1px 2px -1px rgba(0,0,0,0.10)'
-                  : 'none',
-                transition: 'all 0.2s',
-              }}
-            >
-              Sign Up Free
-            </button>
-          </div>
-        </div>
+        <div className="login-form-container">
 
         {/* Form area */}
         <div
@@ -572,10 +524,10 @@ function LoginPageContent() {
               {/* Feature list */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {[
-                  { icon: '/icon-pyq.png', text: '2,400+ PYQ questions · All years' },
-                  { icon: '/icon-mentorship.png', text: 'AI Mains answer evaluation' },
-                  { icon: '/icon-dashboard.png', text: 'Personal progress dashboard' },
-                  { icon: '/icon-streak.png', text: 'Daily streak & accuracy tracking' },
+                  { icon: '/icon-pyq.png', text: 'Daily Mains Challenge and Instant Evaluation' },
+                  { icon: '/icon-mentorship.png', text: '10,000+ PYQ questions' },
+                  { icon: '/icon-dashboard.png', text: 'Personal Performance dashboard' },
+                  { icon: '/icon-streak.png', text: 'Daily streak, Syllabus and Study Planner tracking' },
                 ].map((item) => (
                   <div key={item.text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <Image src={item.icon} alt="" width={28} height={28} style={{ objectFit: 'contain', flexShrink: 0 }} />
@@ -636,7 +588,7 @@ function LoginPageContent() {
                 letterSpacing: 0,
               }}
             >
-              Join the <span style={{ color: '#D9A84F' }}>mission</span> <span style={{ color: '#D9A84F' }}>✦</span>
+              Welcome to <span style={{ color: '#D9A84F' }}>RiseWithJeet!</span>
             </h1>
             <p
               style={{
@@ -644,12 +596,12 @@ function LoginPageContent() {
                 fontWeight: 400,
                 fontSize: 14,
                 lineHeight: '20px',
-                color: '#6A7282',
+                color: '#99A1AF',
                 margin: 0,
                 marginBottom: 20,
               }}
             >
-              Create your free account and start practicing with 2,400+ PYQs today.
+              Join the mission
             </p>
 
             {/* Sign up with Google */}
@@ -747,11 +699,10 @@ function LoginPageContent() {
               </div>
             </div>
 
-            {/* Mobile Number (optional) */}
+            {/* Mobile Number */}
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontFamily: 'Inter', fontWeight: 600, fontSize: 12, lineHeight: '16px', letterSpacing: '0.3px', textTransform: 'uppercase', color: '#1E2939', marginBottom: 6 }}>
-                Mobile Number{' '}
-                <span style={{ fontWeight: 400, textTransform: 'none', color: '#99A1AF', fontSize: 11 }}>(optional)</span>
+                Mobile Number
               </label>
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
@@ -809,7 +760,7 @@ function LoginPageContent() {
                 {' '}and{' '}
                 <Link href="#" style={{ fontWeight: 600, color: '#155DFC', textDecoration: 'none' }}>Privacy Policy.</Link>
                 <br />
-                I consent to receive UPSC preparation updates from Rise with Jeet IAS.
+                I consent to receive UPSC preparation updates from Rise with Jeet.
               </span>
             </div>
 
@@ -868,7 +819,7 @@ function LoginPageContent() {
                 }}
               >
                 Welcome{' '}
-                <span style={{ color: '#D97706', fontStyle: 'italic', fontWeight: 700 }}>back</span>{' '}
+                <span style={{ color: '#D9A84F', fontStyle: 'italic', fontWeight: 700 }}>back</span>{' '}
               </h1>
             </div>
             <p
@@ -1139,7 +1090,7 @@ function LoginPageContent() {
               {!isLoading && <Image src="/icon-login-arrow.png" alt="" width={18} height={18} style={{ objectFit: 'contain' }} />}
             </button>
 
-            {/* New Here — gradient CTA button */}
+            {/* New Here — CTA button */}
             <button
               type="button"
               onClick={() => { setActiveTab('signup'); setError(null); }}
@@ -1147,7 +1098,7 @@ function LoginPageContent() {
                 width: '100%',
                 height: 44,
                 borderRadius: 14,
-                background: 'linear-gradient(90deg, #FF6900 0%, #F0B100 100%)',
+                background: '#D9A84F',
                 border: 'none',
                 cursor: 'pointer',
                 display: 'flex',
@@ -1157,7 +1108,6 @@ function LoginPageContent() {
                 marginBottom: 14,
               }}
             >
-              <Image src="/icon-sparkle.png" alt="" width={20} height={20} style={{ objectFit: 'contain' }} />
               <span
                 style={{
                   fontFamily: 'Inter',
@@ -1169,7 +1119,7 @@ function LoginPageContent() {
                   color: '#101828',
                 }}
               >
-                New Here Create A Free Account
+                New Here Create A Free Account →
               </span>
             </button>
 

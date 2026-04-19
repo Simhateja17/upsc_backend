@@ -302,7 +302,7 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] px-6 py-8" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#f1f5f9] px-4 sm:px-6 py-6 md:py-8" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 mb-4">
         <Link href="/dashboard" className="font-normal text-[14px] leading-[20px] text-[#62748e] hover:text-[#314158]">
@@ -312,7 +312,7 @@ export default function SettingsPage() {
         <span className="font-medium text-[14px] leading-[20px] text-[#314158]">Account Settings</span>
       </nav>
 
-      <h1 className="font-bold text-[30px] leading-[36px] text-[#0f172b] mb-8">Account Settings</h1>
+      <h1 className="font-bold text-xl md:text-2xl lg:text-[30px] leading-[36px] text-[#0f172b] mb-6 md:mb-8">Account Settings</h1>
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left Sidebar */}
@@ -353,7 +353,7 @@ export default function SettingsPage() {
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" onClick={() => setShowDeleteModal(false)}>
           <div
-            className="bg-white rounded-[16px] w-[474px] p-8 flex flex-col gap-6"
+            className="bg-white rounded-[16px] w-full max-w-[474px] mx-4 p-6 md:p-8 flex flex-col gap-6"
             style={{ boxShadow: '0px 25px 50px 0px rgba(0,0,0,0.25)' }}
             onClick={(e) => e.stopPropagation()}
           >

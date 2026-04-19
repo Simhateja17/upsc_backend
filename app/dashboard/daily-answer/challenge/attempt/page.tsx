@@ -70,7 +70,7 @@ export default function DailyAnswerAttemptPage() {
                         <div
                             className="bg-white rounded-[16px] flex flex-col items-center justify-center mb-6"
                             style={{
-                                width: '909px',
+                                width: '100%', maxWidth: '909px',
                                 minHeight: '263px',
                                 boxShadow: '0px 1px 3px 0px #0000001A, 0px 1px 2px -1px #0000001A',
                                 padding: '30px'
@@ -159,7 +159,7 @@ export default function DailyAnswerAttemptPage() {
                         <div
                             className="bg-white rounded-[16px] flex flex-col items-center pt-[68px] pb-8 mb-8"
                             style={{
-                                width: '909px',
+                                width: '100%', maxWidth: '909px',
                                 minHeight: '600px',
                                 boxShadow: '0px 1px 3px 0px #0000001A, 0px 1px 2px -1px #0000001A'
                             }}
@@ -271,7 +271,7 @@ export default function DailyAnswerAttemptPage() {
 
                             {/* Error Message */}
                             {submitError && (
-                                <div className="mb-4 px-6 py-3 bg-red-50 border border-red-200 rounded-[10px] text-red-700 font-arimo" style={{ width: '640px', fontSize: '14px' }}>
+                                <div className="mb-4 px-6 py-3 bg-red-50 border border-red-200 rounded-[10px] text-red-700 font-arimo" style={{ width: '100%', maxWidth: '640px', fontSize: '14px' }}>
                                     {submitError}
                                 </div>
                             )}
@@ -282,7 +282,7 @@ export default function DailyAnswerAttemptPage() {
                                 disabled={submitting}
                                 className="flex items-center justify-center gap-2 text-white font-bold transition-transform hover:scale-105 mb-4 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                                 style={{
-                                    width: '640px',
+                                    width: '100%', maxWidth: '640px',
                                     height: '56px',
                                     background: '#17223E',
                                     borderRadius: '14px',

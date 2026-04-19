@@ -60,7 +60,7 @@ export default function ProfilePage() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] px-6 py-8" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#f1f5f9] px-4 sm:px-6 py-6 md:py-8" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 mb-4">
         <Link href="/dashboard" className="font-normal text-[14px] leading-[20px] text-[#62748e] hover:text-[#314158]">
@@ -71,7 +71,7 @@ export default function ProfilePage() {
       </nav>
 
       {/* Page Title */}
-      <h1 className="text-[30px] leading-[36px] text-[#0f172b] mb-8" style={{ fontFamily: "'Georgia', serif" }}>
+      <h1 className="text-xl md:text-2xl lg:text-[30px] leading-[36px] text-[#0f172b] mb-6 md:mb-8" style={{ fontFamily: "'Georgia', serif" }}>
         My Profile
       </h1>
 

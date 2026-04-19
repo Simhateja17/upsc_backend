@@ -13,7 +13,7 @@ const defaultFeatures = [
   },
   {
     title: 'Live Community',
-    description: 'Connect with toppers, join study groups, and participate in discussions with 50,000+ aspirants.',
+    description: 'Connect with toppers, join study groups, and participate in discussions with 15,000+ aspirants.',
     icon: 'community',
     useImage: false,
   },

@@ -38,6 +38,7 @@ html {
 body {
   font-family: var(--font-sf-pro);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
   -moz-osx-font-smoothing: grayscale;
   border: none;
 }
@@ -104,38 +105,46 @@ html, body {
               0 12px 32px rgba(0, 0, 0, 0.06);
 }
 
-/* Custom scrollbar — hidden by default, visible on scroll/hover */
+/* Scrollbar — hidden on mobile, subtle on desktop hover */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-*:hover {
-  scrollbar-color: #FFD170 transparent;
+  scrollbar-width: none; /* Firefox — always hidden */
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 0px;
+  height: 0px;
+  display: none; /* Chrome/Safari — always hidden */
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* On desktop (hover-capable devices), show a thin scrollbar on hover */
+@media (hover: hover) and (pointer: fine) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 999px;
-  transition: background 0.3s ease;
-}
+  *:hover {
+    scrollbar-color: rgba(255, 209, 112, 0.6) transparent;
+  }
 
-*:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 209, 112, 0.7);
-}
+  ::-webkit-scrollbar {
+    display: block;
+    width: 4px;
+    height: 4px;
+  }
 
-*:hover::-webkit-scrollbar-thumb:hover {
-  background: #FFD170;
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+  }
+
+  *:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 209, 112, 0.6);
+  }
 }
 
 /* Glittering border animation for badges */

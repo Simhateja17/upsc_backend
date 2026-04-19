@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { useCmsContent } from '@/hooks/useCmsContent';
 
 const defaultFooterLinks = {
-  company: ['Our Story', 'How to work?', 'Populer Course', 'Service'],
-  courses: ['Categories', 'Ofline Course', 'Vidio Course'],
-  support: ['FAQ', 'Help Center', 'Career', 'Terms of Service', 'Your Privacy Matters', 'Cookie Policy', 'Refund Policy'],
+  company: ['Built by an Aspirant, for Every Aspirant', 'Blog and Articles', 'Pricing', 'Frequently Asked Questions'],
+  courses: ['Categories', 'Online Course', 'Video Course'],
+  support: ['Terms of Service', 'Privacy Policy', 'Cookie Policy', 'Refund and Cancellation'],
 };
 
 const defaultContactInfo = {
@@ -218,11 +218,11 @@ const Footer = () => {
           minHeight: '446px',
         }}
       >
-        <div className="w-full max-w-[1920px] px-8 md:px-16 flex flex-col lg:flex-row justify-between items-start gap-12 lg:gap-0">
+        <div className="w-full max-w-[1920px] px-4 sm:px-8 md:px-16 flex flex-col lg:flex-row justify-between items-start gap-8 lg:gap-0">
 
           {/* Logo Section */}
           <div className="flex-shrink-0">
-            <div className="relative w-[171px] h-[137px]">
+            <div className="relative w-[120px] h-[96px] md:w-[171px] md:h-[137px]">
               <Image
                 src="/footer-logo.png"
                 alt="RiseWithJeet"
@@ -233,17 +233,17 @@ const Footer = () => {
           </div>
 
           {/* Links Container */}
-          <div className="flex-grow flex flex-col md:flex-row justify-end gap-12 md:gap-24 xl:gap-32 w-full lg:w-auto">
+          <div className="flex-grow flex flex-col sm:flex-row flex-wrap justify-end gap-10 md:gap-16 xl:gap-32 w-full lg:w-auto">
 
             {/* Company Column */}
-            <div className="flex flex-col gap-6">
-              <h3 className="font-roboto font-semibold text-white text-[30px] leading-[100%]">Company</h3>
-              <ul className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4 md:gap-6">
+              <h3 className="font-roboto font-semibold text-white text-xl md:text-2xl lg:text-[30px] leading-[100%]">Company</h3>
+              <ul className="flex flex-col gap-3 md:gap-5">
                 {(footerLinks.company || defaultFooterLinks.company).map((link: string, i: number) => (
                   <li key={i}>
                     <a
-                      href={link === 'Our Story' ? '/our-story' : '#'}
-                      className="font-roboto font-normal text-white hover:text-[#FFD170] text-[25px] leading-[100%] whitespace-nowrap"
+                      href={link === 'Built by an Aspirant, for Every Aspirant' ? '/our-story' : link === 'Blog and Articles' ? '/blog' : link === 'Pricing' ? '/pricing' : link === 'Frequently Asked Questions' ? '/faq' : '#'}
+                      className="font-roboto font-normal text-white hover:text-[#FFD170] text-sm md:text-lg lg:text-[25px] leading-[100%]"
                     >
                       {link}
                     </a>
@@ -252,43 +252,43 @@ const Footer = () => {
               </ul>
 
               {/* Telegram QR Code */}
-              <div className="mt-4">
+              <div className="mt-2 md:mt-4">
                 <a
                   href={contactInfo.telegram || defaultContactInfo.telegram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-[100px] h-[100px] rounded-lg overflow-hidden hover:scale-105 transition-transform"
+                  className="block w-20 h-20 md:w-[100px] md:h-[100px] rounded-lg overflow-hidden hover:scale-105 transition-transform"
                 >
                   <Image
                     src="/telegram-qr.png"
                     alt="Join our Telegram Community @RISEWITHJEET"
                     width={100}
                     height={100}
-                    className="object-cover"
+                    className="object-cover w-full h-full"
                   />
                 </a>
               </div>
             </div>
 
             {/* Courses Column */}
-            <div className="flex flex-col gap-6">
-              <h3 className="font-roboto font-semibold text-white text-[30px] leading-[100%]">Courses</h3>
-              <ul className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4 md:gap-6">
+              <h3 className="font-roboto font-semibold text-white text-xl md:text-2xl lg:text-[30px] leading-[100%]">Courses</h3>
+              <ul className="flex flex-col gap-3 md:gap-5">
                 {(footerLinks.courses || defaultFooterLinks.courses).map((link: string, i: number) => (
-                  <li key={i}><a href="#" className="font-roboto font-normal text-white hover:text-[#FFD170] text-[25px] leading-[100%] whitespace-nowrap">{link}</a></li>
+                  <li key={i}><a href="#" className="font-roboto font-normal text-white hover:text-[#FFD170] text-sm md:text-lg lg:text-[25px] leading-[100%]">{link}</a></li>
                 ))}
               </ul>
             </div>
 
             {/* Support Column */}
-            <div className="flex flex-col gap-6">
-              <h3 className="font-roboto font-semibold text-white text-[30px] leading-[100%]">Support</h3>
-              <ul className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4 md:gap-6">
+              <h3 className="font-roboto font-semibold text-white text-xl md:text-2xl lg:text-[30px] leading-[100%]">Support</h3>
+              <ul className="flex flex-col gap-3 md:gap-5">
                 {(footerLinks.support || defaultFooterLinks.support).map((link: string, i: number) => (
                   <li key={i}>
                     <Link
-                      href={link === 'Your Privacy Matters' ? '/privacy' : link === 'Terms of Service' ? '/terms' : link === 'Cookie Policy' ? '/cookies' : link === 'Refund Policy' ? '/refund' : '#'}
-                      className="font-roboto font-normal text-white hover:text-[#FFD170] text-[25px] leading-[100%] whitespace-nowrap"
+                      href={link === 'Privacy Policy' ? '/privacy' : link === 'Terms of Service' ? '/terms' : link === 'Cookie Policy' ? '/cookies' : link === 'Refund and Cancellation' ? '/refund' : link === 'Frequently Asked Questions' ? '/faq' : '#'}
+                      className="font-roboto font-normal text-white hover:text-[#FFD170] text-sm md:text-lg lg:text-[25px] leading-[100%]"
                     >
                       {link}
                     </Link>
@@ -298,12 +298,12 @@ const Footer = () => {
             </div>
 
             {/* Contact Us Column */}
-            <div className="flex flex-col gap-6">
-              <a href="/contact" className="font-roboto font-semibold text-white text-[30px] leading-[100%] hover:text-[#FFD170] transition-colors">Contact Us</a>
-              <ul className="flex flex-col gap-5">
-                <li className="font-roboto font-normal text-white text-[25px] leading-[100%]">{contactInfo.phone}</li>
-                <li className="font-roboto font-normal text-white text-[25px] leading-[100%]">{contactInfo.email}</li>
-                <li className="font-roboto font-normal text-white text-[25px] leading-[100%]">
+            <div className="flex flex-col gap-4 md:gap-6">
+              <a href="/contact" className="font-roboto font-semibold text-white text-xl md:text-2xl lg:text-[30px] leading-[100%] hover:text-[#FFD170] transition-colors">Contact Us</a>
+              <ul className="flex flex-col gap-3 md:gap-5">
+                <li className="font-roboto font-normal text-white text-sm md:text-lg lg:text-[25px] leading-[100%]">{contactInfo.phone}</li>
+                <li className="font-roboto font-normal text-white text-sm md:text-lg lg:text-[25px] leading-[100%] break-all">{contactInfo.email}</li>
+                <li className="font-roboto font-normal text-white text-sm md:text-lg lg:text-[25px] leading-[140%]">
                   {(contactInfo.address || defaultContactInfo.address).split('\n').map((line: string, i: number) => (
                     <React.Fragment key={i}>
                       {i > 0 && <br />}

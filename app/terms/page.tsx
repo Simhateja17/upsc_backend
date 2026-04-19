@@ -502,7 +502,7 @@ export default function TermsPage() {
               { label: 'Privacy Policy', href: '/privacy' },
               { label: 'Terms of Service', href: '/terms' },
               { label: 'Contact Us', href: '/contact' },
-              { label: 'Blog', href: '#' },
+              { label: 'Blog', href: '/blog' },
             ].map((l) => (
               <Link key={l.label} href={l.href} className="text-[#90a1b9] text-sm hover:text-white transition-colors">
                 {l.label}

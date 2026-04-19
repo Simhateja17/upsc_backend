@@ -348,7 +348,7 @@ export default function JeetGPTPage() {
   const hasConversations = conversations.today.length > 0 || conversations.yesterday.length > 0 || conversations.earlier.length > 0;
 
   return (
-    <div className="flex overflow-hidden bg-white" style={{ height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
+    <div className="flex overflow-hidden bg-white" style={{ height: '100%' }}>
 
       {/* ── Left Sidebar ── */}
       <aside className="flex-shrink-0 flex flex-col overflow-hidden" style={{ width: '266px', background: '#0A1628' }}>

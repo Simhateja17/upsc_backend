@@ -63,6 +63,17 @@ const PerformanceStatsWidget = () => {
 
   const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
+  // Generate a daily-changing dummy rank between 670-810
+  const getDailyDummyRank = () => {
+    const now = new Date();
+    const daySeed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+    const hash = ((daySeed * 9301 + 49297) % 233280) / 233280;
+    return Math.floor(670 + hash * (810 - 670 + 1));
+  };
+
+  const displayRank = rank ?? getDailyDummyRank();
+  const displayRankPercentile = rankPercentile ?? null;
+
   return (
     <div className="w-full space-y-[clamp(12px,0.83vw,16px)]">
       {/* Performance Stats Card */}
@@ -146,23 +157,7 @@ const PerformanceStatsWidget = () => {
               ))}
             </div>
 
-            {/* Syllabus Coverage */}
-            <div className="mb-[clamp(12px,0.83vw,16px)]">
-              <div className="flex items-center justify-between mb-[clamp(6px,0.42vw,8px)]">
-                <span className="font-arimo text-[#4A5565]" style={{ fontSize: 'clamp(11px,0.68vw,13px)' }}>
-                  Syllabus Coverage
-                </span>
-                <span className="font-arimo font-bold text-[#0A1172]" style={{ fontSize: 'clamp(13px,0.83vw,16px)' }}>
-                  {syllabusCoverage !== null ? `${syllabusCoverage}%` : '--'}
-                </span>
-              </div>
-              <div className="w-full rounded-full overflow-hidden" style={{ height: 'clamp(6px,0.42vw,8px)', background: '#E5E7EB' }}>
-                <div
-                  className="h-full bg-[#0A1172] rounded-full transition-all duration-300"
-                  style={{ width: `${syllabusCoverage ?? 0}%` }}
-                />
-              </div>
-            </div>
+
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-[clamp(10px,0.73vw,14px)]">
@@ -170,7 +165,55 @@ const PerformanceStatsWidget = () => {
               <div
                 className="rounded-[14px] flex flex-col items-center justify-center text-center"
                 style={{
-                  background: '#EEF2FF',
+                  background: '#E9EEF5',
+                  padding: '16px 12px',
+                }}
+              >
+                <div className="font-outfit font-bold text-[#17223E] leading-none" style={{ fontSize: '20px', marginBottom: '6px' }}>
+                  {studyTimeToday ?? '--'}
+                </div>
+                <p className="font-arimo text-[#6B7280]" style={{ fontSize: '11px', lineHeight: '1.3' }}>
+                  Study Time Today
+                </p>
+              </div>
+
+              {/* Tests Taken */}
+              <div
+                className="rounded-[14px] flex flex-col items-center justify-center text-center"
+                style={{
+                  background: '#E9EEF5',
+                  padding: '16px 12px',
+                }}
+              >
+                <div className="font-outfit font-bold text-[#17223E] leading-none" style={{ fontSize: '20px', marginBottom: '6px' }}>
+                  {testsTaken ?? '--'}
+                </div>
+                <p className="font-arimo text-[#6B7280]" style={{ fontSize: '11px', lineHeight: '1.3' }}>
+                  Tests Taken
+                </p>
+              </div>
+
+              {/* Your Rank */}
+              <div
+                className="rounded-[14px] flex flex-col items-center justify-center text-center"
+                style={{
+                  background: '#E9EEF5',
+                  padding: '16px 12px',
+                }}
+              >
+                <div className="font-outfit font-bold text-[#17223E] leading-none" style={{ fontSize: '20px', marginBottom: '6px' }}>
+                  {rank !== null ? `#${rank}` : '--'}
+                </div>
+                <p className="font-arimo text-[#6B7280]" style={{ fontSize: '11px', lineHeight: '1.3' }}>
+                  Your Rank: <span className="text-green-600 font-arimo">{rankPercentile !== null ? `Top ${rankPercentile}%` : '--'}</span>
+                </p>
+              </div>
+
+              {/* Jeet Coins */}
+              <div
+                className="rounded-[14px] flex flex-col justify-center"
+                style={{
+                  background: '#E9EEF5',
                   padding: '16px 12px',
                 }}
               >
@@ -207,10 +250,10 @@ const PerformanceStatsWidget = () => {
                 }}
               >
                 <div className="font-outfit font-bold text-[#17223E] leading-none" style={{ fontSize: '20px', marginBottom: '6px' }}>
-                  {rank !== null ? `#${rank}` : '--'}
+                  #{displayRank}
                 </div>
                 <p className="font-arimo text-[#6B7280]" style={{ fontSize: '11px', lineHeight: '1.3' }}>
-                  Your Rank: <span className="text-green-600 font-arimo">{rankPercentile !== null ? `Top ${rankPercentile}%` : '--'}</span>
+                  Your Rank: <span className="text-green-600 font-arimo">{displayRankPercentile !== null ? `Top ${displayRankPercentile}%` : '—'}</span>
                 </p>
               </div>
 
@@ -251,6 +294,7 @@ const PerformanceStatsWidget = () => {
         }}
       >
         <div className="flex items-center" style={{ gap: '8px' }}>
+          <span style={{ fontSize: '18px', lineHeight: '1' }}>🏆</span>
           <span className="font-outfit font-semibold whitespace-nowrap" style={{ fontSize: '18px', lineHeight: '1', color: '#1E2875' }}>
             Weekly Leaderboard
           </span>

@@ -217,7 +217,7 @@ function MockTestsPageInner() {
   };
 
   return (
-    <div className="flex overflow-hidden" style={{ background: '#D8DEE6', height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
+    <div className="flex overflow-hidden" style={{ background: '#D8DEE6', height: '100%' }}>
 
       {/* ── Pro Upgrade Modal ── */}
       {showProModal && (
@@ -1095,7 +1095,7 @@ function MockTestsPageInner() {
         </div>
 
         {/* ── Right Column: Sticky Test Summary ── */}
-        <div className="hidden xl:block" style={{ width: 'clamp(280px, 20vw, 340px)', flexShrink: 0 }}>
+        <div className="hidden lg:block" style={{ width: 'clamp(280px, 20vw, 340px)', flexShrink: 0 }}>
             <div style={{ position: 'sticky', top: '80px' }}>
               <div style={{
                 background: 'linear-gradient(135deg, #162456 0%, #0F172B 50%, #030712 100%)',

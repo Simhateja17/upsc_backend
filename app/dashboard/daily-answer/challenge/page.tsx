@@ -99,7 +99,7 @@ export default function DailyMainsChallengeContextPage() {
         <div
             className="relative rounded-[30px]"
             style={{
-                width: '1091px',
+                width: '100%', maxWidth: '1091px',
                 minHeight: '336px',
                 boxShadow: '0px 1px 2px -1px #0000001A, 0px 1px 3px 0px #0000001A',
                 padding: '30px 40px',

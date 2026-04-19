@@ -6,7 +6,25 @@
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''Total prelims \\(no filter\\):'''', d[''''data''''][''''pagination''''][''''total'''']\\)\")",
       "Bash(curl -s \"http://localhost:5001/api/pyq/questions?mode=mains&limit=2\")",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''OK - Total:'''', d[''''data''''][''''pagination''''][''''total'''']\\)\")",
-      "Bash(curl -s --max-time 3 http://localhost:3000)"
+      "Bash(curl -s --max-time 3 http://localhost:3000)",
+      "Bash(git remote set-url:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(ls:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run build:*)",
+      "Bash(test:*)",
+      "Bash(npm install:*)",
+      "Bash(find:*)",
+      "Bash(npx next build)",
+      "Bash(npx next build:*)",
+      "Bash(claude mcp:*)",
+      "Bash(npm --version)",
+      "Bash(winget:*)",
+      "Bash(choco:*)",
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(grep -r \"firstName\\\\|lastName\\\\|User interface\" /c/Users/mg875/Desktop/upsc_final/lib --include=*.ts --include=*.tsx)",
+      "Bash(npm run:*)"
     ]
   }
 }

@@ -136,7 +136,7 @@ export default function EvaluatingPage() {
       <div
         className="relative flex flex-col"
         style={{
-          width: '768px',
+          width: '100%', maxWidth: '768px',
           borderRadius: '16px',
           background: '#FFFFFF',
           boxShadow: '0px 8px 10px -6px #0000001A, 0px 20px 25px -5px #0000001A',
@@ -307,7 +307,7 @@ export default function EvaluatingPage() {
           <div
             className="mx-auto mb-3"
             style={{
-              width: '362px',
+              width: '100%', maxWidth: '362px',
               height: '5px',
               borderRadius: '10px',
               background: '#D9D9D9',

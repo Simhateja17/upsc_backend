@@ -132,7 +132,7 @@ export default function LibraryPage() {
     }
   };
 
-  const tabs = ['Notes', 'Roadmaps', 'PYQ Notes'] as const;
+  const tabs = ['Notes', 'PYQ Notes'] as const;
 
   const getChaptersForTab = (tab: string) => {
     const apiChapterList = apiChapters[selectedSubject];
@@ -151,40 +151,87 @@ export default function LibraryPage() {
       className="font-arimo w-full min-h-screen"
       style={{ background: '#F9FAFB' }}
     >
-      {/* Centered content wrapper */}
+      {/* ============================================================ */}
+      {/*  SECTION 1: HERO - Dark Navy with Grid Texture                 */}
+      {/* ============================================================ */}
       <div
-        className="w-full mx-auto"
+        className="flex flex-col items-center relative"
         style={{
-          maxWidth: 'clamp(960px, 75vw, 1200px)',
-          padding: '0 clamp(16px, 2vw, 30px)',
+          background: 'linear-gradient(180deg, #0E182D 0%, #17223E 100%)',
+          paddingTop: 'clamp(40px, 4vw, 64px)',
+          paddingBottom: 'clamp(40px, 4vw, 64px)',
+          marginBottom: 'clamp(40px, 4vw, 60px)',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        {/* ============================================================ */}
-        {/*  SECTION 1: HERO                                              */}
-        {/* ============================================================ */}
+        {/* Grid texture overlay */}
         <div
-          className="flex flex-col items-center"
+          className="absolute inset-0 pointer-events-none"
           style={{
-            paddingTop: 'clamp(24px, 3vw, 48px)',
-            paddingBottom: 'clamp(24px, 2.5vw, 40px)',
+            opacity: 0.06,
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
           }}
-        >
+        />
+
+        {/* Decorative glow */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            width: '600px',
+            height: '600px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)',
+            top: '-200px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+          }}
+        />
+
+        <div className="relative z-10" style={{ maxWidth: 'clamp(960px, 75vw, 1200px)', padding: '0 clamp(16px, 2vw, 30px)', width: '100%' }}>
+          {/* Back to Dashboard */}
+          <button
+            onClick={() => window.history.back()}
+            className="font-arimo font-medium"
+            style={{
+              fontSize: 'clamp(12px, 1vw, 14px)',
+              color: '#94A3B8',
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              marginBottom: 'clamp(24px, 2.5vw, 36px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            ← Back to Dashboard
+          </button>
+
           {/* Badge pill */}
           <div
-            className="flex items-center gap-2 font-arimo font-semibold text-white"
+            className="flex items-center gap-2 font-arimo font-semibold"
             style={{
-              background: '#101828',
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: '26843500px',
               padding: 'clamp(6px, 0.6vw, 8px) clamp(14px, 1.5vw, 20px)',
               fontSize: 'clamp(11px, 0.9vw, 13px)',
+              color: '#F5C75D',
               letterSpacing: '0.5px',
-              marginBottom: 'clamp(14px, 1.5vw, 20px)',
+              marginBottom: 'clamp(16px, 1.5vw, 24px)',
+              width: 'fit-content',
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#FFD273" stroke="#FFD273" strokeWidth="1" />
+              <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#F5C75D" stroke="#F5C75D" strokeWidth="1" />
             </svg>
-            India&apos;s Most Comprehensive UPSC Platform
+            SIMPLIFIED STUDY MATERIAL
           </div>
 
           {/* Main heading */}
@@ -193,12 +240,12 @@ export default function LibraryPage() {
             style={{
               fontSize: 'clamp(32px, 3.59vw, 48px)',
               lineHeight: 'clamp(38px, 4.2vw, 56px)',
-              color: '#17223E',
-              marginBottom: 'clamp(10px, 1vw, 16px)',
+              color: '#FFFFFF',
+              marginBottom: 'clamp(12px, 1vw, 16px)',
             }}
           >
             Your Complete{' '}
-            <span className="font-tinos italic" style={{ color: '#C68A0B' }}>Library</span>
+            <span className="font-tinos italic" style={{ color: '#F5C75D' }}>Library</span>
             <br />
             for UPSC Preparation
           </h1>
@@ -207,59 +254,60 @@ export default function LibraryPage() {
           <p
             className="font-arimo text-center"
             style={{
-              fontSize: 'clamp(14px, 1.2vw, 18px)',
-              lineHeight: 'clamp(22px, 2.1vw, 28px)',
-              color: '#4A5565',
+              fontSize: 'clamp(14px, 1.2vw, 16px)',
+              lineHeight: 'clamp(22px, 2.1vw, 26px)',
+              color: '#94A3B8',
               maxWidth: 'clamp(420px, 40vw, 560px)',
-              marginBottom: 'clamp(8px, 0.6vw, 10px)',
+              marginBottom: 'clamp(24px, 2.5vw, 32px)',
+              margin: '0 auto clamp(24px, 2.5vw, 32px)',
             }}
           >
-            Video lectures, assignment &amp; PYQ collections &mdash; everything&apos;s free. And we mean it.
-          </p>
-          <p
-            className="font-arimo text-center"
-            style={{
-              fontSize: 'clamp(14px, 1.2vw, 18px)',
-              lineHeight: 'clamp(22px, 2.1vw, 28px)',
-              color: '#4A5565',
-              maxWidth: 'clamp(420px, 40vw, 560px)',
-              marginBottom: 'clamp(20px, 2vw, 28px)',
-            }}
-          >
-            Best of teaches on YouTube, beautifully organised and free
+            Video lectures, PDFs, Data &amp; Stats PDFs, assignments &amp; MCQ collections. Best of teaches on YouTube, beautifully organized and simplified.
           </p>
 
           {/* Stats card */}
           <div
             style={{
-              background: '#FFFFFF',
-              borderRadius: '12px',
-              padding: 'clamp(20px, 2vw, 28px) clamp(12px, 1.2vw, 18px)',
-              boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1)',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '16px',
+              padding: 'clamp(16px, 1.5vw, 22px) clamp(12px, 1.2vw, 18px)',
               width: '100%',
               maxWidth: 'clamp(480px, 48vw, 580px)',
+              margin: '0 auto',
+              backdropFilter: 'blur(10px)',
             }}
           >
             <div className="flex items-center justify-between">
               {heroStats.map((stat, idx) => (
                 <React.Fragment key={stat.label}>
                   <div className="flex flex-col items-center">
-                    <div className="font-arimo font-bold" style={{ fontSize: 'clamp(15px, 1.4vw, 19px)', color: stat.label === 'Always Free' ? '#DBAC49' : '#162456', lineHeight: 1.2 }}>
+                    <div className="font-arimo font-bold" style={{ fontSize: 'clamp(18px, 1.8vw, 24px)', color: stat.label === 'Always Free' ? '#F5C75D' : '#FFFFFF', lineHeight: 1.2 }}>
                       {stat.number}
-                      {stat.suffix && <span style={{ color: '#DBAC49' }}>{stat.suffix}</span>}
+                      {stat.suffix && <span style={{ color: '#F5C75D' }}>{stat.suffix}</span>}
                     </div>
-                    <div className="font-arimo" style={{ fontSize: 'clamp(10px, 0.8vw, 12px)', color: '#6A7282', marginTop: '3px' }}>
+                    <div className="font-arimo" style={{ fontSize: 'clamp(10px, 0.8vw, 12px)', color: '#94A3B8', marginTop: '4px' }}>
                       {stat.label}
                     </div>
                   </div>
                   {idx < heroStats.length - 1 && (
-                    <div style={{ width: '1px', height: 'clamp(32px, 3vw, 44px)', background: '#E5E7EB', flexShrink: 0 }} />
+                    <div style={{ width: '1px', height: 'clamp(32px, 3vw, 44px)', background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
                   )}
                 </React.Fragment>
               ))}
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Centered content wrapper for bottom sections */}
+      <div
+        className="w-full mx-auto"
+        style={{
+          maxWidth: 'clamp(960px, 75vw, 1200px)',
+          padding: '0 clamp(16px, 2vw, 30px)',
+        }}
+      >
 
         {/* ============================================================ */}
         {/*  SECTION 2: SUBJECT SIDEBAR + CONTENT PANEL                   */}
@@ -450,115 +498,155 @@ export default function LibraryPage() {
               borderRadius: '16px',
               border: '0.8px solid #E5E7EB',
               boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1)',
-              padding: 'clamp(18px, 2vw, 28px)',
+              overflow: 'hidden',
+              position: 'relative',
             }}
           >
-            {/* Header area */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'clamp(12px, 1.2vw, 16px)', flexWrap: 'wrap' as const, marginBottom: 'clamp(12px, 1.2vw, 16px)' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <h2
-                  className="font-arimo font-bold"
-                  style={{
-                    fontSize: 'clamp(22px, 2.2vw, 30px)',
-                    color: '#101828',
-                    marginBottom: 'clamp(6px, 0.6vw, 10px)',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {selectedApiSubject?.name ?? selectedSubject}
-                </h2>
-                <p
-                  className="font-arimo"
-                  style={{
-                    fontSize: 'clamp(12px, 1.05vw, 14px)',
-                    lineHeight: 'clamp(18px, 1.6vw, 22px)',
-                    color: '#4A5565',
-                    whiteSpace: 'pre-line',
-                  }}
-                >
-                  {selectedApiSubject?.description ?? ''}
-                </p>
-              </div>
-
-              {/* Mini stats card */}
-              <div
-                style={{
-                  borderRadius: '24px',
-                  border: '0.8px solid #E5E7EB',
-                  boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.08)',
-                  padding: 'clamp(10px, 1vw, 14px) clamp(16px, 1.5vw, 22px)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'clamp(12px, 1.2vw, 18px)',
-                  flexShrink: 0,
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Decorative ellipses */}
-                <div style={{
-                  position: 'absolute',
-                  width: '252px',
-                  height: '134px',
-                  borderRadius: '50%',
-                  background: '#ABC5FF30',
-                  top: '-40px',
-                  left: '-60px',
-                  pointerEvents: 'none',
-                }} />
-                <div style={{
-                  position: 'absolute',
-                  width: '170.472px',
-                  height: '187.861px',
-                  borderRadius: '50%',
-                  background: '#ABC5FF30',
-                  transform: 'rotate(-90.622deg)',
-                  bottom: '-60px',
-                  right: '-50px',
-                  pointerEvents: 'none',
-                }} />
-                <div className="flex flex-col items-center">
-                  <div className="font-arimo font-bold" style={{ fontSize: 'clamp(20px, 2vw, 28px)', color: '#101828', lineHeight: 1.2 }}>
-                    {selectedApiSubject?.pdfCount ?? 0}
-                  </div>
-                  <div className="font-arimo" style={{ fontSize: 'clamp(10px, 0.82vw, 12px)', color: '#6A7282' }}>
-                    PDFs
-                  </div>
-                </div>
-                <div style={{ width: '1px', height: 'clamp(24px, 2.5vw, 36px)', background: '#E5E7EB' }} />
-                <div className="flex flex-col items-center">
-                  <div className="font-arimo font-bold" style={{ fontSize: 'clamp(20px, 2vw, 28px)', color: '#C68A0B', lineHeight: 1.2 }}>
-                    {selectedApiSubject?.chapterCount ?? 0}
-                  </div>
-                  <div className="font-arimo" style={{ fontSize: 'clamp(10px, 0.82vw, 12px)', color: '#6A7282' }}>
-                    Chapters
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Tags row */}
+            {/* Subject header with bluish grid texture */}
             <div
-              className="flex items-center"
               style={{
-                gap: 'clamp(10px, 1.2vw, 16px)',
-                marginBottom: 'clamp(16px, 1.8vw, 24px)',
-                flexWrap: 'wrap',
+                background: 'linear-gradient(135deg, #E8EEF8 0%, #F0F4FB 100%)',
+                padding: 'clamp(18px, 2vw, 28px)',
+                position: 'relative',
+                overflow: 'hidden',
+                borderBottom: '0.8px solid #E5E7EB',
               }}
             >
-              {(selectedApiSubject?.tags ?? []).map((tag: string) => (
-                <span
-                  key={tag}
-                  className="font-arimo"
+              {/* Grid texture overlay */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  opacity: 0.08,
+                  backgroundImage:
+                    'linear-gradient(rgba(59,130,246,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.4) 1px, transparent 1px)',
+                  backgroundSize: '24px 24px',
+                }}
+              />
+
+              {/* Decorative ellipse */}
+              <div style={{
+                position: 'absolute',
+                width: '200px',
+                height: '200px',
+                borderRadius: '50%',
+                background: 'rgba(171,197,255,0.15)',
+                top: '-80px',
+                right: '-40px',
+                pointerEvents: 'none',
+              }} />
+
+              <div className="relative z-10">
+                {/* Header area */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'clamp(12px, 1.2vw, 16px)', flexWrap: 'wrap' as const, marginBottom: 'clamp(12px, 1.2vw, 16px)' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h2
+                      className="font-arimo font-bold"
+                      style={{
+                        fontSize: 'clamp(22px, 2.2vw, 30px)',
+                        color: '#101828',
+                        marginBottom: 'clamp(6px, 0.6vw, 10px)',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {selectedApiSubject?.name ?? selectedSubject}
+                    </h2>
+                    <p
+                      className="font-arimo"
+                      style={{
+                        fontSize: 'clamp(12px, 1.05vw, 14px)',
+                        lineHeight: 'clamp(18px, 1.6vw, 22px)',
+                        color: '#4A5565',
+                        whiteSpace: 'pre-line',
+                      }}
+                    >
+                      {selectedApiSubject?.description ?? ''}
+                    </p>
+                  </div>
+
+                  {/* Mini stats card */}
+                  <div
+                    style={{
+                      background: '#FFFFFF',
+                      borderRadius: '24px',
+                      border: '0.8px solid #E5E7EB',
+                      boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.08)',
+                      padding: 'clamp(10px, 1vw, 14px) clamp(16px, 1.5vw, 22px)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'clamp(12px, 1.2vw, 18px)',
+                      flexShrink: 0,
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {/* Decorative ellipses */}
+                    <div style={{
+                      position: 'absolute',
+                      width: '252px',
+                      height: '134px',
+                      borderRadius: '50%',
+                      background: '#ABC5FF30',
+                      top: '-40px',
+                      left: '-60px',
+                      pointerEvents: 'none',
+                    }} />
+                    <div style={{
+                      position: 'absolute',
+                      width: '170.472px',
+                      height: '187.861px',
+                      borderRadius: '50%',
+                      background: '#ABC5FF30',
+                      transform: 'rotate(-90.622deg)',
+                      bottom: '-60px',
+                      right: '-50px',
+                      pointerEvents: 'none',
+                    }} />
+                    <div className="flex flex-col items-center">
+                      <div className="font-arimo font-bold" style={{ fontSize: 'clamp(20px, 2vw, 28px)', color: '#101828', lineHeight: 1.2 }}>
+                        {selectedApiSubject?.pdfCount ?? 0}
+                      </div>
+                      <div className="font-arimo" style={{ fontSize: 'clamp(10px, 0.82vw, 12px)', color: '#6A7282' }}>
+                        PDFs
+                      </div>
+                    </div>
+                    <div style={{ width: '1px', height: 'clamp(24px, 2.5vw, 36px)', background: '#E5E7EB' }} />
+                    <div className="flex flex-col items-center">
+                      <div className="font-arimo font-bold" style={{ fontSize: 'clamp(20px, 2vw, 28px)', color: '#C68A0B', lineHeight: 1.2 }}>
+                        {selectedApiSubject?.chapterCount ?? 0}
+                      </div>
+                      <div className="font-arimo" style={{ fontSize: 'clamp(10px, 0.82vw, 12px)', color: '#6A7282' }}>
+                        Pages
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tags row */}
+                <div
+                  className="flex items-center"
                   style={{
-                    fontSize: 'clamp(12px, 1.05vw, 14px)',
-                    color: '#4A5565',
+                    gap: 'clamp(10px, 1.2vw, 16px)',
+                    flexWrap: 'wrap',
                   }}
                 >
-                  {tag}
-                </span>
-              ))}
+                  {(selectedApiSubject?.tags ?? []).map((tag: string) => (
+                    <span
+                      key={tag}
+                      className="font-arimo"
+                      style={{
+                        fontSize: 'clamp(12px, 1.05vw, 14px)',
+                        color: '#4A5565',
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
+
+            {/* Content area below header */}
+            <div style={{ padding: 'clamp(18px, 2vw, 28px)' }}>
 
             {/* Tab bar */}
             <div style={{ borderBottom: '2px solid #E5E7EB', marginBottom: 'clamp(20px, 2vw, 28px)' }}>
@@ -616,7 +704,7 @@ export default function LibraryPage() {
                 marginBottom: 'clamp(12px, 1.2vw, 16px)',
               }}
             >
-              {activeTab === 'Notes' ? 'FOUNDATIONAL NOTES' : activeTab === 'Roadmaps' ? 'STUDY ROADMAPS' : 'PREVIOUS YEAR QUESTIONS'}
+              {activeTab === 'Notes' ? 'FOUNDATIONAL NOTES' : 'PREVIOUS YEAR QUESTIONS'}
             </div>
 
             {/* Chapter cards */}
@@ -862,7 +950,7 @@ export default function LibraryPage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
             gap: 'clamp(14px, 1.5vw, 24px)',
             marginBottom: 'clamp(40px, 4vw, 60px)',
           }}
@@ -1000,7 +1088,7 @@ export default function LibraryPage() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
                 gap: 'clamp(14px, 1.5vw, 24px)',
               }}
             >

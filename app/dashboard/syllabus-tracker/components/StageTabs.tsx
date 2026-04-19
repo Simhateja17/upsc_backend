@@ -10,7 +10,6 @@ interface StageTabsProps {
 }
 
 export default function StageTabs({ mode, onModeChange, states, syllabusData }: StageTabsProps) {
-  // Calculate percentage for each mode
   const calculateModePct = (modeKey: Mode) => {
     const subjects = syllabusData[modeKey];
     let total = 0;
@@ -33,72 +32,47 @@ export default function StageTabs({ mode, onModeChange, states, syllabusData }: 
   const mainsPct = calculateModePct('mains');
   const optionalPct = calculateModePct('optional');
 
+  const tabs = [
+    { key: 'prelims' as Mode, label: 'Prelims', icon: '🎯' },
+    { key: 'mains' as Mode, label: 'Mains', icon: '✍️' },
+    { key: 'optional' as Mode, label: 'Optional', icon: '📖' },
+  ];
+
   return (
-    <div className="flex bg-white border-[1.5px] border-[#e0e8f4] rounded-[11px] p-[4px] gap-[3px] shadow-sm">
-      {/* Prelims Tab */}
-      <button
-        onClick={() => onModeChange('prelims')}
-        className={`
-          flex items-center gap-[6px] px-[18px] py-[7px] rounded-[8px] text-[12px] font-bold transition-all duration-200 whitespace-nowrap
-          ${mode === 'prelims' 
-            ? 'bg-[#0f1f3d] text-white shadow-md' 
-            : 'bg-transparent text-[#8795ae] hover:bg-[#edf2fc] hover:text-[#3c4f6d]'
-          }
-        `}
-      >
-        🏛 Prelims
-        <span className={`text-[9.5px] font-bold px-[7px] py-[1px] rounded-[8px] ${
-          mode === 'prelims' ? 'bg-white/18' : 'bg-[#d8e4f5] text-[#8795ae]'
-        }`}>
-          {prelimsPct}%
-        </span>
-      </button>
+    <div
+      className="inline-flex items-center w-full"
+      style={{
+        background: '#F1F3F9',
+        borderRadius: '26843500px',
+        padding: '4px',
+        gap: '4px',
+      }}
+    >
+      {tabs.map(tab => {
+        const isActive = mode === tab.key;
+        const pct = tab.key === 'prelims' ? prelimsPct : tab.key === 'mains' ? mainsPct : optionalPct;
 
-      {/* Mains Tab */}
-      <button
-        onClick={() => onModeChange('mains')}
-        className={`
-          flex items-center gap-[6px] px-[18px] py-[7px] rounded-[8px] text-[12px] font-bold transition-all duration-200 whitespace-nowrap
-          ${mode === 'mains'
-            ? 'text-[#0f1f3d] shadow-md'
-            : 'bg-transparent text-[#8795ae] hover:bg-[#edf2fc] hover:text-[#3c4f6d]'
-          }
-        `}
-        style={mode === 'mains' ? {
-          background: 'linear-gradient(135deg, #e8a820, #c9921a)',
-          boxShadow: '0 2px 10px rgba(201,146,26,.28)'
-        } : {}}
-      >
-        ✍️ Mains
-        <span className={`text-[9.5px] font-bold px-[7px] py-[1px] rounded-[8px] ${
-          mode === 'mains' ? 'bg-white/18' : 'bg-[#d8e4f5] text-[#8795ae]'
-        }`}>
-          {mainsPct}%
-        </span>
-      </button>
-
-      {/* Optional Tab */}
-      <button
-        onClick={() => onModeChange('optional')}
-        className={`
-          flex items-center gap-[6px] px-[18px] py-[7px] rounded-[8px] text-[12px] font-bold transition-all duration-200 whitespace-nowrap
-          ${mode === 'optional'
-            ? 'text-white shadow-md'
-            : 'bg-transparent text-[#8795ae] hover:bg-[#edf2fc] hover:text-[#3c4f6d]'
-          }
-        `}
-        style={mode === 'optional' ? {
-          background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-          boxShadow: '0 2px 10px rgba(109,40,217,.28)'
-        } : {}}
-      >
-        📖 Optional
-        <span className={`text-[9.5px] font-bold px-[7px] py-[1px] rounded-[8px] ${
-          mode === 'optional' ? 'bg-white/18' : 'bg-[#d8e4f5] text-[#8795ae]'
-        }`}>
-          {optionalPct}%
-        </span>
-      </button>
+        return (
+          <button
+            key={tab.key}
+            onClick={() => onModeChange(tab.key)}
+            className="flex items-center justify-center gap-2 flex-1 transition-all duration-200 whitespace-nowrap"
+            style={{
+              padding: '10px 20px',
+              borderRadius: '26843500px',
+              background: isActive ? '#0F172B' : 'transparent',
+              color: isActive ? '#FFFFFF' : '#4A5565',
+              fontWeight: 700,
+              fontSize: '16px',
+              lineHeight: '1',
+              boxShadow: isActive ? '0px 4px 12px rgba(15, 23, 43, 0.3)' : 'none',
+            }}
+          >
+            <span style={{ fontSize: '18px', lineHeight: '1' }}>{tab.icon}</span>
+            <span>{tab.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

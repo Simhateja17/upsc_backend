@@ -98,9 +98,9 @@ const pages: PageSeed[] = [
       {
         key: "footer_links", type: "json", order: 25,
         content: JSON.stringify({
-          company: ["About Us", "How to work?", "Populer Course", "Service"],
-          courses: ["Categories", "Ofline Course", "Vidio Course"],
-          support: ["FAQ", "Help Center", "Career", "Privacy"],
+          company: ["Built by an Aspirant, for Every Aspirant", "Blog and Articles", "Modules", "Pricing"],
+          courses: ["Categories", "Online Course", "Video Course"],
+          support: ["Frequently Asked Questions", "Help Center", "Career", "Terms of Service", "Privacy Policy", "Cookie Policy", "Refund and Cancellation"],
         }),
       },
       {

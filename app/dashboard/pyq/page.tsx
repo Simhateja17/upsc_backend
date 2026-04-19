@@ -106,7 +106,7 @@ export default function PyqPage() {
   return (
     <div
       className="flex flex-col items-center overflow-y-auto"
-      style={{ background: '#F9FAFB', height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}
+      style={{ background: '#F9FAFB', height: '100%' }}
     >
       <div className="w-full max-w-[1080px] px-6 pt-16 pb-16">
         {/* Hero copy */}
@@ -427,7 +427,7 @@ export default function PyqPage() {
               {/* Tag row */}
               <div
                 className="flex flex-wrap gap-2 mb-5"
-                style={{ width: '482px', maxWidth: '100%' }}
+                style={{ width: '100%', maxWidth: '482px' }}
               >
                 <span
                   className="px-3 py-1 rounded-full text-[12px] font-bold"
@@ -453,8 +453,7 @@ export default function PyqPage() {
               <div
                 className="uppercase mb-2"
                 style={{
-                  width: '482px',
-                  maxWidth: '100%',
+                  width: '100%', maxWidth: '482px',
                   fontFamily: 'Inter, sans-serif',
                   fontSize: '12px',
                   fontWeight: 700,
@@ -470,8 +469,7 @@ export default function PyqPage() {
               <p
                 className="mb-5"
                 style={{
-                  width: '482px',
-                  maxWidth: '100%',
+                  width: '100%', maxWidth: '482px',
                   fontFamily: 'Inter, sans-serif',
                   fontSize: '18px',
                   fontWeight: 400,
@@ -486,8 +484,7 @@ export default function PyqPage() {
               <div
                 className="rounded-[14px] px-4 py-4 mb-5 space-y-2 text-[14px]"
                 style={{
-                  width: '482px',
-                  maxWidth: '100%',
+                  width: '100%', maxWidth: '482px',
                   background: '#F9FAFB',
                   color: '#364153',
                 }}
@@ -500,7 +497,7 @@ export default function PyqPage() {
               {/* Options */}
               <div
                 className="space-y-3 mb-6"
-                style={{ width: '482px', maxWidth: '100%' }}
+                style={{ width: '100%', maxWidth: '482px' }}
               >
                 {[
                   '1 only',
@@ -584,8 +581,7 @@ export default function PyqPage() {
                     key={q.id}
                     className="mb-6"
                     style={{
-                      width: '540px',
-                      maxWidth: '100%',
+                      width: '100%', maxWidth: '540px',
                       borderRadius: '16px',
                       border: '0.8px solid #E5E7EB',
                       background: '#FFFFFF',
@@ -688,7 +684,7 @@ export default function PyqPage() {
             <div
               className="rounded-[16px] bg-white flex flex-col"
               style={{
-                width: '307px',
+                width: '100%', maxWidth: '307px',
                 height: '198px',
                 opacity: 1,
                 boxShadow: '0px 1px 2px -1px #0000001A, 0px 1px 3px 0px #0000001A',
@@ -749,7 +745,7 @@ export default function PyqPage() {
             <div
               className="rounded-[16px] bg-white flex flex-col overflow-hidden"
               style={{
-                width: '310px',
+                width: '100%', maxWidth: '310px',
                 minHeight: '826px',
                 opacity: 1,
                 borderTop: '0.8px solid #E5E7EB',
@@ -836,8 +832,7 @@ export default function PyqPage() {
           <div
             className="relative flex flex-col items-center text-center"
             style={{
-              width: '448px',
-              maxWidth: '100%',
+              width: '100%', maxWidth: '448px',
               minHeight: '549.2px',
               borderRadius: '24px',
               background: '#FFFFFF',
@@ -863,8 +858,7 @@ export default function PyqPage() {
             {/* Heading */}
             <h2
               style={{
-                width: '347px',
-                maxWidth: '100%',
+                width: '100%', maxWidth: '347px',
                 height: '36px',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 700,
@@ -880,8 +874,7 @@ export default function PyqPage() {
             {/* Description */}
             <p
               style={{
-                width: '367px',
-                maxWidth: '100%',
+                width: '100%', maxWidth: '367px',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 400,
                 fontSize: '16px',
@@ -898,8 +891,7 @@ export default function PyqPage() {
             <button
               className="flex items-center justify-center mb-3"
               style={{
-                width: '368px',
-                maxWidth: '100%',
+                width: '100%', maxWidth: '368px',
                 height: '60px',
                 borderRadius: '16px',
                 gap: '8px',
@@ -919,8 +911,7 @@ export default function PyqPage() {
             <button
               className="flex items-center justify-center mb-5"
               style={{
-                width: '368px',
-                maxWidth: '100%',
+                width: '100%', maxWidth: '368px',
                 height: '63.2px',
                 borderRadius: '16px',
                 gap: '8px',
@@ -942,8 +933,7 @@ export default function PyqPage() {
               type="button"
               onClick={() => setShowLoginModal(false)}
               style={{
-                width: '368px',
-                maxWidth: '100%',
+                width: '100%', maxWidth: '368px',
                 height: '48px',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 500,
@@ -968,8 +958,7 @@ export default function PyqPage() {
           <div
             className="rounded-[24px] bg-white flex flex-col my-8 overflow-hidden"
             style={{
-              width: '896px',
-              maxWidth: '100%',
+              width: '100%', maxWidth: '896px',
               minHeight: '875px',
               opacity: 1,
               boxShadow: '0px 4px 6px -4px #0000001A, 0px 10px 15px -3px #0000001A',
@@ -1303,8 +1292,7 @@ export default function PyqPage() {
           <div
             className="rounded-[24px] bg-white flex flex-col my-8"
             style={{
-              width: '896px',
-              maxWidth: '100%',
+              width: '100%', maxWidth: '896px',
               minHeight: '882px',
               gap: '24px',
               padding: '32px 32px 32px 40px',

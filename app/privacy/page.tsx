@@ -474,10 +474,10 @@ export default function PrivacyPage() {
           </div>
           <div className="flex items-center gap-6">
             {[
-              { label: 'Your Privacy Matters', href: '/privacy' },
+              { label: 'Privacy Policy', href: '/privacy' },
               { label: 'Terms of Service', href: '/terms' },
-              { label: 'Contact Us', href: '#' },
-              { label: 'Blog', href: '#' },
+              { label: 'Contact Us', href: '/contact' },
+              { label: 'Blog', href: '/blog' },
             ].map((l) => (
               <Link key={l.label} href={l.href} className="text-[#90a1b9] text-sm hover:text-white transition-colors">
                 {l.label}

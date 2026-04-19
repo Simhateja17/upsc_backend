@@ -34,8 +34,8 @@
 }
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-html { scroll-behavior:smooth; }
-body { font-family:'Outfit',sans-serif; background:var(--light-bg); color:var(--text-dark); overflow-x:hidden; }
+html { scroll-behavior:smooth; height:100%; }
+body { font-family:'Outfit',sans-serif; background:var(--light-bg); color:var(--text-dark); overflow-x:hidden; overflow-y:auto; min-height:100%; -webkit-overflow-scrolling:touch; }
 
 /* ════════════════════════════════════════
    LOGO POSITION — edit these to move logo
@@ -703,6 +703,65 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
 .reveal.visible { opacity:1; transform:translateY(0); }
 .reveal-delay-1{transition-delay:0.1s} .reveal-delay-2{transition-delay:0.2s} .reveal-delay-3{transition-delay:0.3s} .reveal-delay-4{transition-delay:0.4s}
 
+/* ── HAMBURGER + MOBILE NAV ── */
+.nav-hamburger {
+  display:none;
+  flex-direction:column;
+  gap:5px;
+  background:none;
+  border:none;
+  cursor:pointer;
+  padding:6px 4px;
+  z-index:300;
+  flex-shrink:0;
+}
+.nav-hamburger span {
+  display:block;
+  width:24px;
+  height:2px;
+  background:rgba(255,255,255,0.85);
+  border-radius:2px;
+  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.nav-hamburger.open span:nth-child(2){opacity:0;transform:scaleX(0);}
+.nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+
+.mobile-nav {
+  display:none;
+  position:fixed;
+  top:60px;left:0;right:0;
+  background:rgba(6,12,28,0.97);
+  backdrop-filter:blur(24px);
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  padding:20px 20px 28px;
+  z-index:199;
+  flex-direction:column;
+  gap:0;
+  animation:mobileNavFade 0.2s ease;
+}
+.mobile-nav.open{display:flex;}
+@keyframes mobileNavFade{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.mobile-nav a {
+  color:rgba(255,255,255,0.72);
+  text-decoration:none;
+  font-size:16px;
+  font-weight:500;
+  padding:14px 0;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  display:block;
+  transition:color 0.2s;
+}
+.mobile-nav a:hover{color:var(--gold);}
+.mobile-nav-btns {
+  display:flex;
+  gap:10px;
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid rgba(255,255,255,0.08);
+}
+.mobile-nav-btns button{flex:1;}
+
 /* ── RESPONSIVE ── */
 @media(max-width:1100px) {
   .modules-grid-full{grid-template-columns:repeat(2,1fr);}
@@ -712,20 +771,68 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
   .app-phone-wrap{display:none;}
 }
 @media(max-width:768px) {
-  nav{padding:0 20px;} .nav-links{display:none;}
-  .hero,.modules-section,.ai-section,.tools-section,.analytics-section,.mentor-section,.live-section,.app-section,.pricing-section,.cta-section{padding-left:20px;padding-right:20px;}
-  footer{padding-left:20px;padding-right:20px;}
-  .hero-stats{flex-direction:column;}
-  .hstat{border-right:none;border-bottom:1px solid rgba(255,255,255,0.06);}
+  nav{padding:0 16px;height:60px;}
+  .nav-links{display:none;}
+  .nav-btns{display:none;}
+  .nav-hamburger{display:flex;}
+
+  .hero{padding:80px 20px 56px;}
+  .hero h1{letter-spacing:-1px;}
+  .hero h1 .line1{white-space:normal;}
+  .hero-sub{font-size:15px;margin:18px auto 28px;}
+  .hero-ctas{flex-direction:column;align-items:center;}
+  .cta-primary,.cta-secondary{width:100%;max-width:320px;padding:14px 24px;font-size:14.5px;}
+  .hero-stats{flex-direction:column;width:100%;border-radius:14px;}
+  .hstat{padding:14px 24px;border-right:none;border-bottom:1px solid rgba(255,255,255,0.06);}
   .hstat:last-child{border-bottom:none;}
+  .hstat-val{font-size:30px;}
+
+  .modules-section,.ai-section,.tools-section,.analytics-section,.mentor-section,.live-section,.app-section,.pricing-section,.cta-section{padding:72px 20px;}
+  footer{padding:56px 20px 36px;}
+
   .modules-grid-full{grid-template-columns:1fr;}
+  .modules-header{margin-bottom:40px;}
   .tools-grid-2,.live-tools-grid{grid-template-columns:repeat(2,1fr);}
-  .pricing-grid{grid-template-columns:1fr;max-width:380px;}
+  .pricing-grid{grid-template-columns:1fr;max-width:100%;}
   .plan-featured{transform:scale(1);}
-  .footer-grid{grid-template-columns:1fr 1fr;gap:36px;}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:28px;}
+  .footer-bottom{flex-direction:column;gap:8px;text-align:center;}
   .mentor-features-grid{grid-template-columns:1fr;}
-  .live-card{flex-direction:column;}
-  .cta-box{padding:44px 24px;}
+  .mentor-top{gap:28px;}
+  .mentor-quote-card{padding:28px 20px;}
+  .mqc-text{font-size:17px;}
+  .mqc-mark{font-size:90px;}
+  .mentor-cta-row{flex-wrap:wrap;}
+  .live-card{flex-direction:column;align-items:flex-start;gap:16px;padding:24px 20px;}
+  .live-stats{justify-content:flex-start;gap:32px;}
+  .cta-box{padding:40px 20px;}
+  .cta-btns{flex-direction:column;align-items:center;}
+  .cta-btns .cta-primary,.cta-btns .cta-secondary{width:100%;max-width:300px;}
+  .section-h2-dark,.section-h2-light{letter-spacing:-0.8px;}
+  .ai-feat-desc,.ai-feat-progress{margin-left:0;}
+  .analytics-inner{gap:36px;}
+  .ai-inner{gap:40px;}
+  .apoint-icon{width:38px;height:38px;font-size:16px;}
+  .app-store-btns{flex-direction:column;}
+  .app-store-btn{justify-content:center;}
+  .dc-metrics{grid-template-columns:repeat(3,1fr);}
+}
+@media(max-width:480px) {
+  .hero h1{font-size:clamp(26px,8vw,36px);}
+  .hero-badge{font-size:11px;padding:7px 14px;}
+  .hstat-val{font-size:26px;}
+  .footer-grid{grid-template-columns:1fr;}
+  .tools-grid-2{grid-template-columns:1fr;}
+  .live-tools-grid{grid-template-columns:repeat(2,1fr);}
+  .dc-metrics{grid-template-columns:1fr 1fr;}
+  .cta-box h2{font-size:clamp(24px,7vw,36px);}
+  .mentor-cta-row{flex-direction:column;}
+  .btn-schedule,.btn-schedule-ghost{width:100%;text-align:center;justify-content:center;}
+  .live-card{padding:20px 16px;}
+  .pricing-grid{gap:16px;}
+  .plan{padding:28px 20px;}
+  .plan-price{font-size:44px;}
+  .hero-stats{border-radius:12px;}
 }
 </style>
 </head>
@@ -741,13 +848,27 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
     <li><a href="#ai">Jeet AI</a></li>
     <li><a href="#analytics">Analytics</a></li>
     <li><a href="#community">Community</a></li>
-    <li><a href="#pricing">Pricing</a></li>
   </ul>
   <div class="nav-btns">
     <button class="btn-nav-ghost" onclick="go('/login?tab=login')">Login</button>
     <button class="btn-nav-gold" onclick="go('/login?tab=signup')">Start Free →</button>
   </div>
+  <button class="nav-hamburger" id="navHamburger" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
+
+<!-- Mobile Nav -->
+<div class="mobile-nav" id="mobileNav">
+  <a href="#modules" onclick="closeMobileNav()">Modules</a>
+  <a href="#ai" onclick="closeMobileNav()">Jeet AI</a>
+  <a href="#analytics" onclick="closeMobileNav()">Analytics</a>
+  <a href="#community" onclick="closeMobileNav()">Community</a>
+  <div class="mobile-nav-btns">
+    <button class="btn-nav-ghost" onclick="go('/login?tab=login');closeMobileNav()">Login</button>
+    <button class="btn-nav-gold" onclick="go('/login?tab=signup');closeMobileNav()">Start Free →</button>
+  </div>
+</div>
 
 <!-- ═══ HERO ═══ -->
 <section class="hero">
@@ -782,7 +903,7 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
     <span class="line2"><span class="gold-word">Simplified</span></span>
   </h1>
 
-  <p class="hero-sub">Trusted by 50,000+ aspirants. AI-powered learning, daily MCQs, instant mains evaluation, expert mentorship &amp; smart revision — all under one roof.</p>
+  <p class="hero-sub">Trusted by 15,000+ aspirants. AI-powered learning, daily MCQs, instant mains evaluation, expert mentorship &amp; smart revision - all under one roof.</p>
 
   <div class="hero-ctas">
     <button class="cta-primary" onclick="go('/login?tab=signup')">Start Your Free Trial →</button>
@@ -802,13 +923,13 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
   <div class="modules-header reveal">
     <div class="section-eyebrow eyebrow-dark">Core Modules</div>
     <h2 class="section-h2-dark">Your Complete UPSC<br>Preparation Ecosystem</h2>
-    <p class="section-p-dark" style="max-width:500px;margin:16px auto 0">Every tool you need — thoughtfully built and AI-enhanced — to take you from aspirant to officer.</p>
+    <p class="section-p-dark" style="max-width:500px;margin:16px auto 0">Every tool you need in your preparation, thoughtfully built, to take you from aspirant to officer.</p>
   </div>
   <div class="modules-grid-full">
     <div class="mod-card mc-gold reveal reveal-delay-1"><div><div class="mod-icon-wrap mw-gold">📝</div><div class="mod-title">Daily MCQ Practice</div><div class="mod-desc">Subject-wise &amp; topic-wise MCQs with detailed explanations. New questions every day, curated by experts.</div></div><div class="mod-tag tag-gold">Daily Practice</div></div>
-    <div class="mod-card mc-cyan reveal reveal-delay-2"><div><div class="mod-icon-wrap mw-cyan">🎯</div><div class="mod-title">Mock Tests</div><div class="mod-desc">Full-length Prelims &amp; Mains simulations in UPSC pattern. Timed, scored, ranked.</div></div><div class="mod-tag tag-cyan">Test Series</div></div>
-    <div class="mod-card mc-violet reveal reveal-delay-3"><div><div class="mod-icon-wrap mw-violet">📚</div><div class="mod-title">Previous Year Questions</div><div class="mod-desc">30 years of PYQs with trend analysis, topic clustering, and examiner insights.</div></div><div class="mod-tag tag-violet">PYQ Bank</div></div>
-    <div class="mod-card mc-emerald reveal reveal-delay-4"><div><div class="mod-icon-wrap mw-emerald">✍️</div><div class="mod-title">Answer Writing</div><div class="mod-desc">Daily mains practice with AI-powered instant evaluation and UPSC-style marking schemes.</div></div><div class="mod-tag tag-emerald">AI Evaluated</div></div>
+    <div class="mod-card mc-emerald reveal reveal-delay-2"><div><div class="mod-icon-wrap mw-emerald">✍️</div><div class="mod-title">Daily Answer Writing</div><div class="mod-desc">Daily mains practice with AI-powered instant evaluation and UPSC-style marking schemes.</div></div><div class="mod-tag tag-emerald">Instant Evaluation</div></div>
+    <div class="mod-card mc-cyan reveal reveal-delay-3"><div><div class="mod-icon-wrap mw-cyan">🎯</div><div class="mod-title">Mock Tests</div><div class="mod-desc">Full-length Prelims &amp; Mains simulations in UPSC pattern. Timed, scored, ranked.</div></div><div class="mod-tag tag-cyan">Test Series</div></div>
+    <div class="mod-card mc-violet reveal reveal-delay-4"><div><div class="mod-icon-wrap mw-violet">📚</div><div class="mod-title">Previous Year Questions</div><div class="mod-desc">30 years of PYQs with trend analysis, topic clustering, and examiner insights.</div></div><div class="mod-tag tag-violet">PYQ Bank</div></div>
     <div class="mod-card mc-rose reveal reveal-delay-1"><div><div class="mod-icon-wrap mw-rose">🌐</div><div class="mod-title">Current Affairs</div><div class="mod-desc">Curated daily news, monthly magazines, and UPSC-relevant analysis. Never miss what matters.</div></div><div class="mod-tag tag-rose">Daily Updates</div></div>
     <div class="mod-card mc-navy reveal reveal-delay-2"><div><div class="mod-icon-wrap mw-navy">🎬</div><div class="mod-title">Video Lectures</div><div class="mod-desc">India's best educators. Interactive quizzes, notes &amp; timestamped bookmarks. 500+ hours.</div></div><div class="mod-tag tag-navy">500+ Hours</div></div>
     <div class="mod-card mc-teal reveal reveal-delay-3"><div><div class="mod-icon-wrap mw-teal">📋</div><div class="mod-title">Syllabus Tracker</div><div class="mod-desc">Visual progress across GS I–IV &amp; Optional. Know your coverage, never leave a topic behind.</div></div><div class="mod-tag tag-teal">Smart Tracking</div></div>
@@ -824,10 +945,10 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
       <h2 class="section-h2-light">Experience the Power<br>of <span style="color:var(--gold)">AI-First Learning</span></h2>
       <p class="section-p-light" style="margin-top:12px">Our AI doesn't just grade. It understands your gaps, adapts your plan, and coaches you like a personal mentor — 24/7.</p>
       <div class="ai-features-switcher" id="aiFeatSwitcher">
-        <div class="ai-feat active" data-slide="0"><div class="ai-feat-header"><div class="ai-feat-icon" style="background:rgba(232,184,75,0.14)">📖</div><div class="ai-feat-title">Instant Mains Evaluator</div></div><div class="ai-feat-desc">Upload handwritten or typed answers. Get structured feedback, marks, and improvement tips in under 60 seconds — UPSC-examiner style.</div><div class="ai-feat-progress"><div class="ai-feat-progress-fill"></div></div></div>
-        <div class="ai-feat" data-slide="1"><div class="ai-feat-header"><div class="ai-feat-icon" style="background:rgba(6,182,212,0.14)">🤖</div><div class="ai-feat-title">UPSC GPT Assistant</div></div><div class="ai-feat-desc">Ask anything UPSC — syllabus queries, current affairs context, answer structuring, or doubt clearing. Always sharp.</div><div class="ai-feat-progress"><div class="ai-feat-progress-fill"></div></div></div>
-        <div class="ai-feat" data-slide="2"><div class="ai-feat-header"><div class="ai-feat-icon" style="background:rgba(139,92,246,0.14)">⚡</div><div class="ai-feat-title">Adaptive Test Generator</div></div><div class="ai-feat-desc">AI builds personalised mock tests targeting your weakest areas — ensuring every session moves the needle.</div><div class="ai-feat-progress"><div class="ai-feat-progress-fill"></div></div></div>
-        <div class="ai-feat" data-slide="3"><div class="ai-feat-header"><div class="ai-feat-icon" style="background:rgba(16,185,129,0.14)">🌐</div><div class="ai-feat-title">Current Affairs Digest</div></div><div class="ai-feat-desc">AI curates and connects daily news to UPSC syllabus tags — so you see relevance instantly, not after reading 10 pages.</div><div class="ai-feat-progress"><div class="ai-feat-progress-fill"></div></div></div>
+        <div class="ai-feat active" data-slide="0"><div class="ai-feat-header"><div class="ai-feat-icon" style="background:rgba(232,184,75,0.14)">📖</div><div class="ai-feat-title">Instant Mains Evaluator</div></div><div class="ai-feat-desc">Upload your handwritten or typed answers and receive structured feedback, marks, and personalized improvement tips. Our UPSC-examiner style analysis is delivered in under 60 seconds.</div><div class="ai-feat-progress"><div class="ai-feat-progress-fill"></div></div></div>
+        <div class="ai-feat" data-slide="1"><div class="ai-feat-header"><div class="ai-feat-icon" style="background:rgba(6,182,212,0.14)">🤖</div><div class="ai-feat-title">Jeet AI Assistant</div></div><div class="ai-feat-desc">Get instant, precise answers for all your UPSC queries, covering everything from syllabus details and current affairs context to answer structuring and general doubt resolution.</div><div class="ai-feat-progress"><div class="ai-feat-progress-fill"></div></div></div>
+        <div class="ai-feat" data-slide="2"><div class="ai-feat-header"><div class="ai-feat-icon" style="background:rgba(139,92,246,0.14)">⚡</div><div class="ai-feat-title">Adaptive Mock Test Platform</div></div><div class="ai-feat-desc">Personalised mock tests targeting your weakest areas, ensuring every session moves the needle towards your goal.</div><div class="ai-feat-progress"><div class="ai-feat-progress-fill"></div></div></div>
+        <div class="ai-feat" data-slide="3"><div class="ai-feat-header"><div class="ai-feat-icon" style="background:rgba(16,185,129,0.14)">🌐</div><div class="ai-feat-title">Current Affairs Digest</div></div><div class="ai-feat-desc">Our platform instantly connects daily news articles with the relevant UPSC syllabus. For each article, we provide a detailed summary, related practice MCQs and Mains examination questions.</div><div class="ai-feat-progress"><div class="ai-feat-progress-fill"></div></div></div>
       </div>
     </div>
     <div class="ai-right reveal reveal-delay-2">
@@ -895,7 +1016,7 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
       </div>
     </div>
     <div class="tools-grid-2">
-      <div class="tool-card tc-gold reveal reveal-delay-1"><div class="tool-icon-box tib-gold">🃏</div><h4>Flashcards</h4><p>5,000+ pre-built smart cards across all GS topics. Scheduled by difficulty, never boring.</p><div class="tool-arrow">Explore →</div></div>
+      <div class="tool-card tc-gold reveal reveal-delay-1"><div class="tool-icon-box tib-gold">🃏</div><h4>Flashcards</h4><p>1,000+ pre-built smart cards across all GS topics. Scheduled by difficulty, never boring.</p><div class="tool-arrow">Explore →</div></div>
       <div class="tool-card tc-cyan reveal reveal-delay-2"><div class="tool-icon-box tib-cyan">🧠</div><h4>Mind Maps</h4><p>Visual concept maps linking ideas across GS. Build connections, not isolated notes.</p><div class="tool-arrow">Explore →</div></div>
       <div class="tool-card tc-emerald reveal reveal-delay-3"><div class="tool-icon-box tib-emerald">🔁</div><h4>Spaced Repetition</h4><p>Ebbinghaus-powered review scheduling. Study smarter — revisit topics exactly when needed.</p><div class="tool-arrow">Explore →</div></div>
       <div class="tool-card tc-violet reveal reveal-delay-4"><div class="tool-icon-box tib-violet">📅</div><h4>Study Planner</h4><p>AI-generated daily plans adapting to your pace, goals, and exam date. Zero manual planning.</p><div class="tool-arrow">Explore →</div></div>
@@ -954,7 +1075,7 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
     <div class="analytics-right reveal reveal-delay-2">
       <div class="section-eyebrow eyebrow-dark">Smart Analytics</div>
       <h2 class="section-h2-dark">Know Exactly<br>Where You Stand</h2>
-      <p class="section-p-dark" style="margin:14px 0 32px">Our Performance Analytics Dashboard tracks every question, test, and answer — identifying weak areas before they cost you marks.</p>
+      <p class="section-p-dark" style="margin:14px 0 32px">Our Performance Analytics Dashboard meticulously monitors every question, test, and mains answers. This thorough tracking proactively pinpoints weak areas, preventing potential loss of marks.</p>
       <div class="analytics-points">
         <div class="apoint"><div class="apoint-icon" style="background:#FEF3C7">📈</div><div class="apoint-body"><h4>Test Analytics</h4><p>Question-level breakdown, time-per-question, and rank prediction after every mock.</p></div></div>
         <div class="apoint"><div class="apoint-icon" style="background:#E0F7FA">🎯</div><div class="apoint-body"><h4>Weak Area Identification</h4><p>AI pinpoints your weakest sub-topics and auto-schedules targeted revision sessions.</p></div></div>
@@ -969,12 +1090,11 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
   <div class="mentor-inner">
     <div class="mentor-top">
       <div class="reveal">
-        <div class="section-eyebrow eyebrow-light">Expert Mentorship</div>
-        <h2 class="section-h2-light">The Right Strategy<br>Changes Everything</h2>
-        <p class="section-p-light" style="margin-top:12px;max-width:380px">Personal guidance from mentors who have walked the UPSC path — and made it.</p>
+        <div class="section-eyebrow eyebrow-light">1-on-1 Personalised Mentorship</div>
+        <h2 class="section-h2-light">1-on-1 Personalised<br>Mentorship</h2>
+        <p class="section-p-light" style="margin-top:12px;max-width:380px">Personalized 1-on-1 UPSC Mentorship tailored to your preparation journey and built to help you succeed in Prelims, Mains and interview</p>
         <div class="mentor-cta-row">
           <button class="btn-schedule" onclick="go('/dashboard/free-trial')">📅 Schedule Mentor Session</button>
-          <button class="btn-schedule-ghost" onclick="go('/dashboard/free-trial')">↗ View All Mentors</button>
         </div>
       </div>
       <div class="mentor-quote-card reveal reveal-delay-2">
@@ -982,7 +1102,7 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
         <div class="mqc-text">"The difference between aspirants and officers is often not knowledge — it is strategy. We help you build the right one."</div>
         <div class="mqc-author">
           <div class="mqc-av">J</div>
-          <div><div class="mqc-name">Jeet Sharma</div><div class="mqc-role">Founder &amp; Mentor · Ex-Civil Servant</div></div>
+          <div><div class="mqc-name">Abhijeet Soni</div><div class="mqc-role">Founder &amp; Mentor Rise With Jeet IAS | UPSC Simplified</div></div>
         </div>
       </div>
     </div>
@@ -1003,7 +1123,7 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
       <div style="display:flex;justify-content:center;margin-top:14px">
         <div class="live-pulse"><div class="pulse-dot"></div>532 students studying right now</div>
       </div>
-      <p class="section-p-dark" style="margin-top:14px">Accountability, peer learning, and community — because the UPSC journey is better together.</p>
+      <p class="section-p-dark" style="margin-top:14px">Accountability, peer learning, and community, because the UPSC journey is better together.</p>
     </div>
     <div class="live-card reveal reveal-delay-1">
       <div style="display:flex;align-items:center;gap:18px">
@@ -1111,7 +1231,7 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
               </div>
               <div class="ps-eval-card">
                 <div class="ps-eval-icon">🤖</div>
-                <div class="ps-eval-text"><div class="ps-eval-title">Submit Mains Answer</div><div class="ps-eval-sub">AI evaluates in &lt;60 seconds</div></div>
+                <div class="ps-eval-text"><div class="ps-eval-title">Submit Mains Answer</div><div class="ps-eval-sub">Instant Mains Evaluation in &lt;60 seconds</div></div>
                 <div class="ps-eval-arrow">→</div>
               </div>
             </div>
@@ -1123,8 +1243,8 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
   </div>
 </section>
 
-<!-- ═══ PRICING ═══ -->
-<section class="pricing-section" id="pricing">
+<!-- ═══ PRICING (PARKED - removed from landing page, to be used in separate pricing module) ═══ -->
+<!-- <section class="pricing-section" id="pricing">
   <div class="pricing-inner">
     <div class="reveal">
       <div class="section-eyebrow eyebrow-light" style="justify-content:center">Simple Pricing</div>
@@ -1156,16 +1276,16 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
       </div>
     </div>
   </div>
-</section>
+</section> -->
 
 <!-- ═══ CTA ═══ -->
 <section class="cta-section">
   <div class="cta-box reveal">
     <h2>Your UPSC Journey<br>Starts <span style="color:var(--gold)">Today</span></h2>
-    <p>Join 50,000+ aspirants already preparing smarter. No credit card needed.</p>
+    <p>Join 15,000+ aspirants already preparing smarter. No credit card needed.</p>
     <div class="cta-btns">
       <button class="cta-primary" onclick="go('/login?tab=signup')">Start Free Trial →</button>
-      <button class="cta-secondary" style="border-color:rgba(255,255,255,0.2)" onclick="document.getElementById('modules').scrollIntoView({behavior:'smooth'})">Explore Modules</button>
+      <button class="cta-secondary" style="border-color:rgba(255,255,255,0.2)" onclick="go('/contact')">Connect Us</button>
     </div>
   </div>
 </section>
@@ -1180,7 +1300,7 @@ footer { background:var(--navy-deep); padding:68px 56px 44px; border-top:1px sol
     </div>
     <div><div class="fc-title">Platform</div><ul class="fc-links"><li><a href="#" onclick="go('/dashboard/daily-mcq')">Daily MCQ</a></li><li><a href="#" onclick="go('/dashboard/mock-tests')">Mock Tests</a></li><li><a href="#" onclick="go('/dashboard/daily-answer')">Answer Writing</a></li><li><a href="#" onclick="go('/dashboard/video-lectures')">Video Lectures</a></li><li><a href="#" onclick="go('/dashboard/daily-editorial')">Current Affairs</a></li></ul></div>
     <div><div class="fc-title">Revision Tools</div><ul class="fc-links"><li><a href="#" onclick="go('/dashboard/flashcards')">Flashcards</a></li><li><a href="#" onclick="go('/dashboard/mindmap')">Mind Maps</a></li><li><a href="#" onclick="go('/dashboard/spaced-repetition')">Spaced Repetition</a></li><li><a href="#" onclick="go('/dashboard/study-planner')">Study Planner</a></li><li><a href="#" onclick="go('/dashboard/syllabus-tracker')">Syllabus Tracker</a></li></ul></div>
-    <div><div class="fc-title">Company</div><ul class="fc-links"><li><a href="#" onclick="go('/our-story')">About Us</a></li><li><a href="#" onclick="go('/dashboard/free-trial')">Mentorship</a></li><li><a href="#" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">Pricing</a></li><li><a href="#" onclick="go('/faq')">Help Center</a></li><li><a href="#" onclick="go('/privacy')">Privacy Policy</a></li></ul></div>
+    <div><div class="fc-title">Company</div><ul class="fc-links"><li><a href="#" onclick="go('/our-story')">Built by an Aspirant, for Every Aspirant</a></li><li><a href="#" onclick="go('/blog')">Blog and Articles</a></li><li><a href="#" onclick="go('/pricing')">Pricing</a></li><li><a href="#" onclick="go('/faq')">Frequently Asked Questions</a></li><li><a href="#" onclick="go('/privacy')">Privacy Policy</a></li><li><a href="#" onclick="go('/cookies')">Cookie Policy</a></li><li><a href="#" onclick="go('/refund')">Refund and Cancellation</a></li></ul></div>
   </div>
   <div class="footer-bottom">
     <p>© 2026 RiseWithJeet. All rights reserved.</p>
@@ -1209,7 +1329,7 @@ new IntersectionObserver((entries) => {
 const slides = document.querySelectorAll('.demo-slide');
 const feats = document.querySelectorAll('.ai-feat');
 const deviceTitle = document.getElementById('deviceTitle');
-const titles = ['Mains Evaluator — AI Mode','UPSC GPT Assistant','Adaptive Test Generator','Current Affairs Digest'];
+const titles = ['Mains Evaluator — AI Mode','Jeet AI Assistant','Adaptive Mock Test Platform','Current Affairs Digest'];
 let currentSlide = 0, autoTimer;
 
 function switchSlide(idx) {
@@ -1273,6 +1393,41 @@ if (di) {
     diTimer = setTimeout(() => {}, 300);
   });
 }
+
+// ── Hamburger Menu ──
+const hamBtn = document.getElementById('navHamburger');
+const mobileNavEl = document.getElementById('mobileNav');
+function closeMobileNav() {
+  hamBtn.classList.remove('open');
+  mobileNavEl.classList.remove('open');
+  document.body.style.overflow = '';
+}
+if (hamBtn) {
+  hamBtn.addEventListener('click', () => {
+    const isOpen = mobileNavEl.classList.toggle('open');
+    hamBtn.classList.toggle('open', isOpen);
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('nav') && !e.target.closest('.mobile-nav')) closeMobileNav();
+  });
+}
+
+// ── Auto-resize iframe parent height ──
+function notifyParentHeight() {
+  // Use documentElement.scrollHeight — unaffected by overflow-x:hidden on body
+  const h = document.documentElement.scrollHeight || document.body.scrollHeight;
+  if (h > 200) {
+    try { window.parent.postMessage({ type: 'landingHeight', height: h }, '*'); } catch(e) {}
+  }
+}
+// Fire at multiple points to handle lazy-loaded content and fonts
+document.addEventListener('DOMContentLoaded', notifyParentHeight);
+window.addEventListener('load', notifyParentHeight);
+window.addEventListener('resize', notifyParentHeight);
+setTimeout(notifyParentHeight, 300);
+setTimeout(notifyParentHeight, 800);
+setTimeout(notifyParentHeight, 2000);
 </script>
 </body>
 </html>

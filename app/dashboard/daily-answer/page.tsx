@@ -65,7 +65,7 @@ export default function DailyMainsChallengePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col bg-gray-50 font-arimo relative overflow-hidden" style={{ height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
+      <div className="flex flex-col bg-gray-50 font-arimo relative overflow-hidden" style={{ height: '100%' }}>
         <main className="flex-1 flex items-center justify-center p-6">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
         </main>
@@ -75,7 +75,7 @@ export default function DailyMainsChallengePage() {
 
   if (error || !data) {
     return (
-      <div className="flex flex-col bg-gray-50 font-arimo relative overflow-hidden" style={{ height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
+      <div className="flex flex-col bg-gray-50 font-arimo relative overflow-hidden" style={{ height: '100%' }}>
         <main className="flex-1 flex items-center justify-center p-6">
           <div className="text-center">
             <h2 className="text-xl font-bold text-gray-800 mb-2">No Mains Challenge Today</h2>
@@ -90,14 +90,13 @@ export default function DailyMainsChallengePage() {
   return (
     <div className="flex flex-col bg-gray-50 font-arimo relative min-h-screen overflow-y-auto">
       {/* Intro Card Section */}
-      <main className="flex items-center justify-center p-6 relative z-10" style={{ minHeight: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
+      <main className="flex items-center justify-center p-4 md:p-6 relative z-10 py-8">
         <div
-          className="relative bg-white rounded-[16px] flex flex-col items-center shadow-lg"
+          className="relative bg-white rounded-[16px] flex flex-col items-center shadow-lg w-full max-w-[605px] mx-auto px-4 md:px-8"
           style={{
-            width: '605px',
-            height: '630px',
             boxShadow: '0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -4px rgba(0, 0, 0, 0.1)',
-            paddingTop: '32px'
+            paddingTop: '32px',
+            paddingBottom: '32px',
           }}
         >
           {/* Top Icon */}
@@ -197,7 +196,7 @@ export default function DailyMainsChallengePage() {
               <button
                 className="flex items-center justify-center gap-3 bg-green-600 text-white rounded-[10px] hover:scale-105 transition-transform shadow-lg"
                 style={{
-                  width: '232px',
+                  width: 'min(232px, 100%)',
                   height: '52px',
                   marginTop: '10px'
                 }}
@@ -210,7 +209,7 @@ export default function DailyMainsChallengePage() {
               <button
                 className="flex items-center justify-center gap-3 bg-[#101828] text-white rounded-[10px] hover:scale-105 transition-transform shadow-lg"
                 style={{
-                  width: '232px',
+                  width: 'min(232px, 100%)',
                   height: '52px',
                   marginTop: '10px'
                 }}
@@ -253,11 +252,10 @@ export default function DailyMainsChallengePage() {
         </div>
 
         {/* Main Title */}
-        <h1 
-            className="text-center font-inter text-[#17223E] mb-6"
+        <h1
+            className="text-center font-inter text-[#17223E] mb-6 text-2xl sm:text-4xl md:text-5xl lg:text-[60px]"
             style={{
-                fontSize: '60px',
-                lineHeight: '70px',
+                lineHeight: '1.2',
                 fontWeight: 400
             }}
         >
@@ -266,11 +264,10 @@ export default function DailyMainsChallengePage() {
         </h1>
 
         {/* Subtitle / Description */}
-        <p 
-            className="text-center text-[#4A5565] mb-16 px-4"
+        <p
+            className="text-center text-[#4A5565] mb-10 md:mb-16 px-4 text-base md:text-lg lg:text-[20px]"
             style={{
-                fontSize: '20px',
-                lineHeight: '26px',
+                lineHeight: '1.5',
                 maxWidth: '900px'
             }}
         >
@@ -280,12 +277,11 @@ export default function DailyMainsChallengePage() {
 
         {/* Question Card Container */}
         <div
-            className="relative rounded-[30px]"
+            className="relative rounded-[30px] w-full max-w-[1091px] mx-auto"
             style={{
-                width: '1091px',
                 minHeight: '336px',
                 boxShadow: '0px 1px 2px -1px #0000001A, 0px 1px 3px 0px #0000001A',
-                padding: '30px 40px',
+                padding: 'clamp(16px, 2.5vw, 30px) clamp(16px, 3vw, 40px)',
                 background: '#FFFFFF',
             }}
         >
@@ -415,7 +411,7 @@ export default function DailyMainsChallengePage() {
             <div
               className="bg-white rounded-[16px] flex flex-col items-center justify-center mb-6"
               style={{
-                width: '1091px',
+                width: '100%', maxWidth: '1091px',
                 minHeight: '263px',
                 boxShadow: '0px 1px 3px 0px #0000001A, 0px 1px 2px -1px #0000001A',
                 padding: '30px'
@@ -465,7 +461,7 @@ export default function DailyMainsChallengePage() {
             <div
               className="bg-white rounded-[16px] flex flex-col items-center pt-[68px] pb-8"
               style={{
-                width: '1091px',
+                width: '100%', maxWidth: '1091px',
                 minHeight: '600px',
                 boxShadow: '0px 1px 3px 0px #0000001A, 0px 1px 2px -1px #0000001A'
               }}
@@ -502,7 +498,7 @@ export default function DailyMainsChallengePage() {
                 onClick={() => router.push('/dashboard/daily-answer/challenge/attempt/evaluating')}
                 className="flex items-center justify-center gap-2 text-white font-bold transition-transform hover:scale-105 mb-4"
                 style={{
-                  width: '640px',
+                  width: '100%', maxWidth: '640px',
                   height: '56px',
                   background: '#17223E',
                   borderRadius: '14px',

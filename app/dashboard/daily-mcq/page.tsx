@@ -56,11 +56,11 @@ export default function DailyMcqIntroPage() {
     .trim();
 
   return (
-    <div className="flex flex-col overflow-hidden" style={{ height: 'calc(100vh - clamp(90px, 5.78vw, 111px))', background: '#ffffff' }}>
+    <div className="flex flex-col overflow-hidden" style={{ height: '100%', background: '#ffffff' }}>
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center p-4">
         {/* Intro Card */}
-        <div className="card-elevated rounded-[16px] p-8 text-center" style={{ width: '605px', height: '630px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card-elevated rounded-[16px] p-6 md:p-8 text-center w-full max-w-[605px] mx-auto" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           {/* Icon */}
           <div className="flex justify-center mb-6">
             <img src="/icons/dashboard/daily-mcq.png" alt="Target Icon" className="w-[51px] h-[44px] object-contain" />
@@ -82,7 +82,7 @@ export default function DailyMcqIntroPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-3 w-[300px] mx-auto mb-8">
+          <div className="grid grid-cols-3 w-full max-w-[300px] mx-auto mb-8">
             <div className="flex flex-col items-center">
               <div className="font-arimo font-bold text-[#101828] text-[32px] leading-tight max-md:text-[24px]">{mcq.questionCount}</div>
               <div className="font-arimo text-[#667085] text-[12px] mt-1">Questions</div>
@@ -99,13 +99,13 @@ export default function DailyMcqIntroPage() {
 
           {mcq.attempted ? (
             <Link href="/dashboard/daily-mcq/results">
-              <button className="w-[232px] h-[52px] bg-green-600 text-white rounded-[10px] hover:bg-green-700 transition-all flex items-center justify-center gap-2 mx-auto font-arimo font-bold text-[20px] leading-[24px]">
+              <button className="w-full max-w-[232px] h-[52px] bg-green-600 text-white rounded-[10px] hover:bg-green-700 transition-all flex items-center justify-center gap-2 mx-auto font-arimo font-bold text-[20px] leading-[24px]">
                 View Results
               </button>
             </Link>
           ) : (
             <Link href="/dashboard/daily-mcq/challenge">
-              <button className="w-[232px] h-[52px] bg-[#101828] text-white rounded-[10px] hover:bg-[#1A1A1A] transition-all flex items-center justify-center gap-2 mx-auto font-arimo font-bold text-[20px] leading-[24px]">
+              <button className="w-full max-w-[232px] h-[52px] bg-[#101828] text-white rounded-[10px] hover:bg-[#1A1A1A] transition-all flex items-center justify-center gap-2 mx-auto font-arimo font-bold text-[20px] leading-[24px]">
                 <img src="/icon-1.png" alt="" className="w-5 h-5 object-contain" />
                 Start Now
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-white ml-1">

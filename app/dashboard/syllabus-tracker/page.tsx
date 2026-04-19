@@ -213,39 +213,6 @@ export default function SyllabusTrackerPage() {
 
   return (
     <div className="flex flex-col h-full bg-[#f3f6fb]">
-      {/* Topbar */}
-      <div className="bg-white border-b-[1.5px] border-[#e0e8f4] px-[22px] h-[52px] flex items-center justify-between flex-shrink-0 shadow-sm z-10">
-        <div className="font-playfair text-[18px] text-[#0f1f3d] font-bold">
-          Syllabus Tracker
-        </div>
-        <div className="flex items-center gap-[8px]">
-          <button
-            onClick={handleCollapseAll}
-            className="flex items-center gap-[5px] px-[14px] py-[6px] rounded-[8px] border-[1.5px] border-[#e0e8f4] bg-white text-[#3c4f6d] text-[11.5px] font-semibold cursor-pointer transition-all duration-200 hover:border-[rgba(201,146,26,.30)] hover:text-[#c9921a] hover:bg-[rgba(201,146,26,.10)]"
-          >
-            ⤡ Collapse All
-          </button>
-          <button
-            onClick={handleExpandAll}
-            className="flex items-center gap-[5px] px-[16px] py-[6px] rounded-[8px] border-none text-[#0f1f3d] text-[11.5px] font-extrabold cursor-pointer transition-all duration-200"
-            style={{
-              background: 'linear-gradient(135deg, #e8a820, #c9921a)',
-              boxShadow: '0 2px 10px rgba(201,146,26,.30)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(201,146,26,.38)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 10px rgba(201,146,26,.30)';
-            }}
-          >
-            ⤢ Expand Topics
-          </button>
-        </div>
-      </div>
-
       {/* Page Content - scrollable */}
       <div className="flex-1 overflow-y-auto">
         {/* Hero Section */}

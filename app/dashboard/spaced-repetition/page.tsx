@@ -143,7 +143,7 @@ export default function SpacedRepetitionPage() {
   const visibleItems = items.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   return (
-    <div className="flex overflow-hidden" style={{ background: '#FAFBFE', height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}>
+    <div className="flex overflow-hidden" style={{ background: '#FAFBFE', height: '100%' }}>
       <div className="flex-1 overflow-y-auto">
         <div className="w-full max-w-[1168px] mx-auto px-6 py-6">
           {/* Header banner */}

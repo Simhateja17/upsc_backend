@@ -122,7 +122,7 @@ export default function ResultsPage() {
         <div
           className="flex flex-col items-center justify-center"
           style={{
-            width: '988px',
+            width: '100%', maxWidth: '988px',
             height: '168px',
             borderRadius: '14px',
             background: 'linear-gradient(90deg, #101828 0%, #17223E 100%)',
@@ -171,7 +171,7 @@ export default function ResultsPage() {
         {/* Feedback Card */}
         <div
           style={{
-            width: '988px',
+            width: '100%', maxWidth: '988px',
             borderRadius: '14px',
             background: '#FFFFFF',
             boxShadow: '0px 1px 2px -1px #0000001A, 0px 1px 3px 0px #0000001A',
@@ -186,7 +186,7 @@ export default function ResultsPage() {
             src="/feedback-header.png"
             alt="Personalized Feedback"
             style={{
-              width: '924px',
+              width: '100%', maxWidth: '924px',
               objectFit: 'fill',
             }}
           />
@@ -196,7 +196,7 @@ export default function ResultsPage() {
             src="/feedback-subtitle.png"
             alt="Actionable insights to help you improve, not just a score"
             style={{
-              width: '924px',
+              width: '100%', maxWidth: '924px',
               objectFit: 'fill',
             }}
           />
@@ -224,7 +224,7 @@ export default function ResultsPage() {
               src="/metrics-container.png"
               alt="Metrics"
               style={{
-                width: '924px',
+                width: '100%', maxWidth: '924px',
                 objectFit: 'fill',
               }}
             />
@@ -277,7 +277,7 @@ export default function ResultsPage() {
               src="/feedback-container.png"
               alt="Feedback"
               style={{
-                width: '924px',
+                width: '100%', maxWidth: '924px',
                 height: '387.2px',
                 objectFit: 'fill',
               }}
