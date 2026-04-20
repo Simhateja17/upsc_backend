@@ -490,6 +490,7 @@ export default function VideoLecturesPage() {
                 </p>
               </div>
             ) : (
+              <>
               <div
                 style={{
                   display: 'grid',
@@ -574,7 +575,7 @@ export default function VideoLecturesPage() {
                           Ask Mentor
                         </button>
                         <button
-                          onClick={() => handleWatchVideo(video)}
+                          onClick={() => { const u = video.youtubeUrl || video.url || ''; window.open(u.startsWith('http') ? u : `https://${u}`, '_blank'); }}
                           className="flex items-center gap-1 font-arimo font-bold text-white"
                           style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#162456', border: 'none', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
                         >
@@ -684,6 +685,7 @@ export default function VideoLecturesPage() {
                   </div>
                 </div>
               </div>
+              </>
             )}
           </div>
         )}
@@ -813,7 +815,7 @@ export default function VideoLecturesPage() {
                         </a>
                       ) : (
                         <button
-                          onClick={() => handleWatchVideo(video)}
+                          onClick={() => { const u = video.youtubeUrl || video.url || ''; window.open(u.startsWith('http') ? u : `https://${u}`, '_blank'); }}
                           className="flex items-center gap-1 font-arimo font-bold text-white"
                           style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#162456', border: 'none', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
                         >
