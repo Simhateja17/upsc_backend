@@ -55,6 +55,9 @@ export default function DailyMcqIntroPage() {
     .replace(/\s*(?:-{1,3}|\u2013|\u2014)\s*[^-\u2013\u2014]+$/, '')
     .trim();
 
+  const marksPerQuestion = mcq.totalMarks / mcq.questionCount;
+  const negativeMarking = marksPerQuestion / 3;
+
   return (
     <div className="flex flex-col overflow-hidden" style={{ height: '100%', background: '#ffffff' }}>
       {/* Main Content */}
@@ -62,38 +65,61 @@ export default function DailyMcqIntroPage() {
         {/* Intro Card */}
         <div className="card-elevated rounded-[16px] p-6 md:p-8 text-center w-full max-w-[605px] mx-auto" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           {/* Icon */}
-          <div className="flex justify-center mb-6">
-            <img src="/icons/dashboard/daily-mcq.png" alt="Target Icon" className="w-[51px] h-[44px] object-contain" />
+          <div className="flex justify-center mb-6" style={{ width: '51px', height: '44px' }}>
+            <img src="/icons/dashboard/daily-mcq.png" alt="Target Icon" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
 
           <h1 className="font-arimo font-bold text-[#101828] text-[24px] leading-[32px] mb-2">
-            {displayTitle || mcq.title}
+            Today's Daily MCQs
           </h1>
 
           <p className="font-arimo text-[#667085] text-[14px] leading-[20px] mb-6">
             Sharpen your knowledge with focused practice questions
           </p>
 
-          <div className="flex flex-nowrap items-center justify-center gap-2 mb-8 overflow-x-auto">
+          {/* Topic & Focus Capsules */}
+          <div className="flex flex-nowrap items-center justify-center gap-2 mb-6 w-full overflow-hidden">
             {mcq.tags.map((tag) => (
-              <span key={tag} className="px-3 py-1 bg-[#EFF6FF] text-[#101828] rounded-full font-arimo text-[14px] leading-[20px] whitespace-nowrap">
+              <span key={tag} className="px-3 py-1 bg-[#EFF6FF] text-[#101828] rounded-full font-arimo text-[14px] leading-[20px] whitespace-nowrap truncate max-w-[140px]" title={tag}>
                 {tag}
               </span>
             ))}
           </div>
 
-          <div className="grid grid-cols-3 w-full max-w-[300px] mx-auto mb-8">
-            <div className="flex flex-col items-center">
-              <div className="font-arimo font-bold text-[#101828] text-[32px] leading-tight max-md:text-[24px]">{mcq.questionCount}</div>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-4 w-full max-w-[340px] mx-auto mb-6">
+            <div className="flex flex-col items-center p-3 rounded-[12px]" style={{ background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div className="font-arimo font-bold text-[#101828] text-[28px] leading-tight">{mcq.questionCount}</div>
               <div className="font-arimo text-[#667085] text-[12px] mt-1">Questions</div>
             </div>
-            <div className="flex flex-col items-center">
-              <div className="font-arimo font-bold text-[#101828] text-[32px] leading-tight max-md:text-[24px]">{mcq.timeLimit}</div>
+            <div className="flex flex-col items-center p-3 rounded-[12px]" style={{ background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div className="font-arimo font-bold text-[#101828] text-[28px] leading-tight">{mcq.timeLimit}</div>
               <div className="font-arimo text-[#667085] text-[12px] mt-1">Minutes</div>
             </div>
-            <div className="flex flex-col items-center">
-              <div className="font-arimo font-bold text-[#101828] text-[32px] leading-tight max-md:text-[24px]">{mcq.totalMarks}</div>
-              <div className="font-arimo text-[#667085] text-[12px] mt-1">Marks</div>
+            <div className="flex flex-col items-center p-3 rounded-[12px]" style={{ background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div className="font-arimo font-bold text-[#101828] text-[28px] leading-tight">{mcq.totalMarks}</div>
+              <div className="font-arimo text-[#667085] text-[12px] mt-1">Max Marks</div>
+            </div>
+          </div>
+
+          {/* Marking Pattern */}
+          <div className="w-full max-w-[340px] mx-auto mb-6 rounded-[12px] p-4" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+            <div className="font-arimo font-bold text-[#166534] text-[14px] leading-[20px] mb-3 text-left">
+              MARKING PATTERN
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ background: '#00A63E' }}></span>
+                <span className="font-arimo text-[#166534] text-[14px]">Correct answer</span>
+              </div>
+              <span className="font-arimo font-bold text-[#00A63E] text-[14px]">+{marksPerQuestion.toFixed(2)} marks</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ background: '#E7000B' }}></span>
+                <span className="font-arimo text-[#166534] text-[14px]">Wrong answer</span>
+              </div>
+              <span className="font-arimo font-bold text-[#E7000B] text-[14px]">-{negativeMarking.toFixed(2)} marks</span>
             </div>
           </div>
 

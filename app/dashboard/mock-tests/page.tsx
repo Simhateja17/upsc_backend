@@ -33,6 +33,7 @@ const subjectEmojiMap: Record<string, string> = {
   'International Relations': '🌍',
   'Security & Defence': '🛡️',
   'Art': '🎨',
+  'Ancient History': '🏛️',
 };
 
 const fallbackExamModes = [
@@ -48,16 +49,23 @@ const fallbackMainsPaperTypes = [
 ];
 
 const fallbackOptionalSubjects = [
-  'Public Administration', 'Geography', 'History', 'Sociology',
-  'Political Science', 'Philosophy', 'Economics', 'Anthropology',
-  'Psychology', 'Law',
+  { name: 'Public Administration', icon: '🏛️' },
+  { name: 'Geography', icon: '🗺️' },
+  { name: 'History', icon: '📚' },
+  { name: 'Sociology', icon: '👥' },
+  { name: 'Political Science', icon: '⚖️' },
+  { name: 'Philosophy', icon: '' },
+  { name: 'Economics', icon: '📊' },
+  { name: 'Anthropology', icon: '🦴' },
+  { name: 'Psychology', icon: '🧩' },
+  { name: 'Law', icon: '📜' },
 ];
 
 const fallbackDifficulties = [
-  { id: 'easy', emoji: '🌱', label: 'Easy', description: 'Foundation level' },
-  { id: 'medium', emoji: '⚡', label: 'Medium', description: 'Exam standard' },
-  { id: 'hard', emoji: '🔥', label: 'Hard', description: 'Advanced level' },
-  { id: 'mixed', emoji: '🎯', label: 'Mixed', description: 'All difficulty levels' },
+  { id: 'easy', emoji: '🌱', label: 'Easy', description: 'Foundation level', icon: '/diff-foundation.png' },
+  { id: 'medium', emoji: '⚡', label: 'Medium', description: 'Exam standard', icon: '/diff-exam.png' },
+  { id: 'hard', emoji: '🔥', label: 'Hard', description: 'Advanced', icon: '/diff-advanced.png' },
+  { id: 'mixed', emoji: '🎯', label: 'Mixed', description: 'All levels', icon: '/diff-all.png' },
 ];
 
 /* ─── StepHeader Helper ─── */
@@ -105,7 +113,7 @@ function MockTestsPageInner() {
   const [selectedExamMode, setSelectedExamMode] = useState('prelims');
   const [selectedPaperType, setSelectedPaperType] = useState('gs1');
   const [selectedOptional, setSelectedOptional] = useState<string | null>(null);
-  const [questionCount, setQuestionCount] = useState(5);
+  const [questionCount, setQuestionCount] = useState(2);
   const [selectedDifficulty, setSelectedDifficulty] = useState('medium');
   const [showProModal, setShowProModal] = useState(false);
   const [proModalFeature, setProModalFeature] = useState<string>('Full-Length Tests');
@@ -197,7 +205,9 @@ function MockTestsPageInner() {
     }
   };
 
-  const estimatedMinutes = Math.ceil(questionCount * 1.6);
+  const estimatedMinutes = selectedExamMode === 'mains'
+    ? Math.ceil(questionCount * 9)
+    : Math.ceil(questionCount * 1.6);
 
   /* Derive display labels for summary */
   const sourceLabel = questionSources.find(s => s.id === selectedSource)?.label ?? 'Daily MCQ';
@@ -337,22 +347,60 @@ function MockTestsPageInner() {
       <main className="flex-1 overflow-y-auto" style={{ background: '#F9FAFB' }}>
 
         {/* ── Hero Area (Full Width) ── */}
-        <div style={{ textAlign: 'center', padding: 'clamp(28px, 2.5vw, 40px) clamp(16px, 1.5vw, 24px) clamp(14px, 1.2vw, 20px)', maxWidth: '1320px', margin: '0 auto' }}>
+        <div style={{
+          textAlign: 'center',
+          padding: 'clamp(28px, 2.5vw, 40px) clamp(16px, 1.5vw, 24px) clamp(14px, 1.2vw, 20px)',
+          maxWidth: '1320px',
+          margin: '0 auto',
+          background: 'linear-gradient(135deg, #0F172B 0%, #162456 50%, #1E3A5F 100%)',
+          borderRadius: '0 0 24px 24px',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Grid pattern overlay */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
+            pointerEvents: 'none',
+          }} />
+          {/* Glow effects */}
+          <div style={{
+            position: 'absolute',
+            top: '-50%',
+            left: '-20%',
+            width: '500px',
+            height: '500px',
+            background: 'radial-gradient(circle, rgba(253,199,0,0.08) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '-30%',
+            right: '-10%',
+            width: '400px',
+            height: '400px',
+            background: 'radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
 
             {/* Badge pill */}
             <div style={{
               display: 'inline-block',
-              background: '#0F172B',
-              color: '#FFFFFF',
+              background: 'rgba(255,255,255,0.1)',
+              color: '#FDC700',
               fontFamily: 'Inter, sans-serif',
               fontWeight: 600,
               fontSize: '12px',
               padding: '4px 14px',
               borderRadius: '999px',
               marginBottom: '14px',
-              border: '1px solid #0F172B',
+              border: '1px solid rgba(253,199,0,0.3)',
+              position: 'relative',
+              zIndex: 1,
             }}>
-              📊 India&apos;s #1 UPSC Mock Test Platform
+              📊 MOCK TEST PLATFORM
             </div>
 
             {/* Heading */}
@@ -361,11 +409,13 @@ function MockTestsPageInner() {
               fontWeight: 700,
               fontSize: '42px',
               lineHeight: '50px',
-              color: '#101828',
+              color: '#FFFFFF',
               marginBottom: '8px',
+              position: 'relative',
+              zIndex: 1,
             }}>
               Build Your{' '}
-              <span style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontStyle: 'italic', fontSize: '42px', lineHeight: '50px', color: '#C68A0B' }}>Perfect</span>{' '}
+              <span style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontStyle: 'italic', fontSize: '42px', lineHeight: '50px', color: '#FDC700' }}>Perfect</span>{' '}
               Mock Test
             </h1>
 
@@ -375,30 +425,33 @@ function MockTestsPageInner() {
               fontWeight: 400,
               fontSize: '15px',
               lineHeight: '22px',
-              color: '#4A5565',
+              color: 'rgba(255,255,255,0.7)',
               marginBottom: '20px',
+              position: 'relative',
+              zIndex: 1,
             }}>
-              Adaptive questions · Real exam environment · Detailed analytics. Everything free.
+              Adaptive questions · Real exam environment · Detailed analytics. Add as much as it.
             </p>
 
             {/* Stats Container */}
             <div style={{
-              background: '#FFFFFF',
+              background: 'rgba(255,255,255,0.06)',
               borderRadius: '16px',
-              border: '0.8px solid #E5E7EB',
-              boxShadow: '0px 1px 3px 0px #0000001A',
+              border: '1px solid rgba(255,255,255,0.1)',
               padding: '20px 36px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               maxWidth: '600px',
               margin: '0 auto',
+              position: 'relative',
+              zIndex: 1,
             }}>
               {[
-                { value: platformStats ? `${platformStats.questionsCount.toLocaleString('en-IN')}+` : '—', label: 'Questions', color: '#101828' },
-                { value: platformStats ? `${platformStats.testsCount.toLocaleString('en-IN')}+` : '—', label: 'Tests Taken', color: '#101828' },
-                { value: platformStats ? `${platformStats.usersCount.toLocaleString('en-IN')}+` : '—', label: 'Community', color: '#101828' },
-                { value: '\u221E', label: 'Always Growing', color: '#DBAC49' },
+                { value: platformStats ? `${platformStats.questionsCount.toLocaleString('en-IN')}+` : '50K+', label: 'Questions', color: '#FDC700' },
+                { value: platformStats ? `${platformStats.testsCount.toLocaleString('en-IN')}+` : '15K+', label: 'Community', color: '#FB2C36' },
+                { value: platformStats ? `${platformStats.usersCount.toLocaleString('en-IN')}+` : '10K+', label: 'Tests Taken', color: '#3B82F6' },
+                { value: '86%', label: 'Success Rate', color: '#16A34A' },
               ].map((stat, idx, arr) => (
                 <div key={stat.label} style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
                   <div style={{ textAlign: 'center' }}>
@@ -410,23 +463,21 @@ function MockTestsPageInner() {
                       color: stat.color,
                       fontVariantEmoji: 'text' as React.CSSProperties['fontVariantEmoji'],
                     }}>
-                      {stat.value.includes('+')
-                        ? <>{stat.value.replace('+', '')}<span style={{ color: '#DBAC49' }}>+</span></>
-                        : stat.value}
+                      {stat.value}
                     </div>
                     <div style={{
                       fontFamily: 'Arimo, sans-serif',
                       fontWeight: 400,
                       fontSize: '11px',
                       lineHeight: '16px',
-                      color: '#6A7282',
+                      color: 'rgba(255,255,255,0.5)',
                       textAlign: 'center',
                     }}>
                       {stat.label}
                     </div>
                   </div>
                   {idx < arr.length - 1 && (
-                    <div style={{ width: '1px', height: '40px', background: '#E5E7EB', margin: '0 24px' }} />
+                    <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)', margin: '0 24px' }} />
                   )}
                 </div>
               ))}
@@ -438,10 +489,11 @@ function MockTestsPageInner() {
               alignItems: 'center',
               borderRadius: '999px',
               padding: '5px',
-              background: '#FFFFFF',
-              border: '0.8px solid #E5E7EB',
-              boxShadow: '0px 1px 3px 0px #0000001A',
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.12)',
               marginTop: '22px',
+              position: 'relative',
+              zIndex: 1,
             }}>
               <button
                 onClick={() => setSelectedExamMode('prelims')}
@@ -460,7 +512,7 @@ function MockTestsPageInner() {
                 }}
               >
                 <img src="/9k.png" alt="Prelims" style={{ width: '22px', height: '22px', objectFit: 'contain', flexShrink: 0 }} />
-                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '17px', color: selectedExamMode === 'prelims' ? '#FFFFFF' : '#4A5565' }}>Prelims</span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '17px', color: selectedExamMode === 'prelims' ? '#FFFFFF' : 'rgba(255,255,255,0.6)' }}>Prelims</span>
               </button>
               <button
                 onClick={() => setSelectedExamMode('mains')}
@@ -479,11 +531,11 @@ function MockTestsPageInner() {
                 }}
               >
                 <img src="/8k.png" alt="Mains" style={{ width: '22px', height: '22px', objectFit: 'contain', flexShrink: 0 }} />
-                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '17px', color: selectedExamMode === 'mains' ? '#FFFFFF' : '#4A5565' }}>Mains</span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '17px', color: selectedExamMode === 'mains' ? '#FFFFFF' : 'rgba(255,255,255,0.6)' }}>Mains</span>
               </button>
             </div>
 
-              <p style={{ fontFamily: 'var(--font-inter), Inter, sans-serif', fontSize: 'clamp(13px, 0.85vw, 15px)', lineHeight: 1.6, color: '#CBD5E1' }}>
+              <p style={{ fontFamily: 'var(--font-inter), Inter, sans-serif', fontSize: 'clamp(13px, 0.85vw, 15px)', lineHeight: 1.6, color: 'rgba(255,255,255,0.5)', position: 'relative', zIndex: 1 }}>
                 {practiceStats ? (
                   <>
                     You&apos;ve taken <span style={{ color: '#16A34A', fontWeight: 700 }}>{practiceStats.todayCount} test{practiceStats.todayCount !== 1 ? 's' : ''}</span> today
@@ -676,11 +728,13 @@ function MockTestsPageInner() {
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(6px, 0.45vw, 10px)' }}>
                   {optionalSubjects.map(opt => {
-                    const isSelected = selectedOptional === opt;
+                    const optName = typeof opt === 'string' ? opt : opt.name;
+                    const optIcon = typeof opt === 'object' ? opt.icon : '';
+                    const isSelected = selectedOptional === optName;
                     return (
                       <button
-                        key={opt}
-                        onClick={() => setSelectedOptional(isSelected ? null : opt)}
+                        key={optName}
+                        onClick={() => setSelectedOptional(isSelected ? null : optName)}
                         style={{
                           background: isSelected ? '#17223E' : '#FFF',
                           color: isSelected ? '#FFF' : '#374151',
@@ -692,9 +746,13 @@ function MockTestsPageInner() {
                           fontSize: 'clamp(12px, 0.78vw, 13px)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
                         }}
                       >
-                        {opt}
+                        {optIcon && <span style={{ fontSize: '14px', lineHeight: 1 }}>{optIcon}</span>}
+                        {optName}
                       </button>
                     );
                   })}
@@ -877,7 +935,7 @@ function MockTestsPageInner() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setQuestionCount(c => Math.min(100, c + 1))}
+                  onClick={() => setQuestionCount(c => Math.min(20, c + 1))}
                   style={{
                     width: '64px',
                     height: '64px',
@@ -907,21 +965,21 @@ function MockTestsPageInner() {
                 <input
                   type="range"
                   min="1"
-                  max="100"
+                  max="20"
                   value={questionCount}
                   onChange={(e) => setQuestionCount(Number(e.target.value))}
                   style={{
                     width: '100%',
                     height: '8px',
                     borderRadius: '26843500px',
-                    background: `linear-gradient(90deg, #0F172A 0%, #0F172A ${questionCount}%, #E5E7EB ${questionCount}%, #E5E7EB 100%)`,
+                    background: `linear-gradient(90deg, #0F172A 0%, #0F172A ${((questionCount - 1) / 19) * 100}%, #E5E7EB ${((questionCount - 1) / 19) * 100}%, #E5E7EB 100%)`,
                     appearance: 'none',
                     cursor: 'pointer',
                   }}
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                {[1, 25, 50, 75, 100].map(val => (
+                {[1, 5, 10, 20].map(val => (
                   <span
                     key={val}
                     onClick={() => setQuestionCount(val)}
@@ -943,11 +1001,10 @@ function MockTestsPageInner() {
             {/* Preset Buttons */}
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', marginBottom: '24px' }}>
               {[
-                { value: 5, label: 'Quick 5', icon: '/90.png', active: true },
-                { value: 10, label: 'Standard 10', icon: '/text7.png', active: false },
-                { value: 25, label: '25 Q', icon: '/text8.png', active: false },
-                { value: 50, label: '50 Q', icon: '/text8.png', active: false },
-                { value: 75, label: '75 Q', icon: '/text8.png', active: false },
+                { value: 1, label: '1 Q', icon: '/90.png', active: true },
+                { value: 2, label: '2 Q', icon: '/text7.png', active: false },
+                { value: 5, label: '5 Q', icon: '/text8.png', active: false },
+                { value: 10, label: '10 Q', icon: '/text8.png', active: false },
               ].map(preset => {
                 const isActive = questionCount === preset.value;
                 return (
@@ -982,7 +1039,10 @@ function MockTestsPageInner() {
                 );
               })}
               <button
-                onClick={() => setQuestionCount(100)}
+                onClick={() => {
+                  if (questionCount === 20) return;
+                  setQuestionCount(20);
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -991,10 +1051,11 @@ function MockTestsPageInner() {
                   paddingRight: '20px',
                   height: '40px',
                   borderRadius: '26843500px',
-                  border: questionCount === 100 ? 'none' : '1px solid #E5E7EB',
-                  background: questionCount === 100 ? '#0F172B' : '#FFFFFF',
+                  border: questionCount === 20 ? 'none' : '1px solid #E5E7EB',
+                  background: questionCount === 20 ? '#0F172B' : '#FFFFFF',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
+                  position: 'relative' as const,
                 }}
               >
                 <img src="/text8.png" alt="" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
@@ -1003,9 +1064,23 @@ function MockTestsPageInner() {
                   fontWeight: 600,
                   fontSize: '14px',
                   lineHeight: '20px',
-                  color: questionCount === 100 ? '#FFFFFF' : '#364153',
+                  color: questionCount === 20 ? '#FFFFFF' : '#364153',
                 }}>
-                  Full 100
+                  20 Q
+                </span>
+                <span style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-4px',
+                  background: '#FDC700',
+                  color: '#101828',
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 800,
+                  fontSize: '9px',
+                  padding: '1px 6px',
+                  borderRadius: '999px',
+                }}>
+                  PRO
                 </span>
               </button>
             </div>
@@ -1034,7 +1109,7 @@ function MockTestsPageInner() {
                   lineHeight: '20px',
                   margin: 0,
                 }}>
-                  <strong>Guideline:</strong> You&apos;re setting <strong>{questionCount} questions</strong>. Free users have <strong>10 questions daily</strong>. This generates from <strong>PYQ, questions bank</strong>.
+                  <strong>Guideline:</strong> You&apos;re setting <strong>{questionCount} question{questionCount !== 1 ? 's' : ''}</strong>. Free users have <strong>{selectedExamMode === 'mains' ? '2' : '10'} questions daily</strong>. This is generated from <strong>PYQ, questions bank</strong>.
                 </p>
               </div>
               <button style={{
@@ -1114,7 +1189,7 @@ function MockTestsPageInner() {
                   color: '#FDC700',
                   textTransform: 'uppercase' as const,
                 }}>
-                  Test Summary — Ready to Begin?
+                  Test Summary - Ready to Begin?
                 </span>
               </div>
 

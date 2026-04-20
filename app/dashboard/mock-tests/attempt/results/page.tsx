@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { mockTestService } from '@/lib/services';
+import ConfettiBurst from '@/components/ConfettiBurst';
 
 interface Question {
   id: number;
@@ -143,6 +144,7 @@ function MockTestResultsInner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(1);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     if (mode === 'sample') {
@@ -157,7 +159,7 @@ function MockTestResultsInner() {
           skipped: data.skipped ?? 0,
           netScore: (Number(data.correct ?? 0) * 2 - Number(data.wrong ?? 0) * 0.67).toFixed(2),
           scorePct: data.accuracyPct ?? 0,
-          perfLabel: 'Keep Going — Every Attempt Makes You Better!',
+          perfLabel: 'Keep Going - Every Attempt Makes You Better!',
           subjectStats: [],
           analysis: [],
           testLabel: title,
@@ -166,6 +168,12 @@ function MockTestResultsInner() {
         } as any);
         setLoading(false);
         setError(null);
+
+        const accuracyPct = data.accuracyPct ?? 0;
+        if (accuracyPct > 50) {
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 4000);
+        }
       } catch (e: any) {
         setError(e.message || 'No local results.');
         setLoading(false);
@@ -259,6 +267,11 @@ function MockTestResultsInner() {
           analysis,
           testLabel: data.testLabel ?? 'Prelims · Daily MCQ',
         });
+
+        if (scorePct > 50) {
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 4000);
+        }
       } catch (err: any) {
         if (!cancelled) {
           console.error('Failed to load results:', err);
@@ -337,8 +350,150 @@ function MockTestResultsInner() {
   const { total, correct, wrong, skipped, scorePct } = results;
   const sample = (results as any)._sample as any | undefined;
 
+  const handleFullAnalysis = () => {
+    if (testId) {
+      router.push(`/dashboard/test-analytics?testId=${testId}`);
+    } else {
+      router.push('/dashboard/test-analytics');
+    }
+  };
+
+  const handlePDFReport = async () => {
+    try {
+      if (testId) {
+        const res = await mockTestService.getResults(testId);
+        const data = res.data;
+        if (data) {
+          const reportContent = generatePDFReport(data);
+          const blob = new Blob([reportContent], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `mock-test-report-${new Date().toISOString().split('T')[0]}.html`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      } else {
+        const reportContent = generatePDFReport({
+          total,
+          correct,
+          wrong,
+          skipped,
+          scorePct,
+          netScore: results.netScore,
+          testLabel: title,
+          date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
+        });
+        const blob = new Blob([reportContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `mock-test-report-${new Date().toISOString().split('T')[0]}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error('Failed to generate PDF report:', err);
+    }
+  };
+
+  const generatePDFReport = (data: any) => {
+    const correct = data.correct ?? 0;
+    const wrong = data.wrong ?? 0;
+    const skipped = data.skipped ?? 0;
+    const total = data.total ?? 0;
+    const scorePct = data.scorePct ?? 0;
+    const netScore = data.netScore ?? 0;
+    const testLabel = data.testLabel ?? title;
+    const date = data.date ?? new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Mock Test Report - RiseWithJeet</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', Arial, sans-serif; background: #F9FAFB; color: #101828; padding: 40px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 32px; }
+    .header h1 { font-size: 28px; font-weight: 800; color: #10182D; margin-bottom: 8px; }
+    .header p { color: #6B7280; font-size: 14px; }
+    .score-card { background: linear-gradient(135deg, #10182D, #17223E); border-radius: 16px; padding: 32px; text-align: center; color: white; margin-bottom: 24px; }
+    .score-circle { width: 120px; height: 120px; border-radius: 50%; background: white; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; }
+    .score-circle span { font-size: 32px; font-weight: 800; color: #0F172B; }
+    .stats { display: flex; justify-content: center; gap: 32px; margin-top: 20px; }
+    .stat { text-align: center; }
+    .stat .value { font-size: 24px; font-weight: 800; }
+    .stat .label { font-size: 11px; color: rgba(255,255,255,0.6); letter-spacing: 0.1em; text-transform: uppercase; }
+    .correct-color { color: #00C950; }
+    .wrong-color { color: #FB2C36; }
+    .skipped-color { color: #60A5FA; }
+    .section { background: white; border-radius: 14px; border: 1px solid #E5E7EB; padding: 24px; margin-bottom: 16px; }
+    .section h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #101828; }
+    .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .summary-item { background: #F9FAFB; border-radius: 10px; padding: 16px; }
+    .summary-item .label { font-size: 12px; color: #6B7280; margin-bottom: 4px; }
+    .summary-item .value { font-size: 16px; font-weight: 700; color: #101828; }
+    .footer { text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #E5E7EB; color: #6B7280; font-size: 12px; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Mock Test Report</h1>
+      <p>${testLabel} · ${date}</p>
+    </div>
+    <div class="score-card">
+      <div class="score-circle"><span>${correct}/${total}</span></div>
+      <div style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">Score: ${scorePct}%</div>
+      <div style="font-size: 14px; color: rgba(255,255,255,0.7);">Net Score: ${netScore}</div>
+      <div class="stats">
+        <div class="stat"><div class="value correct-color">${correct}</div><div class="label">Correct</div></div>
+        <div class="stat"><div class="value wrong-color">${wrong}</div><div class="label">Wrong</div></div>
+        <div class="stat"><div class="value skipped-color">${skipped}</div><div class="label">Skipped</div></div>
+        <div class="stat"><div class="value" style="color: white;">${scorePct}%</div><div class="label">Accuracy</div></div>
+      </div>
+    </div>
+    <div class="section">
+      <h2>Performance Summary</h2>
+      <div class="summary-grid">
+        <div class="summary-item"><div class="label">Total Questions</div><div class="value">${total}</div></div>
+        <div class="summary-item"><div class="label">Attempted</div><div class="value">${correct + wrong}</div></div>
+        <div class="summary-item"><div class="label">Correct Answers</div><div class="value" style="color: #00C950;">${correct}</div></div>
+        <div class="summary-item"><div class="label">Wrong Answers</div><div class="value" style="color: #FB2C36;">${wrong}</div></div>
+        <div class="summary-item"><div class="label">Skipped</div><div class="value" style="color: #60A5FA;">${skipped}</div></div>
+        <div class="summary-item"><div class="label">Accuracy Rate</div><div class="value">${scorePct}%</div></div>
+      </div>
+    </div>
+    <div class="section">
+      <h2>Recommendations</h2>
+      <ul style="padding-left: 20px; line-height: 2; color: #4A5565;">
+        ${scorePct >= 80 ? '<li>Excellent performance! Focus on maintaining consistency.</li>' : ''}
+        ${scorePct >= 60 && scorePct < 80 ? '<li>Good progress! Work on weak areas to improve further.</li>' : ''}
+        ${scorePct < 60 ? '<li>Keep practicing! Focus on understanding concepts rather than memorization.</li>' : ''}
+        <li>Review all incorrect answers and understand the explanations.</li>
+        <li>Practice similar difficulty tests to consolidate learning.</li>
+        <li>Track your progress over time to identify improvement patterns.</li>
+      </ul>
+    </div>
+    <div class="footer">
+      <p>Generated by RiseWithJeet · ${new Date().toLocaleString()}</p>
+      <p style="margin-top: 4px;">Keep Going - Every Attempt Makes You Better!</p>
+    </div>
+  </div>
+</body>
+</html>`;
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#F9FAFB', fontFamily: 'Inter, sans-serif' }}>
+      <ConfettiBurst active={showConfetti} />
       <div
         style={{
           width: 1024,
@@ -350,16 +505,16 @@ function MockTestResultsInner() {
       >
         <button
           type="button"
-          onClick={() => router.push('/dashboard/test-series')}
+          onClick={() => router.push('/dashboard')}
           style={{ background: 'transparent', border: 'none', color: '#374151', fontWeight: 600, cursor: 'pointer', marginBottom: 12 }}
         >
-          ← Back to Series
+          ← Back to Dashboard
         </button>
 
         <div
           style={{
             borderRadius: 16,
-            background: 'linear-gradient(90.38deg, #10182D 0.28%, #17223E 99.72%)',
+            background: '#10182D',
             padding: '28px 32px',
             textAlign: 'center',
             color: '#FFFFFF',
@@ -373,7 +528,7 @@ function MockTestResultsInner() {
             </div>
           </div>
 
-          <div style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Keep Going — Every Attempt Makes You Better!</div>
+          <div style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Keep Going - Every Attempt Makes You Better!</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 14 }}>
             {title} · Mock Test · {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
           </div>
@@ -393,10 +548,18 @@ function MockTestResultsInner() {
             >
               ↻ Reattempt
             </button>
-            <button type="button" style={{ height: 36, borderRadius: 10, padding: '0 16px', border: 'none', background: '#314158', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}>
+            <button
+              type="button"
+              onClick={handleFullAnalysis}
+              style={{ height: 36, borderRadius: 10, padding: '0 16px', border: 'none', background: '#314158', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
+            >
               📊 Full Analysis
             </button>
-            <button type="button" style={{ height: 36, borderRadius: 10, padding: '0 16px', border: 'none', background: '#314158', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}>
+            <button
+              type="button"
+              onClick={handlePDFReport}
+              style={{ height: 36, borderRadius: 10, padding: '0 16px', border: 'none', background: '#314158', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
+            >
               📄 PDF Report
             </button>
           </div>

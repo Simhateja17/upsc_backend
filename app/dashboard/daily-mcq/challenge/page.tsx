@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { dailyMcqService } from '@/lib/services';
 
@@ -105,22 +104,19 @@ export default function DailyMcqChallengePage() {
   const wrongCount = questions.filter(qu => answers[qu.id] && answers[qu.id] !== qu.correctOption).length;
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: '#FFFFFF' }}>
-      <main className="flex-1 px-[clamp(3rem,6.25vw,8rem)] py-8">
-        <div className="max-w-[900px] mx-auto">
-          <Link href="/dashboard" className="inline-flex items-center justify-center gap-2 mb-6 hover:opacity-70 transition-opacity"
-            style={{ width: '237px', height: '51px', borderRadius: '20px', background: '#1C50D40D', fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: '22px', color: '#17223E' }}>
-            ← Back to dashboard
-          </Link>
-
-          <div style={{ maxWidth: '1050px', borderRadius: '10px', background: '#EAECEF40', boxShadow: '0px 1px 2px -1px #0000001A, 0px 1px 3px 0px #0000001A', padding: '24px' }}>
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
+    <div className="flex flex-col overflow-hidden" style={{ height: '100vh', background: '#FFFFFF' }}>
+      <main className="flex-1 px-[clamp(3rem,6.25vw,8rem)] py-6 overflow-hidden">
+        <div className="max-w-[900px] mx-auto h-full flex flex-col">
+          <div style={{ borderRadius: '10px', background: '#EAECEF40', boxShadow: '0px 1px 2px -1px #0000001A, 0px 1px 3px 0px #0000001A', padding: '24px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <img src="/daily-challenge-icon.png" alt="MCQ" className="w-10 h-10" />
-                  <h1 className="font-arimo font-bold text-black text-[26px] leading-[28px] whitespace-nowrap">
+                  <div style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <img src="/daily-challenge-icon.png" alt="MCQ" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  </div>
+                  <h1 className="font-arimo font-bold text-black text-[22px] leading-[28px] whitespace-nowrap">
                     Daily MCQ Challenge
-                    <span className="font-arimo font-normal text-[#94A3B8] text-[18px] leading-[28px]"> · ({new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })})</span>
+                    <span className="font-arimo font-normal text-[#94A3B8] text-[16px] leading-[28px]"> · ({new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })})</span>
                   </h1>
                 </div>
                 <div className="flex items-center">
@@ -138,18 +134,24 @@ export default function DailyMcqChallengePage() {
                 </div>
               </div>
 
-              <div className="w-full border-t border-[#99A1AFE5] mb-4"></div>
+              <div className="w-full border-t border-[#99A1AFE5] mb-3"></div>
 
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 bg-[#EFF6FF] px-4 rounded-full w-[170px] h-[38px]">
-                  <img src="/tag-one.png" alt="Tag" className="w-4 h-4" />
-                  <span className="font-arimo font-bold text-[#155DFC] text-[14px] leading-[16px]">{q.category} • {q.difficulty}</span>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-[#EFF6FF] text-[#155DFC] rounded-full font-arimo font-bold text-[13px] leading-[16px] whitespace-nowrap">
+                    {q.category}
+                  </span>
+                  <span className="px-3 py-1 bg-[#FEF3C7] text-[#92400E] rounded-full font-arimo font-bold text-[13px] leading-[16px] whitespace-nowrap">
+                    {q.difficulty}
+                  </span>
                 </div>
                 {!submitted && (
                   <div className="flex items-center gap-2">
-                    <img src="/timer-icon.png" alt="Timer" className="w-10 h-10" />
+                    <div style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <img src="/timer-icon.png" alt="Timer" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    </div>
                     <div className="flex flex-col items-end">
-                      <span className={`font-arimo font-bold text-xl leading-none ${timeLeft < 60 ? 'text-red-600' : 'text-[#101828]'}`}>
+                      <span className={`font-arimo font-bold text-lg leading-none ${timeLeft < 60 ? 'text-red-600' : 'text-[#101828]'}`}>
                         {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
                       </span>
                       <span className="text-[10px] text-gray-500 uppercase tracking-wide">TIME LEFT</span>
@@ -159,12 +161,12 @@ export default function DailyMcqChallengePage() {
               </div>
             </div>
 
-            <div className="mb-6">
-              <p className="font-arimo font-bold text-[#101828] text-sm mb-6">
+            <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <p className="font-arimo font-bold text-[#101828] text-sm mb-4">
                 <span className="font-bold">Question {q.questionNum}:</span> {q.questionText}
               </p>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {q.options.map((option: any) => {
                   const optKey = option.id || option.label;
                   const isSelected = answers[q.id] === optKey;
@@ -216,8 +218,8 @@ export default function DailyMcqChallengePage() {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '16px',
-                        padding: '16px 20px',
+                        gap: '12px',
+                        padding: '12px 16px',
                         borderRadius: '12px',
                         border,
                         background: bg,
@@ -228,22 +230,22 @@ export default function DailyMcqChallengePage() {
                       }}
                     >
                       <span style={{
-                        width: '32px',
-                        height: '32px',
+                        width: '28px',
+                        height: '28px',
                         borderRadius: '50%',
                         border: `2px solid ${circleColor}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontWeight: 700,
-                        fontSize: '14px',
+                        fontSize: '13px',
                         color: circleText,
                         flexShrink: 0,
                         background: circleBg,
                       }}>
                         {circleIcon}
                       </span>
-                      <span style={{ fontSize: '15px', color: textColor, fontWeight }}>
+                      <span style={{ fontSize: '14px', color: textColor, fontWeight }}>
                         {option.text}
                       </span>
                     </button>
@@ -254,26 +256,26 @@ export default function DailyMcqChallengePage() {
               {/* Explanation — shown after answering */}
               {hasAnswered && q.explanation && (
                 <div style={{
-                  marginTop: '20px',
+                  marginTop: '16px',
                   background: '#EFF6FF',
                   borderLeft: '4px solid #2B7FFF',
                   borderRadius: '10px',
-                  padding: '16px 16px 16px 20px',
+                  padding: '12px 14px 12px 16px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '8px',
+                  gap: '6px',
                 }}>
-                  <span style={{ fontWeight: 600, fontSize: '14px', color: '#155DFC', lineHeight: '20px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#155DFC', lineHeight: '18px' }}>
                     EXPLANATION
                   </span>
-                  <span style={{ fontSize: '14px', fontWeight: 400, color: '#1C398E', lineHeight: '20px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 400, color: '#1C398E', lineHeight: '18px' }}>
                     {q.explanation}
                   </span>
                 </div>
               )}
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 p-4 flex items-center justify-between">
+            <div className="bg-white rounded-lg border border-gray-200 p-3 flex items-center justify-between mt-4">
               <button
                 className="flex items-center gap-2 text-[#101828] hover:opacity-70 transition-opacity disabled:opacity-30"
                 disabled={currentQuestion === 0}
@@ -283,7 +285,7 @@ export default function DailyMcqChallengePage() {
                 <span className="font-arimo font-bold text-sm">Previous</span>
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {questions.map((qu, i) => {
                   const answered = !!answers[qu.id];
                   const isCorrect = answered && answers[qu.id] === qu.correctOption;
@@ -305,7 +307,7 @@ export default function DailyMcqChallengePage() {
 
                   return (
                     <button key={i} onClick={() => setCurrentQuestion(i)}
-                      className="w-8 h-8 rounded-full font-arimo font-bold text-sm transition-all"
+                      className="w-7 h-7 rounded-full font-arimo font-bold text-xs transition-all"
                       style={{
                         background: bgColor || undefined,
                         color: txtColor,
@@ -321,7 +323,7 @@ export default function DailyMcqChallengePage() {
 
               {submitted ? (
                 <button
-                  className="flex items-center gap-2 bg-[#17223E] text-white px-5 py-2 rounded-lg hover:bg-[#1E2875] transition-colors"
+                  className="flex items-center gap-2 bg-[#17223E] text-white px-4 py-2 rounded-lg hover:bg-[#1E2875] transition-colors"
                   onClick={() => router.push('/dashboard/daily-mcq/results')}
                 >
                   <span className="font-arimo font-bold text-sm">View Results</span>
@@ -329,7 +331,7 @@ export default function DailyMcqChallengePage() {
                 </button>
               ) : currentQuestion === questions.length - 1 ? (
                 <button
-                  className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                   onClick={handleSubmit}
                   disabled={submitting}
                 >
@@ -337,7 +339,7 @@ export default function DailyMcqChallengePage() {
                 </button>
               ) : (
                 <button
-                  className="flex items-center gap-2 bg-[#17223E] text-white px-5 py-2 rounded-lg hover:bg-[#1E2875] transition-colors"
+                  className="flex items-center gap-2 bg-[#17223E] text-white px-4 py-2 rounded-lg hover:bg-[#1E2875] transition-colors"
                   onClick={() => setCurrentQuestion(prev => prev + 1)}
                 >
                   <span className="font-arimo font-bold text-sm">Next</span>

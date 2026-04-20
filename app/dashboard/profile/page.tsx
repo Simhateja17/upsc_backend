@@ -281,6 +281,25 @@ export default function ProfilePage() {
               ))}
             </div>
           </div>
+
+          {/* Saved Notes Card */}
+          <Link href="/dashboard/saved-notes">
+            <div
+              className="bg-white rounded-[14px] pt-6 px-6 pb-6 flex flex-col gap-4 cursor-pointer hover:shadow-md transition-shadow"
+              style={{ boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px 0px rgba(0,0,0,0.1)' }}
+            >
+              <div className="flex items-center gap-2">
+                <span style={{ fontSize: '28px' }}>📌</span>
+                <h3 className="font-semibold text-[18px] leading-[28px] text-[#0f172b]">Saved Notes & Bookmarks</h3>
+              </div>
+              <p className="font-normal text-[14px] leading-[20px] text-[#62748e]">
+                View all your saved editorials and bookmarked articles in one place.
+              </p>
+              <div className="flex items-center gap-1 text-[#155DFC] font-medium text-[14px]">
+                View all <span>→</span>
+              </div>
+            </div>
+          </Link>
         </div>
       </div>
     </div>

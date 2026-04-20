@@ -12,6 +12,9 @@ interface Question {
   options: { label: string; text: string }[];
   correct: string;
   explanation: string;
+  marks?: number;
+  wordLimit?: number;
+  timeLimit?: number;
 }
 
 type QuestionStatus = 'unattempted' | 'answered' | 'marked' | 'current';
@@ -31,7 +34,6 @@ function normalizeDurationToSeconds(rawDuration: unknown, questionCount: number)
     return fallbackSeconds;
   }
 
-  // DB records may store duration in minutes; normalize to seconds for countdown.
   if (parsed <= 240) {
     return Math.round(parsed * 60);
   }
@@ -39,76 +41,74 @@ function normalizeDurationToSeconds(rawDuration: unknown, questionCount: number)
   return Math.round(parsed);
 }
 
+function assignMainsMarks(totalQuestions: number): { marks: number; wordLimit: number; timeLimit: number }[] {
+  const assignment: { marks: number; wordLimit: number; timeLimit: number }[] = [];
+  
+  if (totalQuestions === 1) {
+    assignment.push({ marks: 15, wordLimit: 250, timeLimit: 11 });
+  } else if (totalQuestions === 2) {
+    assignment.push({ marks: 10, wordLimit: 150, timeLimit: 7 });
+    assignment.push({ marks: 15, wordLimit: 250, timeLimit: 11 });
+  } else {
+    const num15 = Math.floor(totalQuestions / 3);
+    const num10 = totalQuestions - num15;
+    for (let i = 0; i < totalQuestions; i++) {
+      if (i < num10) {
+        assignment.push({ marks: 10, wordLimit: 150, timeLimit: 7 });
+      } else {
+        assignment.push({ marks: 15, wordLimit: 250, timeLimit: 11 });
+      }
+    }
+  }
+  
+  return assignment;
+}
+
 const SAMPLE_QUESTIONS: Question[] = [
   {
     id: 1,
     subject: 'Polity',
     difficulty: 'Medium',
-    text: 'Which of the following statements about the Preamble to the Indian Constitution is/are correct?\n\n1. The Preamble is a part of the Constitution\n2. It can be amended under Article 368\n3. It has been amended only once',
-    options: [
-      { label: 'A', text: '1 only' },
-      { label: 'B', text: '1 and 2 only' },
-      { label: 'C', text: '1, 2 and 3' },
-      { label: 'D', text: '2 and 3 only' },
-    ],
-    correct: 'B',
-    explanation: 'The Preamble is part of the Constitution (Kesavananda Bharati) and can be amended under Article 368 (subject to basic structure). It has been amended once (42nd Amendment).',
+    text: 'Discuss the role of the Supreme Court in protecting the fundamental rights of citizens in India. How has judicial activism shaped the interpretation of fundamental rights?',
+    options: [],
+    correct: '',
+    explanation: '',
   },
   {
     id: 2,
     subject: 'History',
     difficulty: 'Easy',
-    text: 'The term “Swaraj” was first used prominently by:',
-    options: [
-      { label: 'A', text: 'Bal Gangadhar Tilak' },
-      { label: 'B', text: 'Mahatma Gandhi' },
-      { label: 'C', text: 'Dadabhai Naoroji' },
-      { label: 'D', text: 'Subhas Chandra Bose' },
-    ],
-    correct: 'C',
-    explanation: 'Dadabhai Naoroji used “Swaraj” prominently; later Tilak popularized it widely.',
+    text: 'Examine the significance of the Non-Cooperation Movement in the Indian freedom struggle. What were its achievements and limitations?',
+    options: [],
+    correct: '',
+    explanation: '',
   },
   {
     id: 3,
     subject: 'Geography',
     difficulty: 'Medium',
-    text: 'Which one of the following factors most directly influences the formation of monsoon winds over the Indian subcontinent?',
-    options: [
-      { label: 'A', text: 'Earth’s rotation alone' },
-      { label: 'B', text: 'Seasonal differential heating of land and sea' },
-      { label: 'C', text: 'Ocean currents only' },
-      { label: 'D', text: 'Mountain building processes' },
-    ],
-    correct: 'B',
-    explanation: 'Monsoon is driven by seasonal differential heating between land and sea creating pressure gradients.',
+    text: 'Discuss the factors responsible for the uneven distribution of population in India. How does this impact regional development?',
+    options: [],
+    correct: '',
+    explanation: '',
   },
   {
     id: 4,
     subject: 'Economy',
     difficulty: 'Hard',
-    text: 'In the context of inflation targeting, which institution sets the policy repo rate in India?',
-    options: [
-      { label: 'A', text: 'Ministry of Finance' },
-      { label: 'B', text: 'NITI Aayog' },
-      { label: 'C', text: 'Monetary Policy Committee (RBI)' },
-      { label: 'D', text: 'SEBI' },
-    ],
-    correct: 'C',
-    explanation: 'The RBI’s Monetary Policy Committee sets the policy repo rate under the inflation targeting framework.',
+    text: 'Analyze the impact of GST on the Indian economy. Has it achieved its objectives of creating a unified national market?',
+    options: [],
+    correct: '',
+    explanation: '',
   },
   {
     id: 5,
     subject: 'Environment',
     difficulty: 'Medium',
-    text: '“Biodiversity hotspot” refers to a region that:',
-    options: [
-      { label: 'A', text: 'Has only high species richness' },
-      { label: 'B', text: 'Has high endemism and is under significant threat' },
-      { label: 'C', text: 'Has low endemism but high productivity' },
-      { label: 'D', text: 'Is protected as a national park' },
-    ],
-    correct: 'B',
-    explanation: 'Hotspots have high endemism and have lost a large portion of their original habitat (high threat).',
+    text: 'What are the major challenges in implementing India\'s climate change commitments? Suggest measures to overcome these challenges.',
+    options: [],
+    correct: '',
+    explanation: '',
   },
 ];
 
@@ -120,29 +120,31 @@ function MockTestAttemptInner() {
   const isMains = examMode === 'mains';
   const title = searchParams.get('title') || (isMains ? 'Mains Practice' : 'Prelims Practice');
 
-  /* ─── API / Loading State ─── */
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [totalMarks, setTotalMarks] = useState(0);
 
-  /* ─── Quiz State ─── */
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({});
   const [questionStatuses, setQuestionStatuses] = useState<Record<number, QuestionStatus>>({});
   const [timeLeft, setTimeLeft] = useState(0);
   const [startTime] = useState(Date.now());
 
-  /* ─── Mains Upload State ─── */
   const [mainsPhase, setMainsPhase] = useState<'questions' | 'upload' | 'evaluating'>('questions');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [answerText, setAnswerText] = useState('');
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [questionTimerLeft, setQuestionTimerLeft] = useState(0);
+  const [timerStarted, setTimerStarted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  /* ─── Load questions from API ─── */
+  const [mainsMarksAssignment, setMainsMarksAssignment] = useState<{ marks: number; wordLimit: number; timeLimit: number }[]>([]);
+
   useEffect(() => {
     if (!testId) {
-      // No testId: fall back to a built-in 5-question set so the UI always opens from "Resume".
       setQuestions(SAMPLE_QUESTIONS);
       const statuses: Record<number, QuestionStatus> = {};
       SAMPLE_QUESTIONS.forEach((_, i) => {
@@ -152,6 +154,9 @@ function MockTestAttemptInner() {
       setTimeLeft(15 * 60);
       setLoading(false);
       setError(null);
+      if (isMains) {
+        setMainsMarksAssignment(assignMainsMarks(SAMPLE_QUESTIONS.length));
+      }
       return;
     }
 
@@ -174,15 +179,17 @@ function MockTestAttemptInner() {
         }
         setTotalMarks(res.data?.totalMarks || 0);
         setQuestions(qs);
-        // Initialize statuses
         const statuses: Record<number, QuestionStatus> = {};
         qs.forEach((_, i) => {
           statuses[i] = i === 0 ? 'current' : 'unattempted';
         });
         setQuestionStatuses(statuses);
-        // Set timer based on API duration (minutes or seconds) with a safe fallback.
         const durationSeconds = normalizeDurationToSeconds(res.data?.duration, qs.length);
         setTimeLeft(durationSeconds);
+
+        if (isMains) {
+          setMainsMarksAssignment(assignMainsMarks(qs.length));
+        }
       } catch (err: any) {
         if (!cancelled) {
           console.error('Failed to load questions:', err);
@@ -194,9 +201,8 @@ function MockTestAttemptInner() {
     }
     loadQuestions();
     return () => { cancelled = true; };
-  }, [testId]);
+  }, [testId, isMains]);
 
-  // Timer countdown
   useEffect(() => {
     if (loading || questions.length === 0) return;
     const interval = setInterval(() => {
@@ -207,6 +213,23 @@ function MockTestAttemptInner() {
     }, 1000);
     return () => clearInterval(interval);
   }, [loading, questions.length]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (timerRunning && questionTimerLeft > 0) {
+      interval = setInterval(() => {
+        setQuestionTimerLeft(t => {
+          if (t <= 1) {
+            if (interval) clearInterval(interval);
+            setTimerRunning(false);
+            return 0;
+          }
+          return t - 1;
+        });
+      }, 1000);
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [timerRunning, questionTimerLeft]);
 
   const totalQuestions = questions.length;
 
@@ -219,7 +242,6 @@ function MockTestAttemptInner() {
   const goToQuestion = useCallback((idx: number) => {
     setQuestionStatuses(prev => {
       const updated = { ...prev };
-      // Only change current question status if it's still 'current' (not answered/marked)
       if (updated[currentIdx] === 'current') updated[currentIdx] = 'unattempted';
       if (updated[idx] !== 'answered' && updated[idx] !== 'marked') updated[idx] = 'current';
       return updated;
@@ -253,13 +275,44 @@ function MockTestAttemptInner() {
     if (currentIdx > 0) goToQuestion(currentIdx - 1);
   };
 
-  /* ─── Mains handlers ─── */
   const handleMainsNext = () => {
+    if (answers[currentIdx]) {
+      setQuestionStatuses(prev => ({ ...prev, [currentIdx]: 'answered' }));
+    }
     if (currentIdx < totalQuestions - 1) {
       setCurrentIdx(i => i + 1);
+      setTimerRunning(false);
+      setTimerStarted(false);
     } else {
       setMainsPhase('upload');
     }
+  };
+
+  const handleMainsPrev = () => {
+    if (answers[currentIdx]) {
+      setQuestionStatuses(prev => ({ ...prev, [currentIdx]: 'answered' }));
+    }
+    if (currentIdx > 0) {
+      setCurrentIdx(i => i - 1);
+      setTimerRunning(false);
+      setTimerStarted(false);
+    }
+  };
+
+  const handleStartQuestionTimer = () => {
+    if (!timerStarted) {
+      const currentAssignment = mainsMarksAssignment[currentIdx];
+      setQuestionTimerLeft(currentAssignment.timeLimit * 60);
+      setTimerStarted(true);
+    }
+    setTimerRunning(!timerRunning);
+  };
+
+  const handleResetQuestionTimer = () => {
+    setTimerRunning(false);
+    setTimerStarted(false);
+    const currentAssignment = mainsMarksAssignment[currentIdx];
+    setQuestionTimerLeft(currentAssignment.timeLimit * 60);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -272,9 +325,8 @@ function MockTestAttemptInner() {
   };
 
   const handleMainsSubmit = async () => {
-    if (uploadedFiles.length === 0) return;
+    if (uploadedFiles.length === 0 && !answerText.trim()) return;
     setMainsPhase('evaluating');
-    // Simulate AI evaluation - navigate to results after delay
     setTimeout(() => {
       if (testId) {
         router.push(`/dashboard/mock-tests/attempt/results?testId=${testId}&examMode=mains`);
@@ -285,7 +337,6 @@ function MockTestAttemptInner() {
   };
 
   const handleSubmit = async () => {
-    // Sample mode (no testId): store local results and open results screen
     if (!testId) {
       const total = questions.length;
       const correctCount = correct;
@@ -297,7 +348,6 @@ function MockTestAttemptInner() {
         const status: 'correct' | 'wrong' | 'skipped' =
           selected ? (selected === q.correct ? 'correct' : 'wrong') : 'skipped';
         const delta = status === 'correct' ? 2 : status === 'wrong' ? -0.67 : 0;
-        // simple, deterministic per-question time estimate for UI
         const timeSec = 60 + (idx % 4) * 15;
         return {
           idx: idx + 1,
@@ -333,7 +383,6 @@ function MockTestAttemptInner() {
     setError(null);
     try {
       const timeTaken = Math.floor((Date.now() - startTime) / 1000);
-      // Build answers map: questionId -> selected option label
       const answersMap: Record<string, string> = {};
       Object.entries(selectedOptions).forEach(([idx, opt]) => {
         const q = questions[Number(idx)];
@@ -350,7 +399,6 @@ function MockTestAttemptInner() {
     }
   };
 
-  // Stats
   const answered = Object.values(questionStatuses).filter(s => s === 'answered').length;
   const marked = Object.values(questionStatuses).filter(s => s === 'marked').length;
   const correct = Object.entries(selectedOptions).filter(([idx, opt]) => questions[Number(idx)]?.correct === opt).length;
@@ -368,7 +416,6 @@ function MockTestAttemptInner() {
     unattempted: '#314158',
   };
 
-  /* ─── Loading State ─── */
   if (loading) {
     return (
       <div style={{
@@ -395,7 +442,6 @@ function MockTestAttemptInner() {
     );
   }
 
-  /* ─── Error State ─── */
   if (error && questions.length === 0) {
     return (
       <div style={{
@@ -432,12 +478,9 @@ function MockTestAttemptInner() {
 
   if (!currentQ) return null;
 
-  /* ──────────────────────────── MAINS UI ──────────────────────────── */
   if (isMains) {
-    const marksPerQ = totalMarks && totalQuestions ? Math.round(totalMarks / totalQuestions) : 15;
-    const minPerQ = Math.round(marksPerQ * 0.5);
+    const currentAssignment = mainsMarksAssignment[currentIdx] || { marks: 15, wordLimit: 250, timeLimit: 11 };
 
-    /* ── Evaluating screen ── */
     if (mainsPhase === 'evaluating') {
       return (
         <div style={{ minHeight: '100vh', background: '#0F172B', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', gap: 24 }}>
@@ -453,11 +496,9 @@ function MockTestAttemptInner() {
       );
     }
 
-    /* ── Upload screen ── */
     if (mainsPhase === 'upload') {
       return (
         <div style={{ minHeight: '100vh', background: '#F9FAFB', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif' }}>
-          {/* Header */}
           <div style={{ background: 'linear-gradient(90.38deg, #10182D 0.28%, #17223E 99.72%)', padding: '10px 24px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 14 }}>✍️</span>
@@ -468,7 +509,6 @@ function MockTestAttemptInner() {
           </div>
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', gap: 24 }}>
-            {/* All read card */}
             <div style={{ background: '#FFFFFF', borderRadius: 20, padding: '32px', textAlign: 'center', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', maxWidth: 480, width: '100%' }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>✍️</div>
               <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0F172B', margin: '0 0 10px' }}>All {totalQuestions} questions read!</h2>
@@ -478,7 +518,6 @@ function MockTestAttemptInner() {
               </p>
             </div>
 
-            {/* Upload card */}
             <div style={{ background: '#FFFFFF', borderRadius: 20, padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', maxWidth: 480, width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontSize: 14, fontWeight: 700 }}>📎</div>
@@ -488,7 +527,6 @@ function MockTestAttemptInner() {
                 You&apos;ve read all the questions. Now write your answers on paper, photograph/scan the sheets and upload below. AI will evaluate each answer with detailed markup.
               </p>
 
-              {/* Drop zone */}
               <div
                 onClick={() => fileInputRef.current?.click()}
                 style={{ border: '2px dashed #D1D5DB', borderRadius: 14, padding: '32px 24px', textAlign: 'center', cursor: 'pointer', background: '#FAFAFA', marginBottom: 16 }}
@@ -499,7 +537,6 @@ function MockTestAttemptInner() {
                 <p style={{ color: '#9CA3AF', fontSize: 12, margin: 0 }}>JPG, PNG or PDF · Multiple pages supported</p>
               </div>
 
-              {/* File list */}
               {uploadedFiles.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
                   {uploadedFiles.map((f, i) => (
@@ -513,8 +550,8 @@ function MockTestAttemptInner() {
 
               <button
                 onClick={handleMainsSubmit}
-                disabled={uploadedFiles.length === 0}
-                style={{ width: '100%', padding: '14px', background: uploadedFiles.length === 0 ? '#94A3B8' : '#0F172B', color: '#FFFFFF', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: uploadedFiles.length === 0 ? 'not-allowed' : 'pointer' }}
+                disabled={uploadedFiles.length === 0 && !answerText.trim()}
+                style={{ width: '100%', padding: '14px', background: (uploadedFiles.length === 0 && !answerText.trim()) ? '#94A3B8' : '#0F172B', color: '#FFFFFF', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: (uploadedFiles.length === 0 && !answerText.trim()) ? 'not-allowed' : 'pointer' }}
               >
                 🧠 Submit for AI Evaluation
               </button>
@@ -525,10 +562,8 @@ function MockTestAttemptInner() {
       );
     }
 
-    /* ── Questions screen (mains) ── */
     return (
-      <div style={{ minHeight: '100vh', background: '#F9FAFB', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif' }}>
-        {/* Header */}
+      <div style={{ minHeight: '100vh', background: '#F3F4F6', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif' }}>
         <div style={{ background: 'linear-gradient(90.38deg, #10182D 0.28%, #17223E 99.72%)', padding: '10px 24px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -543,49 +578,136 @@ function MockTestAttemptInner() {
           </div>
         </div>
 
-        {/* Question card */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: 20, padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.07)', maxWidth: 680, width: '100%' }}>
-            {/* Badge row */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px', gap: 24 }}>
+          <div style={{ background: '#FFFFFF', borderRadius: 20, padding: '28px 32px', boxShadow: '0 4px 24px rgba(0,0,0,0.07)', maxWidth: 680, width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div style={{ background: '#0F172B', color: '#FFFFFF', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em', padding: '6px 14px', borderRadius: 8, textTransform: 'uppercase' }}>
                 Question {currentIdx + 1} of {totalQuestions}
               </div>
-              <div style={{ color: '#6B7280', fontSize: 13, fontWeight: 500 }}>
-                <span style={{ color: '#0F172B', fontWeight: 700 }}>{marksPerQ} marks</span> · {minPerQ} min
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <span style={{ background: '#FEF3C7', color: '#92400E', fontWeight: 700, fontSize: 12, padding: '4px 10px', borderRadius: 6 }}>
+                  {currentAssignment.marks} marks
+                </span>
+                <span style={{ color: '#6B7280', fontSize: 13 }}>
+                  {currentAssignment.wordLimit} words
+                </span>
               </div>
             </div>
 
-            {/* Question text */}
-            <p style={{ fontSize: 17, fontWeight: 500, color: '#17223E', lineHeight: '28px', marginBottom: 20 }}>
-              {currentQ.text}
-            </p>
+            <div style={{ background: '#F9FAFB', borderRadius: 10, padding: '20px', marginBottom: 20, border: '1px solid #E5E7EB' }}>
+              <p style={{ fontSize: 16, fontWeight: 500, color: '#17223E', lineHeight: '28px', margin: 0 }}>
+                {currentQ.text}
+              </p>
+            </div>
 
-            {/* Directive hint if available */}
-            {currentQ.explanation && (
-              <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 16px', marginBottom: 24, borderLeft: '4px solid #F59E0B' }}>
-                <p style={{ fontSize: 13, color: '#92400E', margin: 0, lineHeight: '20px' }}>{currentQ.explanation}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 14 }}>⏱️</span>
+                <span style={{ fontSize: 13, color: '#6B7280' }}>Time: {currentAssignment.timeLimit} minutes</span>
               </div>
-            )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 14 }}>📝</span>
+                <span style={{ fontSize: 13, color: '#6B7280' }}>Word limit: {currentAssignment.wordLimit} words</span>
+              </div>
+            </div>
 
-            {/* Next button */}
-            <button
-              onClick={handleMainsNext}
-              style={{ background: '#0F172B', color: '#FFFFFF', border: 'none', borderRadius: 12, padding: '13px 28px', fontWeight: 700, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
-            >
-              {currentIdx < totalQuestions - 1 ? 'Next Question →' : 'Done Reading →'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+              <div style={{
+                width: 80,
+                height: 80,
+                borderRadius: '50%',
+                border: '3px solid #101828',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: timerRunning ? '#FEF3C7' : '#F9FAFB',
+              }}>
+                <span style={{ fontFamily: 'Arimo', fontWeight: 700, fontSize: 18, color: '#101828' }}>
+                  {timerStarted ? formatTime(questionTimerLeft) : `${currentAssignment.timeLimit}:00`}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={handleStartQuestionTimer}
+                  style={{
+                    background: timerRunning ? '#DC2626' : '#00BC7D',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '10px 20px',
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  {timerRunning ? '⏸ Pause' : '▶ Start Timer'}
+                </button>
+                <button
+                  onClick={handleResetQuestionTimer}
+                  style={{
+                    background: '#FFFFFF',
+                    color: '#374151',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: 10,
+                    padding: '10px 16px',
+                    fontWeight: 600,
+                    fontSize: 14,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ↺ Reset
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <button
+                onClick={handleMainsPrev}
+                disabled={currentIdx === 0}
+                style={{
+                  background: 'none',
+                  border: '1.5px solid #CBD5E1',
+                  borderRadius: 10,
+                  padding: '10px 24px',
+                  color: currentIdx === 0 ? '#CBD5E1' : '#334155',
+                  cursor: currentIdx === 0 ? 'not-allowed' : 'pointer',
+                  fontWeight: 600,
+                  fontSize: 14,
+                }}
+              >
+                ← Prev
+              </button>
+              <button
+                onClick={handleMainsNext}
+                style={{
+                  background: '#0F172B',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '12px 28px',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                {currentIdx < totalQuestions - 1 ? 'Next Question →' : 'Done Reading →'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
   }
-  /* ─────────────────────────── END MAINS UI ─────────────────────────── */
 
   return (
     <div style={{ minHeight: '100vh', background: '#FFFFFF', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif' }}>
 
-      {/* ── Sub-header (matches screenshot strip) ── */}
       <div
         style={{
           background: 'linear-gradient(90.38deg, #10182D 0.28%, #17223E 99.72%)',
@@ -622,7 +744,6 @@ function MockTestAttemptInner() {
         </div>
       </div>
 
-      {/* ── Progress row (1116×44) ── */}
       <div
         style={{
           background: '#FFFFFF',
@@ -658,7 +779,6 @@ function MockTestAttemptInner() {
         </div>
       </div>
 
-      {/* ── Submit Error Banner ── */}
       {error && (
         <div style={{
           background: '#FEF2F2',
@@ -673,7 +793,6 @@ function MockTestAttemptInner() {
         </div>
       )}
 
-      {/* ── Body (centered fixed frame) ── */}
       <div
         style={{
           flex: 1,
@@ -695,10 +814,8 @@ function MockTestAttemptInner() {
             alignItems: 'flex-start',
           }}
         >
-        {/* ── Question Panel ── */}
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
 
-          {/* Question Card */}
           <div
             style={{
               background: '#FFFFFF',
@@ -709,7 +826,6 @@ function MockTestAttemptInner() {
               overflow: 'visible',
             }}
           >
-            {/* Question header row (pill + bookmark) */}
             <div
               style={{
                 display: 'flex',
@@ -755,7 +871,6 @@ function MockTestAttemptInner() {
                   justifyContent: 'center',
                 }}
               >
-                {/* Inline icon so no asset needed */}
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path
                     d="M7 3.5h10A1.5 1.5 0 0 1 18.5 5v16l-6.5-3-6.5 3V5A1.5 1.5 0 0 1 7 3.5Z"
@@ -767,7 +882,6 @@ function MockTestAttemptInner() {
               </div>
             </div>
 
-            {/* Question Text (fixed frame per layout) */}
             <div
               style={{
                 display: 'flex',
@@ -796,7 +910,6 @@ function MockTestAttemptInner() {
               ) : null}
             </div>
 
-            {/* Options */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {currentQ.options.map(opt => {
                 const hasAnswered = !!selectedOptions[currentIdx];
@@ -884,7 +997,6 @@ function MockTestAttemptInner() {
               })}
             </div>
 
-            {/* Explanation — shown after answering */}
             {selectedOptions[currentIdx] && currentQ.explanation && (
               <div style={{
                 marginTop: '20px',
@@ -906,7 +1018,6 @@ function MockTestAttemptInner() {
             )}
           </div>
 
-          {/* Controls Bar */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -916,7 +1027,6 @@ function MockTestAttemptInner() {
             padding: '14px 18px',
             border: '1px solid #E5E7EB',
           }}>
-            {/* Left actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <button
                 onClick={handleMark}
@@ -974,7 +1084,6 @@ function MockTestAttemptInner() {
               </button>
             </div>
 
-            {/* Right nav */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button
                 onClick={handlePrev}
@@ -1012,7 +1121,6 @@ function MockTestAttemptInner() {
           </div>
         </main>
 
-        {/* ── Right panel (Navigator card) ── */}
         <aside style={{ width: 360, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: '#FFFFFF', borderRadius: 16, border: '1px solid #E5E7EB', padding: 20, boxShadow: '0px 1px 2px -1px rgba(0,0,0,0.10), 0px 1px 3px rgba(0,0,0,0.10)' }}>
             <div style={{ fontWeight: 700, fontSize: 12, letterSpacing: '0.6px', color: '#6B7280', textTransform: 'uppercase', marginBottom: 12 }}>
