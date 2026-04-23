@@ -375,31 +375,87 @@ export const authCallback = async (
       return res.status(401).json({ status: "error", message: "Invalid token" });
     }
 
-    let { data: user } = await supabaseAdmin
+    if (!authUser.email) {
+      return res.status(400).json({ status: "error", message: "Authenticated user email is missing" });
+    }
+
+    const { data: existingUser, error: lookupError } = await supabaseAdmin
       .from("users")
       .select("*")
       .eq("supabase_id", authUser.id)
-      .single();
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error("[AuthCallback] User lookup failed:", lookupError.message, lookupError.code);
+    }
+
+    let user = existingUser;
 
     const metadata = authUser.user_metadata || {};
     const metaFirst = metadata.first_name || metadata.full_name?.split(" ")[0] || null;
     const metaLast = metadata.last_name || metadata.full_name?.split(" ").slice(1).join(" ") || null;
 
     if (!user) {
-      const { data: newUser } = await supabaseAdmin
+      const { data: newUser, error: insertError } = await supabaseAdmin
         .from("users")
         .insert({
           id: randomUUID(),
           supabase_id: authUser.id,
-          email: authUser.email!.toLowerCase(),
+          email: authUser.email.toLowerCase(),
           first_name: metaFirst,
           last_name: metaLast,
           avatar_url: metadata.avatar_url || metadata.picture,
           email_verified: !!authUser.email_confirmed_at,
         })
         .select("*")
-        .single();
+        .maybeSingle();
       user = newUser;
+
+      if (insertError) {
+        console.error("[AuthCallback] User insert failed:", insertError.message, insertError.code);
+
+        // If a previous request created the user, recover instead of crashing.
+        const { data: recoveredBySupabaseId, error: recoverBySupabaseIdError } = await supabaseAdmin
+          .from("users")
+          .select("*")
+          .eq("supabase_id", authUser.id)
+          .maybeSingle();
+
+        if (recoverBySupabaseIdError) {
+          console.error("[AuthCallback] User recovery by Supabase id failed:", recoverBySupabaseIdError.message, recoverBySupabaseIdError.code);
+        }
+
+        if (recoveredBySupabaseId) {
+          user = recoveredBySupabaseId;
+        } else {
+          const { data: recoveredByEmail, error: recoverByEmailError } = await supabaseAdmin
+            .from("users")
+            .select("*")
+            .eq("email", authUser.email.toLowerCase())
+            .maybeSingle();
+
+          if (recoverByEmailError) {
+            console.error("[AuthCallback] User recovery by email failed:", recoverByEmailError.message, recoverByEmailError.code);
+          }
+
+          if (recoveredByEmail && recoveredByEmail.supabase_id !== authUser.id) {
+            const { data: relinkedUser, error: relinkError } = await supabaseAdmin
+              .from("users")
+              .update({ supabase_id: authUser.id })
+              .eq("id", recoveredByEmail.id)
+              .select("*")
+              .maybeSingle();
+
+            if (relinkError) {
+              console.error("[AuthCallback] User relink failed:", relinkError.message, relinkError.code);
+            }
+
+            user = relinkedUser || recoveredByEmail;
+          } else {
+            user = recoveredByEmail;
+          }
+        }
+      }
     } else if (!user.first_name && !user.last_name && (metaFirst || metaLast)) {
       const { data: updated } = await supabaseAdmin
         .from("users")
@@ -408,6 +464,13 @@ export const authCallback = async (
         .select("*")
         .single();
       user = updated || user;
+    }
+
+    if (!user) {
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to sync user profile",
+      });
     }
 
     res.json({
