@@ -26,7 +26,6 @@ function avg(arr: number[]): number {
 export const getDashboard = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    console.log(`[Dashboard] Fetching dashboard for user: ${userId}`);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -136,8 +135,6 @@ export const getActivity = async (req: Request, res: Response, next: NextFunctio
 export const getPerformance = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    console.log(`[Dashboard] Fetching performance for user: ${userId}`);
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -301,18 +298,32 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
         where: { userId },
         orderBy: { createdAt: 'desc' },
         take: 56,
-        select: { accuracy: true, timeTaken: true, correctCount: true, wrongCount: true, skippedCount: true, createdAt: true },
+        select: {
+          id: true,
+          score: true,
+          totalMarks: true,
+          accuracy: true,
+          timeTaken: true,
+          correctCount: true,
+          wrongCount: true,
+          skippedCount: true,
+          createdAt: true,
+          dailyMcq: { select: { title: true } },
+        },
       }),
       prisma.mockTestAttempt.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         take: 20,
-        include: { mockTest: { select: { title: true, source: true } } },
+        include: { mockTest: { select: { id: true, title: true, source: true } } },
       }),
       prisma.mainsAttempt.findMany({
         where: { userId },
         orderBy: { createdAt: 'asc' },
-        include: { evaluation: { select: { score: true, maxScore: true, status: true } } },
+        include: {
+          evaluation: { select: { score: true, maxScore: true, status: true } },
+          question: { select: { title: true, subject: true } },
+        },
       }),
       prisma.mockTestMainsAttempt.findMany({
         where: { userId },
@@ -342,7 +353,7 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
     // Resolve test-series titles for any attempts we found.
     const seriesAttempts = seriesAttemptsRes.data ?? [];
     const seriesTestIds = Array.from(new Set(seriesAttempts.map((a: any) => a.test_id).filter(Boolean)));
-    let seriesTestTitleMap: Record<string, { title: string; seriesTitle: string }> = {};
+    let seriesTestTitleMap: Record<string, { title: string; seriesTitle: string; seriesId?: string }> = {};
     if (seriesTestIds.length > 0) {
       const { data: testRows } = await supabaseAdmin
         .from("test_series_tests")
@@ -361,6 +372,7 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
         seriesTestTitleMap[t.id] = {
           title: t.title || "Series Test",
           seriesTitle: seriesTitleById[t.series_id] || "Test Series",
+          seriesId: t.series_id,
         };
       }
     }
@@ -499,7 +511,7 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
       return diffDays === 0 ? 'Today' : diffDays === 1 ? 'Yesterday' : `${diffDays}d ago`;
     };
 
-    // --- Test history (merged: mock prelims + mock mains + pyq mains + test series) ---
+    // --- Test history (merged: daily mcq + daily answer + mock prelims + mock mains + pyq mains + test series) ---
     const historyRows: Array<{
       id: string;
       name: string;
@@ -509,7 +521,43 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
       accuracy: number;
       sortAt: number;
       rank: null;
+      type: 'daily-mcq' | 'daily-answer' | 'mock-prelims' | 'mock-mains' | 'pyq-mains' | 'test-series';
+      routeParams?: Record<string, string>;
     }> = [];
+
+    for (const a of recentMcq) {
+      const createdAt = new Date(a.createdAt);
+      historyRows.push({
+        id: a.id,
+        name: a.dailyMcq?.title || 'Daily MCQ',
+        series: 'Daily MCQ',
+        date: relDate(createdAt),
+        score: `${a.score}/${a.totalMarks}`,
+        accuracy: Math.round(a.accuracy),
+        sortAt: createdAt.getTime(),
+        rank: null,
+        type: 'daily-mcq',
+      });
+    }
+
+    for (const a of mainsAttempts) {
+      if (!a.evaluation || a.evaluation.status !== "completed") continue;
+      const createdAt = new Date(a.createdAt);
+      const max = a.evaluation.maxScore || 10;
+      const pct = max > 0 ? Math.round((a.evaluation.score / max) * 100) : 0;
+      historyRows.push({
+        id: a.id,
+        name: a.question?.title || a.question?.subject || 'Daily Answer Writing',
+        series: 'Daily Answer Writing',
+        date: relDate(createdAt),
+        score: `${a.evaluation.score}/${max}`,
+        accuracy: pct,
+        sortAt: createdAt.getTime(),
+        rank: null,
+        type: 'daily-answer',
+        routeParams: { attemptId: a.id },
+      });
+    }
 
     for (const a of mockAttempts) {
       const createdAt = new Date(a.createdAt);
@@ -522,6 +570,8 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
         accuracy: Math.round(a.accuracy),
         sortAt: createdAt.getTime(),
         rank: null,
+        type: 'mock-prelims',
+        routeParams: { testId: a.mockTest.id },
       });
     }
 
@@ -539,6 +589,8 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
         accuracy: pct,
         sortAt: createdAt.getTime(),
         rank: null,
+        type: 'mock-mains',
+        routeParams: { testId: a.mockTestId },
       });
     }
 
@@ -557,6 +609,8 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
         accuracy: pct,
         sortAt: createdAt.getTime(),
         rank: null,
+        type: 'pyq-mains',
+        routeParams: { questionId: a.pyqMainsQuestionId, attemptId: a.id },
       });
     }
 
@@ -575,6 +629,8 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
         accuracy: pct,
         sortAt: submittedAt.getTime(),
         rank: null,
+        type: 'test-series',
+        routeParams: { seriesId: meta.seriesId || '', testId: a.test_id || '' },
       });
     }
 
@@ -599,7 +655,9 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
             mockAttempts.length +
             mockTestMainsAttempts.length +
             pyqMainsAttempts.length +
-            seriesAttempts.length,
+            seriesAttempts.length +
+            (mcqAgg._count.id ?? 0) +
+            mainsAttempts.length,
           avgAccuracy: Math.round((mcqAgg._avg.accuracy ?? 0) * 10) / 10,
           bestPercentile: mcqAgg._max.percentile ?? 0,
           currentStreak: streak?.currentStreak ?? 0,
@@ -609,6 +667,8 @@ export const getTestAnalytics = async (req: Request, res: Response, next: NextFu
           mcqWrong: mcqAgg._sum.wrongCount ?? 0,
           mcqSkipped: mcqAgg._sum.skippedCount ?? 0,
           breakdown: {
+            dailyMcq: mcqAgg._count.id ?? 0,
+            dailyAnswer: mainsAttempts.length,
             mockPrelims: mockAttempts.length,
             mockMains: mockTestMainsAttempts.length,
             pyqMains: pyqMainsAttempts.length,

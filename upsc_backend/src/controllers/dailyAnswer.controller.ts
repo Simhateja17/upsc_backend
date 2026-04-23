@@ -72,7 +72,6 @@ export const submitTextAnswer = async (req: Request, res: Response, next: NextFu
   try {
     const userId = req.user!.id;
     const { answerText } = req.body;
-    console.log(`[Daily Answer] Text submission by user: ${userId}, length: ${answerText?.length || 0}`);
 
     if (!answerText || answerText.trim().length === 0) {
       return res.status(400).json({ status: "error", message: "Answer text is required" });
@@ -125,7 +124,6 @@ export const submitTextAnswer = async (req: Request, res: Response, next: NextFu
 export const uploadAnswer = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    console.log(`[Daily Answer] File upload by user: ${userId}, file: ${req.file?.originalname || "URL"}`);
     const today = getToday();
     const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: today } });
 
@@ -255,7 +253,6 @@ async function startEvaluation(
   question: { questionText: string; subject: string; marks: number; paper: string },
   fileUrl: string | null
 ) {
-  console.log(`[Evaluation] Starting AI evaluation for attempt: ${attemptId}`);
   // Run evaluation asynchronously (don't block the response)
   evaluateAnswer(attemptId, answerText, {
     questionText: question.questionText,
@@ -279,8 +276,7 @@ async function startEvaluation(
           );
         }
       } catch (err) {
-        console.error("Email notification error:", err);
+        // Email notification failure is non-critical; silently ignore
       }
-    })
-    .catch((err) => console.error("Evaluation error:", err));
+    });
 }

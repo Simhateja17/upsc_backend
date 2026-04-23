@@ -27,6 +27,7 @@ export interface EvaluationUpdate {
   improvements: string[];
   suggestions: string[];
   detailedFeedback: string;
+  metrics?: any; // AI-generated per-dimension metrics
   evaluatedAt: Date | null;
 }
 
@@ -188,28 +189,21 @@ export async function evaluateAnswerGeneric(params: {
   const { attemptId, answerText, fileUrl, question, dbOps } = params;
 
   try {
-    console.log(`[eval] attempt ${attemptId} → markEvaluating (marks=${question.marks})`);
     await dbOps.markEvaluating(question.marks);
-    console.log(`[eval] attempt ${attemptId} → markEvaluating OK`);
 
     let textToGrade = answerText?.trim() || "";
     let viaOcr = false;
 
     // Handwritten path: OCR the file into text, then reuse the text path.
     if (!textToGrade && fileUrl) {
-      console.log(`[eval] attempt ${attemptId} → OCR path: downloading file from ${fileUrl}`);
       const { buffer, contentType } = await downloadFile(
         STORAGE_BUCKETS.ANSWER_UPLOADS,
         fileUrl
       );
-      console.log(`[eval] attempt ${attemptId} → download OK (${buffer.length} bytes, ${contentType})`);
 
-      console.log(`[eval] attempt ${attemptId} → calling Gemini OCR...`);
       const ocrText = await extractTextFromFile(buffer, contentType);
-      console.log(`[eval] attempt ${attemptId} → OCR OK (${ocrText.length} chars extracted)`);
 
       if (ocrText.length < 20) {
-        console.log(`[eval] attempt ${attemptId} → OCR text too short (<20 chars), marking unreadable`);
         await dbOps.saveEvaluation({
           score: 0,
           maxScore: question.marks,
@@ -235,9 +229,7 @@ export async function evaluateAnswerGeneric(params: {
       viaOcr = true;
 
       const wordCount = textToGrade.split(/\s+/).filter(Boolean).length;
-      console.log(`[eval] attempt ${attemptId} → saving OCR text (${wordCount} words)`);
       await dbOps.saveAttemptText(textToGrade, wordCount);
-      console.log(`[eval] attempt ${attemptId} → saveAttemptText OK`);
     }
 
     if (!textToGrade) {
@@ -250,12 +242,9 @@ export async function evaluateAnswerGeneric(params: {
     const trivial = triviallyBadAnswer(textToGrade, question);
     let result: EvaluationResult;
     if (trivial) {
-      console.log(`[eval] attempt ${attemptId} → trivially-bad short-circuit (score ${trivial.score}/${question.marks})`);
       result = trivial;
     } else {
-      console.log(`[eval] attempt ${attemptId} → calling Azure grading (${textToGrade.length} chars, ocr=${viaOcr})...`);
       result = await runAzureEvaluation(textToGrade, question, viaOcr);
-      console.log(`[eval] attempt ${attemptId} → Azure OK (score: ${result.score}/${question.marks})`);
     }
 
     const clampedScore = Math.max(
@@ -270,13 +259,12 @@ export async function evaluateAnswerGeneric(params: {
       improvements: result.improvements || [],
       suggestions: result.suggestions || [],
       detailedFeedback: result.detailedFeedback || "",
+      metrics: result.metrics || null,
       evaluatedAt: new Date(),
     });
-    console.log(`[eval] attempt ${attemptId} → evaluation saved ✓`);
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
-    const errStack = error instanceof Error ? error.stack : String(error);
-    console.error(`[eval] attempt ${attemptId} FAILED:`, errStack);
+    console.error(`[eval] attempt ${attemptId} FAILED:`, errMsg);
 
     // Record the failure honestly — do NOT award sympathy marks. The user
     // should see that the evaluator failed and be offered a resubmit, rather

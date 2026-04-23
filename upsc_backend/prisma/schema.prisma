@@ -209,11 +209,12 @@ model MainsEvaluation {
   attemptId       String   @unique @map("attempt_id")
   score           Float
   maxScore        Float    @map("max_score")
-  status          String   @default("pending") // pending, evaluating, completed
+  status          String   @default("pending") // pending, evaluating, completed, failed
   strengths       String[] // things done well
   improvements    String[] // areas to improve
   suggestions     String[] // value-add ideas
   detailedFeedback String? @map("detailed_feedback")
+  metrics         Json?    // AI-generated per-dimension metrics
   evaluatedAt     DateTime? @map("evaluated_at")
   createdAt       DateTime @default(now()) @map("created_at")
 
@@ -1069,11 +1070,12 @@ model PyqMainsEvaluation {
   attemptId        String    @unique @map("attempt_id")
   score            Float
   maxScore         Float     @map("max_score")
-  status           String    @default("pending") // pending, evaluating, completed
+  status           String    @default("pending") // pending, evaluating, completed, failed
   strengths        String[]
   improvements     String[]
   suggestions      String[]
   detailedFeedback String?   @map("detailed_feedback")
+  metrics          Json?     // AI-generated per-dimension metrics
   evaluatedAt      DateTime? @map("evaluated_at")
   createdAt        DateTime  @default(now()) @map("created_at")
 
@@ -1109,11 +1111,12 @@ model MockTestMainsEvaluation {
   attemptId        String    @unique @map("attempt_id")
   score            Float
   maxScore         Float     @map("max_score")
-  status           String    @default("pending") // pending, evaluating, completed
+  status           String    @default("pending") // pending, evaluating, completed, failed
   strengths        String[]
   improvements     String[]
   suggestions      String[]
   detailedFeedback String?   @map("detailed_feedback")
+  metrics          Json?     // AI-generated per-dimension metrics
   evaluatedAt      DateTime? @map("evaluated_at")
   createdAt        DateTime  @default(now()) @map("created_at")
 

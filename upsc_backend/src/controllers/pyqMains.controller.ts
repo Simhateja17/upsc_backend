@@ -57,7 +57,6 @@ async function kickoffEvaluation(
   fileUrl: string | null,
   question: { questionText: string; subject: string; paper: string }
 ) {
-  console.log(`[PYQ Mains Evaluation] starting for attempt ${attemptId}`);
   evaluateAnswerGeneric({
     attemptId,
     answerText,
@@ -69,7 +68,7 @@ async function kickoffEvaluation(
       marks: DEFAULT_MARKS,
     },
     dbOps: buildDbOps(attemptId),
-  }).catch((err) => console.error("[PYQ Mains Evaluation] error:", err));
+  });
 }
 
 /**

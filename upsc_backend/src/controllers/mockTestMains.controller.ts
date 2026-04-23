@@ -51,7 +51,6 @@ async function kickoffEvaluation(
   paper: string,
   marks: number
 ) {
-  console.log(`[Mock Test Mains Evaluation] starting for attempt ${attemptId}`);
   evaluateAnswerGeneric({
     attemptId,
     answerText,
@@ -63,7 +62,7 @@ async function kickoffEvaluation(
       marks,
     },
     dbOps: buildDbOps(attemptId),
-  }).catch((err) => console.error("[Mock Test Mains Evaluation] error:", err));
+  });
 }
 
 /**
