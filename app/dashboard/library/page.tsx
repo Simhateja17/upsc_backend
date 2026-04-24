@@ -125,7 +125,7 @@ export default function LibraryPage() {
       if (url && typeof url === 'string') {
         window.open(url, '_blank');
       }
-    } catch {
+    } catch (_e) {
       // Download not available
     } finally {
       setDownloadingChapter(null);
@@ -1255,6 +1255,7 @@ export default function LibraryPage() {
           >
             <span style={{ fontSize: 'clamp(40px, 4vw, 56px)' }}>{'\uD83D\uDE80'}</span>
           </div>
+        </div>
         </div>
       </div>
     </div>

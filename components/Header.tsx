@@ -133,7 +133,7 @@ const Header = () => {
       {/* Logo Section */}
       <Link href="/" className="flex flex-col items-center flex-shrink-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo...png" alt="RiseWithJeet Logo" className="w-[60px] md:w-[78px] h-auto object-contain" />
+        <img src="/logo...png" alt="RiseWithJeet Logo" className="w-[62px] md:w-[62px] h-auto object-contain" />
       </Link>
 
       {/* Desktop Nav Links */}

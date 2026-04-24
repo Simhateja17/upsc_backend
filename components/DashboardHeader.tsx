@@ -2,24 +2,72 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardHeaderProps {
   onMenuClick?: () => void;
 }
 
+interface NotificationItem {
+  id: string;
+  icon: string;
+  title: string;
+  time: string;
+  read: boolean;
+}
+
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: '1',
+    icon: '🔥',
+    title: '47-day streak! Top 8% of aspirants',
+    time: 'Just now',
+    read: false,
+  },
+  {
+    id: '2',
+    icon: '✅',
+    title: 'Your answer has been evaluated — Score: 7.5/10',
+    time: '2 hours ago',
+    read: false,
+  },
+  {
+    id: '3',
+    icon: '📰',
+    title: "Today's current affairs are ready",
+    time: 'This morning',
+    read: true,
+  },
+  {
+    id: '4',
+    icon: '📌',
+    title: 'New mock test available — GS Prelims Test 15',
+    time: 'Yesterday',
+    read: true,
+  },
+];
+
 const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, logout, isLoading } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationModalRef = useRef<HTMLDivElement>(null);
+  const isUpgradeActive = pathname === '/dashboard/free-trial' || pathname.startsWith('/dashboard/free-trial/');
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
+      }
+      if (notificationModalRef.current && !notificationModalRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
       }
     };
 
@@ -41,6 +89,10 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
 
   const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U';
 
+  const handleMarkAllRead = () => {
+    setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+  };
+
   return (
     <header className="w-full h-[clamp(56px,5.78vw,111px)] bg-gradient-to-r from-[#0E182D] to-[#17223E] flex items-center justify-between px-3 md:px-[clamp(1rem,2vw,2.5rem)] sticky top-0 z-50">
       {/* Left: Hamburger (mobile) + Logo */}
@@ -61,7 +113,7 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
           <img
             src="/logo...png"
             alt="RiseWithJeet Logo"
-            className="w-[clamp(70px,6vw,120px)] h-[clamp(70px,6vw,120px)] object-contain"
+            className="w-[62px] h-[62px] object-contain"
           />
         </Link>
       </div>
@@ -75,7 +127,7 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
             style={{
               padding: 'clamp(8px,0.7vw,12px) clamp(16px,1.2vw,24px)',
               borderRadius: '12px',
-              border: '1.5px solid rgba(255,209,112,0.25)',
+              border: isUpgradeActive ? '1.5px solid #FFD170' : '1.5px solid rgba(255,209,112,0.25)',
               background: 'transparent',
               color: '#FFD170',
               fontFamily: '"SF Pro", -apple-system, BlinkMacSystemFont, sans-serif',
@@ -84,15 +136,16 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
               lineHeight: '110%',
               letterSpacing: '-0.2px',
               whiteSpace: 'nowrap',
+              boxShadow: isUpgradeActive ? '0 0 12px rgba(255,209,112,0.18)' : 'none',
               transition: 'all 0.2s ease',
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.borderColor = '#FFD170';
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 12px rgba(255,209,112,0.15)';
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 12px rgba(255,209,112,0.18)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,209,112,0.25)';
-              (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+              (e.currentTarget as HTMLElement).style.borderColor = isUpgradeActive ? '#FFD170' : 'rgba(255,209,112,0.25)';
+              (e.currentTarget as HTMLElement).style.boxShadow = isUpgradeActive ? '0 0 12px rgba(255,209,112,0.18)' : 'none';
             }}
           >
             Upgrade
@@ -102,6 +155,7 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
 
         {/* Notification Bell */}
         <button
+          onClick={() => setShowNotifications((prev) => !prev)}
           className="relative flex items-center justify-center w-[clamp(38px,2.8vw,48px)] h-[clamp(38px,2.8vw,48px)] rounded-xl bg-[#1a2540] text-white hover:bg-[#243050] transition-colors flex-shrink-0"
           aria-label="Notifications"
         >
@@ -110,7 +164,7 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
             <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" fill="currentColor"/>
           </svg>
           {/* Notification dot */}
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+          {unreadCount > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>}
         </button>
 
         {/* User Avatar - Simple gold circle with initials */}
@@ -236,6 +290,63 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
           )}
         </div>
       </div>
+
+      {showNotifications && (
+        <div className="fixed inset-0 z-[90] bg-black/35 backdrop-blur-[1px] flex items-center justify-center p-4">
+          <div
+            ref={notificationModalRef}
+            className="w-full max-w-[520px] rounded-2xl bg-white border border-[#E5E7EB] shadow-[0_20px_60px_rgba(0,0,0,0.18)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Notifications"
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
+              <h2 className="font-inter font-semibold text-[20px] leading-[28px] text-[#334155]">Notifications</h2>
+              <button
+                onClick={() => setShowNotifications(false)}
+                className="w-8 h-8 rounded-md text-[#94A3B8] hover:bg-[#F8FAFC] transition-colors flex items-center justify-center"
+                aria-label="Close notifications"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-3">
+              {notifications.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="rounded-xl px-4 py-3 flex items-start gap-3"
+                  style={{
+                    background: index === 0 ? '#F8F2E8' : '#E9EEF8',
+                    opacity: item.read ? 0.82 : 1,
+                  }}
+                >
+                  <span className="text-[16px] leading-none mt-[2px]">{item.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-inter text-[14px] leading-[20px] text-[#334155] font-medium truncate">{item.title}</p>
+                    <p className="font-inter text-[12px] leading-[16px] text-[#94A3B8] mt-0.5">{item.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="px-5 py-4 border-t border-[#E5E7EB] flex justify-end gap-2">
+              <button
+                onClick={() => setShowNotifications(false)}
+                className="px-4 py-2 rounded-lg border border-[#D8DFEC] bg-[#F2F5FB] text-[#64748B] font-inter text-[13px] leading-[18px] font-semibold hover:bg-[#E9EEF8] transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleMarkAllRead}
+                className="px-4 py-2 rounded-lg border border-[#D8DFEC] bg-[#F2F5FB] text-[#334155] font-inter text-[13px] leading-[18px] font-semibold hover:bg-[#E9EEF8] transition-colors"
+              >
+                Mark all read
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

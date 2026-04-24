@@ -40,7 +40,7 @@ export default function DashboardLayout({
     }
 
     // Double-check Supabase session before redirecting — prevents
-    // race conditions where user state hasn't hydrated yet.
+    // race conditions where user state hasn't caught up yet.
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         router.push('/login');
@@ -48,10 +48,23 @@ export default function DashboardLayout({
         // Session exists but user state hasn't caught up — refresh again
         refreshUser();
       }
+    }).catch(() => {
+      // Network error — don't redirect, let the user stay on dashboard
+      // with cached session data
     });
   }, [isLoading, isAuthenticated, refreshUser, router]);
 
-  if (isLoading || !isAuthenticated) return null;
+  if (isLoading || !isAuthenticated) {
+    // Show a loading state instead of blank screen
+    return (
+      <div className="flex items-center justify-center" style={{ height: '100dvh', background: '#FAFBFE' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#17223E] mx-auto mb-4"></div>
+          <p className="font-inter text-[#6B7280] text-sm">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col" style={{ height: '100dvh' }}>

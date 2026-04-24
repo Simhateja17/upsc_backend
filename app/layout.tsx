@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Manrope, Roboto, Poppins, Arimo, Tinos, Fahkwang, Playfair_Display } from 'next/font/google'
+import { Inter, Manrope, Roboto, Poppins, Arimo, Tinos, Fahkwang, Playfair_Display, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 
@@ -52,6 +52,12 @@ const poppins = Poppins({
   weight: ['400', '500', '600', '700'],
 })
 
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-jakarta',
+  weight: ['400', '500', '600', '700', '800'],
+})
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -75,7 +81,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${manrope.variable} ${roboto.variable} ${poppins.variable} ${arimo.variable} ${tinos.variable} ${fahkwang.variable} ${playfair.variable}`}>
+      <body className={`${inter.variable} ${manrope.variable} ${roboto.variable} ${poppins.variable} ${arimo.variable} ${tinos.variable} ${fahkwang.variable} ${playfair.variable} ${jakarta.variable}`}>
         <AuthProvider>
           {children}
         </AuthProvider>

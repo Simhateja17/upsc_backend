@@ -157,7 +157,23 @@ const PerformanceStatsWidget = () => {
               ))}
             </div>
 
-
+            {/* Syllabus Coverage */}
+            <div className="mb-[clamp(12px,0.83vw,16px)]">
+              <div className="flex items-center justify-between mb-2">
+                <p className="font-arimo text-[#6B7280]" style={{ fontSize: 'clamp(11px,0.68vw,12px)', lineHeight: '1.2' }}>
+                  Syllabus Coverage
+                </p>
+                <span className="font-arimo font-bold text-[#0A1172]" style={{ fontSize: 'clamp(11px,0.68vw,12px)' }}>
+                  {syllabusCoverage ?? 0}%
+                </span>
+              </div>
+              <div className="w-full rounded-full overflow-hidden" style={{ height: '8px', background: '#E5E7EB' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${syllabusCoverage ?? 0}%`, background: 'linear-gradient(90deg, #6366F1, #8B5CF6)' }}
+                />
+              </div>
+            </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-[clamp(10px,0.73vw,14px)]">
@@ -217,54 +233,6 @@ const PerformanceStatsWidget = () => {
                   padding: '16px 12px',
                 }}
               >
-                <div className="font-outfit font-bold text-[#17223E] leading-none" style={{ fontSize: '20px', marginBottom: '6px' }}>
-                  {studyTimeToday ?? '--'}
-                </div>
-                <p className="font-arimo text-[#6B7280]" style={{ fontSize: '11px', lineHeight: '1.3' }}>
-                  Study Time Today
-                </p>
-              </div>
-
-              {/* Tests Taken */}
-              <div
-                className="rounded-[14px] flex flex-col items-center justify-center text-center"
-                style={{
-                  background: '#EEF2FF',
-                  padding: '16px 12px',
-                }}
-              >
-                <div className="font-outfit font-bold text-[#17223E] leading-none" style={{ fontSize: '20px', marginBottom: '6px' }}>
-                  {testsTaken ?? '--'}
-                </div>
-                <p className="font-arimo text-[#6B7280]" style={{ fontSize: '11px', lineHeight: '1.3' }}>
-                  Tests Taken
-                </p>
-              </div>
-
-              {/* Your Rank */}
-              <div
-                className="rounded-[14px] flex flex-col items-center justify-center text-center"
-                style={{
-                  background: '#EEF2FF',
-                  padding: '16px 12px',
-                }}
-              >
-                <div className="font-outfit font-bold text-[#17223E] leading-none" style={{ fontSize: '20px', marginBottom: '6px' }}>
-                  #{displayRank}
-                </div>
-                <p className="font-arimo text-[#6B7280]" style={{ fontSize: '11px', lineHeight: '1.3' }}>
-                  Your Rank: <span className="text-green-600 font-arimo">{displayRankPercentile !== null ? `Top ${displayRankPercentile}%` : '—'}</span>
-                </p>
-              </div>
-
-              {/* Jeet Coins */}
-              <div
-                className="rounded-[14px] flex flex-col justify-center"
-                style={{
-                  background: '#EEF2FF',
-                  padding: '16px 12px',
-                }}
-              >
                 <div className="flex items-center" style={{ gap: '6px', marginBottom: '6px' }}>
                   <img
                     src="/funds-icon.png"
@@ -286,15 +254,13 @@ const PerformanceStatsWidget = () => {
 
       {/* Weekly Leaderboard */}
       <div
-        className="cursor-pointer hover:shadow-md transition-shadow flex items-center justify-center"
+        className="cursor-pointer hover:shadow-md transition-shadow rounded-[16px] flex items-center justify-center"
         style={{
           background: '#74A0FF30',
-          height: '50px',
-          borderRadius: '16px',
+          padding: '14px 20px',
         }}
       >
         <div className="flex items-center" style={{ gap: '8px' }}>
-          <span style={{ fontSize: '18px', lineHeight: '1' }}>🏆</span>
           <span className="font-outfit font-semibold whitespace-nowrap" style={{ fontSize: '18px', lineHeight: '1', color: '#1E2875' }}>
             Weekly Leaderboard
           </span>
@@ -308,6 +274,7 @@ const PerformanceStatsWidget = () => {
       <div
         className="rounded-[clamp(16px,1.04vw,20px)]"
         style={{
+          background: '#FFFFFF',
           border: '0.8px solid #E5E7EB',
           boxShadow: '0px 4px 12px 0px #00000026',
           padding: 'clamp(20px,1.29vw,24.8px) clamp(20px,1.25vw,24px)',

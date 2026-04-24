@@ -116,6 +116,16 @@ html, body {
   display: none; /* Chrome/Safari — always hidden */
 }
 
+/* Sidebar scroll - always hidden */
+.sidebar-scroll {
+  scrollbar-width: none !important;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+}
+
 /* On desktop (hover-capable devices), show a thin scrollbar on hover */
 @media (hover: hover) and (pointer: fine) {
   * {
@@ -144,6 +154,16 @@ html, body {
 
   *:hover::-webkit-scrollbar-thumb {
     background: rgba(255, 209, 112, 0.6);
+  }
+
+  /* Keep sidebar scrollbar hidden even on desktop */
+  .sidebar-scroll {
+    scrollbar-width: none !important;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
   }
 }
 

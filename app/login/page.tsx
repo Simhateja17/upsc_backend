@@ -42,6 +42,83 @@ function LoginPageContent() {
   const [signupPassword, setSignupPassword] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  // Email autocomplete state
+  const [emailSuggestions, setEmailSuggestions] = useState<string[]>([]);
+  const [showEmailSuggestions, setShowEmailSuggestions] = useState(false);
+  const [loginEmailSuggestions, setLoginEmailSuggestions] = useState<string[]>([]);
+  const [showLoginEmailSuggestions, setShowLoginEmailSuggestions] = useState(false);
+  const commonDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com'];
+
+  const handleSignupEmailChange = (value: string) => {
+    setSignupEmail(value);
+    
+    // Show suggestions only if user has typed something and doesn't already have @
+    if (value && !value.includes('@')) {
+      const suggestions = commonDomains.map(domain => `${value}@${domain}`);
+      setEmailSuggestions(suggestions);
+      setShowEmailSuggestions(true);
+    } else if (value.includes('@')) {
+      const [localPart, domainPart] = value.split('@');
+      if (domainPart && localPart) {
+        // Filter domains that match what user is typing
+        const matchingDomains = commonDomains.filter(domain => 
+          domain.toLowerCase().startsWith(domainPart.toLowerCase())
+        );
+        if (matchingDomains.length > 0) {
+          const suggestions = matchingDomains.map(domain => `${localPart}@${domain}`);
+          setEmailSuggestions(suggestions);
+          setShowEmailSuggestions(true);
+        } else {
+          setShowEmailSuggestions(false);
+        }
+      } else {
+        setShowEmailSuggestions(false);
+      }
+    } else {
+      setShowEmailSuggestions(false);
+    }
+  };
+
+  const selectEmailSuggestion = (suggestion: string) => {
+    setSignupEmail(suggestion);
+    setShowEmailSuggestions(false);
+  };
+
+  const handleLoginEmailChange = (value: string) => {
+    setLoginEmail(value);
+    
+    // Show suggestions only if user has typed something and doesn't already have @
+    if (value && !value.includes('@')) {
+      const suggestions = commonDomains.map(domain => `${value}@${domain}`);
+      setLoginEmailSuggestions(suggestions);
+      setShowLoginEmailSuggestions(true);
+    } else if (value.includes('@')) {
+      const [localPart, domainPart] = value.split('@');
+      if (domainPart && localPart) {
+        // Filter domains that match what user is typing
+        const matchingDomains = commonDomains.filter(domain => 
+          domain.toLowerCase().startsWith(domainPart.toLowerCase())
+        );
+        if (matchingDomains.length > 0) {
+          const suggestions = matchingDomains.map(domain => `${localPart}@${domain}`);
+          setLoginEmailSuggestions(suggestions);
+          setShowLoginEmailSuggestions(true);
+        } else {
+          setShowLoginEmailSuggestions(false);
+        }
+      } else {
+        setShowLoginEmailSuggestions(false);
+      }
+    } else {
+      setShowLoginEmailSuggestions(false);
+    }
+  };
+
+  const selectLoginEmailSuggestion = (suggestion: string) => {
+    setLoginEmail(suggestion);
+    setShowLoginEmailSuggestions(false);
+  };
+
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
@@ -680,7 +757,7 @@ function LoginPageContent() {
             </div>
 
             {/* Email Address */}
-            <div style={{ marginBottom: 12 }}>
+            <div style={{ marginBottom: 12, position: 'relative' }}>
               <label style={{ display: 'block', fontFamily: 'Inter', fontWeight: 600, fontSize: 12, lineHeight: '16px', letterSpacing: '0.3px', textTransform: 'uppercase', color: '#1E2939', marginBottom: 6 }}>
                 Email Address
               </label>
@@ -692,10 +769,52 @@ function LoginPageContent() {
                   type="email" 
                   placeholder="yourname@gmail.com" 
                   value={signupEmail}
-                  onChange={(e) => setSignupEmail(e.target.value)}
+                  onChange={(e) => handleSignupEmailChange(e.target.value)}
+                  onBlur={() => setTimeout(() => setShowEmailSuggestions(false), 200)}
+                  onFocus={() => signupEmail && !signupEmail.includes('@') && setShowEmailSuggestions(true)}
                   required
                   style={{ width: '100%', height: 45.6, paddingLeft: 40, paddingRight: 16, borderRadius: 14, border: '0.8px solid #D1D5DC', background: '#FFFFFF', fontFamily: 'Inter', fontWeight: 400, fontSize: 14, color: '#0A0A0A', outline: 'none', boxSizing: 'border-box' }} 
                 />
+                {/* Email Suggestions Dropdown */}
+                {showEmailSuggestions && emailSuggestions.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    marginTop: 4,
+                    background: '#FFFFFF',
+                    border: '0.8px solid #D1D5DC',
+                    borderRadius: 10,
+                    boxShadow: '0px 4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 100,
+                    overflow: 'hidden',
+                  }}>
+                    {emailSuggestions.map((suggestion, index) => (
+                      <div
+                        key={index}
+                        onClick={() => selectEmailSuggestion(suggestion)}
+                        style={{
+                          padding: '12px 16px',
+                          cursor: 'pointer',
+                          fontFamily: 'Inter',
+                          fontSize: 14,
+                          color: '#0A0A0A',
+                          borderBottom: index < emailSuggestions.length - 1 ? '1px solid #F0F0F0' : 'none',
+                          transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLDivElement).style.background = '#F9FAFB';
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLDivElement).style.background = '#FFFFFF';
+                        }}
+                      >
+                        {suggestion}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -902,7 +1021,7 @@ function LoginPageContent() {
             </div>
 
             {/* Email field */}
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 16, position: 'relative' }}>
               <label
                 style={{
                   display: 'block',
@@ -942,7 +1061,9 @@ function LoginPageContent() {
                   type="email"
                   placeholder="yourname@gmail.com"
                   value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
+                  onChange={(e) => handleLoginEmailChange(e.target.value)}
+                  onBlur={() => setTimeout(() => setShowLoginEmailSuggestions(false), 200)}
+                  onFocus={() => loginEmail && !loginEmail.includes('@') && setShowLoginEmailSuggestions(true)}
                   required
                   style={{
                     width: '100%',
@@ -962,6 +1083,46 @@ function LoginPageContent() {
                     boxSizing: 'border-box',
                   }}
                 />
+                {/* Email Suggestions Dropdown */}
+                {showLoginEmailSuggestions && loginEmailSuggestions.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    marginTop: 4,
+                    background: '#FFFFFF',
+                    border: '0.8px solid #D1D5DC',
+                    borderRadius: 10,
+                    boxShadow: '0px 4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 100,
+                    overflow: 'hidden',
+                  }}>
+                    {loginEmailSuggestions.map((suggestion, index) => (
+                      <div
+                        key={index}
+                        onClick={() => selectLoginEmailSuggestion(suggestion)}
+                        style={{
+                          padding: '12px 16px',
+                          cursor: 'pointer',
+                          fontFamily: 'Inter',
+                          fontSize: 14,
+                          color: '#0A0A0A',
+                          borderBottom: index < loginEmailSuggestions.length - 1 ? '1px solid #F0F0F0' : 'none',
+                          transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLDivElement).style.background = '#F9FAFB';
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLDivElement).style.background = '#FFFFFF';
+                        }}
+                      >
+                        {suggestion}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

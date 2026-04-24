@@ -111,7 +111,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Safety timeout: if auth hasn't resolved after 5 seconds, force stop loading
+    // This prevents blank screen when offline and Supabase token refresh hangs
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const login = async (data: LoginData) => {

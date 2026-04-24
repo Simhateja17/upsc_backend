@@ -13,7 +13,7 @@ const navigationSections = [
   {
     title: 'DASHBOARD',
     items: [
-      { id: 'overview', label: 'Overview', icon: '/sidebar-overview-new.png', path: '/dashboard' },
+      { id: 'overview', label: 'Overview', icon: '/sidebar-overview.png', path: '/dashboard' },
       { id: 'study-planner', label: 'Study Planner', icon: '/sidebar-study-planner.png', path: '/dashboard/study-planner' },
       { id: 'jeet-ai', label: 'Jeet AI', icon: '/sidebar-jeet-gpt.png', path: '/dashboard/jeet-gpt' },
       { id: 'syllabus-tracker', label: 'Syllabus Tracker', icon: '/sidebar-syllabus-new.png', path: '/dashboard/syllabus-tracker' },
@@ -35,7 +35,7 @@ const navigationSections = [
       { id: 'daily-mcq', label: 'Daily MCQ', icon: '/sidebar-daily-mcq-new.png', path: '/dashboard/daily-mcq' },
       { id: 'daily-answer', label: 'Daily Answer Writing', icon: '/sidebar-daily-answer-new.png', path: '/dashboard/daily-answer' },
       { id: 'mock-tests', label: 'Mock Tests', icon: '/sidebar-mock-tests-new.png', path: '/dashboard/mock-tests' },
-      { id: 'pyq', label: 'Previous Year Questions', icon: '/sidebar-pyq-new.png', path: '/dashboard/pyq' },
+      { id: 'pyq', label: 'Previous Year Questions', icon: '/sidebar-pyq.png', path: '/dashboard/pyq' },
     ],
   },
   {
@@ -50,7 +50,7 @@ const navigationSections = [
     items: [
       { id: 'flashcards', label: 'Flashcards', icon: '/sidebar-flashcards-new.png', path: '/dashboard/flashcards' },
       { id: 'mindmap', label: 'Mindmaps', icon: '/sidebar-mindmap-new.png', path: '/dashboard/mindmap' },
-      { id: 'spaced-repetition', label: 'Spaced Repetition', icon: '/sidebar-mentorship.png', path: '/dashboard/spaced-repetition' },
+      { id: 'spaced-repetition', label: 'Spaced Repetition', icon: '/sidebar-spaced-repetition.png', path: '/dashboard/spaced-repetition' },
     ],
   },
   {
@@ -58,8 +58,7 @@ const navigationSections = [
     items: [
       { id: 'study-groups', label: 'Study Groups', icon: '/sidebar-mindmap.png', path: '/dashboard/study-groups' },
       { id: 'leaderboard', label: 'Leaderboard', icon: '/sidebar-study-groups.png', path: '/dashboard/leaderboard' },
-      { id: 'discussion', label: 'Discussion', icon: '/sidebar-discussion.png', path: '/dashboard/discussion' },
-      { id: 'qa-forum', label: 'Q&A Forum', icon: '/sidebar-qa-forum.png', path: '/dashboard/qa-forum' },
+      { id: 'discussion', label: 'Discussion Forum', icon: '/sidebar-discussion.png', path: '/dashboard/discussion' },
       { id: 'mental-health', label: 'Mental Health Buddy', icon: '/sidebar-mental-health-new.png', path: '/dashboard/mental-health' },
     ],
   },

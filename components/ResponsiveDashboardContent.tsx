@@ -34,9 +34,6 @@ interface StudyTask {
   priority?: string;
 }
 
-const COLD_BLUE = '#E9EEF5';
-const COLD_BLUE_DARK = '#D8DEE8';
-
 const borderColors: Record<string, string> = {
   high: '#FF6467',
   medium: '#22C55E',
@@ -297,11 +294,8 @@ const ResponsiveDashboardContent = () => {
   const [tasks, setTasks] = useState<StudyTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [tasksLoading, setTasksLoading] = useState(true);
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [timerSeconds, setTimerSeconds] = useState(25 * 60);
-  const [isBreak, setIsBreak] = useState(false);
 
-  const userName = user?.firstName || '';
+  const userName = user?.firstName || 'Rahul';
   const greeting = getGreeting();
 
   useEffect(() => {
@@ -338,29 +332,12 @@ const ResponsiveDashboardContent = () => {
     return () => { mounted = false; };
   }, []);
 
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    if (timerRunning && timerSeconds > 0) {
-      interval = setInterval(() => {
-        setTimerSeconds(prev => {
-          if (prev <= 1) {
-            setTimerRunning(false);
-            setIsBreak(b => !b);
-            return isBreak ? 25 * 60 : 5 * 60;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => { if (interval) clearInterval(interval); };
-  }, [timerRunning, timerSeconds, isBreak]);
-
   const trio = dashboardData?.trio;
   const daysRemaining = dashboardData?.daysRemaining ?? null;
 
   const mcqStatus = trio?.mcq?.status || null;
   const mcqTopic = trio?.mcq?.topic || null;
-  const mcqCount = trio?.mcq?.questionCount || 5;
+  const mcqCount = trio?.mcq?.questionCount || 10;
   const editorialStatus = trio?.editorial?.status || null;
   const editorialTopic = trio?.editorial?.topic || null;
   const mainsStatus = trio?.mains?.status || null;
@@ -372,27 +349,9 @@ const ResponsiveDashboardContent = () => {
 
   const displayTasks = tasks;
 
-  function formatTimerTime(totalSeconds: number) {
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  }
-
   function handleStartFocusSession() {
-    if (timerRunning) {
-      setTimerRunning(false);
-    } else {
-      if (timerSeconds <= 0) {
-        setTimerSeconds(isBreak ? 5 * 60 : 25 * 60);
-      }
-      setTimerRunning(true);
-    }
-  }
-
-  function handleResetFocusSession() {
-    setTimerRunning(false);
-    setIsBreak(false);
-    setTimerSeconds(25 * 60);
+    // Navigate to focus session or show modal
+    alert('Focus session feature coming soon!');
   }
 
   function formatDuration(mins?: number) {
@@ -406,104 +365,88 @@ const ResponsiveDashboardContent = () => {
 
   return (
     <>
-    <div className="w-full min-h-screen py-[clamp(0.5rem,1vw,1rem)] px-[clamp(0.5rem,1vw,1rem)]" style={{ background: '#E9EEF5' }}>
+    <div className="w-full min-h-screen py-[clamp(0.75rem,1.25vw,1.5rem)] px-[clamp(0.75rem,1.25vw,1.5rem)]" style={{ background: '#FAFBFE' }}>
       <div className="max-w-[1400px] mx-auto">
-
-        {/* Notification Bell */}
-        <div className="flex justify-end mb-3">
-          <button
-            onClick={() => setShowNotificationModal(true)}
-            className="relative w-10 h-10 rounded-xl flex items-center justify-center hover:bg-white/60 transition-colors"
-            style={{ background: 'rgba(255,255,255,0.5)' }}
-          >
-            <svg className="w-5 h-5 text-[#6B7280]" viewBox="0 0 24 24" fill="none">
-              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">3</span>
-          </button>
-        </div>
 
         {/* Greeting Card */}
         <div
-          className="w-full rounded-[16px] p-[clamp(0.75rem,1.25vw,1.25rem)] mb-[clamp(0.5rem,1vw,1rem)] relative overflow-hidden"
+          className="w-full rounded-[16px] p-[clamp(1rem,1.5vw,1.5rem)] mb-[clamp(0.5rem,0.75vw,0.75rem)] relative overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, #0B1A2E 0%, #0F2847 40%, #0D1F3C 100%)',
-            boxShadow: '0px 4px 24px rgba(0, 0, 0, 0.3)',
+            background: 'linear-gradient(135deg, #0A1628 0%, #0D1F3C 50%, #0A1628 100%)',
+            boxShadow: '0px 4px 20px rgba(7, 17, 36, 0.32)',
           }}
         >
+          {/* Grid Pattern Background */}
           <div
-            className="absolute -right-16 -top-16 w-64 h-64 rounded-full pointer-events-none"
+            className="absolute inset-0 pointer-events-none opacity-[0.06]"
             style={{
-              background: 'radial-gradient(circle, rgba(100, 160, 255, 0.12) 0%, rgba(50, 100, 200, 0.05) 40%, transparent 70%)',
-              filter: 'blur(20px)',
+              backgroundImage: 'linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)',
+              backgroundSize: '28px 28px',
             }}
           />
-          <div
-            className="absolute -right-8 top-8 w-40 h-40 rounded-full pointer-events-none"
-            style={{
-              background: 'radial-gradient(circle, rgba(140, 180, 255, 0.08) 0%, transparent 60%)',
-              filter: 'blur(15px)',
-            }}
-          />
-          <div className="mb-[clamp(0.25rem,0.5vw,0.5rem)]">
+          <div className="relative z-10">
             <h1
-              className="font-arimo font-bold text-white mb-[clamp(0.25rem,0.5vw,0.5rem)]"
+              className="mb-[clamp(0.35rem,0.55vw,0.55rem)] text-left"
               style={{
-                fontSize: 'clamp(20px,1.3vw,26px)',
-                lineHeight: '1.2',
-                letterSpacing: '0px',
+                fontFamily: '"Plus Jakarta Sans", sans-serif',
+                fontSize: '28px',
+                fontStyle: 'normal',
+                fontWeight: 800,
+                lineHeight: '42px',
+                letterSpacing: '-0.8px',
+                color: '#FFF',
               }}
             >
-              {greeting}{userName ? `, ` : '!'}{userName ? <span style={{ color: '#FFB954' }}>{userName}!</span> : null}
+              {greeting}, <span style={{ color: '#F5A623' }}>{userName}!</span>
             </h1>
 
             <div
-              className="font-arimo text-white/90 space-y-0.5"
+              className="font-arimo text-left mb-[clamp(0.9rem,1.1vw,1.2rem)]"
               style={{
-                fontSize: 'clamp(12px,0.73vw,14px)',
-                lineHeight: '1.4',
+                fontSize: '16px',
+                lineHeight: '24px',
                 letterSpacing: '0px',
               }}
             >
-              <p>Welcome to your personalized command center for UPSC 2026 preparation.</p>
-              <p className="font-bold text-white">Ready to rise up? Let&apos;s make today count.</p>
+              <p className="text-white/90">Welcome to your personalized command center for UPSC 2026 preparation.</p>
+              <p className="text-white/90 font-bold">Ready to rise up? Let&apos;s make today count.</p>
             </div>
-          </div>
 
-          <div
-            className="px-[clamp(0.5rem,0.75vw,1rem)] py-[clamp(0.4rem,0.5vw,0.5rem)] rounded-[4px] flex items-center gap-2"
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              borderLeft: '3px solid #FF8904',
-            }}
-          >
-            <svg width="clamp(14px,0.83vw,16px)" height="clamp(14px,0.83vw,16px)" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-              <rect x="3.5" y="4.5" width="17" height="16" rx="2.5" stroke="white" strokeWidth="2" />
-              <path d="M8 2.5V6.5M16 2.5V6.5M3.5 9.5H20.5" stroke="white" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            <p
-              className="font-arimo text-white"
+            <div
+              className="relative h-[45px] w-full rounded-[4px]"
               style={{
-                fontSize: 'clamp(11px,0.73vw,14px)',
-                lineHeight: '1.4',
-                letterSpacing: '0px',
+                background: '#161C2D',
+                borderLeft: '4px solid #FF8904',
               }}
             >
-              UPSC Prelims 2026: {daysRemaining !== null ? `${daysRemaining} days remaining` : '— days remaining'}.
-            </p>
+              <img
+                src="/calendar-icon.png"
+                alt="Calendar"
+                className="absolute left-[14px] top-[13px] w-[21px] h-[18px] object-contain"
+              />
+              <p
+                className="absolute left-[37px] top-[13px] font-arimo font-normal leading-[20px] text-white"
+                style={{
+                  fontSize: '16px',
+                }}
+              >
+                UPSC Prelims 2026: {daysRemaining !== null ? `${daysRemaining} days remaining` : '-- days remaining'}.
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Search Bar & Action Buttons */}
-        <div className="flex flex-wrap gap-[clamp(0.5rem,0.75vw,0.75rem)] items-center mb-[clamp(0.75rem,1.25vw,1.25rem)]">
+        {/* Search Bar & Schedule Button */}
+        <div className="flex flex-wrap gap-[clamp(0.75rem,1vw,1rem)] items-center mb-[clamp(1rem,1.5vw,1.5rem)]">
           <div
-            className="flex-1 min-w-[280px] flex items-center gap-[clamp(0.5rem,0.68vw,0.75rem)] px-[clamp(1rem,1.25vw,1.5rem)] rounded-[40px] bg-[#DAE2FF]"
+            className="flex-1 min-w-[280px] flex items-center gap-[clamp(0.5rem,0.68vw,0.75rem)] px-[clamp(1rem,1.25vw,1.25rem)] rounded-[40px]"
             style={{
-              height: 'clamp(40px,2.4vw,48px)',
+              height: 'clamp(44px,2.6vw,50px)',
+              background: '#E8ECFF',
             }}
           >
             <svg
-              className="w-[clamp(14px,0.83vw,18px)] h-[clamp(14px,0.83vw,18px)] flex-shrink-0"
+              className="w-[clamp(16px,0.9vw,18px)] h-[clamp(16px,0.9vw,18px)] flex-shrink-0"
               viewBox="0 0 24 24"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -513,10 +456,10 @@ const ResponsiveDashboardContent = () => {
             </svg>
             <input
               type="text"
-              placeholder="Ask jeet AI: 'Explain currant affairs'"
-              className="flex-1 bg-transparent outline-none font-inter text-black placeholder:text-black"
+              placeholder="Ask jeet AI: 'Explain current affairs'"
+              className="flex-1 bg-transparent outline-none font-inter text-[#1A1A1A] placeholder:text-[#6B7280]"
               style={{
-                fontSize: 'clamp(12px,0.73vw,14px)',
+                fontSize: 'clamp(13px,0.8vw,14px)',
                 lineHeight: '1',
               }}
               onKeyDown={(e) => {
@@ -527,85 +470,42 @@ const ResponsiveDashboardContent = () => {
             />
           </div>
 
-          <button
-            onClick={() => setShowAddTaskModal(true)}
-            className="px-[clamp(1rem,1.25vw,1.5rem)] rounded-[20px] font-inter font-medium text-white border-2 flex items-center gap-2 hover:opacity-90 transition-opacity"
-            style={{
-              height: 'clamp(40px,2.4vw,48px)',
-              fontSize: 'clamp(12px,0.68vw,14px)',
-              background: '#17223E',
-              borderColor: '#17223E',
-              boxShadow: '0px 4px 17.1px 0px rgba(255, 255, 255, 0.06) inset',
-            }}
-          >
-            <svg
-              className="w-[clamp(12px,0.68vw,14px)] h-[clamp(12px,0.68vw,14px)]"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-            </svg>
-            <span>Add Task</span>
-          </button>
-
           <Link href="/dashboard/study-planner">
             <button
-              className="px-[clamp(1rem,1.25vw,1.5rem)] rounded-[20px] font-inter font-medium border-2 hover:bg-[#17223E] hover:text-white transition-colors flex items-center gap-2"
+              className="px-[clamp(1rem,1.25vw,1.5rem)] rounded-[40px] font-inter font-medium border-2 flex items-center gap-2 hover:bg-[#17223E] hover:text-white transition-colors"
               style={{
-                height: 'clamp(40px,2.4vw,48px)',
-                fontSize: 'clamp(12px,0.68vw,14px)',
-                background: 'rgba(255, 255, 255, 0.11)',
+                height: 'clamp(44px,2.6vw,50px)',
+                fontSize: 'clamp(13px,0.8vw,14px)',
+                background: '#FFFFFF',
                 borderColor: '#17223E',
                 color: '#17223E',
-                boxShadow: '0px 4px 17.1px 0px rgba(255, 255, 255, 0.06) inset',
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/c.png"
-                alt="Calendar"
-                className="w-[clamp(12px,0.68vw,14px)] h-[clamp(12px,0.68vw,14px)]"
-              />
+              <svg className="w-[clamp(14px,0.8vw,16px)] h-[clamp(14px,0.8vw,16px)]" viewBox="0 0 24 24" fill="none">
+                <rect x="3.5" y="4.5" width="17" height="16" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                <path d="M8 2.5V6.5M16 2.5V6.5M3.5 9.5H20.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
               <span>Schedule</span>
-            </button>
-          </Link>
-
-          <Link href="/dashboard/mock-tests">
-            <button
-              className="px-[clamp(1rem,1.25vw,1.5rem)] rounded-[20px] font-inter font-medium text-white border-2 flex items-center gap-2 hover:opacity-90 transition-opacity"
-              style={{
-                height: 'clamp(32px,1.8vw,36px)',
-                fontSize: 'clamp(12px,0.68vw,14px)',
-                background: 'linear-gradient(135deg, #FDC700 0%, #FF8904 100%)',
-                borderColor: '#FDC700',
-                boxShadow: '0px 4px 17.1px 0px rgba(253, 199, 0, 0.3) inset',
-              }}
-            >
-              <span>🚀</span>
-              <span>Practice Test</span>
             </button>
           </Link>
         </div>
 
         {/* Today's Trio Section */}
         <div
-          className="mb-[clamp(0.75rem,1.25vw,1.25rem)] rounded-[14px] p-[clamp(0.75rem,1vw,1.25rem)]"
+          className="mb-[clamp(1rem,1.5vw,1.5rem)] rounded-[16px] p-[clamp(0.75rem,1vw,1rem)]"
           style={{
             background: '#FFFFFF',
             border: '0.8px solid #E5E7EB',
+            boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.05)',
           }}
         >
-          <div className="flex items-center justify-between mb-[clamp(0.5rem,0.75vw,0.75rem)]">
-            <div className="flex items-center gap-2">
-              <img src="/icons/dashboard/trio-header.png" alt="Today's Trio" className="w-[clamp(16px,1vw,20px)] h-[clamp(16px,1vw,20px)]" />
-              <h2 className="font-inter font-bold text-[clamp(16px,1.1vw,18px)] text-[#1A1A1A]">
+          <div className="flex items-center justify-between mb-[clamp(0.75rem,1vw,1.25rem)]">
+            <div className="flex items-center gap-2.5">
+              <img src="/icons/dashboard/trio-header.png" alt="Today's Trio" className="w-[clamp(18px,1.2vw,22px)] h-[clamp(18px,1.2vw,22px)]" />
+              <h2 className="font-inter font-bold text-[clamp(17px,1.2vw,20px)] text-[#1A1A1A]">
                 Today's Trio
               </h2>
             </div>
-            <Link href="#" className="font-inter text-[14px] text-[#6366F1] font-medium hover:text-[#4F46E5] transition-colors">
-              View All →
-            </Link>
           </div>
 
           {loading ? (
@@ -613,115 +513,92 @@ const ResponsiveDashboardContent = () => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#17223E]"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-[clamp(0.5rem,0.75vw,1rem)]">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-[clamp(0.75rem,1vw,1.25rem)]">
               {/* Daily MCQ Card */}
               <Link
                 href="/dashboard/daily-mcq"
                 aria-label="Open Daily MCQ"
-                className="block rounded-[14px] p-[clamp(0.75rem,1.25vw,1.5rem)] relative cursor-pointer h-full flex flex-col transition-all hover:shadow-md"
+                className="block rounded-[14px] relative cursor-pointer h-full min-h-[240px] flex flex-col transition-all hover:shadow-md"
                 style={{
-                  background: COLD_BLUE,
-                  border: `1.5px solid ${isMcqCompleted ? '#22C55E' : COLD_BLUE_DARK}`,
+                  background: '#F9FAFB',
+                  border: '0.8px solid #E5E7EB',
+                  padding: '18px 20px 20px 20px',
                 }}
               >
                 {isMcqCompleted && (
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-[#22C55E] rounded-t-[14px]" />
-                )}
-
-                {isMcqCompleted && (
-                  <div className="absolute top-4 right-4 w-7 h-7 bg-[#22C55E] rounded-full flex items-center justify-center">
+                  <div className="absolute top-[16px] right-[16px] w-7 h-7 bg-[#00C950] rounded-full flex items-center justify-center">
                     <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
-                      <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
                 )}
 
-                <div className="mb-2 py-1 text-[clamp(11px,0.65vw,12px)] invisible">AI Evaluation</div>
-
-                <div className="flex items-center gap-2 mb-2">
-                  <img src="/icons/dashboard/daily-mcq.png" alt="MCQ" className="w-6 h-6" />
-                  <h3 className="font-inter font-bold text-[clamp(15px,1vw,18px)] text-[#1A1A1A]">
+                <div className="flex items-center gap-[10px] mb-[16px]">
+                  <img src="/image-removebg-preview (26) 2.svg" alt="Daily MCQ icon" className="w-9 h-9 object-contain" />
+                  <h3 className="font-arimo font-bold text-[18px] text-[#101828]" style={{ lineHeight: '28px' }}>
                     Daily MCQ
                   </h3>
                 </div>
 
-                <p className="font-inter text-[clamp(12px,0.75vw,14px)] text-gray-600 mb-1">
-                  <span className={`font-medium ${isMcqCompleted ? 'text-[#22C55E]' : ''}`}>Status: {mcqStatus === 'available' ? 'Pending' : (mcqStatus || '—')}</span>
+                <p className="font-arimo font-normal text-[14px] text-[#00A63E] mb-[8px]" style={{ lineHeight: '20px' }}>
+                  Status: {isMcqCompleted ? 'Completed' : 'Pending'}
                 </p>
-                <p className="font-inter text-[clamp(12px,0.75vw,14px)] text-[#1A1A1A] font-medium mb-3 flex-grow">
-                  {mcqCount} Questions{mcqTopic ? ` - ${mcqTopic}` : ''}
+                <p className="font-arimo font-normal text-[14px] text-[#364153] mb-[20px] flex-grow" style={{ lineHeight: '20px' }}>
+                  {mcqCount} Questions{mcqTopic ? ` - ${mcqTopic}` : ' - Policy & Economy'}
                 </p>
 
                 <div
-                  className="w-full rounded-[8px] py-2.5 px-4 font-inter font-medium text-[clamp(12px,0.75vw,14px)] flex items-center justify-center gap-2 transition-colors"
-                  style={isMcqCompleted
-                    ? { background: '#17223E', color: '#FFFFFF' }
-                    : { background: '#17223E', color: '#FFFFFF' }
-                  }
+                  className="rounded-[8px] flex items-center justify-center gap-[8px] transition-all hover:opacity-90"
+                  style={{ background: '#0E182D', color: '#FFFFFF', height: '32px', width: '126px' }}
                   role="button"
                 >
                   {isMcqCompleted ? (
                     <>
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Completed · Review
+                      <img src="/image-removebg-preview (48) 1.svg" alt="Completed" className="w-[24px] h-[24px] object-contain" />
+                      <span className="font-arimo font-normal text-[14px]" style={{ lineHeight: '20px' }}>Completed</span>
                     </>
                   ) : (
                     <>
-                      <img src="/TrioCard.png" alt="Start" className="w-4 h-4" />
-                      Start Now
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="font-arimo font-normal text-[14px]" style={{ lineHeight: '20px' }}>Start Now</span>
                     </>
                   )}
                 </div>
-
-                <div className="flex items-center gap-1 mt-3">
-                  {[0,1,2,3,4,5].map(i => (
-                    <div key={i} className={`w-2 h-2 rounded-full ${i < (isMcqCompleted ? 5 : 3) ? 'bg-[#22C55E]' : 'bg-[#D1D5DB]'}`} />
-                  ))}
-                </div>
               </Link>
 
-              {/* Daily Editorial Card */}
+{/* Daily Editorial Card */}
               <Link href="/dashboard/daily-editorial" className="block h-full">
               <div
-                className="rounded-[14px] p-[clamp(0.75rem,1.25vw,1.5rem)] h-full flex flex-col transition-all hover:shadow-md relative"
+                className="rounded-[14px] h-full flex flex-col transition-all hover:shadow-md relative"
                 style={{
-                  background: COLD_BLUE,
-                  border: '1.5px solid #F59E0B',
+                  background: '#F9FAFB',
+                  border: '0.8px solid #E5E7EB',
+                  padding: '16px 20px 20px 20px',
                 }}
               >
-                <div className="absolute top-0 left-0 right-0 h-1 bg-[#F59E0B] rounded-t-[14px]" />
-
-                <div className="mb-2 py-1 text-[clamp(11px,0.65vw,12px)] invisible">AI Evaluation</div>
-
-                <div className="flex items-center gap-2 mb-2">
-                  <img src="/icons/dashboard/editorial.png" alt="Editorial" className="w-6 h-6" />
-                  <h3 className="font-inter font-bold text-[clamp(15px,1vw,18px)] text-[#1A1A1A]">
+                <div className="flex items-center gap-[10px] mb-[16px]">
+                  <span className="text-[24px]">📰</span>
+                  <h3 className="font-arimo font-bold text-[18px] text-[#101828]" style={{ lineHeight: '28px' }}>
                     Daily Editorial
                   </h3>
                 </div>
 
-                <p className="font-inter text-[clamp(12px,0.75vw,14px)] text-gray-600 mb-1">
-                  <span className="font-medium">Status: {editorialStatus === 'available' ? 'Pending' : (editorialStatus || '—')}</span>
+                <p className="font-arimo font-normal text-[14px] text-[#6B7280] mb-[8px]" style={{ lineHeight: '20px' }}>
+                  Status: {editorialStatus === 'available' ? 'Pending' : (editorialStatus || 'Pending')}
                 </p>
-                <p className="font-inter text-[clamp(12px,0.75vw,14px)] text-[#1A1A1A] font-medium mb-3 flex-grow">
-                  {editorialTopic || '—'}
+                <p className="font-arimo font-normal text-[14px] text-[#364153] mb-[20px] flex-grow" style={{ lineHeight: '20px' }}>
+                  {editorialTopic || 'India-US Trade Relations'}
                 </p>
 
                 <div
-                  className="w-full rounded-[8px] py-2.5 px-4 font-inter font-medium text-[clamp(12px,0.75vw,14px)] flex items-center justify-center gap-2 transition-colors"
-                  style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #F59E0B' }}
+                  className="rounded-[8px] flex items-center justify-center gap-[8px] transition-all hover:opacity-90"
+                  style={{ background: '#0E182D', color: '#FFFFFF', height: '32px', width: '126px' }}
                   role="button"
                 >
-                  <img src="/TrioCard.png" alt="Read" className="w-4 h-4" />
-                  Read Now
-                </div>
-
-                <div className="flex items-center gap-1 mt-3">
-                  {[0,1,2,3,4,5].map(i => (
-                    <div key={i} className={`w-2 h-2 rounded-full ${i < 3 ? 'bg-[#F59E0B]' : 'bg-[#D1D5DB]'}`} />
-                  ))}
+                  <span className="text-[16px]">📖</span>
+                  <span className="font-arimo font-normal text-[14px]" style={{ lineHeight: '20px' }}>Read Now</span>
                 </div>
               </div>
               </Link>
@@ -729,184 +606,83 @@ const ResponsiveDashboardContent = () => {
               {/* Mains Question Card */}
               <Link href="/dashboard/daily-answer" className="block h-full">
               <div
-                className="rounded-[14px] p-[clamp(0.75rem,1.25vw,1.5rem)] h-full flex flex-col transition-all hover:shadow-md relative"
+                className="rounded-[14px] h-full flex flex-col transition-all hover:shadow-md relative"
                 style={{
-                  background: COLD_BLUE,
-                  border: '1.5px solid #22C55E',
+                  background: '#F9FAFB',
+                  border: '0.8px solid #E5E7EB',
+                  padding: '12px 20px 20px 20px',
                 }}
               >
-                <div className="absolute top-0 left-0 right-0 h-1 bg-[#22C55E] rounded-t-[14px]" />
-
-                <div className="mb-2 px-3 py-1 bg-teal-50 text-teal-600 rounded-full text-[clamp(11px,0.65vw,12px)] font-medium w-fit">
-                  AI Evaluation
+                {/* AI Evaluation Badge */}
+                <div className="mb-[10px]">
+                  <span className="inline-block px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#D1FAE5] text-[#059669]">
+                    AI Evaluation
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-2 mb-2">
-                  <img src="/icons/dashboard/mains.png" alt="Mains" className="w-6 h-6" />
-                  <h3 className="font-inter font-bold text-[clamp(15px,1vw,18px)] text-[#1A1A1A]">
+                <div className="flex items-center gap-[10px] mb-[16px]">
+                  <span className="text-[24px]">✏️</span>
+                  <h3 className="font-arimo font-bold text-[18px] text-[#101828]" style={{ lineHeight: '28px' }}>
                     Mains Question
                   </h3>
                 </div>
 
-                <p className="font-inter text-[clamp(12px,0.75vw,14px)] text-gray-600 mb-1">
-                  <span className="font-medium">Status: {mainsStatus === 'available' ? 'Pending' : (mainsStatus || '—')}</span>
+                <p className="font-arimo font-normal text-[14px] text-[#6B7280] mb-[8px]" style={{ lineHeight: '20px' }}>
+                  Status: {mainsStatus === 'available' ? 'Pending' : (mainsStatus || 'Pending')}
                 </p>
-                <p className="font-inter text-[clamp(12px,0.75vw,14px)] text-[#1A1A1A] font-medium mb-3 flex-grow">
-                  {mainsTopic || '—'}
+                <p className="font-arimo font-normal text-[14px] text-[#364153] mb-[20px] flex-grow" style={{ lineHeight: '20px' }}>
+                  {mainsTopic || 'Local Self Governance'}
                 </p>
 
                 <button
-                  className="w-full rounded-[8px] py-2.5 px-4 font-inter font-medium text-[clamp(12px,0.75vw,14px)] flex items-center justify-center gap-2 transition-colors"
-                  style={{ background: '#D1FAE5', color: '#065F46', border: '1px solid #22C55E' }}
+                  className="rounded-[8px] flex items-center justify-center gap-[8px] transition-all hover:opacity-90"
+                  style={{ background: '#0E182D', color: '#FFFFFF', height: '32px', width: '126px' }}
                 >
-                  <img src="/TrioCard (1).png" alt="Attempt" className="w-4 h-4" />
-                  Attempt Now
+                  <span className="text-[16px]">✏️</span>
+                  <span className="font-arimo font-normal text-[14px]" style={{ lineHeight: '20px' }}>Attempt Now</span>
                 </button>
-
-                <div className="flex items-center gap-1 mt-3">
-                  {[0,1,2,3,4,5].map(i => (
-                    <div key={i} className={`w-2 h-2 rounded-full ${i < 3 ? 'bg-[#22C55E]' : 'bg-[#D1D5DB]'}`} />
-                  ))}
-                </div>
               </div>
               </Link>
             </div>
           )}
         </div>
 
-        {/* Time Distribution & Syllabus Coverage Row */}
-        <div className="mb-[clamp(0.75rem,1.25vw,1.25rem)] grid grid-cols-1 lg:grid-cols-5 gap-[clamp(0.75rem,1vw,1.25rem)]">
-          {/* Time Distribution Card */}
-          <div
-            className="lg:col-span-2 rounded-[14px] p-[clamp(1rem,1.25vw,1.5rem)] flex flex-col"
-            style={{
-              background: '#FFFFFF',
-              border: '0.8px solid #E5E7EB',
-              boxShadow: '0px 4px 12px 0px #00000026',
-            }}
-          >
-            <div className="flex items-center gap-2 mb-[clamp(1rem,1.25vw,1.5rem)]">
-              <svg className="w-[clamp(18px,1.25vw,22px)] h-[clamp(18px,1.25vw,22px)]" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="url(#timeGrad)" strokeWidth="3" strokeDasharray="20 10 15 10" strokeLinecap="round"/>
-                <defs>
-                  <linearGradient id="timeGrad" x1="0" y1="0" x2="24" y2="24">
-                    <stop offset="0%" stopColor="#FF6B6B"/>
-                    <stop offset="33%" stopColor="#FFD93D"/>
-                    <stop offset="66%" stopColor="#6BCB77"/>
-                    <stop offset="100%" stopColor="#4D96FF"/>
-                  </linearGradient>
-                </defs>
-              </svg>
-              <h2 className="font-inter font-bold text-[clamp(16px,1.1vw,18px)] text-[#1A1A1A]">
-                Time Distribution
-              </h2>
-            </div>
-
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <div className="text-center mb-[clamp(1rem,1.25vw,1.5rem)]">
-                <p className="font-outfit font-bold text-[clamp(28px,1.8vw,36px)] text-[#17223E] leading-none">
-                  3.5h
-                </p>
-                <p className="font-arimo text-[clamp(11px,0.68vw,13px)] text-[#6B7280] mt-1">total</p>
-              </div>
-
-              <div className="w-full space-y-[clamp(8px,0.63vw,12px)]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#FF6B6B' }} />
-                    <span className="font-arimo text-[clamp(12px,0.73vw,14px)] text-[#4A5565]">Video Lectures</span>
-                  </div>
-                  <span className="font-inter font-semibold text-[clamp(12px,0.73vw,14px)] text-[#17223E]">3.5h</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#FFD93D' }} />
-                    <span className="font-arimo text-[clamp(12px,0.73vw,14px)] text-[#4A5565]">Self Study</span>
-                  </div>
-                  <span className="font-inter font-semibold text-[clamp(12px,0.73vw,14px)] text-[#17223E]">0h</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#6BCB77' }} />
-                    <span className="font-arimo text-[clamp(12px,0.73vw,14px)] text-[#4A5565]">Answer Writing</span>
-                  </div>
-                  <span className="font-inter font-semibold text-[clamp(12px,0.73vw,14px)] text-[#17223E]">0h</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Syllabus Coverage Card */}
-          <div
-            className="lg:col-span-3 rounded-[14px] p-[clamp(1rem,1.25vw,1.5rem)]"
-            style={{
-              background: '#FFFFFF',
-              border: '0.8px solid #E5E7EB',
-              boxShadow: '0px 4px 12px 0px #00000026',
-            }}
-          >
-            <div className="flex items-center gap-2 mb-[clamp(1rem,1.25vw,1.5rem)]">
-              <svg className="w-[clamp(18px,1.25vw,22px)] h-[clamp(18px,1.25vw,22px)]" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#FF6B6B" opacity="0.3"/>
-                <path d="M12 2v10l7 4" stroke="#4D96FF" strokeWidth="2.5" strokeLinecap="round"/>
-                <path d="M12 2C6.48 2 2 6.48 2 12" stroke="#6BCB77" strokeWidth="2.5" strokeLinecap="round"/>
-              </svg>
-              <h2 className="font-inter font-bold text-[clamp(16px,1.1vw,18px)] text-[#1A1A1A]">
-                Syllabus Coverage
-              </h2>
-            </div>
-
-            <div className="space-y-[clamp(8px,0.63vw,12px)]">
-              {['Polity', 'History', 'Geography', 'Economics', 'Science & Technology', 'Environment', 'Ethics', 'Current Affairs'].map((subject, i) => {
-                const pct = i === 0 ? 100 : 0;
-                const colors = ['#1E2875', '#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#A855F7', '#F97316', '#EC4899'];
-                return (
-                  <div key={subject}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-arimo text-[clamp(11px,0.68vw,13px)] text-[#4A5565]">{subject}</span>
-                      <span className="font-arimo font-bold text-[clamp(11px,0.68vw,13px)] text-[#0A1172]">{pct}%</span>
-                    </div>
-                    <div className="w-full rounded-full overflow-hidden" style={{ height: 'clamp(6px,0.42vw,8px)', background: '#E5E7EB' }}>
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%`, background: colors[i] }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
         {/* Today's Study Tasks Section */}
         <div
-          className="mb-[clamp(0.75rem,1.25vw,1.25rem)] rounded-[14px] p-[clamp(0.75rem,1vw,1.25rem)]"
+          className="mb-[clamp(1rem,1.5vw,1.5rem)] rounded-[16px] p-[clamp(1rem,1.5vw,1.5rem)]"
           style={{
             background: '#FFFFFF',
             border: '0.8px solid #E5E7EB',
+            boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.05)',
           }}
         >
-          <div className="flex items-center justify-between mb-[clamp(0.5rem,0.75vw,0.75rem)]">
-            <div className="flex items-center gap-2">
-              <img src="/icons/dashboard/tasks-header.png" alt="Today's Study Tasks" className="w-[clamp(16px,1vw,20px)] h-[clamp(16px,1vw,20px)]" />
-              <h2 className="font-inter font-bold text-[clamp(16px,1.1vw,18px)] text-[#1A1A1A]">
+          <div className="flex items-center justify-between mb-[clamp(0.75rem,1vw,1.25rem)]">
+            <div className="flex items-center gap-[8px]">
+              <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="4" width="20" height="18" rx="2" fill="#F3F4F6" stroke="#9CA3AF" strokeWidth="1.5"/>
+                <path d="M2 9H22" stroke="#9CA3AF" strokeWidth="1.5"/>
+                <rect x="5" y="2" width="3" height="4" rx="1" fill="#EF4444"/>
+                <rect x="16" y="2" width="3" height="4" rx="1" fill="#EF4444"/>
+                <rect x="6" y="12" width="2" height="2" rx="0.5" fill="#9CA3AF"/>
+                <rect x="11" y="12" width="2" height="2" rx="0.5" fill="#9CA3AF"/>
+                <rect x="16" y="12" width="2" height="2" rx="0.5" fill="#9CA3AF"/>
+                <rect x="6" y="16" width="2" height="2" rx="0.5" fill="#9CA3AF"/>
+                <rect x="11" y="16" width="2" height="2" rx="0.5" fill="#EF4444"/>
+                <rect x="16" y="16" width="2" height="2" rx="0.5" fill="#9CA3AF"/>
+              </svg>
+              <h2 className="font-arimo font-bold text-[18px] text-[#101828]" style={{ lineHeight: '28px' }}>
                 Today's Study Tasks
               </h2>
             </div>
-            <div className="flex items-center gap-2">
-              <button className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                  <path d="M15 18l-6-6 6-6" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+            <div className="flex items-center gap-[16px]">
+              <button className="w-[32px] h-[32px] rounded-full border border-[#B1B1B1] flex items-center justify-center hover:bg-gray-50 transition-colors">
+                <img src="/icons/Arrows/arrow-right.svg" alt="Previous" className="w-4 h-4 rotate-180" />
               </button>
-              <span className="font-inter text-[clamp(12px,0.65vw,13px)] text-gray-400 px-3">
-                Today {'\u2022'} {todayStr}
+              <span className="font-semibold text-[20px] text-[#B1B1B1]" style={{ fontFamily: '"Archivo", "Plus Jakarta Sans", sans-serif', lineHeight: '100%' }}>
+                Today • {todayStr}
               </span>
-              <button className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 18l6-6-6-6" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+              <button className="w-[32px] h-[32px] rounded-full border border-[#B1B1B1] flex items-center justify-center hover:bg-gray-50 transition-colors">
+                <img src="/icons/Arrows/arrow-right.svg" alt="Next" className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -936,20 +712,22 @@ const ResponsiveDashboardContent = () => {
                 return (
                   <div
                     key={task._id || task.id || index}
-                    className="rounded-lg border border-[#E5E7EB] border-l-4 p-[clamp(0.5rem,0.75vw,1rem)] mb-[clamp(0.5rem,0.75vw,0.75rem)] flex items-start justify-between bg-[#F9FAFB]"
-                    style={{ boxShadow: '0 1px 1px rgba(16, 24, 40, 0.04)', borderLeftColor: leftBorderColor }}
+                    className="rounded-[10px] border border-[#E5E7EB] border-l-[4px] p-[clamp(0.75rem,1vw,1rem)] mb-[clamp(0.5rem,0.75vw,0.75rem)] flex items-start justify-between bg-[#FAFBFE] hover:bg-[#F9FAFB] transition-colors"
+                    style={{ borderLeftColor: leftBorderColor }}
                   >
                     <div className="flex-1">
-                      <h3 className="font-inter font-semibold text-[clamp(13px,0.83vw,15px)] text-[#1A1A1A] mb-1.5">
+                      <h3 className="font-inter font-semibold text-[clamp(13px,0.83vw,14px)] text-[#1A1A1A] mb-2">
                         {task.title}
                       </h3>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[clamp(11px,0.6vw,12px)] font-medium text-blue-600" style={{ background: '#DBEAFE' }}>
-                          <img src="/b.png" alt="Type" className="w-3 h-3" />
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[clamp(10px,0.6vw,11px)] font-medium text-blue-600" style={{ background: '#DBEAFE' }}>
+                          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 17H20M4 19.5V5a2 2 0 0 1 2-2h8.5L20 8.5V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
                           {task.type || 'Reading'}
                         </span>
                         {timeLabel && (
-                          <span className="inline-flex items-center gap-1 text-gray-600 text-[clamp(11px,0.6vw,12px)]">
+                          <span className="inline-flex items-center gap-1.5 text-gray-600 text-[clamp(10px,0.6vw,11px)]">
                             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
                               <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
                               <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -957,13 +735,13 @@ const ResponsiveDashboardContent = () => {
                             {timeLabel}
                           </span>
                         )}
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[clamp(11px,0.6vw,12px)] font-medium text-purple-700" style={{ background: '#F3E8FF' }}>
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-[clamp(10px,0.6vw,11px)] font-medium text-purple-700" style={{ background: '#F3E8FF' }}>
                           {task.subject || 'General'}
                         </span>
                       </div>
                     </div>
-                    <button className="ml-3 w-4 h-4 rounded border-2 border-gray-300 hover:border-green-500 hover:bg-green-50 transition-colors flex items-center justify-center flex-shrink-0">
-                      <svg className="w-2.5 h-2.5 text-green-600" viewBox="0 0 24 24" fill="none">
+                    <button className="ml-3 w-5 h-5 rounded border-2 border-gray-300 hover:border-green-500 hover:bg-green-50 transition-colors flex items-center justify-center flex-shrink-0">
+                      <svg className="w-3 h-3 text-green-600" viewBox="0 0 24 24" fill="none">
                         <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </button>
@@ -975,110 +753,43 @@ const ResponsiveDashboardContent = () => {
 
           {/* Add Custom Task */}
           <div
-            className="rounded-lg border border-[#E5E7EB] p-[clamp(0.75rem,1vw,1.25rem)] mb-[clamp(0.75rem,1vw,1rem)] flex items-center justify-between"
+            className="rounded-[16px] border border-[#E5E7EB] p-[16px] mb-[12px] flex items-center justify-between"
             style={{ background: '#FFFFFF' }}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-[clamp(36px,2.2vw,44px)] h-[clamp(36px,2.2vw,44px)] bg-[#17223E] rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+            <div className="flex items-center gap-[12px]">
+              <div className="w-[48px] h-[48px] bg-[#17223E] rounded-[12px] flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none">
                   <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
                 </svg>
               </div>
               <div>
-                <h3 className="font-inter font-semibold text-[clamp(13px,0.83vw,15px)] text-[#1A1A1A]">
+                <h3 className="font-arimo font-bold text-[16px] text-[#101828]" style={{ lineHeight: '24px' }}>
                   Add Custom Task
                 </h3>
-                <p className="font-inter text-[clamp(11px,0.6vw,12px)] text-gray-500">
+                <p className="font-arimo text-[13px] text-[#6B7280]" style={{ lineHeight: '20px' }}>
                   Create your own study task for today
                 </p>
               </div>
             </div>
-            <button onClick={() => setShowAddTaskModal(true)} className="px-[clamp(0.75rem,1vw,1.25rem)] py-[clamp(0.35rem,0.45vw,0.5rem)] bg-[#17223E] text-white rounded-lg font-inter font-medium text-[clamp(11px,0.6vw,12px)] hover:bg-[#1E2875] transition-colors flex items-center gap-1.5 flex-shrink-0">
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+            <button onClick={() => setShowAddTaskModal(true)} className="px-[14px] h-[32px] bg-[#17223E] text-white rounded-[8px] font-arimo font-normal text-[14px] hover:bg-[#1E2875] transition-colors flex items-center gap-[8px] flex-shrink-0" style={{ lineHeight: '20px' }}>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
               </svg>
               Add Task
             </button>
           </div>
 
-          {/* Start Focus Session Button with Timer */}
-          <div className="rounded-lg overflow-hidden" style={{ background: 'linear-gradient(135deg, #1E2875 0%, #17223E 100%)' }}>
-            {timerRunning || timerSeconds < 25 * 60 ? (
-              <div className="flex items-center justify-between px-[clamp(1rem,1.5vw,1.5rem)] py-[clamp(0.75rem,1vw,1rem)]">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                      {timerRunning ? (
-                        <>
-                          <rect x="6" y="4" width="4" height="16" rx="1" fill="white"/>
-                          <rect x="14" y="4" width="4" height="16" rx="1" fill="white"/>
-                        </>
-                      ) : (
-                        <path d="M10 8l6 4-6 4V8z" fill="white"/>
-                      )}
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="font-inter font-semibold text-white text-[clamp(14px,0.94vw,16px)]">
-                      {isBreak ? 'Break Time' : 'Focus Session'}
-                    </p>
-                    <p className="font-inter text-white/70 text-[clamp(12px,0.73vw,14px)]">
-                      {isBreak ? 'Take a short break' : 'Stay focused and productive'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="font-mono font-bold text-white text-[clamp(20px,1.5vw,28px)] leading-none tracking-wider">
-                      {formatTimerTime(timerSeconds)}
-                    </p>
-                    <p className="font-inter text-white/60 text-[11px] mt-1">
-                      {isBreak ? '5 min break' : '25 min focus'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleResetFocusSession}
-                      className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
-                      aria-label="Reset timer"
-                    >
-                      <svg className="w-4 h-4 text-white/70" viewBox="0 0 24 24" fill="none">
-                        <path d="M3 12a9 9 0 119 9M3 12V7m0 5h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
-                    <button
-                      onClick={handleStartFocusSession}
-                      className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-                      style={{ background: 'rgba(255,255,255,0.2)' }}
-                      aria-label={timerRunning ? 'Pause' : 'Start'}
-                    >
-                      <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        {timerRunning ? (
-                          <>
-                            <rect x="6" y="4" width="4" height="16" rx="1" fill="white"/>
-                            <rect x="14" y="4" width="4" height="16" rx="1" fill="white"/>
-                          </>
-                        ) : (
-                          <path d="M10 8l6 4-6 4V8z" fill="white"/>
-                        )}
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={handleStartFocusSession}
-                className="w-full text-white rounded-lg py-[clamp(0.75rem,1vw,1rem)] font-inter font-semibold text-[clamp(14px,0.94vw,16px)] hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="10" fill="white"/>
-                  <path d="M10 8l6 4-6 4V8z" fill="#17223E"/>
-                </svg>
-                Start Focus Session (25 Mins)
-              </button>
-            )}
-          </div>
+          {/* Start Focus Session Button */}
+          <button
+            onClick={handleStartFocusSession}
+            className="w-full text-white rounded-[10px] flex items-center justify-center gap-[10px] hover:opacity-90 transition-opacity"
+            style={{ background: '#0E182D', height: '48px' }}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" fill="white"/>
+            </svg>
+            <span className="font-arimo font-bold text-[16px]" style={{ lineHeight: '24px' }}>Start Focus Session (25 Mins)</span>
+          </button>
         </div>
 
       </div>
