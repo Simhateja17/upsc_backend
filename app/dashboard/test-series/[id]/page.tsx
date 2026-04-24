@@ -203,10 +203,7 @@ export default function TestSeriesDetailPage() {
   const params = useParams();
   const seriesId = params?.id as string;
   const cms = isCmsUuid(seriesId);
-  const [apiData, setApiData] = useState<{
-    series: Record<string, unknown>;
-    schedule: { id: string; num: number; name: string; qs: number; status: string; score: number | null }[];
-  } | null>(null);
+  const [apiData, setApiData] = useState<Record<string, any> | null>(null);
   const [apiLoading, setApiLoading] = useState(cms);
   const [apiErr, setApiErr] = useState<string | null>(null);
   const [startLoading, setStartLoading] = useState<string | null>(null);
@@ -251,7 +248,7 @@ export default function TestSeriesDetailPage() {
         </div>
       );
     }
-    const s = apiData.series as Record<string, any>;
+    const s = apiData || {};
     const cmsGradient = s.gradient || 'linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%)';
     const cmsTags: string[] = s.tags || [];
     const cmsWhyEnroll: Array<{ t: string; d: string }> = s.whyEnroll || [];
@@ -332,34 +329,36 @@ export default function TestSeriesDetailPage() {
               )}
 
               {/* Test Schedule */}
-              <div style={{ marginBottom: 28 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: 'var(--ink)' }}>Tests ({apiData.schedule.length})</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {apiData.schedule.map((row) => (
-                    <div key={row.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, background: '#fff', borderRadius: 12, border: '1px solid var(--border)' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, color: '#111827' }}>#{row.num} · {row.name}</div>
-                        <div style={{ fontSize: 13, color: '#6B7280' }}>
-                          {row.qs} questions · {row.status}{row.score != null ? ` · Score ${row.score}` : ''}
+              {apiData.schedule && apiData.schedule.length > 0 && (
+                <div style={{ marginBottom: 28 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: 'var(--ink)' }}>Tests ({apiData.schedule.length})</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {apiData.schedule.map((row: any) => (
+                      <div key={row.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, background: '#fff', borderRadius: 12, border: '1px solid var(--border)' }}>
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#111827' }}>#{row.num} · {row.name}</div>
+                          <div style={{ fontSize: 13, color: '#6B7280' }}>
+                            {row.qs} questions · {row.status}{row.score != null ? ` · Score ${row.score}` : ''}
+                          </div>
                         </div>
+                        <button
+                          type="button"
+                          disabled={startLoading === row.id}
+                          onClick={async () => {
+                            setStartLoading(row.id);
+                            try { await testSeriesService.enroll(seriesId); } catch { /* ok */ }
+                            router.push(`/dashboard/test-series/${seriesId}/attempt?test=${row.num}`);
+                            setStartLoading(null);
+                          }}
+                          style={{ background: row.status === 'done' ? '#059669' : '#101828', color: '#fff', padding: '8px 16px', borderRadius: 8, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', opacity: startLoading === row.id ? 0.7 : 1 }}
+                        >
+                          {startLoading === row.id ? '…' : row.status === 'done' ? 'Review' : 'Start'}
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        disabled={startLoading === row.id}
-                        onClick={async () => {
-                          setStartLoading(row.id);
-                          try { await testSeriesService.enroll(seriesId); } catch { /* ok */ }
-                          router.push(`/dashboard/test-series/${seriesId}/attempt?test=${row.num}`);
-                          setStartLoading(null);
-                        }}
-                        style={{ background: row.status === 'done' ? '#059669' : '#101828', color: '#fff', padding: '8px 16px', borderRadius: 8, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', opacity: startLoading === row.id ? 0.7 : 1 }}
-                      >
-                        {startLoading === row.id ? '…' : row.status === 'done' ? 'Review' : 'Start'}
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Syllabus */}
               {cmsSyllabus.length > 0 && (
@@ -667,21 +666,17 @@ export default function TestSeriesDetailPage() {
               <div style={{ overflowX: 'auto' }}>
                 <table className="sch-tbl" style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)' }}>
+                    <tr style={{ borderBottom: '2px solid var(--border)' }}>
                       <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--ink4)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>#</th>
                       <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--ink4)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Test Name</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--ink4)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
                       <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--ink4)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Qs</th>
                       <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--ink4)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Time</th>
                       <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--ink4)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--ink4)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Score</th>
                       <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--ink4)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {series.schedule.map((test: any, i: number) => {
-                      const statusMap: any = { live: '● Live Now', done: '✓ Completed', open: 'Open', upcoming: 'Upcoming' };
-                      const statusCls: any = { live: 'sp-live', done: 'sp-done', open: 'sp-open', upcoming: 'sp-upcoming' };
                       return (
                         <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '12px 10px', color: 'var(--ink4)', fontSize: '0.68rem' }}>{test.num}</td>
@@ -690,12 +685,10 @@ export default function TestSeriesDetailPage() {
                               {test.name}
                             </span>
                           </td>
-                          <td style={{ padding: '12px 10px', color: 'var(--ink3)' }}>{test.date}</td>
                           <td style={{ padding: '12px 10px', color: 'var(--ink3)' }}>{test.qs}</td>
                           <td style={{ padding: '12px 10px', color: 'var(--ink3)' }}>{test.time}</td>
                           <td style={{ padding: '12px 10px' }}>
                             <span
-                              className={`status-pill ${statusCls[test.status]}`}
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -703,52 +696,30 @@ export default function TestSeriesDetailPage() {
                                 borderRadius: '5px',
                                 fontSize: '0.65rem',
                                 fontWeight: 700,
-                                background: test.status === 'done' ? 'var(--jadebg)' : test.status === 'live' ? 'var(--rosebg)' : test.status === 'open' ? 'var(--skybg)' : 'var(--bg)',
-                                color: test.status === 'done' ? 'var(--jade)' : test.status === 'live' ? 'var(--rose)' : test.status === 'open' ? 'var(--sky)' : 'var(--ink4)',
+                                background: 'var(--bg)',
+                                color: 'var(--ink4)',
                               }}
                             >
-                              {statusMap[test.status]}
+                              Upcoming
                             </span>
                           </td>
-                          <td style={{ padding: '12px 10px', color: 'var(--gold2)', fontWeight: 700 }}>{test.score !== null ? test.score : '—'}</td>
                           <td style={{ padding: '12px 10px' }}>
-                            {test.status === 'open' || test.status === 'live' ? (
-                              <button
-                                className="sch-act-btn"
-                                onClick={() => router.push(`/dashboard/test-series/${seriesId}/attempt?test=${test.num}`)}
-                                style={{
-                                  background: 'var(--sky)',
-                                  color: '#fff',
-                                  border: 'none',
-                                  borderRadius: '6px',
-                                  padding: '6px 12px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                ▶ Attempt
-                              </button>
-                            ) : test.status === 'done' ? (
-                              <button
-                                className="sch-act-btn"
-                                onClick={() => router.push(`/dashboard/test-series/${seriesId}/results/${test.num}`)}
-                                style={{
-                                  background: 'var(--goldbg)',
-                                  color: 'var(--gold2)',
-                                  border: '1px solid rgba(201,146,42,0.3)',
-                                  borderRadius: '6px',
-                                  padding: '6px 12px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                📊 Analysis
-                              </button>
-                            ) : (
-                              <span style={{ fontSize: '0.65rem', color: 'var(--ink4)' }}>Upcoming</span>
-                            )}
+                            <button
+                              className="sch-act-btn"
+                              disabled
+                              style={{
+                                background: '#E5E7EB',
+                                color: '#9CA3AF',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                cursor: 'not-allowed',
+                              }}
+                            >
+                               Coming Soon
+                               </button>
                           </td>
                         </tr>
                       );
@@ -840,35 +811,19 @@ export default function TestSeriesDetailPage() {
               <div className="rev-row" style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '24px' }}>
                 <div>
                   <div className="rev-big" style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--ink)', marginBottom: '8px' }}>
-                    {series.rating}
+                    {series.rating || '—'}
                   </div>
                   <div className="rev-stars" style={{ fontSize: '1.2rem', color: 'var(--gold2)', marginBottom: '6px' }}>
-                    {'★'.repeat(Math.floor(series.rating))}
-                    {'☆'.repeat(5 - Math.floor(series.rating))}
+                    {series.rating ? '★'.repeat(Math.floor(series.rating)) + '☆'.repeat(5 - Math.floor(series.rating)) : '☆☆☆☆☆'}
                   </div>
                   <div className="rev-cnt" style={{ fontSize: '0.7rem', color: 'var(--ink4)' }}>
-                    {Math.floor(series.enrolled * 0.08).toLocaleString('en-IN')} reviews
+                    No reviews yet
                   </div>
                 </div>
                 <div className="rev-cards" style={{ display: 'grid', gap: '12px' }}>
-                  {series.reviews.map((review: any, i: number) => (
-                    <div key={i} className="rev-card" style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-                      <div className="rev-card-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div>
-                          <div className="rev-card-name" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '2px' }}>
-                            {review.name}
-                          </div>
-                          <div className="rev-card-rank" style={{ fontSize: '0.65rem', color: 'var(--jade)', fontWeight: 600 }}>
-                            {review.rank}
-                          </div>
-                        </div>
-                        <div style={{ color: 'var(--gold2)', fontSize: '0.8rem' }}>{'★'.repeat(review.stars)}</div>
-                      </div>
-                      <div className="rev-card-text" style={{ fontSize: '0.75rem', color: 'var(--ink3)', lineHeight: 1.5 }}>
-                        {review.text}
-                      </div>
-                    </div>
-                  ))}
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--ink4)', fontSize: '0.8rem' }}>
+                    Be the first to review this series after completing a test.
+                  </div>
                 </div>
               </div>
             </div>
@@ -879,64 +834,11 @@ export default function TestSeriesDetailPage() {
                 <div className="dcard-title-ico" style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--goldbg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
                   🏆
                 </div>
-                Leaderboard — Mock #{series.schedule[0]?.num || 1}
+                Leaderboard
               </div>
-              {series.leaderboard.map((entry: any, i: number) => (
-                <div
-                  key={i}
-                  className={`lb-row ${entry.isMe ? 'me' : ''}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '14px',
-                    padding: '12px 14px',
-                    marginBottom: '8px',
-                    background: entry.isMe ? 'var(--skybg)' : 'var(--bg)',
-                    borderRadius: 'var(--r)',
-                    border: entry.isMe ? '2px solid var(--sky)' : '1px solid var(--border)',
-                  }}
-                >
-                  <div
-                    className="lb-pos"
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      background: entry.rank === 1 ? '#FFD700' : entry.rank === 2 ? '#C0C0C0' : entry.rank === 3 ? '#CD7F32' : 'var(--bg)',
-                      color: entry.rank <= 3 ? '#fff' : 'var(--ink3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.85rem',
-                      fontWeight: 800,
-                    }}
-                  >
-                    {entry.rank <= 3 ? entry.medal : entry.rank}
-                  </div>
-                  <div className="lb-avt" style={{ fontSize: '1.5rem' }}>
-                    {entry.medal || '👤'}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div className="lb-name" style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '2px' }}>
-                      {entry.name}
-                      {entry.isMe && (
-                        <span style={{ fontSize: '0.6rem', background: 'var(--skybg)', color: 'var(--sky)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, marginLeft: '6px' }}>YOU</span>
-                      )}
-                    </div>
-                    <div className="lb-city" style={{ fontSize: '0.68rem', color: 'var(--ink4)' }}>
-                      {entry.city}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div className="lb-score" style={{ fontSize: '1rem', fontWeight: 800, color: entry.isMe ? 'var(--sky)' : 'var(--ink)', marginBottom: '2px' }}>
-                      {entry.score}
-                    </div>
-                    <div className="lb-acc" style={{ fontSize: '0.65rem', color: 'var(--ink4)' }}>
-                      {entry.acc}
-                    </div>
-                  </div>
-                </div>
-              ))}
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--ink4)', fontSize: '0.8rem' }}>
+                Leaderboard will be available once students start taking tests in this series.
+              </div>
             </div>
 
             {/* FAQs */}
@@ -1090,7 +992,14 @@ export default function TestSeriesDetailPage() {
                   <>
                     <button
                       className="ec-btn-enroll"
-                      onClick={() => alert('Payment modal will open here')}
+                      onClick={async () => {
+                        try {
+                          await testSeriesService.enroll(seriesId);
+                          window.location.reload();
+                        } catch (e: any) {
+                          alert(e.message || 'Enrollment failed. Please try again.');
+                        }
+                      }}
                       style={{
                         width: '100%',
                         padding: '14px 20px',
@@ -1101,10 +1010,9 @@ export default function TestSeriesDetailPage() {
                         fontSize: '0.9rem',
                         fontWeight: 700,
                         cursor: 'pointer',
-                        marginBottom: '12px',
                       }}
                     >
-                      🚀 Enroll Now
+                      💳 Enroll Now — ₹{series.price}
                     </button>
                     <button
                       className="ec-btn-demo"

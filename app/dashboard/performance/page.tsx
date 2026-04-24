@@ -135,14 +135,31 @@ export default function PerformancePage() {
   const mcq = data?.mcq ?? {};
   const streak = data?.streak ?? {};
   const mockTests = data?.mockTests ?? {};
+  const mains = data?.mains ?? {};
+  const testSeries = data?.testSeries ?? {};
   const weeklyMcqTrend = analyticsData?.weeklyMcqTrend ?? [];
   const dailyActivity = analyticsData?.dailyActivity ?? [];
 
-  const totalTests = (mcq.totalAttempts ?? 0) + (mockTests.totalAttempts ?? 0);
-  const avgAccuracy = mcq.avgAccuracy ?? 0;
+  const totalTests =
+    data?.testsTaken ??
+    ((mcq.totalAttempts ?? 0) +
+      (mockTests.totalAttempts ?? 0) +
+      (mains.totalAttempts ?? 0) +
+      (testSeries.totalAttempts ?? 0));
+  // Overall accuracy across all MCQ sources (daily mcq + mock prelims + test series)
+  const totalMcqCorrect = (mcq.totalCorrect ?? 0);
+  const totalMcqWrong = (mcq.totalWrong ?? 0);
+  const totalMcqSkipped = (mcq.totalSkipped ?? 0);
+  const totalMcqAnswered = totalMcqCorrect + totalMcqWrong;
+  const overallAccuracy = totalMcqAnswered > 0
+    ? Math.round(((totalMcqCorrect - totalMcqWrong * 0.33) / totalMcqAnswered) * 100)
+    : 0;
+  
   const bestPercentile = mcq.bestPercentile ?? 0;
   const currentStreak = streak.currentStreak ?? 0;
-  const totalQuestions = (mcq.totalCorrect ?? 0) + (mcq.totalWrong ?? 0) + (mcq.totalSkipped ?? 0);
+  const totalQuestions =
+    data?.questionsAttempted ??
+    ((mcq.totalCorrect ?? 0) + (mcq.totalWrong ?? 0) + (mcq.totalSkipped ?? 0));
 
   const chartTrendData: TrendPoint[] = weeklyMcqTrend.length > 0
     ? weeklyMcqTrend.slice(-8).map((week: any, index: number) => ({
@@ -178,8 +195,8 @@ export default function PerformancePage() {
 
   const topStripCards = [
     { label: 'test taken', value: String(totalTests), valueColor: '#D4AF37' },
-    { label: 'avg score', value: `${avgAccuracy}%`, valueColor: '#00D492' },
-    { label: 'accuracy', value: `${avgAccuracy}%`, valueColor: '#FFFFFF' },
+    { label: 'avg score', value: `${overallAccuracy}%`, valueColor: '#00D492' },
+    { label: 'accuracy', value: `${overallAccuracy}%`, valueColor: '#FFFFFF' },
     { label: 'best rank', value: bestPercentile > 0 ? `${bestPercentile}th %ile` : 'N/A', valueColor: '#FF8904' },
     { label: 'day \nstreak', value: String(currentStreak), valueColor: '#FFFFFF' },
   ];
@@ -205,9 +222,15 @@ export default function PerformancePage() {
     },
     {
       title: 'Overall Accuracy',
-      value: `${avgAccuracy}%`,
+      value: `${overallAccuracy}%`,
       accentColor: '#22C55E',
       subtitle: 'Net accuracy after negative marking',
+    },
+    {
+      title: 'Mains Answers',
+      value: String(mains.totalAttempts ?? 0),
+      accentColor: '#8B5CF6',
+      subtitle: 'Daily answer + mock + pyq',
     },
   ];
 
@@ -393,93 +416,98 @@ export default function PerformancePage() {
                   </h2>
                 </div>
 
+                {/* Practice Module Breakdown */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  {/* Daily MCQ */}
+                  <div className="rounded-[10px] p-4" style={{ background: '#F0FDF4', border: '1px solid #B9F8CF' }}>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.5px] mb-2" style={{ color: '#15803D' }}>Daily MCQ</div>
+                    <div className="flex gap-4">
+                      <div>
+                        <div className="text-[24px] font-bold" style={{ color: '#101828' }}>{mcq.totalAttempts ?? 0}</div>
+                        <div className="text-[11px]" style={{ color: '#6A7282' }}>Tests</div>
+                      </div>
+                      <div>
+                        <div className="text-[24px] font-bold" style={{ color: '#101828' }}>{totalMcqCorrect + totalMcqWrong + totalMcqSkipped}</div>
+                        <div className="text-[11px]" style={{ color: '#6A7282' }}>Questions</div>
+                      </div>
+                      <div>
+                        <div className="text-[24px] font-bold" style={{ color: '#15803D' }}>{mcq.avgAccuracy ?? 0}%</div>
+                        <div className="text-[11px]" style={{ color: '#6A7282' }}>Accuracy</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Daily Answer Writing */}
+                  <div className="rounded-[10px] p-4" style={{ background: '#FAF5FF', border: '1px solid #E9D4FF' }}>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.5px] mb-2" style={{ color: '#8200DB' }}>Daily Answer Writing</div>
+                    <div className="flex gap-4">
+                      <div>
+                        <div className="text-[24px] font-bold" style={{ color: '#101828' }}>{mains.dailyAnswerAttempts ?? 0}</div>
+                        <div className="text-[11px]" style={{ color: '#6A7282' }}>Answers</div>
+                      </div>
+                      <div>
+                        <div className="text-[24px] font-bold" style={{ color: '#101828' }}>{mains.dailyAnswerAttempts ?? 0}</div>
+                        <div className="text-[11px]" style={{ color: '#6A7282' }}>Evaluated</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mock Tests */}
+                  <div className="rounded-[10px] p-4" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.5px] mb-2" style={{ color: '#1447E6' }}>Mock Tests</div>
+                    <div className="flex gap-4">
+                      <div>
+                        <div className="text-[24px] font-bold" style={{ color: '#101828' }}>{mockTests.totalAttempts ?? 0}</div>
+                        <div className="text-[11px]" style={{ color: '#6A7282' }}>Tests</div>
+                      </div>
+                      <div>
+                        <div className="text-[24px] font-bold" style={{ color: '#101828' }}>{mains.mockTestMainsAttempts ?? 0}</div>
+                        <div className="text-[11px]" style={{ color: '#6A7282' }}>Mains</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PYQ */}
+                  <div className="rounded-[10px] p-4" style={{ background: '#FEFCE8', border: '1px solid #FEF08A' }}>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.5px] mb-2" style={{ color: '#CA3500' }}>Previous Year Questions</div>
+                    <div className="flex gap-4">
+                      <div>
+                        <div className="text-[24px] font-bold" style={{ color: '#101828' }}>{mains.pyqMainsAttempts ?? 0}</div>
+                        <div className="text-[11px]" style={{ color: '#6A7282' }}>Mains</div>
+                      </div>
+                      <div>
+                        <div className="text-[24px] font-bold" style={{ color: '#101828' }}>{mains.pyqMainsAttempts ?? 0}</div>
+                        <div className="text-[11px]" style={{ color: '#6A7282' }}>Evaluated</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* MCQ Detail Stats */}
                 <div className="flex flex-wrap gap-6 mb-6">
                   <div>
-                    <div
-                      className="text-[36px] leading-[40px] font-bold"
-                      style={{
-                        fontFamily: 'Inter',
-                        color: '#101828',
-                      }}
-                    >
-                      {(mcq.totalCorrect ?? 0).toLocaleString('en-IN')}
+                    <div className="text-[36px] leading-[40px] font-bold" style={{ fontFamily: 'Inter', color: '#101828' }}>
+                      {totalMcqCorrect.toLocaleString('en-IN')}
                     </div>
-                    <div
-                      className="uppercase text-[12px] tracking-[0.6px]"
-                      style={{
-                        fontFamily: 'Inter',
-                        fontWeight: 600,
-                        color: '#99A1AF',
-                      }}
-                    >
-                      Correct
-                    </div>
+                    <div className="uppercase text-[12px] tracking-[0.6px]" style={{ fontFamily: 'Inter', fontWeight: 600, color: '#99A1AF' }}>Correct</div>
                   </div>
-
                   <div>
-                    <div
-                      className="text-[36px] leading-[40px] font-bold"
-                      style={{
-                        fontFamily: 'Inter',
-                        color: '#FB2C36',
-                      }}
-                    >
-                      {(mcq.totalWrong ?? 0).toLocaleString('en-IN')}
+                    <div className="text-[36px] leading-[40px] font-bold" style={{ fontFamily: 'Inter', color: '#FB2C36' }}>
+                      {totalMcqWrong.toLocaleString('en-IN')}
                     </div>
-                    <div
-                      className="uppercase text-[12px] tracking-[0.6px]"
-                      style={{
-                        fontFamily: 'Inter',
-                        fontWeight: 600,
-                        color: '#99A1AF',
-                      }}
-                    >
-                      Wrong
-                    </div>
+                    <div className="uppercase text-[12px] tracking-[0.6px]" style={{ fontFamily: 'Inter', fontWeight: 600, color: '#99A1AF' }}>Wrong</div>
                   </div>
-
                   <div>
-                    <div
-                      className="text-[36px] leading-[40px] font-bold"
-                      style={{
-                        fontFamily: 'Inter',
-                        color: '#D1D5DC',
-                      }}
-                    >
-                      {(mcq.totalSkipped ?? 0).toLocaleString('en-IN')}
+                    <div className="text-[36px] leading-[40px] font-bold" style={{ fontFamily: 'Inter', color: '#D1D5DC' }}>
+                      {totalMcqSkipped.toLocaleString('en-IN')}
                     </div>
-                    <div
-                      className="uppercase text-[12px] tracking-[0.6px]"
-                      style={{
-                        fontFamily: 'Inter',
-                        fontWeight: 600,
-                        color: '#99A1AF',
-                      }}
-                    >
-                      Skipped
-                    </div>
+                    <div className="uppercase text-[12px] tracking-[0.6px]" style={{ fontFamily: 'Inter', fontWeight: 600, color: '#99A1AF' }}>Skipped</div>
                   </div>
-
                   <div>
-                    <div
-                      className="text-[36px] leading-[40px] font-bold"
-                      style={{
-                        fontFamily: 'Inter',
-                        color: '#FF6900',
-                      }}
-                    >
-                      {avgAccuracy}%
+                    <div className="text-[36px] leading-[40px] font-bold" style={{ fontFamily: 'Inter', color: '#FF6900' }}>
+                      {overallAccuracy}%
                     </div>
-                    <div
-                      className="uppercase text-[12px] tracking-[0.6px]"
-                      style={{
-                        fontFamily: 'Inter',
-                        fontWeight: 600,
-                        color: '#99A1AF',
-                      }}
-                    >
-                      Net Accuracy
-                    </div>
+                    <div className="uppercase text-[12px] tracking-[0.6px]" style={{ fontFamily: 'Inter', fontWeight: 600, color: '#99A1AF' }}>Net Accuracy</div>
                   </div>
                 </div>
 

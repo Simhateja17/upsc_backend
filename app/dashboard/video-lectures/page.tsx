@@ -18,7 +18,7 @@ function getYouTubeEmbedUrl(url: string): string {
     } else if (url.includes('youtube.com/embed/')) {
       videoId = url.split('youtube.com/embed/')[1].split('?')[0];
     }
-  } catch (_e) {}
+  } catch {}
   return videoId ? `https://www.youtube.com/embed/${videoId}?rel=0` : url;
 }
 
@@ -162,7 +162,7 @@ export default function VideoLecturesPage() {
     try {
       const res = await videoService.submitVideoQuiz(watchVideo.id, quizAnswers);
       setQuizResults(res.data);
-    } catch (_e) {}
+    } catch {}
     setQuizLoading(false);
   };
 
@@ -174,7 +174,7 @@ export default function VideoLecturesPage() {
       setMentorSuccess(true);
       setMentorQuestion('');
       setTimeout(() => setMentorSuccess(false), 3000);
-    } catch (_e) {}
+    } catch {}
     setMentorSubmitting(false);
   };
 
@@ -491,200 +491,200 @@ export default function VideoLecturesPage() {
               </div>
             ) : (
               <>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))',
-                    gap: 'clamp(16px, 1.8vw, 24px)',
-                  }}
-                >
-                  {subjectVideos.map((video) => (
-                    <div
-                      key={video.id}
-                      style={{
-                        background: '#FFFFFF',
-                        borderRadius: '16px',
-                        boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.08), 0px 1px 2px -1px rgba(0,0,0,0.06)',
-                        overflow: 'hidden',
-                        border: '1px solid #E5E7EB',
-                      }}
-                    >
-                      {/* Thumbnail */}
-                      <div
-                        className="flex items-center justify-center"
-                        style={{ background: '#EFF6FF', height: 'clamp(150px, 14vw, 190px)', position: 'relative' }}
-                      >
-                        {video.thumbnailUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={video.thumbnailUrl} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <span style={{ fontSize: 'clamp(48px, 5vw, 64px)' }}>{subjectEmoji(selectedSubject)}</span>
-                        )}
-                        <div
-                          className="font-arimo font-bold"
-                          style={{
-                            position: 'absolute',
-                            top: '10px',
-                            left: '10px',
-                            background: '#DC2626',
-                            color: '#FFFFFF',
-                            fontSize: '10px',
-                            padding: '3px 10px',
-                            borderRadius: '6px',
-                            letterSpacing: '0.5px',
-                          }}
-                        >
-                          🔥 HOT
-                        </div>
-                      </div>
-
-                      {/* Card content */}
-                      <div style={{ padding: 'clamp(14px, 1.5vw, 20px)' }}>
-                        <p
-                          className="font-arimo font-bold"
-                          style={{ fontSize: 'clamp(10px, 0.85vw, 12px)', color: '#C68A0B', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 'clamp(4px, 0.4vw, 6px)' }}
-                        >
-                          {selectedSubject}
-                        </p>
-                        <h3
-                          className="font-arimo font-bold"
-                          style={{ fontSize: 'clamp(14px, 1.15vw, 15px)', color: '#101828', marginBottom: 'clamp(6px, 0.6vw, 8px)', lineHeight: 1.35 }}
-                        >
-                          {video.title}
-                        </h3>
-                        <p className="font-arimo" style={{ fontSize: 'clamp(11px, 0.9vw, 12px)', color: '#6A7282', marginBottom: 'clamp(12px, 1.2vw, 16px)' }}>
-                          👀 {video.viewCount ? formatViews(video.viewCount) : '—'}
-                          {video.createdAt ? ` · 📅 ${timeAgo(video.createdAt)}` : video.publishedAt ? ` · 📅 ${timeAgo(video.publishedAt)}` : ''}
-                        </p>
-
-                        <div className="flex items-center" style={{ gap: 'clamp(6px, 0.6vw, 8px)' }}>
-                          <button
-                            onClick={() => setShowLoginModal(true)}
-                            className="flex items-center gap-1 font-arimo font-medium"
-                            style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#F3F4F6', border: '1px solid #E5E7EB', color: '#374151', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
-                          >
-                            <img src="/pdf.png" alt="pdf" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
-                            PDF
-                          </button>
-                          <button
-                            onClick={() => setShowMentorModal(true)}
-                            className="flex items-center gap-1 font-arimo font-medium"
-                            style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#F3F4F6', border: '1px solid #E5E7EB', color: '#374151', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
-                          >
-                            <img src="/think.png" alt="ask mentor" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
-                            Ask Mentor
-                          </button>
-                          <button
-                            onClick={() => handleWatchVideo(video)}
-                            className="flex items-center gap-1 font-arimo font-bold text-white"
-                            style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#162456', border: 'none', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
-                          >
-                            <img src="/yt.png" alt="watch" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
-                            Watch
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* YouTube CTA Banner — inside playlist */}
-                <div style={{ marginTop: 'clamp(28px, 3vw, 40px)' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))',
+                  gap: 'clamp(16px, 1.8vw, 24px)',
+                }}
+              >
+                {subjectVideos.map((video) => (
                   <div
+                    key={video.id}
                     style={{
-                      background: 'linear-gradient(135deg, #0E182D, #172240)',
-                      borderRadius: '24px',
-                      padding: 'clamp(28px, 3vw, 44px) clamp(32px, 3.5vw, 48px)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 'clamp(24px, 3vw, 40px)',
-                      position: 'relative',
+                      background: '#FFFFFF',
+                      borderRadius: '16px',
+                      boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.08), 0px 1px 2px -1px rgba(0,0,0,0.06)',
                       overflow: 'hidden',
+                      border: '1px solid #E5E7EB',
                     }}
                   >
-                    {/* Left content */}
-                    <div style={{ flex: 1, zIndex: 1 }}>
-                      <h3
-                        className="font-tinos font-bold"
-                        style={{
-                          fontSize: 'clamp(28px, 2.7vw, 36px)',
-                          lineHeight: 1.2,
-                          color: '#FFFFFF',
-                          marginBottom: 'clamp(4px, 0.4vw, 6px)',
-                        }}
-                      >
-                        Never Miss a<br />
-                        <span style={{ color: '#F0B100' }}>Lecture Again.</span>
-                      </h3>
-
-                      <p
-                        className="font-tinos"
-                        style={{
-                          fontSize: 'clamp(18px, 1.88vw, 25px)',
-                          color: '#FFFFFF',
-                          marginBottom: 'clamp(12px, 1.2vw, 16px)',
-                        }}
-                      >
-                        Stay Consistent. Stay Ahead.
-                      </p>
-
-                      <p
-                        className="font-arimo"
-                        style={{
-                          fontSize: 'clamp(13px, 1.12vw, 15px)',
-                          lineHeight: 'clamp(20px, 1.88vw, 25px)',
-                          color: '#FFFFFF',
-                          marginBottom: 'clamp(20px, 2vw, 28px)',
-                          maxWidth: '480px',
-                        }}
-                      >
-                        Subscribe to Rise with Jeet on YouTube and get instant notifications for new lectures, current affairs drops, and live sessions &mdash; completely free.
-                      </p>
-
-                      {/* YouTube button */}
-                      <a
-                        href="https://www.youtube.com/@RiseWithJeet"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 font-arimo font-bold text-white"
-                        style={{
-                          background: '#E7000B',
-                          borderRadius: '26843500px',
-                          padding: 'clamp(12px, 1.2vw, 14px) clamp(24px, 2.25vw, 30px)',
-                          fontSize: 'clamp(13px, 1.12vw, 15px)',
-                          marginBottom: 'clamp(12px, 1.2vw, 16px)',
-                        }}
-                      >
-                        {/* YouTube icon */}
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                          <path d="M22.54 6.42a2.78 2.78 0 00-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 00-1.94 2A29 29 0 001 11.75a29 29 0 00.46 5.33A2.78 2.78 0 003.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 001.94-2 29 29 0 00.46-5.25 29 29 0 00-.46-5.43z" fill="#FFFFFF"/>
-                          <path d="M9.75 15.02l5.75-3.27-5.75-3.27v6.54z" fill="#E7000B"/>
-                        </svg>
-                        Join Our YouTube Family
-                      </a>
-
-                      <p className="font-arimo" style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', color: '#FFFFFF' }}>
-                        15,000+ Join our YouTube Family
-                      </p>
-                    </div>
-
-                    {/* Right - Bell icon */}
+                    {/* Thumbnail */}
                     <div
                       className="flex items-center justify-center"
-                      style={{
-                        width: 'clamp(100px, 10vw, 140px)',
-                        height: 'clamp(100px, 10vw, 140px)',
-                        borderRadius: '50%',
-                        background: 'rgba(25,60,184,0.3)',
-                        flexShrink: 0,
-                        opacity: 0.4,
-                      }}
+                      style={{ background: '#EFF6FF', height: 'clamp(150px, 14vw, 190px)', position: 'relative' }}
                     >
-                      <span style={{ fontSize: 'clamp(48px, 5vw, 68px)' }}>{'\uD83D\uDD14'}</span>
+                      {video.thumbnailUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={video.thumbnailUrl} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ fontSize: 'clamp(48px, 5vw, 64px)' }}>{subjectEmoji(selectedSubject)}</span>
+                      )}
+                      <div
+                        className="font-arimo font-bold"
+                        style={{
+                          position: 'absolute',
+                          top: '10px',
+                          left: '10px',
+                          background: '#DC2626',
+                          color: '#FFFFFF',
+                          fontSize: '10px',
+                          padding: '3px 10px',
+                          borderRadius: '6px',
+                          letterSpacing: '0.5px',
+                        }}
+                      >
+                        🔥 HOT
+                      </div>
+                    </div>
+
+                    {/* Card content */}
+                    <div style={{ padding: 'clamp(14px, 1.5vw, 20px)' }}>
+                      <p
+                        className="font-arimo font-bold"
+                        style={{ fontSize: 'clamp(10px, 0.85vw, 12px)', color: '#C68A0B', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 'clamp(4px, 0.4vw, 6px)' }}
+                      >
+                        {selectedSubject}
+                      </p>
+                      <h3
+                        className="font-arimo font-bold"
+                        style={{ fontSize: 'clamp(14px, 1.15vw, 15px)', color: '#101828', marginBottom: 'clamp(6px, 0.6vw, 8px)', lineHeight: 1.35 }}
+                      >
+                        {video.title}
+                      </h3>
+                      <p className="font-arimo" style={{ fontSize: 'clamp(11px, 0.9vw, 12px)', color: '#6A7282', marginBottom: 'clamp(12px, 1.2vw, 16px)' }}>
+                        👀 {video.viewCount ? formatViews(video.viewCount) : '—'}
+                        {video.createdAt ? ` · 📅 ${timeAgo(video.createdAt)}` : video.publishedAt ? ` · 📅 ${timeAgo(video.publishedAt)}` : ''}
+                      </p>
+
+                      <div className="flex items-center" style={{ gap: 'clamp(6px, 0.6vw, 8px)' }}>
+                        <button
+                          onClick={() => setShowLoginModal(true)}
+                          className="flex items-center gap-1 font-arimo font-medium"
+                          style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#F3F4F6', border: '1px solid #E5E7EB', color: '#374151', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
+                        >
+                          <img src="/pdf.png" alt="pdf" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                          PDF
+                        </button>
+                        <button
+                          onClick={() => setShowMentorModal(true)}
+                          className="flex items-center gap-1 font-arimo font-medium"
+                          style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#F3F4F6', border: '1px solid #E5E7EB', color: '#374151', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
+                        >
+                          <img src="/think.png" alt="ask mentor" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                          Ask Mentor
+                        </button>
+                        <button
+                          onClick={() => { const u = video.youtubeUrl || video.url || ''; window.open(u.startsWith('http') ? u : `https://${u}`, '_blank'); }}
+                          className="flex items-center gap-1 font-arimo font-bold text-white"
+                          style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#162456', border: 'none', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
+                        >
+                          <img src="/yt.png" alt="watch" style={{ width: '14px', height: '14px', objectFit: 'contain' }} />
+                          Watch
+                        </button>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* YouTube CTA Banner — inside playlist */}
+              <div style={{ marginTop: 'clamp(28px, 3vw, 40px)' }}>
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #0E182D, #172240)',
+                    borderRadius: '24px',
+                    padding: 'clamp(28px, 3vw, 44px) clamp(32px, 3.5vw, 48px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 'clamp(24px, 3vw, 40px)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Left content */}
+                  <div style={{ flex: 1, zIndex: 1 }}>
+                    <h3
+                      className="font-tinos font-bold"
+                      style={{
+                        fontSize: 'clamp(28px, 2.7vw, 36px)',
+                        lineHeight: 1.2,
+                        color: '#FFFFFF',
+                        marginBottom: 'clamp(4px, 0.4vw, 6px)',
+                      }}
+                    >
+                      Never Miss a<br />
+                      <span style={{ color: '#F0B100' }}>Lecture Again.</span>
+                    </h3>
+
+                    <p
+                      className="font-tinos"
+                      style={{
+                        fontSize: 'clamp(18px, 1.88vw, 25px)',
+                        color: '#FFFFFF',
+                        marginBottom: 'clamp(12px, 1.2vw, 16px)',
+                      }}
+                    >
+                      Stay Consistent. Stay Ahead.
+                    </p>
+
+                    <p
+                      className="font-arimo"
+                      style={{
+                        fontSize: 'clamp(13px, 1.12vw, 15px)',
+                        lineHeight: 'clamp(20px, 1.88vw, 25px)',
+                        color: '#FFFFFF',
+                        marginBottom: 'clamp(20px, 2vw, 28px)',
+                        maxWidth: '480px',
+                      }}
+                    >
+                      Subscribe to Rise with Jeet on YouTube and get instant notifications for new lectures, current affairs drops, and live sessions &mdash; completely free.
+                    </p>
+
+                    {/* YouTube button */}
+                    <a
+                      href="https://www.youtube.com/@RiseWithJeet"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 font-arimo font-bold text-white"
+                      style={{
+                        background: '#E7000B',
+                        borderRadius: '26843500px',
+                        padding: 'clamp(12px, 1.2vw, 14px) clamp(24px, 2.25vw, 30px)',
+                        fontSize: 'clamp(13px, 1.12vw, 15px)',
+                        marginBottom: 'clamp(12px, 1.2vw, 16px)',
+                      }}
+                    >
+                      {/* YouTube icon */}
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M22.54 6.42a2.78 2.78 0 00-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 00-1.94 2A29 29 0 001 11.75a29 29 0 00.46 5.33A2.78 2.78 0 003.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 001.94-2 29 29 0 00.46-5.25 29 29 0 00-.46-5.43z" fill="#FFFFFF"/>
+                        <path d="M9.75 15.02l5.75-3.27-5.75-3.27v6.54z" fill="#E7000B"/>
+                      </svg>
+                      Join Our YouTube Family
+                    </a>
+
+                    <p className="font-arimo" style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', color: '#FFFFFF' }}>
+                      15,000+ Join our YouTube Family
+                    </p>
+                  </div>
+
+                  {/* Right - Bell icon */}
+                  <div
+                    className="flex items-center justify-center"
+                    style={{
+                      width: 'clamp(100px, 10vw, 140px)',
+                      height: 'clamp(100px, 10vw, 140px)',
+                      borderRadius: '50%',
+                      background: 'rgba(25,60,184,0.3)',
+                      flexShrink: 0,
+                      opacity: 0.4,
+                    }}
+                  >
+                    <span style={{ fontSize: 'clamp(48px, 5vw, 68px)' }}>{'\uD83D\uDD14'}</span>
+                  </div>
                 </div>
+              </div>
               </>
             )}
           </div>
@@ -804,7 +804,7 @@ export default function VideoLecturesPage() {
                       </button>
                       {video.videoUrl ? (
                         <a
-                          href={video.videoUrl}
+                          href={video.videoUrl.startsWith('http') ? video.videoUrl : `https://${video.videoUrl}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-1 font-arimo font-bold text-white"
@@ -815,7 +815,7 @@ export default function VideoLecturesPage() {
                         </a>
                       ) : (
                         <button
-                          onClick={() => handleWatchVideo(video)}
+                          onClick={() => { const u = video.youtubeUrl || video.url || ''; window.open(u.startsWith('http') ? u : `https://${u}`, '_blank'); }}
                           className="flex items-center gap-1 font-arimo font-bold text-white"
                           style={{ padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 14px)', borderRadius: '10px', background: '#162456', border: 'none', fontSize: 'clamp(11px, 0.9vw, 13px)', cursor: 'pointer' }}
                         >

@@ -110,6 +110,9 @@ export default function TestAttemptPage() {
   const [bookmarks, setBookmarks] = useState<Set<number>>(new Set());
   const [timer, setTimer] = useState(7200);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [submitConfirm, setSubmitConfirm] = useState(false);
+  const [quitConfirm, setQuitConfirm] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!cms) {
@@ -212,7 +215,11 @@ export default function TestAttemptPage() {
   };
 
   const handleSubmit = useCallback(async () => {
-    if (!confirm('Are you sure you want to submit the test? You cannot change answers after submission.')) return;
+    if (!submitConfirm) {
+      setSubmitConfirm(true);
+      setSubmitError(null);
+      return;
+    }
     const elapsed = initialSecondsRef.current - timer;
     const apiId = apiTestIdRef.current;
     if (apiId) {
@@ -223,15 +230,16 @@ export default function TestAttemptPage() {
         });
         const res = await testSeriesService.submitTest(seriesId, apiId, payload, Math.max(0, elapsed));
         localStorage.setItem(`test-api-result-${seriesId}-${testNum}`, JSON.stringify(res.data ?? {}));
-      } catch (e) {
-        alert(e instanceof Error ? e.message : 'Submit failed');
+      } catch (e: any) {
+        setSubmitError(e.message || 'Submit failed');
+        setSubmitConfirm(false);
         return;
       }
     } else {
       localStorage.setItem(`test-${seriesId}-${testNum}-answers`, JSON.stringify(answers));
     }
     router.push(`/dashboard/test-series/${seriesId}/results/${testNum}`);
-  }, [answers, questions, router, seriesId, testNum, timer]);
+  }, [answers, questions, router, seriesId, testNum, timer, submitConfirm]);
 
   const currentQuestion = questions[currentQ];
   const totalQuestions = questions.length;
@@ -298,14 +306,16 @@ export default function TestAttemptPage() {
           <button
             className="btn-outline"
             onClick={() => {
-              if (confirm('Quit test? Progress will be saved.')) {
-                router.push(`/dashboard/test-series/${seriesId}`);
+              if (!quitConfirm) {
+                setQuitConfirm(true);
+                return;
               }
+              router.push(`/dashboard/test-series/${seriesId}`);
             }}
             style={{
-              background: 'rgba(255,255,255,0.1)',
+              background: quitConfirm ? 'rgba(220,38,38,0.2)' : 'rgba(255,255,255,0.1)',
               color: '#fff',
-              border: '1px solid rgba(255,255,255,0.2)',
+              border: quitConfirm ? '1px solid rgba(220,38,38,0.5)' : '1px solid rgba(255,255,255,0.2)',
               borderRadius: '8px',
               padding: '10px 16px',
               fontSize: '0.75rem',
@@ -313,7 +323,7 @@ export default function TestAttemptPage() {
               cursor: 'pointer',
             }}
           >
-            ✕ Quit
+            {quitConfirm ? '⚠ Click again to quit' : '✕ Quit'}
           </button>
         </div>
       </div>
@@ -389,8 +399,8 @@ export default function TestAttemptPage() {
                   </button>
                   <button
                     className="q-act-btn"
-                    onClick={() => alert('📹 Video solution available after submission')}
-                    title="Video"
+                    title="Video solution available after submission"
+                    disabled
                     style={{
                       background: 'var(--bg)',
                       color: 'var(--ink4)',
@@ -495,7 +505,7 @@ export default function TestAttemptPage() {
                     onClick={currentQ === totalQuestions - 1 ? handleSubmit : handleNext}
                     style={{
                       padding: '10px 20px',
-                      background: currentQ === totalQuestions - 1 ? 'var(--jade)' : 'var(--navy)',
+                      background: currentQ === totalQuestions - 1 ? (submitConfirm ? 'var(--gold2)' : 'var(--jade)') : 'var(--navy)',
                       color: '#fff',
                       border: 'none',
                       borderRadius: 'var(--r)',
@@ -504,7 +514,7 @@ export default function TestAttemptPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    {currentQ === totalQuestions - 1 ? 'Submit Test' : 'Next →'}
+                    {currentQ === totalQuestions - 1 ? (submitConfirm ? '⚠ Confirm' : 'Submit Test') : 'Next →'}
                   </button>
                 </div>
               </div>
@@ -602,7 +612,7 @@ export default function TestAttemptPage() {
               style={{
                 width: '100%',
                 padding: '14px',
-                background: 'var(--jade)',
+                background: submitConfirm ? 'var(--gold2)' : 'var(--jade)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 'var(--r)',
@@ -611,8 +621,13 @@ export default function TestAttemptPage() {
                 cursor: 'pointer',
               }}
             >
-              ✓ Submit Test
+              {submitConfirm ? '⚠ Click again to confirm' : '✓ Submit Test'}
             </button>
+            {submitError && (
+              <div className="mt-2 text-sm text-red-600" style={{ fontFamily: 'Inter' }}>
+                {submitError}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import api from './api';
-import { getStoredTokens } from './auth';
+import { getStoredTokens, storeTokens } from './auth';
+import { supabase } from './supabase';
 
 function getToken(): string | undefined {
   const tokens = getStoredTokens();
@@ -8,6 +9,31 @@ function getToken(): string | undefined {
 
 function authConfig() {
   return { token: getToken() };
+}
+
+async function freshAuthConfig() {
+  const { data, error } = await supabase.auth.getSession();
+  if (!error && data.session?.access_token) {
+    storeTokens(data.session.access_token, data.session.refresh_token ?? '');
+    return { token: data.session.access_token };
+  }
+
+  return authConfig();
+}
+
+async function syncCurrentSessionWithBackend() {
+  const { data, error } = await supabase.auth.getSession();
+  const session = data.session;
+
+  if (error || !session?.access_token) return null;
+
+  storeTokens(session.access_token, session.refresh_token ?? '');
+  await api.post('/auth/callback', {
+    accessToken: session.access_token,
+    refreshToken: session.refresh_token ?? '',
+  });
+
+  return { token: session.access_token };
 }
 
 // ==================== Jeet AI Chat ====================
@@ -46,7 +72,21 @@ export const dashboardService = {
   getActivity: (limit = 10) => api.get<any>(`/user/activity?limit=${limit}`, authConfig()),
   getPerformance: () => api.get<any>('/user/performance', authConfig()),
   getPracticeStats: () => api.get<any>('/user/practice-stats', authConfig()),
-  getTestAnalytics: () => api.get<any>('/user/test-analytics', authConfig()),
+  getTestAnalytics: async () => {
+    const config = { ...(await freshAuthConfig()), timeout: 5000 };
+
+    try {
+      return await api.get<any>('/user/test-analytics', config);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (!/auth/i.test(message)) throw err;
+
+      const syncedConfig = await syncCurrentSessionWithBackend();
+      if (!syncedConfig) throw err;
+
+      return api.get<any>('/user/test-analytics', { ...syncedConfig, timeout: 5000 });
+    }
+  },
 };
 
 // ==================== Daily MCQ ====================
@@ -70,9 +110,27 @@ export const dailyAnswerService = {
     api.post<any>('/daily-answer/today/submit-text', { answerText }, authConfig()),
   upload: (fileUrl: string) =>
     api.post<any>('/daily-answer/today/upload', { fileUrl }, authConfig()),
-  getEvaluationStatus: () =>
-    api.get<any>('/daily-answer/today/evaluation-status', authConfig()),
-  getResults: () => api.get<any>('/daily-answer/today/results', authConfig()),
+  uploadFile: async (file: File): Promise<{ status: string; data?: { attemptId: string; status: string }; message?: string }> => {
+    const fd = new FormData();
+    fd.append('file', file);
+
+    const token = getToken();
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/daily-answer/today/upload`,
+      {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      }
+    );
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Upload failed');
+    return json;
+  },
+  getEvaluationStatus: (attemptId?: string) =>
+    api.get<any>(`/daily-answer/today/evaluation-status${attemptId ? `?attemptId=${encodeURIComponent(attemptId)}` : ''}`, authConfig()),
+  getResults: (attemptId?: string) =>
+    api.get<any>(`/daily-answer/today/results${attemptId ? `?attemptId=${encodeURIComponent(attemptId)}` : ''}`, authConfig()),
 };
 
 // ==================== Editorials ====================
@@ -105,6 +163,41 @@ export const mockTestService = {
     api.put<any>(`/mock-tests/${testId}/save-progress`, { answers }, authConfig()),
   getResults: (testId: string) => api.get<any>(`/mock-tests/${testId}/results`, authConfig()),
   getRecommendations: (testId: string) => api.get<any>(`/mock-tests/${testId}/recommendations`, authConfig()),
+
+  // Mains AI evaluation
+  submitMainsAnswer: async (
+    testId: string,
+    questionId: string,
+    opts: { answerText?: string; file?: File }
+  ): Promise<{ status: string; data?: { attemptId: string; status: string }; message?: string }> => {
+    const fd = new FormData();
+    fd.append('mockTestQuestionId', questionId);
+    if (opts.answerText) fd.append('answerText', opts.answerText);
+    if (opts.file) fd.append('file', opts.file);
+
+    const token = getToken();
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/mock-tests/${testId}/mains-submit`,
+      {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      }
+    );
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Submit failed');
+    return json;
+  },
+  getMainsEvaluationStatus: (testId: string, attemptId: string) =>
+    api.get<any>(
+      `/mock-tests/${testId}/mains-evaluation-status?attemptId=${encodeURIComponent(attemptId)}`,
+      authConfig()
+    ),
+  getMainsResults: (testId: string, attemptId: string) =>
+    api.get<any>(
+      `/mock-tests/${testId}/mains-results?attemptId=${encodeURIComponent(attemptId)}`,
+      authConfig()
+    ),
 };
 
 // ==================== Study Planner ====================
@@ -194,6 +287,39 @@ export const pyqService = {
     const qs = query.toString();
     return api.get<any>(`/pyq/questions${qs ? `?${qs}` : ''}`);
   },
+
+  // Mains AI evaluation
+  submitMainsAnswer: async (
+    questionId: string,
+    opts: { answerText?: string; file?: File }
+  ): Promise<{ status: string; data?: { attemptId: string; status: string }; message?: string }> => {
+    const fd = new FormData();
+    if (opts.answerText) fd.append('answerText', opts.answerText);
+    if (opts.file) fd.append('file', opts.file);
+
+    const token = getToken();
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/pyq/mains/${questionId}/submit`,
+      {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      }
+    );
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Submit failed');
+    return json;
+  },
+  getMainsEvaluationStatus: (questionId: string, attemptId: string) =>
+    api.get<any>(
+      `/pyq/mains/${questionId}/evaluation-status?attemptId=${encodeURIComponent(attemptId)}`,
+      authConfig()
+    ),
+  getMainsResults: (questionId: string, attemptId: string) =>
+    api.get<any>(
+      `/pyq/mains/${questionId}/results?attemptId=${encodeURIComponent(attemptId)}`,
+      authConfig()
+    ),
 };
 
 // ==================== Flashcards ====================

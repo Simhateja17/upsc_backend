@@ -40,7 +40,7 @@ export default function RightPanel({ subjects, states }: RightPanelProps) {
             </div>
           </div>
           <a 
-            href="#" 
+            href="/dashboard/syllabus-tracker" 
             className="text-[11px] font-bold text-[#0f1f3d] cursor-pointer no-underline transition-colors duration-150 hover:text-[#c9921a]"
           >
             View all →
@@ -100,7 +100,7 @@ export default function RightPanel({ subjects, states }: RightPanelProps) {
           e.currentTarget.style.background = 'linear-gradient(135deg, rgba(201,146,26,.04), rgba(201,146,26,.09))';
           e.currentTarget.style.transform = 'translateY(0)';
         }}
-        onClick={() => alert('Opening Study Planner...')}
+        onClick={() => window.location.href = '/dashboard/study-planner'}
       >
         <div className="text-[24px] mb-[8px]">📅</div>
         <div className="text-[12.5px] font-extrabold text-[#0f1f3d] mb-[4px]">

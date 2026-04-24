@@ -100,7 +100,7 @@ const blogPosts = [
   {
     category: 'Current Affairs',
     title: "India's space economy target of $44 billion by 2033: policy, players, and UPSC relevance",
-    description: "IN-SPACe, NSIL, ISRO reforms, and the commercialisation of India's space sector — everything you need for GS III.",
+    description: 'IN-SPACe, NSIL, ISRO reforms, and the commercialisation of India\'s space sector — everything you need for GS III.',
     author: 'Abhijeet Soni',
     readTime: '6 min',
     image: '/blog-ca-2.png',

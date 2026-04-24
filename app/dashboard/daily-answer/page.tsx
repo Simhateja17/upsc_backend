@@ -33,12 +33,26 @@ export default function DailyMainsChallengePage() {
   const [timeLeft, setTimeLeft] = useState(15 * 60);
   const [isActive, setIsActive] = useState(false);
 
+  // Answer submission state
+  const [answerText, setAnswerText] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     dailyAnswerService.getToday()
       .then(res => setData(res.data))
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (data?.timeLimit) {
+      setTimeLeft(data.timeLimit * 60);
+    }
+  }, [data?.timeLimit]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -52,7 +66,7 @@ export default function DailyMainsChallengePage() {
   }, [isActive, timeLeft]);
 
   const toggleTimer = () => setIsActive(a => !a);
-  const resetTimer = () => { setIsActive(false); setTimeLeft(15 * 60); };
+  const resetTimer = () => { setIsActive(false); setTimeLeft(data?.timeLimit ? data.timeLimit * 60 : 15 * 60); };
   const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
   const handleBeginChallenge = () => {
@@ -61,6 +75,78 @@ export default function DailyMainsChallengePage() {
     setTimeout(() => {
       attemptRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
+  };
+
+  const handleBrowseClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setSubmitError('File size must be less than 10MB');
+        return;
+      }
+      setSelectedFile(file);
+      setSubmitError(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setSubmitError('File size must be less than 10MB');
+        return;
+      }
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!validTypes.includes(file.type)) {
+        setSubmitError('Invalid file type. Please upload JPG, PNG, PDF, or DOCX');
+        return;
+      }
+      setSelectedFile(file);
+      setSubmitError(null);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!answerText.trim() && !selectedFile) {
+      setSubmitError('Please write your answer or upload a file before submitting.');
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      let res;
+      if (selectedFile) {
+        res = await dailyAnswerService.uploadFile(selectedFile);
+      } else {
+        res = await dailyAnswerService.submitText(answerText);
+      }
+      const attemptId = res.data?.attemptId || (res as any).data?.data?.attemptId;
+      if (attemptId && typeof window !== 'undefined') {
+        sessionStorage.setItem('dailyAnswerAttemptId', attemptId);
+      }
+      router.push('/dashboard/daily-answer/challenge/attempt/evaluating');
+    } catch (err: any) {
+      setSubmitError(err.message || 'Failed to submit answer. Please try again.');
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -341,15 +427,15 @@ export default function DailyMainsChallengePage() {
                 <div className="flex items-center gap-8 text-[#4A5565] font-arimo" style={{ fontSize: '14px' }}>
                     <div className="flex items-center gap-2">
                         <img src="/Icon%20(8).png" alt="Time" style={{ width: '20px', height: '20px' }} />
-                        <span>Time: 15 minutes</span>
+                        <span>Time: {data?.timeLimit ?? 15} minutes</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <img src="/Icon%20(7).png" alt="Word limit" style={{ width: '20px', height: '20px' }} />
-                        <span>Word limit: 250-300 words</span>
+                        <span>Word limit: {data?.wordLimit ? `${data.wordLimit - 50}-${data.wordLimit + 50}` : '250-300'} words</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <img src="/Icon%20(6).png" alt="Marks" style={{ width: '20px', height: '20px' }} />
-                        <span>Marks: 15</span>
+                        <span>Marks: {data?.marks ?? 15}</span>
                     </div>
                 </div>
 
@@ -466,37 +552,151 @@ export default function DailyMainsChallengePage() {
                 boxShadow: '0px 1px 3px 0px #0000001A, 0px 1px 2px -1px #0000001A'
               }}
             >
-              <div
-                className="bg-[#F9FAFB] rounded-[16px] flex flex-col items-center justify-center mb-8"
-                style={{ width: '639.81px', height: '427.2px', border: '1px dashed #17223E' }}
-              >
-                <div className="mb-4">
-                  <img src="/upload-icon.png" alt="Upload" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
-                </div>
-                <h3 style={{ fontFamily: 'Arimo', fontWeight: 700, fontSize: '20px', textAlign: 'center', color: '#101828', marginBottom: '8px' }}>
-                  Drop your answer script here
-                </h3>
-                <p style={{ fontFamily: 'Arimo', fontWeight: 400, fontSize: '14px', textAlign: 'center', color: '#4A5565', marginBottom: '24px' }}>
-                  Upload handwritten answers for AI evaluation
-                </p>
-                <div className="flex gap-3 mb-8">
-                  {['JPG', 'PNG', 'PDF', 'DOCX'].map((fmt) => (
-                    <span key={fmt} className="px-3 py-1 bg-[#E5E7EB] rounded text-[#374151] font-arimo" style={{ fontSize: '14px' }}>{fmt}</span>
-                  ))}
-                  <span className="px-3 py-1 bg-[#E5E7EB] rounded text-[#374151] font-arimo" style={{ fontSize: '14px' }}>Max 10MB</span>
-                </div>
-                <button
-                  className="bg-white border border-[#D1D5DB] text-[#111827] font-bold rounded-[10px] hover:bg-gray-50 transition-colors"
-                  style={{ width: '156px', height: '48px', fontSize: '16px' }}
+              {/* Text Answer Area */}
+              <div className="w-full px-8 md:px-[134px] mb-8">
+                <label
+                  htmlFor="answer-text"
+                  style={{
+                    fontFamily: 'Arimo',
+                    fontWeight: 700,
+                    fontSize: '16px',
+                    color: '#101828',
+                    display: 'block',
+                    marginBottom: '8px'
+                  }}
                 >
-                  Browse Files
-                </button>
+                  Type your answer
+                </label>
+                <textarea
+                  id="answer-text"
+                  value={answerText}
+                  onChange={(e) => {
+                    setAnswerText(e.target.value);
+                    if (submitError) setSubmitError(null);
+                  }}
+                  placeholder="Write your answer here..."
+                  className="w-full rounded-[10px] border border-[#D1D5DB] bg-[#F9FAFB] p-4 text-[#101828] font-arimo focus:outline-none focus:ring-2 focus:ring-[#17223E] focus:border-transparent resize-vertical"
+                  style={{
+                    minHeight: '200px',
+                    fontSize: '15px',
+                    lineHeight: '24px',
+                  }}
+                />
+                <p className="mt-2 text-right text-[#6A7282]" style={{ fontSize: '13px' }}>
+                  {answerText.trim().split(/\s+/).filter(Boolean).length} words
+                </p>
               </div>
+
+              {/* Divider */}
+              <div className="w-full px-8 md:px-[134px] mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 h-px bg-[#E5E7EB]"></div>
+                  <span className="text-[#6A7282] font-arimo" style={{ fontSize: '13px' }}>OR upload handwritten answer</span>
+                  <div className="flex-1 h-px bg-[#E5E7EB]"></div>
+                </div>
+              </div>
+
+              <div
+                className={`bg-[#F9FAFB] rounded-[16px] flex flex-col items-center justify-center mb-8 relative cursor-pointer transition-colors ${isDragging ? 'bg-blue-50 border-blue-400' : ''}`}
+                style={{
+                  width: '639.81px',
+                  maxWidth: '90%',
+                  minHeight: '300px',
+                  border: isDragging ? '2px dashed #3B82F6' : '1px dashed #17223E',
+                }}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={!selectedFile ? handleBrowseClick : undefined}
+              >
+                {/* Hidden File Input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+
+                {selectedFile ? (
+                  <>
+                    <div className="mb-4">
+                      <span className="text-4xl">📄</span>
+                    </div>
+                    <h3 style={{
+                      fontFamily: 'Arimo',
+                      fontWeight: 700,
+                      fontSize: '18px',
+                      textAlign: 'center',
+                      color: '#101828',
+                      marginBottom: '8px',
+                      maxWidth: '500px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {selectedFile.name}
+                    </h3>
+                    <p style={{
+                      fontFamily: 'Arimo',
+                      fontWeight: 400,
+                      fontSize: '14px',
+                      textAlign: 'center',
+                      color: '#4A5565',
+                      marginBottom: '16px'
+                    }}>
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedFile(null);
+                      }}
+                      className="text-red-600 hover:text-red-700 font-arimo text-sm underline"
+                    >
+                      Remove file
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="mb-4">
+                      <img src="/upload-icon.png" alt="Upload" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+                    </div>
+                    <h3 style={{ fontFamily: 'Arimo', fontWeight: 700, fontSize: '20px', textAlign: 'center', color: '#101828', marginBottom: '8px' }}>
+                      Drop your answer script here
+                    </h3>
+                    <p style={{ fontFamily: 'Arimo', fontWeight: 400, fontSize: '14px', textAlign: 'center', color: '#4A5565', marginBottom: '24px' }}>
+                      Upload handwritten answers for AI evaluation
+                    </p>
+                    <div className="flex gap-3 mb-8 flex-wrap justify-center">
+                      {['JPG', 'PNG', 'PDF', 'DOCX'].map((fmt) => (
+                        <span key={fmt} className="px-3 py-1 bg-[#E5E7EB] rounded text-[#374151] font-arimo" style={{ fontSize: '14px' }}>{fmt}</span>
+                      ))}
+                      <span className="px-3 py-1 bg-[#E5E7EB] rounded text-[#374151] font-arimo" style={{ fontSize: '14px' }}>Max 10MB</span>
+                    </div>
+                    <button
+                      onClick={handleBrowseClick}
+                      className="bg-white border border-[#D1D5DB] text-[#111827] font-bold rounded-[10px] hover:bg-gray-50 transition-colors"
+                      style={{ width: '156px', height: '48px', fontSize: '16px' }}
+                    >
+                      Browse Files
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Error Message */}
+              {submitError && (
+                <div className="mb-4 px-6 py-3 bg-red-50 border border-red-200 rounded-[10px] text-red-700 font-arimo" style={{ width: '100%', maxWidth: '640px', fontSize: '14px' }}>
+                  {submitError}
+                </div>
+              )}
 
               {/* Submit Button */}
               <button
-                onClick={() => router.push('/dashboard/daily-answer/challenge/attempt/evaluating')}
-                className="flex items-center justify-center gap-2 text-white font-bold transition-transform hover:scale-105 mb-4"
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="flex items-center justify-center gap-2 text-white font-bold transition-transform hover:scale-105 mb-4 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                 style={{
                   width: '100%', maxWidth: '640px',
                   height: '56px',
@@ -506,8 +706,17 @@ export default function DailyMainsChallengePage() {
                   boxShadow: '0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -4px rgba(0, 0, 0, 0.1)'
                 }}
               >
-                <img src="/Icon%20(13).png" alt="" style={{ width: '24px', height: '24px' }} />
-                Submit Answer for Evaluation
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <img src="/Icon%20(13).png" alt="" style={{ width: '24px', height: '24px' }} />
+                    Submit Answer for Evaluation
+                  </>
+                )}
               </button>
 
               <div className="flex items-center gap-2">

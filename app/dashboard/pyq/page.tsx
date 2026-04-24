@@ -1,15 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { pyqService } from '@/lib/services';
 
-const AI_EVAL_DURATION_MS = 30 * 1000; // 30 seconds
 const AI_EVAL_STEPS = [
-  'Reading your handwritten answers',
+  'Reading your answer',
   'Identifying key points & arguments',
   'Comparing with model answers',
   'Preparing detailed markup & feedback',
-  "Generating Jeet Sir's analysis",
+  'Generating detailed feedback',
 ];
 
 export default function PyqPage() {
@@ -24,6 +23,18 @@ export default function PyqPage() {
   const [aiEvalProgress, setAiEvalProgress] = useState(0);
   const [aiEvalStepIndex, setAiEvalStepIndex] = useState(0);
   const [mode, setMode] = useState<'prelims' | 'mains'>('prelims');
+
+  // Mains AI evaluation state
+  const [mainsAnswerText, setMainsAnswerText] = useState('');
+  const [mainsFile, setMainsFile] = useState<File | null>(null);
+  const [mainsAttemptId, setMainsAttemptId] = useState<string | null>(null);
+  const [mainsEvalResults, setMainsEvalResults] = useState<any>(null);
+  const [mainsSubmitting, setMainsSubmitting] = useState(false);
+  const [mainsSubmitError, setMainsSubmitError] = useState<string | null>(null);
+  const mainsFileInputRef = useRef<HTMLInputElement>(null);
+  const MAINS_TIME_LIMIT = 9 * 60; // 9 minutes in seconds
+  const [mainsTimeLeft, setMainsTimeLeft] = useState(MAINS_TIME_LIMIT);
+  const mainsAutoSubmitRef = useRef(false);
 
   // Data state
   const [questions, setQuestions] = useState<any[]>([]);
@@ -68,45 +79,82 @@ export default function PyqPage() {
     setPage(1);
   }, [mode, selectedYear, selectedSubject]);
 
+  // Mains writing timer (9-min countdown, auto-submit on expiry)
+  useEffect(() => {
+    if (!showMainsWriteModal) return;
+    const id = setInterval(() => {
+      setMainsTimeLeft((t) => {
+        if (t <= 1) {
+          clearInterval(id);
+          // Auto-submit when time runs out
+          if (!mainsAutoSubmitRef.current) {
+            mainsAutoSubmitRef.current = true;
+            document.getElementById('pyq-mains-submit-btn')?.click();
+          }
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [showMainsWriteModal]);
+
   useEffect(() => {
     fetchQuestions();
   }, [fetchQuestions]);
 
-  // When AI eval modal opens: run 30s timer, animate progress and steps, then open results
+  // When AI eval modal opens: poll backend for real evaluation status
   useEffect(() => {
-    if (!showAiEvalModal) {
+    if (!showAiEvalModal || !mainsAttemptId || !selectedQuestion) {
       setAiEvalProgress(0);
       setAiEvalStepIndex(0);
       return;
     }
     setShowAiEvalCompleteModal(false);
-    setAiEvalStepIndex(1); // First step "Reading your handwritten answers" done from start
+    setAiEvalStepIndex(1);
     const start = Date.now();
-    const interval = setInterval(() => {
+
+    // Visual progress animation (cosmetic — doesn't block)
+    const progressInterval = setInterval(() => {
       const elapsed = Date.now() - start;
-      const pct = Math.min(100, (elapsed / AI_EVAL_DURATION_MS) * 100);
+      const pct = Math.min(95, (elapsed / 60000) * 100); // 60s ceiling, cap at 95%
       setAiEvalProgress(pct);
-      // Steps 2–5 complete at ~6s, 12s, 18s, 24s (step 1 already done)
-      const step = 1 + Math.min(AI_EVAL_STEPS.length - 1, Math.floor((elapsed / AI_EVAL_DURATION_MS) * (AI_EVAL_STEPS.length - 1)));
+      const step = 1 + Math.min(AI_EVAL_STEPS.length - 1, Math.floor((elapsed / 60000) * (AI_EVAL_STEPS.length - 1)));
       setAiEvalStepIndex(step);
-    }, 200);
-    const timeout = setTimeout(() => {
-      clearInterval(interval);
-      setShowAiEvalModal(false);
-      setAiEvalProgress(100);
-      setAiEvalStepIndex(AI_EVAL_STEPS.length);
-      setShowAiEvalCompleteModal(true); // Open AI Evaluation Complete screen
-    }, AI_EVAL_DURATION_MS);
+    }, 500);
+
+    // Poll backend every 3s
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await pyqService.getMainsEvaluationStatus(selectedQuestion.id, mainsAttemptId);
+        if (res.data?.evaluationStatus === 'completed' || res.data?.isComplete) {
+          clearInterval(pollInterval);
+          clearInterval(progressInterval);
+          // Fetch full results
+          const resultsRes = await pyqService.getMainsResults(selectedQuestion.id, mainsAttemptId);
+          if (resultsRes.data) {
+            setMainsEvalResults(resultsRes.data);
+          }
+          setAiEvalProgress(100);
+          setAiEvalStepIndex(AI_EVAL_STEPS.length);
+          setShowAiEvalModal(false);
+          setShowAiEvalCompleteModal(true);
+        }
+      } catch (err) {
+        console.error('Polling eval status failed:', err);
+      }
+    }, 3000);
+
     return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
+      clearInterval(progressInterval);
+      clearInterval(pollInterval);
     };
-  }, [showAiEvalModal]);
+  }, [showAiEvalModal, mainsAttemptId, selectedQuestion]);
 
   return (
     <div
       className="flex flex-col items-center overflow-y-auto"
-      style={{ background: '#F9FAFB', height: '100%' }}
+      style={{ background: '#F9FAFB', height: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}
     >
       <div className="w-full max-w-[1080px] px-6 pt-16 pb-16">
         {/* Hero copy */}
@@ -427,7 +475,7 @@ export default function PyqPage() {
               {/* Tag row */}
               <div
                 className="flex flex-wrap gap-2 mb-5"
-                style={{ width: '100%', maxWidth: '482px' }}
+                style={{ width: '482px', maxWidth: '100%' }}
               >
                 <span
                   className="px-3 py-1 rounded-full text-[12px] font-bold"
@@ -453,7 +501,8 @@ export default function PyqPage() {
               <div
                 className="uppercase mb-2"
                 style={{
-                  width: '100%', maxWidth: '482px',
+                  width: '482px',
+                  maxWidth: '100%',
                   fontFamily: 'Inter, sans-serif',
                   fontSize: '12px',
                   fontWeight: 700,
@@ -469,7 +518,8 @@ export default function PyqPage() {
               <p
                 className="mb-5"
                 style={{
-                  width: '100%', maxWidth: '482px',
+                  width: '482px',
+                  maxWidth: '100%',
                   fontFamily: 'Inter, sans-serif',
                   fontSize: '18px',
                   fontWeight: 400,
@@ -484,7 +534,8 @@ export default function PyqPage() {
               <div
                 className="rounded-[14px] px-4 py-4 mb-5 space-y-2 text-[14px]"
                 style={{
-                  width: '100%', maxWidth: '482px',
+                  width: '482px',
+                  maxWidth: '100%',
                   background: '#F9FAFB',
                   color: '#364153',
                 }}
@@ -497,7 +548,7 @@ export default function PyqPage() {
               {/* Options */}
               <div
                 className="space-y-3 mb-6"
-                style={{ width: '100%', maxWidth: '482px' }}
+                style={{ width: '482px', maxWidth: '100%' }}
               >
                 {[
                   '1 only',
@@ -581,7 +632,8 @@ export default function PyqPage() {
                     key={q.id}
                     className="mb-6"
                     style={{
-                      width: '100%', maxWidth: '540px',
+                      width: '540px',
+                      maxWidth: '100%',
                       borderRadius: '16px',
                       border: '0.8px solid #E5E7EB',
                       background: '#FFFFFF',
@@ -646,7 +698,7 @@ export default function PyqPage() {
                     <div className="flex items-center gap-3 mb-4">
                       <button
                         type="button"
-                        onClick={() => setShowMainsWriteModal(true)}
+                        onClick={() => { setSelectedQuestion(q); setMainsAnswerText(''); setMainsFile(null); setMainsEvalResults(null); setMainsSubmitError(null); setMainsTimeLeft(9 * 60); mainsAutoSubmitRef.current = false; setShowMainsWriteModal(true); }}
                         className="flex items-center justify-center"
                         style={{ height: '59px', borderRadius: '14px', background: '#101828', color: '#FFFFFF', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '16px', padding: '0 20px' }}
                       >
@@ -684,7 +736,7 @@ export default function PyqPage() {
             <div
               className="rounded-[16px] bg-white flex flex-col"
               style={{
-                width: '100%', maxWidth: '307px',
+                width: '307px',
                 height: '198px',
                 opacity: 1,
                 boxShadow: '0px 1px 2px -1px #0000001A, 0px 1px 3px 0px #0000001A',
@@ -745,7 +797,7 @@ export default function PyqPage() {
             <div
               className="rounded-[16px] bg-white flex flex-col overflow-hidden"
               style={{
-                width: '100%', maxWidth: '310px',
+                width: '310px',
                 minHeight: '826px',
                 opacity: 1,
                 borderTop: '0.8px solid #E5E7EB',
@@ -832,7 +884,8 @@ export default function PyqPage() {
           <div
             className="relative flex flex-col items-center text-center"
             style={{
-              width: '100%', maxWidth: '448px',
+              width: '448px',
+              maxWidth: '100%',
               minHeight: '549.2px',
               borderRadius: '24px',
               background: '#FFFFFF',
@@ -858,7 +911,8 @@ export default function PyqPage() {
             {/* Heading */}
             <h2
               style={{
-                width: '100%', maxWidth: '347px',
+                width: '347px',
+                maxWidth: '100%',
                 height: '36px',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 700,
@@ -874,7 +928,8 @@ export default function PyqPage() {
             {/* Description */}
             <p
               style={{
-                width: '100%', maxWidth: '367px',
+                width: '367px',
+                maxWidth: '100%',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 400,
                 fontSize: '16px',
@@ -891,7 +946,8 @@ export default function PyqPage() {
             <button
               className="flex items-center justify-center mb-3"
               style={{
-                width: '100%', maxWidth: '368px',
+                width: '368px',
+                maxWidth: '100%',
                 height: '60px',
                 borderRadius: '16px',
                 gap: '8px',
@@ -911,7 +967,8 @@ export default function PyqPage() {
             <button
               className="flex items-center justify-center mb-5"
               style={{
-                width: '100%', maxWidth: '368px',
+                width: '368px',
+                maxWidth: '100%',
                 height: '63.2px',
                 borderRadius: '16px',
                 gap: '8px',
@@ -933,7 +990,8 @@ export default function PyqPage() {
               type="button"
               onClick={() => setShowLoginModal(false)}
               style={{
-                width: '100%', maxWidth: '368px',
+                width: '368px',
+                maxWidth: '100%',
                 height: '48px',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 500,
@@ -958,7 +1016,8 @@ export default function PyqPage() {
           <div
             className="rounded-[24px] bg-white flex flex-col my-8 overflow-hidden"
             style={{
-              width: '100%', maxWidth: '896px',
+              width: '896px',
+              maxWidth: '100%',
               minHeight: '875px',
               opacity: 1,
               boxShadow: '0px 4px 6px -4px #0000001A, 0px 10px 15px -3px #0000001A',
@@ -972,35 +1031,36 @@ export default function PyqPage() {
                 style={{ width: 832, maxWidth: '100%', height: 40 }}
               >
                 <div className="flex items-center gap-2 flex-wrap">
+                  {selectedQuestion?.year && (
                   <div
-                    className="flex items-center justify-center gap-1.5 rounded-[10px] flex-shrink-0"
-                    style={{ width: 82.61, height: 32, background: '#1E2939' }}
+                    className="flex items-center justify-center gap-1.5 rounded-[10px] flex-shrink-0 px-3"
+                    style={{ height: 32, background: '#1E2939' }}
                   >
                     <span aria-hidden style={{ fontSize: 14 }}>📅</span>
-                    <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#FFFFFF' }}>2024</span>
+                    <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#FFFFFF' }}>{selectedQuestion.year}</span>
                   </div>
+                  )}
+                  {selectedQuestion?.paper && (
                   <div
                     className="rounded-[10px] flex items-center justify-center flex-shrink-0 px-3"
                     style={{ height: 33.6, border: '0.8px solid #D1D5DC', background: '#FFFFFF' }}
                   >
-                    <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#364153' }}>GS Paper I</span>
+                    <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#364153' }}>{selectedQuestion.paper}</span>
                   </div>
+                  )}
+                  {selectedQuestion?.subject && (
                   <div
                     className="rounded-[10px] flex items-center justify-center flex-shrink-0 px-3"
                     style={{ height: 33.6, border: '0.8px solid #D1D5DC', background: '#FFFFFF' }}
                   >
-                    <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#364153' }}>Modern India</span>
+                    <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#364153' }}>{selectedQuestion.subject}</span>
                   </div>
-                  <div
-                    className="rounded-[10px] flex items-center justify-center flex-shrink-0 px-3"
-                    style={{ width: 50.35, height: 32, background: '#FFEDD4' }}
-                  >
-                    <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#F54900' }}>15M</span>
-                  </div>
+                  )}
+
                 </div>
                 <div className="flex items-center gap-2">
                   <button type="button" className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#F3F4F6' }} aria-label="Bookmark">🔖</button>
-                  <button type="button" onClick={() => setShowMainsWriteModal(false)} className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-[18px] font-bold" style={{ background: '#1E2939', color: '#FFF' }} aria-label="Close">×</button>
+                  <button type="button" onClick={() => { setShowMainsWriteModal(false); }} className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-[18px] font-bold" style={{ background: '#1E2939', color: '#FFF' }} aria-label="Close">×</button>
                 </div>
               </div>
 
@@ -1017,7 +1077,7 @@ export default function PyqPage() {
                   color: '#1E2939',
                 }}
               >
-                Critically analyse the role of the Constituent Assembly in shaping the foundational philosophy of the Indian Constitution. How did it balance competing ideological strands?
+                {selectedQuestion?.questionText || 'Loading question...'}
               </p>
 
               {/* Steps: 1 Write, 2 Upload, 3 AI Eval */}
@@ -1048,13 +1108,16 @@ export default function PyqPage() {
                 style={{ width: 832, maxWidth: '100%', marginTop: 24, minHeight: 69.6, border: '0.8px solid #E5E7EB', background: '#F9FAFB' }}
               >
                 <div className="flex items-center gap-6">
-                  <span className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: '20px', color: '#4A5565' }}><span aria-hidden>🕐</span>7–9 min</span>
-                  <span className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: '20px', color: '#4A5565' }}><span aria-hidden>✏️</span>~100 words</span>
-                  <span className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: '20px', color: '#4A5565' }}><span aria-hidden>🏆</span>15 marks</span>
+                  <span className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: '20px', color: '#4A5565' }}><span aria-hidden>🕐</span>Recommended: 7–9 min</span>
+                  <span className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: '20px', color: '#4A5565' }}><span aria-hidden>✏️</span>Target: ~150–250 words</span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 24, lineHeight: '32px', color: '#1E2939' }}>0:00</span>
-                  <button type="button" className="flex items-center justify-center gap-2 rounded-[10px] px-4 py-2" style={{ background: '#F3F4F6', fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#364153' }}><span aria-hidden>▶</span>Resume</button>
+                  <span style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 24, lineHeight: '32px', color: mainsTimeLeft <= 60 ? '#DC2626' : '#1E2939' }}>
+                    {Math.floor(mainsTimeLeft / 60)}:{String(mainsTimeLeft % 60).padStart(2, '0')}
+                  </span>
+                  {mainsTimeLeft <= 60 && mainsTimeLeft > 0 && (
+                    <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: '#DC2626' }}>Hurry up!</span>
+                  )}
                 </div>
               </div>
 
@@ -1064,37 +1127,83 @@ export default function PyqPage() {
                 <button type="button" className="flex items-center justify-center gap-2 rounded-[14px] px-5 py-3" style={{ background: '#101828', fontFamily: 'Inter', fontWeight: 600, fontSize: 16, lineHeight: '24px', color: '#FFFFFF' }}><span aria-hidden>📷</span>Ready to Upload →</button>
               </div>
 
-              {/* Upload area */}
-              <div
-                className="rounded-[16px] flex flex-col items-center justify-center text-center"
-                style={{ width: 832, maxWidth: '100%', marginTop: 24, minHeight: 288.8, padding: '49.6px', border: '1.6px solid #D1D5DC' }}
-              >
-                <div className="mb-4" style={{ fontSize: 48 }} aria-hidden>📷</div>
-                <p style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 18, lineHeight: '28px', color: '#1E2939', marginBottom: 8 }}>Photograph your handwritten answer & upload</p>
-                <p style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: '20px', color: '#6A7282', marginBottom: 24 }}>Take a clear photo of each page. Good lighting = better AI evaluation.</p>
-                <div className="flex items-center gap-3 flex-wrap justify-center">
-                  <span className="rounded-[10px] px-4 py-2" style={{ border: '0.8px solid #BEDBFF', background: '#EFF6FF', fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#155DFC' }}>JPG</span>
-                  <span className="rounded-[10px] px-4 py-2" style={{ border: '0.8px solid #BEDBFF', background: '#EFF6FF', fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#155DFC' }}>PNG</span>
-                  <span className="rounded-[10px] px-4 py-2" style={{ border: '0.8px solid #BEDBFF', background: '#EFF6FF', fontFamily: 'Inter', fontWeight: 600, fontSize: 14, lineHeight: '20px', color: '#155DFC' }}>PDF</span>
+              {/* Answer textarea */}
+              <div style={{ width: 832, maxWidth: '100%', marginTop: 24 }}>
+                <label style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, color: '#364153', display: 'block', marginBottom: 8 }}>Type your answer (or upload handwritten below)</label>
+                <textarea
+                  value={mainsAnswerText}
+                  onChange={(e) => setMainsAnswerText(e.target.value)}
+                  placeholder="Write your answer here..."
+                  className="w-full rounded-[14px] p-4 resize-y"
+                  style={{ minHeight: 200, border: '1.6px solid #D1D5DC', fontFamily: 'Inter', fontSize: 15, lineHeight: '24px', color: '#1E2939', outline: 'none' }}
+                />
+                <div className="flex justify-end mt-1" style={{ fontFamily: 'Inter', fontSize: 13, color: '#6A7282' }}>
+                  {mainsAnswerText.trim().split(/\s+/).filter(Boolean).length} words
                 </div>
+              </div>
+
+              {/* Upload area */}
+              <input
+                ref={mainsFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,application/pdf"
+                className="hidden"
+                onChange={(e) => setMainsFile(e.target.files?.[0] || null)}
+              />
+              <div
+                className="rounded-[16px] flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 transition-colors"
+                style={{ width: 832, maxWidth: '100%', marginTop: 16, minHeight: 180, padding: '32px', border: mainsFile ? '1.6px solid #3B52D4' : '1.6px solid #D1D5DC', background: mainsFile ? '#EFF6FF' : '#FFF' }}
+                onClick={() => mainsFileInputRef.current?.click()}
+              >
+                <div className="mb-3" style={{ fontSize: 40 }} aria-hidden>{mainsFile ? '✅' : '📷'}</div>
+                <p style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 16, lineHeight: '24px', color: '#1E2939', marginBottom: 6 }}>
+                  {mainsFile ? mainsFile.name : 'Photograph your handwritten answer & upload'}
+                </p>
+                <p style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 13, lineHeight: '20px', color: '#6A7282' }}>
+                  {mainsFile ? 'Click to change file' : 'Take a clear photo. Good lighting = better AI evaluation. JPG / PNG / PDF'}
+                </p>
               </div>
 
               {/* Submit for AI Evaluation */}
               <button
+                id="pyq-mains-submit-btn"
                 type="button"
-                onClick={() => { setShowMainsWriteModal(false); setShowAiEvalModal(true); }}
-                className="w-full flex items-center justify-center gap-2 rounded-[16px] py-4 mt-4"
+                disabled={mainsSubmitting || (!mainsAnswerText.trim() && !mainsFile)}
+                onClick={async () => {
+                  if (!selectedQuestion) return;
+                  setMainsSubmitting(true);
+                  try {
+                    const res = await pyqService.submitMainsAnswer(selectedQuestion.id, {
+                      answerText: mainsAnswerText.trim() || undefined,
+                      file: mainsFile || undefined,
+                    });
+                    if (res.data?.attemptId) {
+                      setMainsAttemptId(res.data.attemptId);
+                      setShowMainsWriteModal(false);
+                      setShowAiEvalModal(true);
+                    }
+                  } catch (err: any) {
+                    setMainsSubmitError(err.message || 'Failed to submit. Please try again.');
+                  } finally {
+                    setMainsSubmitting(false);
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-2 rounded-[16px] py-4 mt-4 disabled:opacity-50"
                 style={{ width: 832, maxWidth: '100%', height: 60, background: '#0F172B', fontFamily: 'Inter', fontWeight: 700, fontSize: 18, lineHeight: '28px', color: '#F9FAFB' }}
               >
-                <span aria-hidden>📤</span>Submit for AI Evaluation
+                <span aria-hidden>📤</span>{mainsSubmitting ? 'Submitting...' : 'Submit for AI Evaluation'}
               </button>
+
+              {mainsSubmitError && (
+                <div className="mt-3 text-sm text-red-600" style={{ fontFamily: 'Inter', width: 832, maxWidth: '100%' }}>
+                  {mainsSubmitError}
+                </div>
+              )}
 
               {/* Footer: views, evals, avg | Save, Get AI Eval */}
               <div className="flex items-center justify-between flex-wrap gap-4" style={{ width: 832, maxWidth: '100%', marginTop: 24, paddingTop: 16, minHeight: 45.6 }}>
                 <div className="flex items-center gap-6">
-                  <span className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: '20px', color: '#6A7282' }}><span aria-hidden>👁</span>120 views</span>
-                  <span className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: '20px', color: '#6A7282' }}><span aria-hidden>🎯</span>34 AI evals done</span>
-                  <span className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: '20px', color: '#6A7282' }}><span aria-hidden>⭐</span>3.9/5 avg</span>
+                  <span className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: '20px', color: '#6A7282' }}><span aria-hidden>🎯</span>Submit for AI-powered evaluation</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <button type="button" className="flex items-center justify-center gap-2 rounded-[14px] px-5 py-2.5" style={{ border: '0.8px solid #D1D5DC', background: '#FFFFFF', fontFamily: 'Inter', fontWeight: 600, fontSize: 16, lineHeight: '24px', color: '#364153' }}><span aria-hidden>💾</span>Save</button>
@@ -1176,11 +1285,12 @@ export default function PyqPage() {
         </div>
       )}
 
-      {/* AI EVALUATION COMPLETE - opens after 30s loading */}
-      {showAiEvalCompleteModal && (
+      {/* AI EVALUATION COMPLETE - opens after real evaluation */}
+      {showAiEvalCompleteModal && mainsEvalResults && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4 overflow-y-auto"
           style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setShowAiEvalCompleteModal(false)}
         >
           <div
             className="rounded-[24px] flex flex-col my-8 overflow-hidden w-full max-w-[720px]"
@@ -1188,86 +1298,101 @@ export default function PyqPage() {
               background: '#0F172B',
               boxShadow: '0px 25px 50px -12px rgba(0,0,0,0.5)',
               minHeight: 560,
+              maxHeight: 'calc(100vh - 64px)',
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Header - dark blue-grey banner (matches screenshot) */}
+            {/* Header */}
             <div className="px-8 pt-8 pb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4 rounded-t-[24px]" style={{ background: '#1E3A5F' }}>
               <div>
                 <div className="flex items-center gap-2 mb-2" style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 12, lineHeight: '16px', letterSpacing: '0.05em', color: '#FBBF24', textTransform: 'uppercase' }}>
-                  <span aria-hidden>🖥️</span> AI EVALUATION COMPLETE
+                  AI EVALUATION COMPLETE
                 </div>
                 <h2 className="font-bold mb-1" style={{ fontFamily: 'Inter', fontSize: 24, lineHeight: 1.3, color: '#FFFFFF' }}>
-                  Good attempt across 2 questions
+                  Your answer has been evaluated
                 </h2>
                 <p style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: 1.4, color: '#94A3B8' }}>
-                  Mains · GS Paper I · 2 Questions evaluated
+                  {mainsEvalResults.question?.paper || 'Mains'} · {mainsEvalResults.question?.subject || ''} · {mainsEvalResults.wordCount || 0} words
                 </p>
               </div>
-              {/* Circular progress ring: 64% arc, light grey outline */}
-              <div className="flex-shrink-0 relative w-20 h-20 flex items-center justify-center">
-                <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 80 80">
-                  <circle cx="40" cy="40" r="36" fill="none" stroke="#64748B" strokeWidth="4" />
-                  <circle cx="40" cy="40" r="36" fill="none" stroke="#FBBF24" strokeWidth="4" strokeDasharray={`${2 * Math.PI * 36}`} strokeDashoffset={2 * Math.PI * 36 * (1 - 64 / 100)} strokeLinecap="round" />
-                </svg>
-                <div className="relative flex flex-col items-center justify-center">
-                  <span className="font-bold block leading-none" style={{ fontFamily: 'Inter', fontSize: 18, color: '#FFFFFF' }}>64%</span>
-                  <span className="block mt-0.5" style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 10, lineHeight: 1.2, color: '#94A3B8', letterSpacing: '0.02em' }}>MARKS</span>
-                </div>
-              </div>
+              {(() => {
+                const pct = mainsEvalResults.maxScore > 0 ? Math.round((mainsEvalResults.score / mainsEvalResults.maxScore) * 100) : 0;
+                return (
+                  <div className="flex-shrink-0 relative w-20 h-20 flex items-center justify-center">
+                    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 80 80">
+                      <circle cx="40" cy="40" r="36" fill="none" stroke="#64748B" strokeWidth="4" />
+                      <circle cx="40" cy="40" r="36" fill="none" stroke="#FBBF24" strokeWidth="4" strokeDasharray={`${2 * Math.PI * 36}`} strokeDashoffset={2 * Math.PI * 36 * (1 - pct / 100)} strokeLinecap="round" />
+                    </svg>
+                    <div className="relative flex flex-col items-center justify-center">
+                      <span className="font-bold block leading-none" style={{ fontFamily: 'Inter', fontSize: 18, color: '#FFFFFF' }}>{pct}%</span>
+                      <span className="block mt-0.5" style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 10, lineHeight: 1.2, color: '#94A3B8' }}>MARKS</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="flex-1 px-8 py-6 space-y-6 overflow-y-auto">
-              {/* Question 1 card */}
+              {/* Score card */}
               <div className="rounded-[16px] p-6 space-y-4" style={{ background: '#F1F5F9' }}>
-                <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 12, lineHeight: '16px', color: '#64748B', letterSpacing: '0.05em' }}>QUESTION 1</div>
                 <p style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 15, lineHeight: 1.5, color: '#334155' }}>
-                  Examine the role of socio-religious reform movements of the 19th century in laying the foundation of Indian nationalism.
+                  {mainsEvalResults.question?.questionText}
                 </p>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <span className="font-bold" style={{ fontFamily: 'Inter', fontSize: 28, lineHeight: 1.2, color: '#1E3A5F' }}>B+</span>
-                  <span style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 14, lineHeight: '20px', color: '#64748B' }}>9/15</span>
+                  <span className="font-bold" style={{ fontFamily: 'Inter', fontSize: 28, lineHeight: 1.2, color: '#1E3A5F' }}>{mainsEvalResults.score}/{mainsEvalResults.maxScore}</span>
                 </div>
-                <div className="flex flex-wrap gap-4 pt-2" style={{ borderTop: '1px solid #E2E8F0' }}>
-                  <span className="flex items-center gap-1.5" style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: '#15803D' }}><span aria-hidden>✓</span> What went right</span>
-                  <span className="flex items-center gap-1.5" style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: '#EA580C' }}><span aria-hidden>↑</span> Needs improvement</span>
-                  <span className="flex items-center gap-1.5" style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: '#DC2626' }}><span aria-hidden>✕</span> Key misses</span>
-                </div>
-                <div className="space-y-3 text-[14px]">
-                  <p style={{ fontFamily: 'Inter', lineHeight: 1.5, color: '#334155' }}>
-                    <span className="text-[#15803D]" aria-hidden>✓</span> <strong>Strengths:</strong> Strong introduction with relevant context. Multidimensional analysis covering social, economic and political angles.
-                  </p>
-                  <p style={{ fontFamily: 'Inter', lineHeight: 1.5, color: '#334155' }}>
-                    <span className="text-[#0EA5E9]" aria-hidden>ℹ</span> <strong>Improve:</strong> Conclusion could be more forward-looking — mention contemporary relevance.
-                  </p>
-                  <p style={{ fontFamily: 'Inter', lineHeight: 1.5, color: '#334155' }}>
-                    <span className="text-[#DC2626]" aria-hidden>✕</span> <strong>Missed:</strong> Did not address the &quot;regional variation&quot; dimension. Could mention Bengal, Maharashtra separately.
-                  </p>
-                </div>
+
+                {/* Strengths */}
+                {mainsEvalResults.strengths?.length > 0 && (
+                  <div className="space-y-2 pt-2" style={{ borderTop: '1px solid #E2E8F0' }}>
+                    <p style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: '#15803D' }}>Strengths</p>
+                    {mainsEvalResults.strengths.map((s: string, i: number) => (
+                      <p key={i} style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 1.5, color: '#334155' }}>
+                        <span className="text-[#15803D]" aria-hidden>✓ </span>{s}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Improvements */}
+                {mainsEvalResults.improvements?.length > 0 && (
+                  <div className="space-y-2 pt-2" style={{ borderTop: '1px solid #E2E8F0' }}>
+                    <p style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: '#EA580C' }}>Areas to Improve</p>
+                    {mainsEvalResults.improvements.map((s: string, i: number) => (
+                      <p key={i} style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 1.5, color: '#334155' }}>
+                        <span className="text-[#EA580C]" aria-hidden>↑ </span>{s}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Suggestions */}
+                {mainsEvalResults.suggestions?.length > 0 && (
+                  <div className="space-y-2 pt-2" style={{ borderTop: '1px solid #E2E8F0' }}>
+                    <p style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: '#0EA5E9' }}>Suggestions</p>
+                    {mainsEvalResults.suggestions.map((s: string, i: number) => (
+                      <p key={i} style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 1.5, color: '#334155' }}>
+                        <span className="text-[#0EA5E9]" aria-hidden>i </span>{s}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Jeet Sir's Overall Feedback */}
-              <div className="rounded-[16px] p-6 space-y-4" style={{ background: '#1E293B' }}>
-                <div className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 14, lineHeight: '20px', color: '#94A3B8', letterSpacing: '0.03em' }}>
-                  <span aria-hidden>📊</span> JEET SIR&apos;S OVERALL FEEDBACK
+              {/* Detailed feedback */}
+              {mainsEvalResults.detailedFeedback && (
+                <div className="rounded-[16px] p-6 space-y-4" style={{ background: '#1E293B' }}>
+                  <div className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 14, lineHeight: '20px', color: '#94A3B8' }}>
+                    DETAILED FEEDBACK
+                  </div>
+                  <p style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: 1.6, color: '#E2E8F0', whiteSpace: 'pre-line' }}>
+                    {mainsEvalResults.detailedFeedback}
+                  </p>
                 </div>
-                <ul className="space-y-3 list-none pl-0">
-                  <li className="flex gap-3">
-                    <span className="flex-shrink-0 mt-0.5" aria-hidden>💡</span>
-                    <span style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: '#E2E8F0' }}>Your writing shows <strong>conceptual clarity</strong> but needs more <strong>structured formatting</strong> — use subheadings, bullet points where allowed.</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="flex-shrink-0 mt-0.5" aria-hidden>📖</span>
-                    <span style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: '#E2E8F0' }}>Revise <strong>recent government schemes</strong> and link them to answers — examiners reward contemporary examples.</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="flex-shrink-0 mt-0.5" aria-hidden>🎯</span>
-                    <span style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: '#E2E8F0' }}>Word limit discipline is good. Focus on <strong>dimensions analysis</strong> — social, economic, political, environmental angles strengthen answers significantly.</span>
-                  </li>
-                </ul>
-              </div>
+              )}
             </div>
 
-            {/* CTA button */}
+            {/* Close button */}
             <div className="px-8 pb-8 pt-2">
               <button
                 type="button"
@@ -1275,7 +1400,7 @@ export default function PyqPage() {
                 className="w-full flex items-center justify-center gap-2 rounded-[16px] py-4"
                 style={{ background: '#1E3A5F', fontFamily: 'Inter', fontWeight: 700, fontSize: 16, lineHeight: '24px', color: '#FFFFFF' }}
               >
-                <span aria-hidden>💬</span> What would you like to do next? →
+                Close
               </button>
             </div>
           </div>
@@ -1292,7 +1417,8 @@ export default function PyqPage() {
           <div
             className="rounded-[24px] bg-white flex flex-col my-8"
             style={{
-              width: '100%', maxWidth: '896px',
+              width: '896px',
+              maxWidth: '100%',
               minHeight: '882px',
               gap: '24px',
               padding: '32px 32px 32px 40px',

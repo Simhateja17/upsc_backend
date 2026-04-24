@@ -80,13 +80,42 @@ const SUBJECT_COLORS = ['#00BBA7', '#8B5CF6', '#14B8A6', '#F97316', '#155DFC', '
 export default function TestAnalyticsPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
-    dashboardService.getTestAnalytics()
-      .then(res => setData(res.data))
-      .finally(() => setLoading(false));
-  }, []);
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      setError('Please log in again to view test analytics.');
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadAnalytics = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await dashboardService.getTestAnalytics();
+        if (!cancelled) setData(res.data ?? null);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unable to load test analytics';
+
+        if (!cancelled) setError(message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadAnalytics();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, isAuthenticated]);
 
   const summary = data?.summary ?? {};
   const subjectAccuracy: any[] = data?.subjectAccuracy ?? [];
@@ -135,7 +164,23 @@ export default function TestAnalyticsPage() {
       style={{ background: '#FFFFFF', minHeight: 'calc(100vh - clamp(90px, 5.78vw, 111px))' }}
     >
       <div className="flex-1 overflow-y-auto">
-        <div className={`w-full max-w-[1180px] mx-auto px-6 py-8 ${loading ? 'opacity-50 animate-pulse' : ''}`}>
+        <div className="w-full max-w-[1180px] mx-auto px-6 py-8 relative">
+          {loading && !error && (
+            <div
+              className="absolute right-6 top-4 rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.08em]"
+              style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1D4ED8', fontFamily: 'Inter', fontWeight: 700 }}
+            >
+              Syncing
+            </div>
+          )}
+          {error && (
+            <div
+              className="mb-6 rounded-[12px] px-5 py-4 text-[13px]"
+              style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontFamily: 'Inter' }}
+            >
+              {error}
+            </div>
+          )}
 
           {/* ── Hero ── */}
           <div
@@ -496,7 +541,24 @@ export default function TestAnalyticsPage() {
                           <td className="px-6 py-4 text-[13px]" style={{ fontFamily: 'Inter', color: '#6A7282' }}>{row.rank ?? 'N/A'}</td>
                           <td className="px-6 py-4">
                             <a
-                              href={`/dashboard/mock-tests`}
+                              href={(() => {
+                                switch (row.type) {
+                                  case 'daily-mcq':
+                                    return '/dashboard/daily-mcq/results';
+                                  case 'daily-answer':
+                                    return `/dashboard/daily-answer/challenge/attempt/results?attemptId=${row.routeParams?.attemptId || ''}`;
+                                  case 'mock-prelims':
+                                    return `/dashboard/mock-tests/attempt/results?testId=${row.routeParams?.testId || ''}`;
+                                  case 'mock-mains':
+                                    return `/dashboard/mock-tests/attempt/results?testId=${row.routeParams?.testId || ''}&examMode=mains`;
+                                  case 'pyq-mains':
+                                    return `/dashboard/pyq`;
+                                  case 'test-series':
+                                    return `/dashboard/test-series/${row.routeParams?.seriesId || ''}/results/${row.routeParams?.testId || ''}`;
+                                  default:
+                                    return '#';
+                                }
+                              })()}
                               className="text-[13px] font-medium hover:underline"
                               style={{ fontFamily: 'Inter', color: '#155DFC' }}
                             >

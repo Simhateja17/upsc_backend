@@ -65,12 +65,27 @@ export default function PYQManager() {
     setLoading(true);
     adminService
       .getPYQQuestions({ mode, ...(statusFilter ? { status: statusFilter } : {}), page, limit: LIMIT })
-      .then((res) => {
-        setQuestions(res.data?.questions || []);
-        if (res.data?.pagination) {
-          setTotalPages(res.data.pagination.totalPages);
-          setTotalQuestions(res.data.pagination.total);
-          setCurrentPage(res.data.pagination.page);
+      .then(async (res) => {
+        const apiQuestions = (res.data?.questions || []) as PYQQuestion[];
+        setQuestions(apiQuestions);
+
+        const apiTotal = Number(res.data?.pagination?.total ?? apiQuestions.length);
+        const apiPage = Number(res.data?.pagination?.page ?? page);
+        const apiTotalPages = Number(res.data?.pagination?.totalPages ?? Math.max(1, Math.ceil(apiTotal / LIMIT)));
+
+        setCurrentPage(apiPage);
+        setTotalPages(apiTotalPages);
+        setTotalQuestions(apiTotal);
+
+        try {
+          const statsRes = await adminService.getPYQStats(mode);
+          const statsTotal = Number(statsRes?.data?.total);
+          if (Number.isFinite(statsTotal)) {
+            setTotalQuestions(statsTotal);
+            setTotalPages(Math.max(1, Math.ceil(statsTotal / LIMIT)));
+          }
+        } catch {
+          // keep pagination total from getPYQQuestions if stats endpoint fails
         }
       })
       .catch(() => {})

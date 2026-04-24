@@ -251,12 +251,13 @@ export default function TestResultsPage() {
               </button>
               <button
                 className="rh-btn"
-                onClick={() => alert('📄 PDF Report downloading...')}
+                disabled
+                title="PDF report coming soon"
                 style={{
                   padding: '12px 24px',
-                  background: 'rgba(255,255,255,0.15)',
-                  color: '#fff',
-                  border: '1px solid rgba(255,255,255,0.3)',
+                  background: 'rgba(255,255,255,0.05)',
+                  color: 'rgba(255,255,255,0.5)',
+                  border: '1px solid rgba(255,255,255,0.15)',
                   borderRadius: 'var(--r)',
                   fontSize: '0.85rem',
                   fontWeight: 700,
@@ -533,46 +534,49 @@ export default function TestResultsPage() {
 
                     <div className="qbq-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <button
-                        onClick={() => alert('📌 Added to Flashcards!')}
+                        disabled
+                        title="Coming soon"
                         style={{
                           padding: '6px 12px',
-                          background: 'var(--bg)',
-                          color: 'var(--ink3)',
-                          border: '1px solid var(--border)',
+                          background: '#F3F4F6',
+                          color: '#9CA3AF',
+                          border: '1px solid #E5E7EB',
                           borderRadius: '6px',
                           fontSize: '0.7rem',
                           fontWeight: 700,
-                          cursor: 'pointer',
+                          cursor: 'not-allowed',
                         }}
                       >
                         📌 Add to Flashcards
                       </button>
                       <button
-                        onClick={() => alert('⚠️ Marked as Weak Topic!')}
+                        disabled
+                        title="Coming soon"
                         style={{
                           padding: '6px 12px',
-                          background: 'var(--bg)',
-                          color: 'var(--ink3)',
-                          border: '1px solid var(--border)',
+                          background: '#F3F4F6',
+                          color: '#9CA3AF',
+                          border: '1px solid #E5E7EB',
                           borderRadius: '6px',
                           fontSize: '0.7rem',
                           fontWeight: 700,
-                          cursor: 'pointer',
+                          cursor: 'not-allowed',
                         }}
                       >
                         ⚠️ Mark Weak
                       </button>
                       <button
-                        onClick={() => alert('📝 Opening Study Notes...')}
+                        disabled
+                        title="Coming soon"
                         style={{
                           padding: '6px 12px',
-                          background: 'var(--bg)',
-                          color: 'var(--ink3)',
-                          border: '1px solid var(--border)',
+                          background: '#F3F4F6',
+                          color: '#9CA3AF',
+                          border: '1px solid #E5E7EB',
                           borderRadius: '6px',
                           fontSize: '0.7rem',
                           fontWeight: 700,
-                          cursor: 'pointer',
+                          cursor: 'not-allowed',
                         }}
                       >
                         📝 Study Notes
@@ -662,11 +666,12 @@ export default function TestResultsPage() {
               <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', marginBottom: '6px' }}>Study Weak Topics</div>
               <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', marginBottom: '14px' }}>Modern India · Doctrine of Lapse · Chronology</div>
               <button
-                onClick={() => alert('📝 Opening Study Notes...')}
+                disabled
+                title="Coming soon"
                 style={{
                   width: '100%',
                   padding: '10px 16px',
-                  background: 'var(--gold2)',
+                  background: '#9CA3AF',
                   color: '#fff',
                   border: 'none',
                   borderRadius: 'var(--r)',

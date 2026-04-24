@@ -4,78 +4,59 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { dailyAnswerService } from '@/lib/services';
 
+interface MetricItem {
+  id: string;
+  label: string;
+  value: string;
+  icon: string;
+  bg: string;
+  borderColor: string;
+  iconColor: string;
+  valueColor: string;
+}
+
 interface ResultsData {
   score: number;
   maxScore: number;
-  metrics: {
-    id: string;
-    label: string;
-    value: string;
-    icon: string;
-    bg: string;
-    borderColor: string;
-    iconColor: string;
-    valueColor: string;
-  }[];
-  didWell: string[];
-  areasToImprove: string[];
-  valueAddIdeas: string[];
+  wordCount?: number;
+  metrics?: MetricItem[];
+  didWell?: string[];
+  areasToImprove?: string[];
+  valueAddIdeas?: string[];
+  // Backend raw fields
+  strengths?: string[];
+  improvements?: string[];
+  suggestions?: string[];
+  detailedFeedback?: string;
 }
 
-const FALLBACK_METRICS = [
-  {
-    id: 'structure',
-    label: 'STRUCTURE',
-    value: 'Well Organized',
-    icon: '\u2713',
-    bg: '#F0FDF4',
-    borderColor: '#B9F8CF',
-    iconColor: '#0D542B',
-    valueColor: '#0D542B',
-  },
-  {
-    id: 'content',
-    label: 'CONTENT DEPTH',
-    value: 'Needs Examples',
-    icon: '\u26A0',
-    bg: '#FEFCE8',
-    borderColor: '#FFF085',
-    iconColor: '#A16207',
-    valueColor: '#713F12',
-  },
-  {
-    id: 'clarity',
-    label: 'CLARITY',
-    value: 'Clear Articulation',
-    icon: '\u2713',
-    bg: '#F0FDF4',
-    borderColor: '#B9F8CF',
-    iconColor: '#0D542B',
-    valueColor: '#0D542B',
-  },
-  {
-    id: 'timemgmt',
-    label: 'TIME MGMT',
-    value: 'Good Pace',
-    icon: '\u26A1',
-    bg: '#F9FAFB',
-    borderColor: '#E5E7EB',
-    iconColor: '#374151',
-    valueColor: '#101828',
-  },
-];
+
 
 export default function ResultsPage() {
   const [data, setData] = useState<ResultsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+
+  // Get attemptId from sessionStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedAttemptId = sessionStorage.getItem('dailyAnswerAttemptId');
+      if (storedAttemptId) {
+        setAttemptId(storedAttemptId);
+      }
+    }
+  }, []);
 
   useEffect(() => {
-    dailyAnswerService.getResults()
-      .then(res => setData(res.data))
+    dailyAnswerService.getResults(attemptId || undefined)
+      .then(res => {
+        const payload = res.data ?? res;
+        setData(payload);
+      })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [attemptId]);
 
   if (loading) {
     return (
@@ -88,7 +69,7 @@ export default function ResultsPage() {
     );
   }
 
-  if (error || !data) {
+  if (error) {
     return (
       <div
         className="min-h-screen font-arimo flex items-center justify-center"
@@ -96,8 +77,30 @@ export default function ResultsPage() {
       >
         <div className="text-center">
           <h2 className="text-xl font-bold text-gray-800 mb-2">Could not load results</h2>
-          <p className="text-gray-500 mb-4">{error || 'Please try again later.'}</p>
+          <p className="text-gray-500 mb-4">{error}</p>
           <Link href="/dashboard/daily-answer" className="text-blue-600 hover:underline">Back to Challenge</Link>
+        </div>
+      </div>
+    );
+  }
+
+  // If no data at all, show evaluation in progress state
+  if (!data || (typeof data.score !== 'number' && typeof (data as any).score !== 'number')) {
+    return (
+      <div
+        className="min-h-screen font-arimo flex items-center justify-center"
+        style={{ background: 'linear-gradient(180deg, #E6EAF0 0%, #DDE2EA 100%)' }}
+      >
+        <div className="text-center px-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">AI Evaluation in Progress</h2>
+          <p className="text-gray-500 mb-4">Our AI is analyzing your answer. This usually takes 30-60 seconds.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Check Status
+          </button>
         </div>
       </div>
     );
@@ -105,10 +108,24 @@ export default function ResultsPage() {
 
   const score = data.score ?? 0;
   const maxScore = data.maxScore ?? 10;
-  const metrics = data.metrics ?? FALLBACK_METRICS;
-  const didWell = data.didWell ?? [];
-  const areasToImprove = data.areasToImprove ?? [];
-  const valueAddIdeas = data.valueAddIdeas ?? [];
+  const pct = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+
+  // Map backend field names to frontend field names
+  const didWell = data.didWell || data.strengths || [];
+  const areasToImprove = data.areasToImprove || data.improvements || [];
+  const valueAddIdeas = data.valueAddIdeas || data.suggestions || [];
+
+  // Derive metrics from score if backend didn't provide them
+  let metrics: MetricItem[] = data.metrics || [];
+  if (metrics.length === 0) {
+    const base = Math.max(4, Math.min(10, Math.round((score / maxScore) * 10)));
+    metrics = [
+      { id: 'structure', label: 'Structure', value: `${base}/10`, icon: '🏗️', bg: '#F0FDF4', borderColor: '#B9F8CF', iconColor: '#15803D', valueColor: '#0D542B' },
+      { id: 'content', label: 'Content', value: `${Math.max(3, Math.min(10, base + 1))}/10`, icon: '📚', bg: '#EFF6FF', borderColor: '#BFDBFE', iconColor: '#1447E6', valueColor: '#1E3A5F' },
+      { id: 'examples', label: 'Examples', value: `${Math.max(3, Math.min(10, base - 1))}/10`, icon: '💡', bg: '#FEFCE8', borderColor: '#FEF08A', iconColor: '#CA3500', valueColor: '#713F12' },
+      { id: 'language', label: 'Language', value: `${base}/10`, icon: '✍️', bg: '#FAF5FF', borderColor: '#E9D4FF', iconColor: '#8200DB', valueColor: '#4C1D95' },
+    ];
+  }
 
   return (
     <div
@@ -182,24 +199,32 @@ export default function ResultsPage() {
           }}
         >
           {/* Feedback Header Row */}
-          <img
-            src="/feedback-header.png"
-            alt="Personalized Feedback"
-            style={{
-              width: '100%', maxWidth: '924px',
-              objectFit: 'fill',
-            }}
-          />
-
-          {/* Subtitle */}
-          <img
-            src="/feedback-subtitle.png"
-            alt="Actionable insights to help you improve, not just a score"
-            style={{
-              width: '100%', maxWidth: '924px',
-              objectFit: 'fill',
-            }}
-          />
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h2 className="font-bold text-[#101828] mb-1" style={{ fontSize: '24px', lineHeight: '32px' }}>
+                Personalized Feedback
+              </h2>
+              <p className="text-[#6A7282]" style={{ fontSize: '14px', lineHeight: '20px' }}>
+                Actionable insights to help you improve, not just a score
+              </p>
+            </div>
+            {typeof data.wordCount === 'number' && (
+              <div
+                className="flex items-center gap-2 px-4 py-2 rounded-full"
+                style={{
+                  background: data.wordCount >= 200 ? '#F0FDF4' : '#FEF2F2',
+                  border: `1px solid ${data.wordCount >= 200 ? '#B9F8CF' : '#FECACA'}`,
+                }}
+              >
+                <span style={{ fontSize: '14px', fontWeight: 600, color: data.wordCount >= 200 ? '#0D542B' : '#991B1B' }}>
+                  Words Count: {data.wordCount}
+                </span>
+                <span style={{ fontSize: '14px', color: data.wordCount >= 200 ? '#15803D' : '#DC2626' }}>
+                  {data.wordCount >= 200 ? '✓' : '✕'}
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* 4 Metric Cards */}
           {metrics.length > 0 ? (
@@ -220,14 +245,9 @@ export default function ResultsPage() {
               ))}
             </div>
           ) : (
-            <img
-              src="/metrics-container.png"
-              alt="Metrics"
-              style={{
-                width: '100%', maxWidth: '924px',
-                objectFit: 'fill',
-              }}
-            />
+            <div className="text-center py-8 text-gray-500">
+              <p>No metrics available. Please wait for AI evaluation to complete.</p>
+            </div>
           )}
 
           {/* 3 Feedback Columns */}
@@ -273,15 +293,24 @@ export default function ResultsPage() {
               </div>
             </div>
           ) : (
-            <img
-              src="/feedback-container.png"
-              alt="Feedback"
-              style={{
-                width: '100%', maxWidth: '924px',
-                height: '387.2px',
-                objectFit: 'fill',
-              }}
-            />
+            <div className="text-center py-8 text-gray-500">
+              <p>No feedback available yet. AI evaluation is processing your answer.</p>
+            </div>
+          )}
+
+          {/* Detailed Feedback */}
+          {data.detailedFeedback && (
+            <div
+              className="rounded-[16px] p-6 space-y-4"
+              style={{ background: '#1E293B' }}
+            >
+              <div className="flex items-center gap-2" style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 14, lineHeight: '20px', color: '#94A3B8' }}>
+                DETAILED FEEDBACK
+              </div>
+              <p style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 14, lineHeight: 1.6, color: '#E2E8F0', whiteSpace: 'pre-line' }}>
+                {data.detailedFeedback}
+              </p>
+            </div>
           )}
         </div>
       </div>
