@@ -141,6 +141,9 @@ router.get("/syllabus", getSyllabus);
 // Public CMS route (no auth - slug is URL-encoded for nested paths)
 router.get("/cms/:slug", cmsPublicCtrl.getPageContent);
 
+// Public FAQs (no auth)
+router.get("/faqs", cmsPublicCtrl.getFaqsPublic);
+
 // Jeet AI chat routes
 router.use("/ai", aiRoutes);
 

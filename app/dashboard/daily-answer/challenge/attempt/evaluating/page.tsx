@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { dailyAnswerService } from '@/lib/services';
 
@@ -69,43 +69,86 @@ export default function EvaluatingPage() {
   const [status, setStatus] = useState<string>('evaluating');
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
   const navigatedRef = useRef(false);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const maxRetriesRef = useRef(0);
+
+  // Get attemptId from sessionStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedAttemptId = sessionStorage.getItem('dailyAnswerAttemptId');
+      console.log('Retrieved attemptId from sessionStorage:', storedAttemptId);
+      if (storedAttemptId) {
+        setAttemptId(storedAttemptId);
+      }
+    }
+  }, []);
 
   // Poll evaluation status every 3 seconds
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const res = await dailyAnswerService.getEvaluationStatus();
-        const data = res.data;
+  const pollStatus = useCallback(async () => {
+    if (!attemptId) {
+      console.log('No attemptId, skipping poll');
+      return;
+    }
+    
+    console.log('Polling with attemptId:', attemptId);
+    
+    try {
+      const res = await dailyAnswerService.getEvaluationStatus(attemptId);
+      console.log('Poll response:', res);
+      const data = res.data;
 
-        if (data?.status) {
-          setStatus(data.status);
-        }
-        if (data?.completedSteps) {
-          setCompletedSteps(data.completedSteps);
-        }
-
-        if (data?.status === 'completed' && !navigatedRef.current) {
-          navigatedRef.current = true;
-          if (pollRef.current) clearInterval(pollRef.current);
-          router.push('/dashboard/daily-answer/challenge/attempt/results');
-        }
-      } catch (err: any) {
-        setError(err.message || 'Error checking evaluation status');
+      // Backend returns evaluationStatus, not status
+      const evalStatus = data?.evaluationStatus || data?.status;
+      if (evalStatus) {
+        setStatus(evalStatus);
+        console.log('Status:', evalStatus);
       }
-    };
+      if (data?.completedSteps) {
+        setCompletedSteps(data.completedSteps);
+        console.log('Completed steps:', data.completedSteps);
+      }
+
+      // Check if evaluation is completed - backend returns isComplete flag or status === "completed"
+      const isComplete = data?.isComplete || evalStatus === 'completed' || evalStatus === 'done';
+      if (isComplete && !navigatedRef.current) {
+        console.log('Evaluation completed! Navigating to results...');
+        navigatedRef.current = true;
+        if (pollRef.current) clearInterval(pollRef.current);
+        // Clear the stored attemptId
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('dailyAnswerAttemptId');
+        }
+        router.push('/dashboard/daily-answer/challenge/attempt/results');
+      }
+
+      // Safety check: if we've been polling for too long (5 minutes), stop and show error
+      maxRetriesRef.current += 1;
+      if (maxRetriesRef.current > 100) { // ~5 minutes at 3 second intervals
+        setError('Evaluation is taking longer than expected. Please check your results page.');
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    } catch (err: any) {
+      console.error('Poll error:', err);
+      // Don't set error immediately, let it retry
+    }
+  }, [attemptId, router]);
+
+  // Start polling when attemptId is available
+  useEffect(() => {
+    if (!attemptId) return;
 
     // Initial call
-    poll();
+    pollStatus();
 
     // Poll every 3 seconds
-    pollRef.current = setInterval(poll, 3000);
+    pollRef.current = setInterval(pollStatus, 3000);
 
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [router]);
+  }, [attemptId, pollStatus]);
 
   // Elapsed timer for display
   useEffect(() => {
@@ -113,6 +156,29 @@ export default function EvaluatingPage() {
       setElapsed((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Simulate step progression in 10-second increments until the
+  // backend confirms completion. Advances past the first step.
+  useEffect(() => {
+    if (status === 'completed' || status === 'done') return;
+    const stepsToComplete = Math.min(STEPS.length, Math.floor(elapsed / 10));
+    setCompletedSteps((prev) => {
+      const simulated = STEPS.slice(0, stepsToComplete).map((s) => s.key);
+      return simulated.length > prev.length ? simulated : prev;
+    });
+  }, [elapsed, status]);
+
+  // Preload step icons so they appear instantly instead of popping in
+  useEffect(() => {
+    STEPS.forEach((s) => {
+      const img = new Image();
+      img.src = s.icon;
+    });
+    ['/eval-header.png', '/eval-timer.png'].forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
   }, []);
 
   const ESTIMATED_SECONDS = 60;
@@ -127,6 +193,28 @@ export default function EvaluatingPage() {
     if (idx === 0) return !isStepDone(step);
     return isStepDone(STEPS[idx - 1]) && !isStepDone(step);
   };
+
+  // If no attemptId after a short delay, show error
+  if (!attemptId && elapsed > 3) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center font-arimo"
+        style={{ background: 'linear-gradient(180deg, #E6EAF0 0%, #DDE2EA 100%)' }}
+      >
+        <div className="text-center px-6">
+          <span style={{ fontSize: '48px' }}>⚠️</span>
+          <h2 className="text-xl font-bold text-gray-800 mb-2 mt-4">Submission Not Found</h2>
+          <p className="text-gray-500 mb-4">We could not find your answer submission. Please try submitting again.</p>
+          <button
+            onClick={() => router.push('/dashboard/daily-answer/challenge/attempt')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Back to Challenge
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -195,6 +283,14 @@ export default function EvaluatingPage() {
         {error && (
           <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-[10px] text-red-700 text-center" style={{ fontSize: '14px' }}>
             {error}
+            <div className="mt-2">
+              <button
+                onClick={() => router.push('/dashboard/daily-answer/challenge/attempt/results')}
+                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+              >
+                View Results
+              </button>
+            </div>
           </div>
         )}
 

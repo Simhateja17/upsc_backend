@@ -8,16 +8,21 @@ function getToday(): Date {
 }
 
 /**
- * GET /api/study-plan/today
- * Today's study plan tasks
+ * GET /api/study-plan/today?date=YYYY-MM-DD
+ * Today's study plan tasks (or tasks for a specific date)
  */
 export const getTodayTasks = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const today = getToday();
+    const dateParam = req.query.date as string | undefined;
+    const targetDate = dateParam ? new Date(dateParam) : getToday();
+    if (dateParam && isNaN(targetDate.getTime())) {
+      return res.status(400).json({ status: "error", message: "Invalid date format" });
+    }
+    targetDate.setHours(0, 0, 0, 0);
 
     const tasks = await prisma.studyPlanTask.findMany({
-      where: { userId, date: today },
+      where: { userId, date: targetDate },
       orderBy: [{ isCompleted: "asc" }, { startTime: "asc" }, { createdAt: "asc" }],
     });
 
@@ -218,38 +223,72 @@ export const saveWeeklyGoals = async (req: Request, res: Response, next: NextFun
 export const getSyllabusCoverage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-
-    // Fixed list of UPSC subjects to always show
-    const SUBJECTS = [
-      "Polity", "History", "Geography", "Economics",
-      "Science & Technology", "Environment", "Ethics", "Current Affairs",
-    ];
-
-    // Count total and completed tasks per subject
-    const [allTasks, completedTasks] = await Promise.all([
-      prisma.studyPlanTask.groupBy({
-        by: ["subject"],
-        where: { userId, subject: { in: SUBJECTS } },
-        _count: { id: true },
+    const [subjects, tracker] = await Promise.all([
+      prisma.syllabusSubject.findMany({
+        orderBy: [{ stage: "asc" }, { sortOrder: "asc" }],
+        include: {
+          topics: {
+            orderBy: { sortOrder: "asc" },
+            include: {
+              subTopics: {
+                orderBy: { sortOrder: "asc" },
+              },
+            },
+          },
+        },
       }),
-      prisma.studyPlanTask.groupBy({
-        by: ["subject"],
-        where: { userId, subject: { in: SUBJECTS }, isCompleted: true },
-        _count: { id: true },
+      prisma.syllabusTrackerState.findUnique({
+        where: { userId },
+        select: { states: true },
       }),
     ]);
 
-    const totalMap = new Map(allTasks.map(r => [r.subject!, r._count.id]));
-    const doneMap  = new Map(completedTasks.map(r => [r.subject!, r._count.id]));
+    const stateMap = (tracker?.states ?? {}) as Record<string, { status?: string }>;
 
-    const data = SUBJECTS.map(subject => {
-      const total     = totalMap.get(subject) ?? 0;
-      const completed = doneMap.get(subject) ?? 0;
-      const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-      return { subject, completedTasks: completed, totalTasks: total, percentage };
+    const data = subjects.map((subject) => {
+      let totalTopics = 0;
+      let completedTopics = 0;
+
+      subject.topics.forEach((topic, topicIndex) => {
+        topic.subTopics.forEach((_, subTopicIndex) => {
+          totalTopics += 1;
+          const key = `${subject.id}__${topicIndex}__${subTopicIndex}`;
+          if (stateMap[key]?.status === "done") {
+            completedTopics += 1;
+          }
+        });
+      });
+
+      const percentage = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+
+      return {
+        subject: subject.short || subject.name,
+        subjectId: subject.id,
+        subjectName: subject.name,
+        stage: subject.stage,
+        completedTopics,
+        totalTopics,
+        percentage,
+      };
     });
 
-    res.json({ status: "success", data });
+    const summaryByStage = ["prelims", "mains", "optional"].reduce<Record<string, {
+      coveredTopics: number;
+      totalTopics: number;
+      percentage: number;
+    }>>((acc, stage) => {
+      const stageRows = data.filter((row) => row.stage === stage);
+      const coveredTopics = stageRows.reduce((sum, row) => sum + row.completedTopics, 0);
+      const totalTopics = stageRows.reduce((sum, row) => sum + row.totalTopics, 0);
+      acc[stage] = {
+        coveredTopics,
+        totalTopics,
+        percentage: totalTopics > 0 ? Math.round((coveredTopics / totalTopics) * 100) : 0,
+      };
+      return acc;
+    }, {});
+
+    res.json({ status: "success", data, summaryByStage });
   } catch (error) {
     next(error);
   }

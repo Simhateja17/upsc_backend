@@ -49,6 +49,7 @@ model User {
   studyMaterialUploads      StudyMaterialUpload[]
   mockTestMaterialUploads   MockTestMaterialUpload[]
   seriesEnrollments         UserSeriesEnrollment[]
+  orders                    Order[]
 
   @@map("users")
 }
@@ -1082,6 +1083,57 @@ model PyqMainsEvaluation {
   attempt PyqMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@map("pyq_mains_evaluations")
+}
+
+// ==================== FAQ ====================
+
+model Faq {
+  id        String   @id @default(uuid())
+  category  String
+  question  String
+  answer    String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("faqs")
+}
+
+// ==================== ORDERS ====================
+
+model Order {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  itemType    String   @map("item_type") // plan, test_series
+  itemId      String   @map("item_id")
+  itemName    String   @map("item_name")
+  amount      Int      // in paise (INR)
+  status      String   @default("pending") // pending, paid, failed, refunded
+  paymentMethod String? @map("payment_method")
+  paymentId   String?  @map("payment_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("orders")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  body      String
+  type      String   @default("general") // general, spaced_rep, mcq, answer, streak
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@map("notifications")
 }
 
 // ==================== MOCK TEST MAINS EVALUATION ====================

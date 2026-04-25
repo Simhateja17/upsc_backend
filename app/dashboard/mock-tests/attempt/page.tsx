@@ -21,8 +21,10 @@ interface MainsAnswer {
 
 type QuestionStatus = 'unattempted' | 'answered' | 'marked' | 'current';
 
-function normalizeDurationToSeconds(rawDuration: unknown, questionCount: number): number {
-  const fallbackMinutes = Math.max(1, Math.ceil(questionCount * 1.6));
+function normalizeDurationToSeconds(rawDuration: unknown, questionCount: number, isMains: boolean): number {
+  const fallbackMinutes = isMains
+    ? Math.max(8, questionCount * 8)
+    : Math.max(1, questionCount);
   const fallbackSeconds = fallbackMinutes * 60;
 
   const parsed =
@@ -187,7 +189,7 @@ function MockTestAttemptInner() {
         });
         setQuestionStatuses(statuses);
         // Set timer based on API duration (minutes or seconds) with a safe fallback.
-        const durationSeconds = normalizeDurationToSeconds(res.data?.duration, qs.length);
+        const durationSeconds = normalizeDurationToSeconds(res.data?.duration, qs.length, isMains);
         setTimeLeft(durationSeconds);
       } catch (err: any) {
         if (!cancelled) {
@@ -939,13 +941,11 @@ function MockTestAttemptInner() {
               ) : null}
             </div>
 
-            {/* Options */}
+            {/* Options — this is a quiz: we show selection only, and reveal
+                correctness + explanation only on the results screen. */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {currentQ.options.map(opt => {
-                const hasAnswered = !!selectedOptions[currentIdx];
                 const isSelected = selectedOptions[currentIdx] === opt.label;
-                const isCorrectOpt = opt.label === currentQ.correct;
-                const isWrongSelected = isSelected && !isCorrectOpt;
 
                 let bg = '#FFFFFF';
                 let border = '2px solid #E2E8F0';
@@ -956,27 +956,7 @@ function MockTestAttemptInner() {
                 let textColor = '#1E293B';
                 let fontWeight = 400;
 
-                if (hasAnswered) {
-                  if (isCorrectOpt) {
-                    bg = '#F0FDF4';
-                    border = '2px solid #00C950';
-                    circleColor = '#00C950';
-                    circleBg = '#DCFCE7';
-                    circleText = '#00C950';
-                    circleIcon = '✓';
-                    textColor = '#14532D';
-                    fontWeight = 600;
-                  } else if (isWrongSelected) {
-                    bg = '#FEF2F2';
-                    border = '2px solid #FB2C36';
-                    circleColor = '#FB2C36';
-                    circleBg = '#FEE2E2';
-                    circleText = '#FB2C36';
-                    circleIcon = '✕';
-                    textColor = '#7F1D1D';
-                    fontWeight = 600;
-                  }
-                } else if (isSelected) {
+                if (isSelected) {
                   bg = '#EFF6FF';
                   border = '2px solid #2B7FFF';
                   circleColor = '#2B7FFF';
@@ -988,7 +968,7 @@ function MockTestAttemptInner() {
                 return (
                   <button
                     key={opt.label}
-                    onClick={() => !hasAnswered && handleSelectOption(opt.label)}
+                    onClick={() => handleSelectOption(opt.label)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -997,7 +977,7 @@ function MockTestAttemptInner() {
                       borderRadius: '12px',
                       border,
                       background: bg,
-                      cursor: hasAnswered ? 'default' : 'pointer',
+                      cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all 0.15s ease',
                       width: '100%',
@@ -1027,26 +1007,8 @@ function MockTestAttemptInner() {
               })}
             </div>
 
-            {/* Explanation — shown after answering */}
-            {selectedOptions[currentIdx] && currentQ.explanation && (
-              <div style={{
-                marginTop: '20px',
-                background: '#EFF6FF',
-                borderLeft: '4px solid #2B7FFF',
-                borderRadius: '10px',
-                padding: '16px 16px 16px 20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-              }}>
-                <span style={{ fontWeight: 600, fontSize: '14px', color: '#155DFC', lineHeight: '20px' }}>
-                  💡 EXPLANATION
-                </span>
-                <span style={{ fontSize: '14px', fontWeight: 400, color: '#1C398E', lineHeight: '20px' }}>
-                  {currentQ.explanation}
-                </span>
-              </div>
-            )}
+            {/* Explanations are hidden during the quiz and revealed only on the
+                results screen, so students focus on finishing first. */}
           </div>
 
           {/* Controls Bar */}

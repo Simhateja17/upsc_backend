@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { dashboardService, studyPlannerService } from '@/lib/services';
 
@@ -31,7 +32,15 @@ interface StudyTask {
   endTime?: string;
   duration?: number;
   completed?: boolean;
+  isCompleted?: boolean;
   priority?: string;
+}
+
+function toDateParam(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 const borderColors: Record<string, string> = {
@@ -187,12 +196,24 @@ const AddTaskModal = ({ onClose, onTaskAdded }: { onClose: () => void; onTaskAdd
 };
 
 const ResponsiveDashboardContent = () => {
+  const router = useRouter();
   const { user } = useAuth();
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [tasks, setTasks] = useState<StudyTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [tasksLoading, setTasksLoading] = useState(true);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+  const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState('');
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(25 * 60);
+  const [showLoginToast, setShowLoginToast] = useState(false);
+  const [selectedTaskDate, setSelectedTaskDate] = useState(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+  });
 
   const userName = user?.firstName || '';
   const greeting = getGreeting();
@@ -219,19 +240,51 @@ const ResponsiveDashboardContent = () => {
     let mounted = true;
     async function fetchTasks() {
       try {
-        const res = await studyPlannerService.getTodayTasks();
+        setTasksLoading(true);
+        setTasksError(null);
+        const res = await Promise.race([
+          studyPlannerService.getTodayTasks(toDateParam(selectedTaskDate)),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 7000)),
+        ]);
         if (mounted && res?.data) {
           setTasks(Array.isArray(res.data) ? res.data : res.data.tasks || []);
         }
       } catch {
-        // Graceful degradation — keep defaults
+        if (mounted) setTasksError('Could not load tasks quickly. Open Study Planner to sync.');
       } finally {
         if (mounted) setTasksLoading(false);
       }
     }
     fetchTasks();
     return () => { mounted = false; };
+  }, [selectedTaskDate]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (sessionStorage.getItem('rwj_login_success') !== '1') return;
+    sessionStorage.removeItem('rwj_login_success');
+    setShowLoginToast(true);
+    const timeout = setTimeout(() => setShowLoginToast(false), 5000);
+    return () => clearTimeout(timeout);
   }, []);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    if (timerRunning && timerSeconds > 0) {
+      interval = setInterval(() => {
+        setTimerSeconds(prev => {
+          if (prev <= 1) {
+            setTimerRunning(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [timerRunning, timerSeconds]);
 
   const trio = dashboardData?.trio;
   const daysRemaining = dashboardData?.daysRemaining ?? null;
@@ -245,10 +298,81 @@ const ResponsiveDashboardContent = () => {
   const mainsTopic = trio?.mains?.topic || null;
 
   const isMcqCompleted = mcqStatus?.toLowerCase() === 'completed';
+  const isEditorialCompleted = editorialStatus?.toLowerCase() === 'completed';
+  const isMainsCompleted = mainsStatus?.toLowerCase() === 'completed';
 
-  const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const isTodayView = selectedTaskDate.toDateString() === new Date().toDateString();
+  const taskDateStr = selectedTaskDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
   const displayTasks = tasks;
+
+  function normalizeStatus(status?: string | null) {
+    const value = (status || '').toLowerCase();
+    if (!value || value === 'available' || value === 'pending') return 'Pending';
+    if (value === 'completed') return 'Completed';
+    if (value === 'unavailable') return 'Unavailable';
+    return status || 'Pending';
+  }
+
+  function isTaskCompleted(task: StudyTask) {
+    return Boolean(task.completed ?? task.isCompleted);
+  }
+
+  async function handleToggleTask(task: StudyTask) {
+    const taskId = task._id || task.id;
+    if (!taskId || updatingTaskId) return;
+
+    const nextCompleted = !isTaskCompleted(task);
+    setUpdatingTaskId(taskId);
+    setTasks(prev => prev.map(item =>
+      (item._id || item.id) === taskId
+        ? { ...item, completed: nextCompleted, isCompleted: nextCompleted }
+        : item
+    ));
+
+    try {
+      await studyPlannerService.updateTask(taskId, { isCompleted: nextCompleted });
+    } catch {
+      setTasks(prev => prev.map(item =>
+        (item._id || item.id) === taskId
+          ? { ...item, completed: !nextCompleted, isCompleted: !nextCompleted }
+          : item
+      ));
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  }
+
+  function routeSearch() {
+    const q = searchInput.trim().toLowerCase();
+    if (!q) {
+      router.push('/dashboard/jeet-gpt');
+      return;
+    }
+    if (q.includes('planner') || q.includes('schedule') || q.includes('task')) {
+      router.push('/dashboard/study-planner');
+      return;
+    }
+    if (q.includes('mock') || q.includes('test') || q.includes('practice')) {
+      router.push('/dashboard/mock-tests');
+      return;
+    }
+    if (q.includes('mcq')) {
+      router.push('/dashboard/daily-mcq');
+      return;
+    }
+    if (q.includes('mains') || q.includes('answer')) {
+      router.push('/dashboard/daily-answer');
+      return;
+    }
+    router.push('/dashboard/jeet-gpt');
+  }
+
+  function formatTimer(totalSeconds: number) {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
 
   function formatDuration(mins?: number) {
     if (!mins) return '';
@@ -261,6 +385,31 @@ const ResponsiveDashboardContent = () => {
 
   return (
     <>
+    {showLoginToast && (
+      <div className="fixed right-6 top-6 z-[70] w-[min(390px,calc(100vw-32px))] rounded-2xl border border-white/10 bg-[#101827] p-4 text-white shadow-2xl">
+        <button
+          type="button"
+          onClick={() => setShowLoginToast(false)}
+          className="absolute right-3 top-3 text-white/45 hover:text-white transition-colors"
+          aria-label="Dismiss login message"
+        >
+          x
+        </button>
+        <div className="flex gap-3 pr-6">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#22C55E] text-white">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
+              <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <p className="font-inter text-sm font-bold">Success</p>
+            <p className="mt-1 font-inter text-sm leading-5 text-white/70">
+              Welcome back{userName ? `, ${userName}` : ''}. Keep your streak going.
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
     <div className="w-full min-h-screen py-[clamp(1.5rem,3vw,4rem)] px-[clamp(1rem,2vw,3rem)]" style={{ background: '#FAFBFE' }}>
       <div className="max-w-[1400px] mx-auto">
 
@@ -341,6 +490,11 @@ const ResponsiveDashboardContent = () => {
             <input
               type="text"
               placeholder="Ask jeet AI: 'Explain currant affairs'"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') routeSearch();
+              }}
               className="flex-1 bg-transparent outline-none font-inter text-black placeholder:text-black"
               style={{
                 fontSize: 'clamp(14px,0.83vw,16px)',
@@ -373,28 +527,30 @@ const ResponsiveDashboardContent = () => {
           </button>
 
           {/* Schedule Button */}
-          <button
-            className="px-[clamp(1.25rem,1.46vw,1.75rem)] rounded-[20px] font-inter font-medium border-2 hover:bg-[#17223E] hover:text-white transition-colors flex items-center gap-2"
-            style={{
-              height: 'clamp(48px,2.8vw,56px)',
-              fontSize: 'clamp(14px,0.78vw,15px)',
-              background: 'rgba(255, 255, 255, 0.11)',
-              borderColor: '#17223E',
-              color: '#17223E',
-              boxShadow: '0px 4px 17.1px 0px rgba(255, 255, 255, 0.06) inset',
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/c.png"
-              alt="Calendar"
-              className="w-[clamp(14px,0.83vw,16px)] h-[clamp(14px,0.83vw,16px)]"
-            />
-            <span>Schedule</span>
-          </button>
+          <Link href="/dashboard/study-planner">
+            <button
+              className="px-[clamp(1.25rem,1.46vw,1.75rem)] rounded-[20px] font-inter font-medium border-2 hover:bg-[#17223E] hover:text-white transition-colors flex items-center gap-2"
+              style={{
+                height: 'clamp(48px,2.8vw,56px)',
+                fontSize: 'clamp(14px,0.78vw,15px)',
+                background: 'rgba(255, 255, 255, 0.11)',
+                borderColor: '#17223E',
+                color: '#17223E',
+                boxShadow: '0px 4px 17.1px 0px rgba(255, 255, 255, 0.06) inset',
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/c.png"
+                alt="Calendar"
+                className="w-[clamp(14px,0.83vw,16px)] h-[clamp(14px,0.83vw,16px)]"
+              />
+              <span>Schedule</span>
+            </button>
+          </Link>
 
           {/* Generate Test Button */}
-          <Link href="/dashboard/practice-test">
+          <Link href="/dashboard/mock-tests">
             <button
               className="px-[clamp(1.25rem,1.46vw,1.75rem)] rounded-[20px] font-inter font-medium text-white border-2 flex items-center gap-2 hover:opacity-90 transition-opacity"
               style={{
@@ -405,8 +561,7 @@ const ResponsiveDashboardContent = () => {
                 boxShadow: '0px 4px 17.1px 0px rgba(253, 199, 0, 0.3) inset',
               }}
             >
-              <span>🚀</span>
-              <span>Generate Test</span>
+              
             </button>
           </Link>
         </div>
@@ -436,11 +591,14 @@ const ResponsiveDashboardContent = () => {
               <Link
                 href="/dashboard/daily-mcq"
                 aria-label="Open Daily MCQ"
-                className="block bg-[#F9FAFB] rounded-[14px] border border-[#E5E7EB] p-[clamp(1.25rem,1.75vw,2rem)] relative cursor-pointer h-full flex flex-col hover:border-[#D0D5DD] transition-colors"
+                className="block bg-[#F9FAFB] rounded-[14px] border p-[clamp(1.25rem,1.75vw,2rem)] relative cursor-pointer h-full flex flex-col transition-colors"
+                style={{ borderColor: isMcqCompleted ? '#22C55E' : '#E5E7EB' }}
               >
                 {isMcqCompleted && (
-                  <div className="absolute top-4 right-4 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                    <img src="/image-removebg-preview (48) 1.svg" alt="Completed" className="w-5 h-5" />
+                  <div className="absolute top-4 right-4 w-8 h-8 bg-[#22C55E] rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </div>
                 )}
 
@@ -454,16 +612,18 @@ const ResponsiveDashboardContent = () => {
                 </div>
 
                 <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-gray-600 mb-2">
-                  <span className={`font-medium ${isMcqCompleted ? 'text-green-600' : ''}`}>Status: {mcqStatus || '—'}</span>
+                  <span className={`font-medium ${isMcqCompleted ? 'text-green-600' : ''}`}>Status: {normalizeStatus(mcqStatus)}</span>
                 </p>
                 <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-[#1A1A1A] font-medium mb-6 flex-grow">
                   {mcqCount} Questions{mcqTopic ? ` - ${mcqTopic}` : ''}
                 </p>
 
-                <div className={`w-full ${isMcqCompleted ? 'bg-[#17223E]' : 'bg-[#17223E]'} text-white rounded-[8px] py-3 px-4 font-inter font-medium text-[clamp(14px,0.83vw,15px)] hover:bg-[#1E2875] transition-colors flex items-center justify-center gap-2`} role="button">
+                <div className="w-full bg-[#17223E] text-white rounded-[8px] py-3 px-4 font-inter font-medium text-[clamp(14px,0.83vw,15px)] hover:bg-[#1E2875] transition-colors flex items-center justify-center gap-2" role="button">
                   {isMcqCompleted ? (
                     <>
-                      <img src="/image-removebg-preview (48) 1.svg" alt="Completed" className="w-5 h-5" />
+                      <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                       Completed
                     </>
                   ) : (
@@ -477,7 +637,17 @@ const ResponsiveDashboardContent = () => {
 
               {/* Daily Editorial Card */}
               <Link href="/dashboard/daily-editorial" className="block h-full">
-              <div className="bg-[#F9FAFB] rounded-[14px] border border-[#E5E7EB] p-[clamp(1.25rem,1.75vw,2rem)] h-full flex flex-col hover:border-[#D0D5DD] transition-colors cursor-pointer">
+              <div
+                className="bg-[#F9FAFB] rounded-[14px] border p-[clamp(1.25rem,1.75vw,2rem)] h-full flex flex-col transition-colors cursor-pointer relative"
+                style={{ borderColor: isEditorialCompleted ? '#22C55E' : '#E5E7EB' }}
+              >
+                {isEditorialCompleted && (
+                  <div className="absolute top-4 right-4 w-8 h-8 bg-[#22C55E] rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                )}
                 <div className="mb-4 py-1 text-[clamp(12px,0.73vw,13px)] invisible">AI Evaluation</div>
 
                 <div className="flex items-center gap-3 mb-4">
@@ -488,22 +658,43 @@ const ResponsiveDashboardContent = () => {
                 </div>
 
                 <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-gray-600 mb-2">
-                  <span className="font-medium">Status: {editorialStatus || '—'}</span>
+                  <span className={`font-medium ${isEditorialCompleted ? 'text-green-600' : ''}`}>Status: {normalizeStatus(editorialStatus)}</span>
                 </p>
                 <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-[#1A1A1A] font-medium mb-6 flex-grow">
                   {editorialTopic || '—'}
                 </p>
 
                 <div className="w-full bg-[#17223E] text-white rounded-[8px] py-3 px-4 font-inter font-medium text-[clamp(14px,0.83vw,15px)] hover:bg-[#1E2875] transition-colors flex items-center justify-center gap-2" role="button">
-                  <img src="/TrioCard.png" alt="Read" className="w-5 h-5" />
-                  Read Now
+                  {isEditorialCompleted ? (
+                    <>
+                      <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Completed
+                    </>
+                  ) : (
+                    <>
+                      <img src="/TrioCard.png" alt="Read" className="w-5 h-5" />
+                      Read Now
+                    </>
+                  )}
                 </div>
               </div>
               </Link>
 
               {/* Mains Question Card */}
               <Link href="/dashboard/daily-answer" className="block h-full">
-              <div className="bg-[#F9FAFB] rounded-[14px] border border-[#E5E7EB] p-[clamp(1.25rem,1.75vw,2rem)] h-full flex flex-col hover:border-[#D0D5DD] transition-colors cursor-pointer">
+              <div
+                className="bg-[#F9FAFB] rounded-[14px] border p-[clamp(1.25rem,1.75vw,2rem)] h-full flex flex-col transition-colors cursor-pointer relative"
+                style={{ borderColor: isMainsCompleted ? '#22C55E' : '#E5E7EB' }}
+              >
+                {isMainsCompleted && (
+                  <div className="absolute top-4 right-4 w-8 h-8 bg-[#22C55E] rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                )}
                 <div className="mb-4 px-3 py-1 bg-teal-50 text-teal-600 rounded-full text-[clamp(12px,0.73vw,13px)] font-medium w-fit">
                   AI Evaluation
                 </div>
@@ -516,15 +707,26 @@ const ResponsiveDashboardContent = () => {
                 </div>
 
                 <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-gray-600 mb-2">
-                  <span className="font-medium">Status: {mainsStatus || '—'}</span>
+                  <span className={`font-medium ${isMainsCompleted ? 'text-green-600' : ''}`}>Status: {normalizeStatus(mainsStatus)}</span>
                 </p>
                 <p className="font-inter text-[clamp(14px,0.83vw,15px)] text-[#1A1A1A] font-medium mb-6 flex-grow">
                   {mainsTopic || '—'}
                 </p>
 
                 <button className="w-full bg-[#17223E] text-white rounded-[8px] py-3 px-4 font-inter font-medium text-[clamp(14px,0.83vw,15px)] hover:bg-[#1E2875] transition-colors flex items-center justify-center gap-2">
-                  <img src="/TrioCard (1).png" alt="Attempt" className="w-5 h-5" />
-                  Attempt Now
+                  {isMainsCompleted ? (
+                    <>
+                      <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Completed
+                    </>
+                  ) : (
+                    <>
+                      <img src="/TrioCard (1).png" alt="Attempt" className="w-5 h-5" />
+                      Attempt Now
+                    </>
+                  )}
                 </button>
               </div>
               </Link>
@@ -546,23 +748,48 @@ const ResponsiveDashboardContent = () => {
               <h2 className="font-inter font-bold text-[clamp(18px,1.2vw,20px)] text-[#1A1A1A]">
                 Today's Study Tasks
               </h2>
+              <Link href="/dashboard/study-planner" className="text-[12px] text-[#4F46E5] font-medium hover:underline">
+                Open Study Planner
+              </Link>
             </div>
             <div className="flex items-center gap-2">
-              <button className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors">
+              <button
+                type="button"
+                onClick={() => {
+                  const prev = new Date(selectedTaskDate);
+                  prev.setDate(prev.getDate() - 1);
+                  setSelectedTaskDate(prev);
+                }}
+                className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors"
+              >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                   <path d="M15 18l-6-6 6-6" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
               <span className="font-inter text-[clamp(13px,0.73vw,14px)] text-gray-400 px-4">
-                Today {'\u2022'} {todayStr}
+                {isTodayView ? 'Today' : 'Selected Day'} {'\u2022'} {taskDateStr}
               </span>
-              <button className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = new Date(selectedTaskDate);
+                  next.setDate(next.getDate() + 1);
+                  setSelectedTaskDate(next);
+                }}
+                className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors"
+              >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                   <path d="M9 18l6-6-6-6" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
             </div>
           </div>
+
+          {tasksError && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-700">
+              {tasksError}
+            </div>
+          )}
 
           {tasksLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -582,6 +809,8 @@ const ResponsiveDashboardContent = () => {
                 const leftBorderColor = task.priority
                   ? (borderColors[task.priority] || borderColorsFallback[index % 3])
                   : borderColorsFallback[index % 3];
+                const completed = isTaskCompleted(task);
+                const taskId = task._id || task.id || '';
                 const timeLabel = task.startTime && task.endTime
                   ? `${task.startTime} - ${task.endTime} ${formatDuration(task.duration)}`
                   : task.duration ? formatDuration(task.duration) : '';
@@ -589,13 +818,15 @@ const ResponsiveDashboardContent = () => {
                 return (
                   <div
                     key={task._id || task.id || index}
-                    className="rounded-lg border border-[#E5E7EB] border-l-4 p-[clamp(0.75rem,1vw,1.25rem)] mb-[clamp(0.75rem,1vw,1rem)] flex items-start justify-between bg-[#F9FAFB]"
+                    className={`rounded-lg border border-[#E5E7EB] border-l-4 p-[clamp(0.75rem,1vw,1.25rem)] mb-[clamp(0.75rem,1vw,1rem)] flex items-start justify-between ${completed ? 'bg-green-50' : 'bg-[#F9FAFB]'}`}
                     style={{ boxShadow: '0 1px 1px rgba(16, 24, 40, 0.04)', borderLeftColor: leftBorderColor }}
                   >
                     <div className="flex-1">
-                      <h3 className="font-inter font-semibold text-[clamp(14px,0.94vw,16px)] text-[#1A1A1A] mb-2">
-                        {task.title}
-                      </h3>
+                      <Link href="/dashboard/study-planner" className="block">
+                        <h3 className={`font-inter font-semibold text-[clamp(14px,0.94vw,16px)] mb-2 ${completed ? 'text-green-700 line-through' : 'text-[#1A1A1A]'}`}>
+                          {task.title}
+                        </h3>
+                      </Link>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[clamp(12px,0.68vw,13px)] font-medium text-blue-600" style={{ background: '#DBEAFE' }}>
                           <img src="/b.png" alt="Type" className="w-3.5 h-3.5" />
@@ -615,10 +846,18 @@ const ResponsiveDashboardContent = () => {
                         </span>
                       </div>
                     </div>
-                    <button className="ml-3 w-5 h-5 rounded border-2 border-gray-300 hover:border-green-500 hover:bg-green-50 transition-colors flex items-center justify-center flex-shrink-0">
-                      <svg className="w-3 h-3 text-green-600" viewBox="0 0 24 24" fill="none">
-                        <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                    <button
+                      onClick={() => handleToggleTask(task)}
+                      disabled={updatingTaskId === taskId}
+                      className={`ml-3 w-6 h-6 rounded border-2 transition-colors flex items-center justify-center flex-shrink-0 ${
+                        completed ? 'border-green-600 bg-green-600' : 'border-gray-300 hover:border-green-500 hover:bg-green-50'
+                      } ${updatingTaskId === taskId ? 'opacity-60' : ''}`}
+                    >
+                      {completed && (
+                        <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none">
+                          <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
                     </button>
                   </div>
                 );
@@ -652,13 +891,56 @@ const ResponsiveDashboardContent = () => {
           </div>
 
           {/* Start Focus Session Button */}
-          <button className="w-full bg-[#17223E] text-white rounded-lg py-[clamp(0.75rem,1vw,1rem)] font-inter font-semibold text-[clamp(14px,0.94vw,16px)] hover:bg-[#1E2875] transition-colors flex items-center justify-center gap-2">
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="12" r="10" fill="white"/>
-              <path d="M10 8l6 4-6 4V8z" fill="#17223E"/>
-            </svg>
-            Start Focus Session (25 Mins)
-          </button>
+          {timerRunning || timerSeconds < 25 * 60 ? (
+            <div className="w-full bg-[#17223E] text-white rounded-lg py-[clamp(0.75rem,1vw,1rem)] px-4 flex items-center justify-between">
+              <div>
+                <p className="font-inter text-[12px] text-white/70">Focus Timer</p>
+                <p className="font-inter font-bold text-[24px] leading-none">{formatTimer(timerSeconds)}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setTimerRunning(false);
+                    setTimerSeconds(25 * 60);
+                  }}
+                  className="w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
+                  aria-label="Reset timer"
+                >
+                  <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 12a9 9 0 109-9 9 9 0 00-6.36 2.64L3 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M3 3v5h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setTimerRunning(prev => !prev)}
+                  className="w-10 h-10 rounded-lg bg-white text-[#17223E] hover:bg-gray-100 transition-colors flex items-center justify-center"
+                  aria-label={timerRunning ? 'Pause' : 'Start'}
+                >
+                  {timerRunning ? (
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <rect x="6" y="5" width="4" height="14" rx="1" />
+                      <rect x="14" y="5" width="4" height="14" rx="1" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5l11 7-11 7V5z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setTimerRunning(true)}
+              className="w-full bg-[#17223E] text-white rounded-lg py-[clamp(0.75rem,1vw,1rem)] font-inter font-semibold text-[clamp(14px,0.94vw,16px)] hover:bg-[#1E2875] transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="10" fill="white"/>
+                <path d="M10 8l6 4-6 4V8z" fill="#17223E"/>
+              </svg>
+              Start Focus Session (25 Mins)
+            </button>
+          )}
         </div>
 
       </div>
@@ -675,3 +957,5 @@ const ResponsiveDashboardContent = () => {
 };
 
 export default ResponsiveDashboardContent;
+
+

@@ -67,21 +67,49 @@ export const dailyAnswerService = {
   getToday: () => api.get<any>('/daily-answer/today', authConfig()),
   getFullQuestion: () => api.get<any>('/daily-answer/today/question', authConfig()),
   submitText: (answerText: string) =>
-    api.post<any>('/daily-answer/today/submit-text', { answerText }, authConfig()),
+    api.post<{ status: string; data?: { attemptId: string; status: string }; message?: string }>('/daily-answer/today/submit-text', { answerText }, authConfig()),
   upload: (fileUrl: string) =>
     api.post<any>('/daily-answer/today/upload', { fileUrl }, authConfig()),
-  getEvaluationStatus: () =>
-    api.get<any>('/daily-answer/today/evaluation-status', authConfig()),
-  getResults: () => api.get<any>('/daily-answer/today/results', authConfig()),
+  uploadFile: async (file: File): Promise<{ status: string; data?: { attemptId: string; status: string }; message?: string }> => {
+    const fd = new FormData();
+    fd.append('file', file);
+
+    const token = getToken();
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/daily-answer/today/upload`,
+      {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      }
+    );
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Upload failed');
+    return json;
+  },
+  getEvaluationStatus: (attemptId?: string) =>
+    api.get<any>(`/daily-answer/today/evaluation-status${attemptId ? `?attemptId=${encodeURIComponent(attemptId)}` : ''}`, authConfig()),
+  getResults: (attemptId?: string) =>
+    api.get<any>(`/daily-answer/today/results${attemptId ? `?attemptId=${encodeURIComponent(attemptId)}` : ''}`, authConfig()),
 };
 
 // ==================== Editorials ====================
 
 export const editorialService = {
-  getToday: (source?: string) =>
-    api.get<any>(`/editorials/today${source && source !== 'all' ? `?source=${source}` : ''}`, authConfig()),
-  getLiveNews: (source?: string) =>
-    api.get<any>(`/editorials/live-news${source && source !== 'all' ? `?source=${source}` : ''}`, authConfig()),
+  getToday: (source?: string, date?: string) => {
+    const qs: string[] = [];
+    if (source && source !== 'all') qs.push(`source=${encodeURIComponent(source)}`);
+    if (date) qs.push(`date=${encodeURIComponent(date)}`);
+    const suffix = qs.length ? `?${qs.join('&')}` : '';
+    return api.get<any>(`/editorials/today${suffix}`, authConfig());
+  },
+  getLiveNews: (source?: string, date?: string) => {
+    const qs: string[] = [];
+    if (source && source !== 'all') qs.push(`source=${encodeURIComponent(source)}`);
+    if (date) qs.push(`date=${encodeURIComponent(date)}`);
+    const suffix = qs.length ? `?${qs.join('&')}` : '';
+    return api.get<any>(`/editorials/live-news${suffix}`, authConfig());
+  },
   getById: (id: string) => api.get<any>(`/editorials/${id}`, authConfig()),
   markRead: (id: string) => api.post<any>(`/editorials/${id}/mark-read`, {}, authConfig()),
   toggleSave: (id: string) => api.post<any>(`/editorials/${id}/save`, {}, authConfig()),
@@ -145,7 +173,8 @@ export const mockTestService = {
 // ==================== Study Planner ====================
 
 export const studyPlannerService = {
-  getTodayTasks: () => api.get<any>('/study-plan/today', authConfig()),
+  getTodayTasks: (date?: string) =>
+    api.get<any>(`/study-plan/today${date ? `?date=${encodeURIComponent(date)}` : ''}`, authConfig()),
   createTask: (task: { title: string; description?: string; subject?: string; type?: string; date?: string; startTime?: string; endTime?: string; duration?: number }) =>
     api.post<any>('/study-plan/tasks', task, authConfig()),
   updateTask: (id: string, updates: any) =>
@@ -188,6 +217,8 @@ export const pricingService = {
   bookCall: (data: { name: string; email: string; phone?: string; message?: string }) =>
     api.post<any>('/mentorship/book-call', data, authConfig()),
   getTestimonials: () => api.get<any>('/mentorship/testimonials'),
+  createOrder: (data: { itemType: string; itemId: string; itemName: string; amount: number }) =>
+    api.post<any>('/pricing/orders', data, authConfig()),
 };
 
 // ==================== Jeet AI Chat ====================
@@ -229,6 +260,39 @@ export const pyqService = {
     const qs = query.toString();
     return api.get<any>(`/pyq/questions${qs ? `?${qs}` : ''}`);
   },
+
+  // Mains AI evaluation
+  submitMainsAnswer: async (
+    questionId: string,
+    opts: { answerText?: string; file?: File }
+  ): Promise<{ status: string; data?: { attemptId: string; status: string }; message?: string }> => {
+    const fd = new FormData();
+    if (opts.answerText) fd.append('answerText', opts.answerText);
+    if (opts.file) fd.append('file', opts.file);
+
+    const token = getToken();
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/pyq/mains/${questionId}/submit`,
+      {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      }
+    );
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Submit failed');
+    return json;
+  },
+  getMainsEvaluationStatus: (questionId: string, attemptId: string) =>
+    api.get<any>(
+      `/pyq/mains/${questionId}/evaluation-status?attemptId=${encodeURIComponent(attemptId)}`,
+      authConfig()
+    ),
+  getMainsResults: (questionId: string, attemptId: string) =>
+    api.get<any>(
+      `/pyq/mains/${questionId}/results?attemptId=${encodeURIComponent(attemptId)}`,
+      authConfig()
+    ),
 };
 
 // ==================== Flashcards ====================
@@ -286,7 +350,7 @@ export const mindmapService = {
 
 export const userService = {
   getProfile: () => api.get<any>('/user/profile', authConfig()),
-  updateProfile: (data: { firstName?: string; lastName?: string; phone?: string; bio?: string }) =>
+  updateProfile: (data: { firstName?: string; lastName?: string; phone?: string; bio?: string; state?: string; targetYear?: string; optionalSubject?: string }) =>
     api.put<any>('/user/profile', data, authConfig()),
   updateSettings: (data: { notifications?: any; preferences?: any; privacy?: any }) =>
     api.put<any>('/user/settings', data, authConfig()),
@@ -295,6 +359,17 @@ export const userService = {
   getSyllabusTracker: () => api.get<any>('/user/syllabus-tracker', authConfig()),
   saveSyllabusTracker: (data: { mode: string; states: any }) =>
     api.put<any>('/user/syllabus-tracker', data, authConfig()),
+  getSessions: () => api.get<any>('/user/sessions', authConfig()),
+  revokeSession: (sessionId: string) => api.delete<any>(`/user/sessions/${sessionId}`, authConfig()),
+  getSubscription: () => api.get<any>('/user/subscription', authConfig()),
+  startTrial: () => api.post<any>('/user/subscription/trial', {}, authConfig()),
+  cancelSubscription: () => api.put<any>('/user/subscription/cancel', {}, authConfig()),
+  getOrders: () => api.get<any>('/user/orders', authConfig()),
+  getNotifications: () => api.get<any>('/user/notifications', authConfig()),
+  createNotification: (data: { title: string; body: string; type?: string }) =>
+    api.post<any>('/user/notifications', data, authConfig()),
+  markNotificationRead: (id: string) => api.patch<any>(`/user/notifications/${id}/read`, {}, authConfig()),
+  markAllNotificationsRead: () => api.patch<any>('/user/notifications/read-all', {}, authConfig()),
 };
 
 // ==================== Syllabus Data ====================
@@ -411,6 +486,13 @@ export const adminService = {
     api.post<any>('/admin/pricing', data, authConfig()),
   updatePricingPlan: (id: string, data: any) => api.put<any>(`/admin/pricing/${id}`, data, authConfig()),
   deletePricingPlan: (id: string) => api.delete<any>(`/admin/pricing/${id}`, authConfig()),
+
+  // FAQ Management
+  getFaqs: () => api.get<any>('/admin/faqs', authConfig()),
+  createFaq: (data: { category: string; question: string; answer: string; order?: number; isActive?: boolean }) =>
+    api.post<any>('/admin/faqs', data, authConfig()),
+  updateFaq: (id: string, data: any) => api.put<any>(`/admin/faqs/${id}`, data, authConfig()),
+  deleteFaq: (id: string) => api.delete<any>(`/admin/faqs/${id}`, authConfig()),
 
   // CMS
   getCmsPages: () => api.get<any>('/admin/cms/pages', authConfig()),

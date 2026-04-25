@@ -8,27 +8,73 @@ import { runRssFetch } from "../services/rssFetcher";
  * GET /api/editorials/today
  * Today's editorial list
  */
+// UPSC-relevant subject keywords — articles that match these rank higher.
+const UPSC_RELEVANCE_KEYWORDS = [
+  "polity", "constitution", "parliament", "supreme court", "governance",
+  "economy", "economic", "rbi", "fiscal", "monetary", "budget", "inflation", "gdp",
+  "geography", "climate", "monsoon",
+  "environment", "biodiversity", "pollution", "wildlife",
+  "history", "heritage",
+  "science", "technology", "space", "isro", "defence", "ai ", " ai.",
+  "international", "bilateral", "un ", "g20", "brics", "diplomacy",
+  "agriculture", "farmer", "msp",
+  "ethics", "corruption",
+  "society", "caste", "women", "minority", "welfare",
+  "disaster", "cyclone", "earthquake",
+  "scheme", "yojana", "policy",
+];
+
+// Penalize non-UPSC noise (sports, entertainment etc.)
+const UPSC_NOISE_KEYWORDS = [
+  "cricket", "football", "ipl", "bollywood", "box office",
+  "celebrity", "entertainment", "gossip", "lifestyle",
+];
+
+function upscRelevanceScore(text: string): number {
+  const lower = text.toLowerCase();
+  let score = 0;
+  for (const kw of UPSC_RELEVANCE_KEYWORDS) if (lower.includes(kw)) score += 2;
+  for (const kw of UPSC_NOISE_KEYWORDS) if (lower.includes(kw)) score -= 3;
+  return score;
+}
+
 export const getTodayEditorials = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { source, limit } = req.query;
-    console.log(`[Editorial] Fetching today's editorials, source: ${source || "all"}, limit: ${limit || 30}`);
+    const { source, limit, date } = req.query;
+    console.log(`[Editorial] Fetching editorials, source: ${source || "all"}, limit: ${limit || 30}, date: ${date || "last 48h"}`);
 
-    // Show articles from the last 48 hours — wider window ensures content is
-    // always visible even when the server was spun down and cron jobs didn't run.
-    const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    // Default window is last 48 hours. A date=YYYY-MM-DD query narrows to that UTC day.
+    let since: Date;
+    let until: Date | undefined;
+    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      since = new Date(`${date}T00:00:00.000Z`);
+      until = new Date(`${date}T23:59:59.999Z`);
+    } else {
+      since = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    }
 
     const where: any = {
-      publishedAt: { gte: since },
+      publishedAt: until ? { gte: since, lte: until } : { gte: since },
     };
     if (source && source !== "all") {
       where.source = source as string;
     }
 
-    const editorials = await prisma.editorial.findMany({
+    const rawEditorials = await prisma.editorial.findMany({
       where,
       orderBy: { publishedAt: "desc" },
-      take: limit ? parseInt(limit as string) : 30,
+      take: limit ? parseInt(limit as string) : 60,
     });
+
+    // Rank by UPSC relevance, keep recency as tiebreaker
+    const editorials = rawEditorials
+      .map((e) => ({
+        e,
+        score: upscRelevanceScore(`${e.title} ${e.summary || ""} ${e.category || ""} ${(e.tags || []).join(" ")}`),
+      }))
+      .sort((a, b) => b.score - a.score || b.e.publishedAt.getTime() - a.e.publishedAt.getTime())
+      .map((x) => x.e)
+      .slice(0, limit ? parseInt(limit as string) : 30);
 
     // If user is authenticated, include their progress
     let progressMap: Record<string, { isRead: boolean; isSaved: boolean }> = {};

@@ -72,6 +72,7 @@ const navigationSections: NavSection[] = [
     items: [
       { id: 'testimonials', label: 'Testimonials', path: '/admin/testimonials', icon: '⭐' },
       { id: 'pricing', label: 'Pricing Plans', path: '/admin/pricing', icon: '💳' },
+      { id: 'faqs', label: 'FAQ Manager', path: '/admin/faqs', icon: '❓' },
     ],
   },
   {
@@ -82,7 +83,12 @@ const navigationSections: NavSection[] = [
   },
 ];
 
-const AdminSidebar = () => {
+interface AdminSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+const AdminSidebar = ({ isOpen = false, onClose }: AdminSidebarProps) => {
   const pathname = usePathname();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
@@ -166,11 +172,8 @@ const AdminSidebar = () => {
     );
   };
 
-  return (
-    <aside
-      className="w-[clamp(240px,14vw,280px)] h-screen bg-white overflow-y-auto sticky top-0 left-0 flex flex-col"
-      style={{ boxShadow: '3px 0 12px rgba(0,0,0,0.06)', zIndex: 1 }}
-    >
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
       {/* Admin Badge */}
       <div className="px-[clamp(1rem,1.2vw,1.5rem)] pt-[clamp(1.5rem,2vw,2rem)] pb-[clamp(0.75rem,1vw,1rem)]">
         <div
@@ -183,7 +186,7 @@ const AdminSidebar = () => {
         </div>
       </div>
 
-      <nav className="py-[clamp(0.5rem,1vw,1rem)] px-[clamp(0.75rem,1vw,1rem)] flex-1">
+      <nav className="py-[clamp(0.5rem,1vw,1rem)] px-[clamp(0.75rem,1vw,1rem)] flex-1 overflow-y-auto">
         {navigationSections.map((section, idx) => (
           <div key={idx} className="mb-[clamp(1.25rem,1.5vw,1.75rem)]">
             <h3
@@ -203,6 +206,7 @@ const AdminSidebar = () => {
       <div className="px-[clamp(0.75rem,1vw,1rem)] pb-[clamp(1rem,1.5vw,2rem)]">
         <Link
           href="/dashboard"
+          onClick={onClose}
           className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-[#6B7280] hover:bg-gray-50 hover:text-[#374151] transition-colors"
           style={{ fontSize: 'clamp(12px, 0.8vw, 14px)' }}
         >
@@ -210,7 +214,53 @@ const AdminSidebar = () => {
           <span className="font-inter font-medium">Back to Dashboard</span>
         </Link>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside
+        className="hidden lg:flex flex-col w-[clamp(240px,14vw,280px)] h-full bg-white overflow-y-auto flex-shrink-0"
+        style={{ boxShadow: '3px 0 12px rgba(0,0,0,0.06)', zIndex: 1 }}
+      >
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile drawer */}
+      <div className="lg:hidden">
+        {/* Backdrop */}
+        <div
+          className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 ${
+            isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+          onClick={onClose}
+          aria-hidden="true"
+        />
+        {/* Drawer */}
+        <aside
+          className={`fixed left-0 top-0 h-full w-[280px] bg-white z-50 shadow-2xl transform transition-transform duration-300 ease-in-out ${
+            isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <span className="font-inter font-semibold text-[#1D4ED8] text-sm uppercase tracking-wide">Admin Panel</span>
+            <button
+              onClick={onClose}
+              className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+              aria-label="Close menu"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M2 2L16 16M16 2L2 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+          <div className="h-[calc(100%-56px)]">
+            <SidebarContent />
+          </div>
+        </aside>
+      </div>
+    </>
   );
 };
 

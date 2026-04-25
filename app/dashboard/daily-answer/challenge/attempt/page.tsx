@@ -1,17 +1,33 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { dailyAnswerService } from '@/lib/services';
 
 export default function DailyAnswerAttemptPage() {
     const router = useRouter();
-    const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [durationSeconds, setDurationSeconds] = useState(11 * 60);
+    const [timeLeft, setTimeLeft] = useState(11 * 60);
     const [isActive, setIsActive] = useState(false);
     const [answerText, setAnswerText] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+
+    useEffect(() => {
+        dailyAnswerService.getToday()
+            .then((res) => {
+                const marks = Number(res?.data?.marks ?? 15);
+                const mins = marks >= 15 ? 11 : 7;
+                const secs = mins * 60;
+                setDurationSeconds(secs);
+                setTimeLeft(secs);
+            })
+            .catch(() => {});
+    }, []);
 
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
@@ -31,7 +47,7 @@ export default function DailyAnswerAttemptPage() {
     const toggleTimer = () => setIsActive(!isActive);
     const resetTimer = () => {
         setIsActive(false);
-        setTimeLeft(15 * 60);
+        setTimeLeft(durationSeconds);
     };
 
     const formatTime = (seconds: number) => {
@@ -40,9 +56,60 @@ export default function DailyAnswerAttemptPage() {
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 10 * 1024 * 1024) {
+                setSubmitError('File size must be less than 10MB');
+                return;
+            }
+            setSelectedFile(file);
+            setSubmitError(null);
+        }
+    };
+
+    const handleBrowseClick = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        // Reset so selecting the same file twice still fires onChange
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) {
+            if (file.size > 10 * 1024 * 1024) {
+                setSubmitError('File size must be less than 10MB');
+                return;
+            }
+            const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+            if (!validTypes.includes(file.type)) {
+                setSubmitError('Invalid file type. Please upload JPG, PNG, PDF, or DOCX');
+                return;
+            }
+            setSelectedFile(file);
+            setSubmitError(null);
+        }
+    };
+
     const handleSubmit = async () => {
-        if (!answerText.trim()) {
-            setSubmitError('Please write your answer before submitting.');
+        // Check if we have either text or file
+        if (!answerText.trim() && !selectedFile) {
+            setSubmitError('Please write your answer or upload a file before submitting.');
             return;
         }
 
@@ -50,9 +117,29 @@ export default function DailyAnswerAttemptPage() {
         setSubmitError(null);
 
         try {
-            await dailyAnswerService.submitText(answerText);
+            let res;
+            if (selectedFile) {
+                // Upload file
+                res = await dailyAnswerService.uploadFile(selectedFile);
+            } else {
+                // Submit text
+                res = await dailyAnswerService.submitText(answerText);
+            }
+            console.log('Submit response:', res);
+            const attemptId = (res as any).attemptId || (res as any).data?.attemptId || (res as any).data?.data?.attemptId;
+            console.log('AttemptId:', attemptId);
+            if (attemptId) {
+                // Store attemptId for the evaluating page to use
+                if (typeof window !== 'undefined') {
+                    sessionStorage.setItem('dailyAnswerAttemptId', attemptId);
+                    console.log('Stored attemptId in sessionStorage:', attemptId);
+                }
+            } else {
+                console.warn('No attemptId received from API');
+            }
             router.push('/dashboard/daily-answer/challenge/attempt/evaluating');
         } catch (err: any) {
+            console.error('Submit error:', err);
             setSubmitError(err.message || 'Failed to submit answer. Please try again.');
             setSubmitting(false);
         }
@@ -210,63 +297,122 @@ export default function DailyAnswerAttemptPage() {
 
                             {/* Check Dotted Box for Upload */}
                             <div
-                                className="bg-[#F9FAFB] rounded-[16px] flex flex-col items-center justify-center mb-8 relative"
+                                className={`bg-[#F9FAFB] rounded-[16px] flex flex-col items-center justify-center mb-8 relative cursor-pointer transition-colors ${isDragging ? 'bg-blue-50 border-blue-400' : ''}`}
                                 style={{
                                     width: '639.81px',
                                     height: '300px',
-                                    border: '1px dashed #17223E',
+                                    border: isDragging ? '2px dashed #3B82F6' : '1px dashed #17223E',
                                 }}
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                onClick={!selectedFile ? handleBrowseClick : undefined}
                             >
-                                {/* Upload Icon */}
-                                <div className="mb-4">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src="/upload-icon.png" alt="Upload" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
-                                </div>
+                                {/* Hidden File Input */}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                                    onChange={handleFileSelect}
+                                    className="hidden"
+                                />
 
-                                {/* Drop Text */}
-                                <h3 style={{
-                                    fontFamily: 'Arimo',
-                                    fontWeight: 700,
-                                    fontSize: '20px',
-                                    textAlign: 'center',
-                                    color: '#101828',
-                                    marginBottom: '8px'
-                                }}>
-                                    Drop your answer script here
-                                </h3>
+                                {selectedFile ? (
+                                    // Show selected file
+                                    <>
+                                        <div className="mb-4">
+                                            <span className="text-4xl">📄</span>
+                                        </div>
+                                        <h3 style={{
+                                            fontFamily: 'Arimo',
+                                            fontWeight: 700,
+                                            fontSize: '18px',
+                                            textAlign: 'center',
+                                            color: '#101828',
+                                            marginBottom: '8px',
+                                            maxWidth: '500px',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {selectedFile.name}
+                                        </h3>
+                                        <p style={{
+                                            fontFamily: 'Arimo',
+                                            fontWeight: 400,
+                                            fontSize: '14px',
+                                            textAlign: 'center',
+                                            color: '#4A5565',
+                                            marginBottom: '16px'
+                                        }}>
+                                            {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                        </p>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedFile(null);
+                                            }}
+                                            className="text-red-600 hover:text-red-700 font-arimo text-sm underline"
+                                        >
+                                            Remove file
+                                        </button>
+                                    </>
+                                ) : (
+                                    // Show upload prompt
+                                    <>
+                                        {/* Upload Icon */}
+                                        <div className="mb-4">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src="/upload-icon.png" alt="Upload" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+                                        </div>
 
-                                <p style={{
-                                    fontFamily: 'Arimo',
-                                    fontWeight: 400,
-                                    fontSize: '14px',
-                                    textAlign: 'center',
-                                    color: '#4A5565',
-                                    marginBottom: '24px'
-                                }}>
-                                    Upload handwritten answers for AI evaluation
-                                </p>
+                                        {/* Drop Text */}
+                                        <h3 style={{
+                                            fontFamily: 'Arimo',
+                                            fontWeight: 700,
+                                            fontSize: '20px',
+                                            textAlign: 'center',
+                                            color: '#101828',
+                                            marginBottom: '8px'
+                                        }}>
+                                            Drop your answer script here
+                                        </h3>
 
-                                {/* File Format Chips */}
-                                <div className="flex gap-3 mb-8">
-                                    {['JPG', 'PNG', 'PDF', 'DOCX'].map((fmt) => (
-                                        <span key={fmt} className="px-3 py-1 bg-[#E5E7EB] rounded text-[#374151] font-arimo" style={{ fontSize: '14px' }}>
-                                            {fmt}
-                                        </span>
-                                    ))}
-                                    <span className="px-3 py-1 bg-[#E5E7EB] rounded text-[#374151] font-arimo" style={{ fontSize: '14px' }}>Max 10MB</span>
-                                </div>
+                                        <p style={{
+                                            fontFamily: 'Arimo',
+                                            fontWeight: 400,
+                                            fontSize: '14px',
+                                            textAlign: 'center',
+                                            color: '#4A5565',
+                                            marginBottom: '24px'
+                                        }}>
+                                            Upload handwritten answers for AI evaluation
+                                        </p>
 
-                                {/* Browse Files Button */}
-                                <button
-                                    className="bg-white border border-[#D1D5DB] text-[#111827] font-bold rounded-[10px] hover:bg-gray-50 transition-colors"
-                                    style={{
-                                        width: '156px',
-                                        height: '48px',
-                                        fontSize: '16px'
-                                    }}
-                                >
-                                    Browse Files
-                                </button>
+                                        {/* File Format Chips */}
+                                        <div className="flex gap-3 mb-8">
+                                            {['JPG', 'PNG', 'PDF', 'DOCX'].map((fmt) => (
+                                                <span key={fmt} className="px-3 py-1 bg-[#E5E7EB] rounded text-[#374151] font-arimo" style={{ fontSize: '14px' }}>
+                                                    {fmt}
+                                                </span>
+                                            ))}
+                                            <span className="px-3 py-1 bg-[#E5E7EB] rounded text-[#374151] font-arimo" style={{ fontSize: '14px' }}>Max 10MB</span>
+                                        </div>
+
+                                        {/* Browse Files Button */}
+                                        <button
+                                            onClick={handleBrowseClick}
+                                            className="bg-white border border-[#D1D5DB] text-[#111827] font-bold rounded-[10px] hover:bg-gray-50 transition-colors"
+                                            style={{
+                                                width: '156px',
+                                                height: '48px',
+                                                fontSize: '16px'
+                                            }}
+                                        >
+                                            Browse Files
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
                             {/* Error Message */}

@@ -251,7 +251,7 @@ export default function TestResultsPage() {
               </button>
               <button
                 className="rh-btn"
-                onClick={() => alert('📄 PDF Report downloading...')}
+                onClick={() => { if (typeof window !== 'undefined') window.print(); }}
                 style={{
                   padding: '12px 24px',
                   background: 'rgba(255,255,255,0.15)',
@@ -728,3 +728,4 @@ export default function TestResultsPage() {
     </div>
   );
 }
+

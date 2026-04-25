@@ -32,11 +32,46 @@ function Toggle({ enabled, onChange }: { enabled: boolean; onChange: () => void 
   );
 }
 
+interface SessionEntry {
+  id: string;
+  label: string;
+  lastSeen: string | null;
+  isCurrent: boolean;
+}
+
+function describeUserAgent(ua: string): string {
+  if (!ua) return 'Unknown device';
+  const browser = /Edg\//.test(ua)
+    ? 'Edge'
+    : /Chrome\//.test(ua) && !/Chromium\//.test(ua)
+      ? 'Chrome'
+      : /Safari\//.test(ua) && !/Chrome\//.test(ua)
+        ? 'Safari'
+        : /Firefox\//.test(ua)
+          ? 'Firefox'
+          : 'Browser';
+  const os = /Windows/.test(ua)
+    ? 'Windows'
+    : /Mac OS X/.test(ua)
+      ? 'macOS'
+      : /Android/.test(ua)
+        ? 'Android'
+        : /iPhone|iPad|iPod/.test(ua)
+          ? 'iOS'
+          : /Linux/.test(ua)
+            ? 'Linux'
+            : 'Device';
+  return `${browser} · ${os}`;
+}
+
 export default function SettingsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [sessions, setSessions] = useState<SessionEntry[]>([]);
+  const [revoking, setRevoking] = useState<string | null>(null);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   // Profile form state
   const [firstName, setFirstName] = useState(user?.firstName || '');
@@ -68,7 +103,60 @@ export default function SettingsPage() {
 
   // Save state
   const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState('');
+  const [toast, setToast] = useState<{ kind: 'success' | 'error'; msg: string } | null>(null);
+
+  const showToast = (msg: string, kind: 'success' | 'error' = 'success') => {
+    setToast({ kind, msg });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  // Load active sessions. Falls back to a "this device" entry if the
+  // backend endpoint isn't available.
+  useEffect(() => {
+    let cancelled = false;
+    const loadSessions = async () => {
+      const currentEntry: SessionEntry = {
+        id: 'current',
+        label: typeof navigator !== 'undefined' ? describeUserAgent(navigator.userAgent) : 'This device',
+        lastSeen: null,
+        isCurrent: true,
+      };
+      try {
+        const res = await userService.getSessions();
+        const list = Array.isArray(res?.data) ? res.data : [];
+        if (cancelled) return;
+        if (list.length === 0) {
+          setSessions([currentEntry]);
+          return;
+        }
+        const mapped: SessionEntry[] = list.map((s: any) => ({
+          id: s.id,
+          label: s.userAgent ? describeUserAgent(s.userAgent) : 'Unknown device',
+          lastSeen: s.lastSeenAt || s.updatedAt || null,
+          isCurrent: !!s.isCurrent,
+        }));
+        if (!mapped.some((s) => s.isCurrent)) mapped.unshift(currentEntry);
+        setSessions(mapped);
+      } catch {
+        if (!cancelled) setSessions([currentEntry]);
+      }
+    };
+    loadSessions();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleRevoke = async (sessionId: string) => {
+    setRevoking(sessionId);
+    setSessionError(null);
+    try {
+      await userService.revokeSession(sessionId);
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+    } catch (err: any) {
+      setSessionError(err?.message || 'Could not revoke session.');
+    } finally {
+      setRevoking(null);
+    }
+  };
 
   // Load profile & settings from backend
   useEffect(() => {
@@ -98,17 +186,14 @@ export default function SettingsPage() {
     }).catch(() => {});
   }, []);
 
-  const showSaved = (msg = 'Saved!') => {
-    setSaveMsg(msg);
-    setTimeout(() => setSaveMsg(''), 2500);
-  };
-
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
       await userService.updateProfile({ firstName, lastName, bio });
-      showSaved();
-    } catch { setSaveMsg('Error saving'); }
+      showToast('Profile updated successfully!');
+    } catch (err: any) {
+      showToast(err?.message || 'Could not save profile. Please try again.', 'error');
+    }
     setSaving(false);
   };
 
@@ -118,8 +203,10 @@ export default function SettingsPage() {
       await userService.updateSettings({
         notifications: { mcq: notifMcq, answer: notifAnswer, digest: notifDigest, streak: notifStreak, promo: notifPromo },
       });
-      showSaved();
-    } catch { setSaveMsg('Error saving'); }
+      showToast('Notification preferences saved!');
+    } catch (err: any) {
+      showToast(err?.message || 'Error saving notifications.', 'error');
+    }
     setSaving(false);
   };
 
@@ -129,8 +216,10 @@ export default function SettingsPage() {
       await userService.updateSettings({
         preferences: { dailyTarget, answerReminder, language },
       });
-      showSaved();
-    } catch { setSaveMsg('Error saving'); }
+      showToast('Preferences saved!');
+    } catch (err: any) {
+      showToast(err?.message || 'Error saving preferences.', 'error');
+    }
     setSaving(false);
   };
 
@@ -140,8 +229,10 @@ export default function SettingsPage() {
       await userService.updateSettings({
         privacy: { leaderboard: privLeaderboard, studyRoom: privStudyRoom, analytics: privAnalytics },
       });
-      showSaved();
-    } catch { setSaveMsg('Error saving'); }
+      showToast('Privacy settings saved!');
+    } catch (err: any) {
+      showToast(err?.message || 'Error saving privacy settings.', 'error');
+    }
     setSaving(false);
   };
 
@@ -168,7 +259,6 @@ export default function SettingsPage() {
       </div>
       <div className="flex items-center gap-3">
         <button className={btnPrimary} onClick={handleSaveProfile} disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</button>
-        {saveMsg && <span className="text-sm text-green-600 font-medium">{saveMsg}</span>}
       </div>
     </div>
   );
@@ -197,22 +287,39 @@ export default function SettingsPage() {
 
       <div className="border-t border-[#e2e8f0] pt-8 mt-4 flex flex-col gap-6">
         <h2 className="font-semibold text-[20px] leading-[28px] text-[#0f172b]">Active Sessions</h2>
+        {sessionError && (
+          <div className="text-[13px] text-[#DC2626]">{sessionError}</div>
+        )}
         <div className="flex flex-col gap-3">
-          <div className="bg-[#f8fafc] border-[0.8px] border-[#e2e8f0] rounded-[10px] px-4 py-4 flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <p className="font-medium text-[16px] leading-[24px] text-[#0f172b]">Chrome - macOS - Delhi, IN</p>
-              <p className="font-medium text-[14px] leading-[20px] text-[#00a63e]">● Current session</p>
+          {sessions.length === 0 && (
+            <p className="text-[14px] text-[#62748e]">No active sessions found.</p>
+          )}
+          {sessions.map((s) => (
+            <div
+              key={s.id}
+              className={`${s.isCurrent ? 'bg-[#f8fafc]' : 'bg-white'} border-[0.8px] border-[#e2e8f0] rounded-[10px] px-4 py-4 flex items-center justify-between`}
+            >
+              <div className="flex flex-col gap-1">
+                <p className="font-medium text-[16px] leading-[24px] text-[#0f172b]">{s.label}</p>
+                {s.isCurrent ? (
+                  <p className="font-medium text-[14px] leading-[20px] text-[#00a63e]">● Current session</p>
+                ) : (
+                  <p className="font-normal text-[14px] leading-[20px] text-[#62748e]">
+                    {s.lastSeen ? `Last seen ${new Date(s.lastSeen).toLocaleString()}` : 'Active'}
+                  </p>
+                )}
+              </div>
+              {!s.isCurrent && (
+                <button
+                  onClick={() => handleRevoke(s.id)}
+                  disabled={revoking === s.id}
+                  className="h-[37.6px] px-4 rounded-[10px] border-[0.8px] border-[#ffc9c9] font-medium text-[14px] leading-[20px] text-[#e7000b] hover:bg-[#fef2f2] transition-colors disabled:opacity-50"
+                >
+                  {revoking === s.id ? 'Revoking...' : 'Revoke'}
+                </button>
+              )}
             </div>
-          </div>
-          <div className="bg-white border-[0.8px] border-[#e2e8f0] rounded-[10px] px-4 py-4 flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <p className="font-medium text-[16px] leading-[24px] text-[#0f172b]">Safari - iPhone 15</p>
-              <p className="font-normal text-[14px] leading-[20px] text-[#62748e]">Last seen 2d ago</p>
-            </div>
-            <button className="h-[37.6px] px-4 rounded-[10px] border-[0.8px] border-[#ffc9c9] font-medium text-[14px] leading-[20px] text-[#e7000b] hover:bg-[#fef2f2] transition-colors">
-              Revoke
-            </button>
-          </div>
+          ))}
         </div>
       </div>
     </div>
@@ -240,7 +347,6 @@ export default function SettingsPage() {
 
       <div className="flex items-center gap-3">
         <button className={btnPrimary} onClick={handleSaveNotifications} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-        {saveMsg && <span className="text-sm text-green-600 font-medium">{saveMsg}</span>}
       </div>
     </div>
   );
@@ -264,7 +370,6 @@ export default function SettingsPage() {
 
       <div className="flex items-center gap-3">
         <button className={btnPrimary} onClick={handleSavePreferences} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-        {saveMsg && <span className="text-sm text-green-600 font-medium">{saveMsg}</span>}
       </div>
     </div>
   );
@@ -289,7 +394,6 @@ export default function SettingsPage() {
 
       <div className="flex items-center gap-3">
         <button className={btnPrimary} onClick={handleSavePrivacy} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-        {saveMsg && <span className="text-sm text-green-600 font-medium">{saveMsg}</span>}
       </div>
 
       <div>
@@ -303,6 +407,26 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] px-6 py-8" style={{ fontFamily: "'Inter', sans-serif" }}>
+      {/* Toast */}
+      {toast && (
+        <div
+          className="fixed top-6 right-6 z-50 rounded-[12px] px-5 py-4 flex items-start gap-3 shadow-lg"
+          style={{
+            background: toast.kind === 'success' ? '#0F172B' : '#7F1D1D',
+            color: '#FFFFFF',
+            border: `1px solid ${toast.kind === 'success' ? '#22C55E' : '#FCA5A5'}`,
+            minWidth: 280,
+          }}
+        >
+          <span style={{ fontSize: 18 }}>{toast.kind === 'success' ? '✅' : '⚠️'}</span>
+          <div className="flex-1">
+            <div className="font-semibold text-[14px]">{toast.kind === 'success' ? 'Success' : 'Could not save'}</div>
+            <div className="text-[13px] opacity-90">{toast.msg}</div>
+          </div>
+          <button onClick={() => setToast(null)} className="opacity-70 hover:opacity-100">×</button>
+        </div>
+      )}
+
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 mb-4">
         <Link href="/dashboard" className="font-normal text-[14px] leading-[20px] text-[#62748e] hover:text-[#314158]">

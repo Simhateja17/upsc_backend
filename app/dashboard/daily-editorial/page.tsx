@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { editorialService } from '@/lib/services';
+import { UPSC_SUBJECTS } from '@/lib/upscSubjects';
 
 interface EditorialCard {
   id: string;
@@ -30,13 +31,13 @@ const categoryColors: Record<string, { color: string; bg: string }> = {
   'International Relations': { color: '#EA580C', bg: '#FFF7ED' },
 };
 
-const subjects = [
-  { emoji: '\uD83C\uDF3E', label: 'Agriculture', bg: '#DBEAFE', border: '#BFDBFE' },
-  { emoji: '\uD83D\uDCB0', label: 'Economy', bg: '#FFF7ED', border: '#FED7AA' },
-  { emoji: '\uD83C\uDF0D', label: 'IR', bg: '#DBEAFE', border: '#BFDBFE' },
-  { emoji: '\uD83C\uDF0E', label: 'Environment', bg: '#F0FDF4', border: '#BBF7D0', icon: '/environment.png' },
-  { emoji: '\uD83D\uDCBB', label: 'Tech', bg: '#DBEAFE', border: '#BFDBFE' },
-];
+const subjects = UPSC_SUBJECTS.map((s) => ({
+  id: s.id,
+  emoji: s.emoji,
+  label: s.label,
+  bg: s.bg,
+  border: s.border,
+})) as Array<{ id: string; emoji: string; label: string; bg: string; border: string; icon?: string }>;
 
 const defaultLearningStats = [
   { icon: '/dark.png', label: 'Editorials read', value: '0', color: '#047857' },
@@ -72,6 +73,15 @@ export default function DailyEditorialPage() {
   const [loading, setLoading] = useState(true);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  // Streak data pulled from /editorials/stats
+  const [streakData, setStreakData] = useState<{ streak: number; weekChecks: boolean[]; readToday: number; targetToday: number }>({
+    streak: 0,
+    weekChecks: [false, false, false, false, false, false, false],
+    readToday: 0,
+    targetToday: 7,
+  });
   const PAGE_SIZE = 10;
   const [summarizing, setSummarizing] = useState<string | null>(null);
   const [summaryModal, setSummaryModal] = useState<{
@@ -86,25 +96,30 @@ export default function DailyEditorialPage() {
     const source = activeNewspaper === 'hindu' ? 'The Hindu' : 'Indian Express';
     setLoading(true);
     setCurrentPage(1);
-    editorialService.getToday(source)
+    editorialService.getToday(source, selectedDate)
       .then(res => {
         const articles = res.data && Array.isArray(res.data) ? res.data : [];
         if (articles.length > 0) {
           setEditorials(articles);
           setLastFetched(new Date());
         } else {
-          // DB empty — fall back to live News API
-          return editorialService.getLiveNews(source).then(liveRes => {
-            if (liveRes.data && Array.isArray(liveRes.data)) {
-              setEditorials(liveRes.data);
-              setLastFetched(new Date());
-            }
-          });
+          // DB empty — fall back to live News API (only for today)
+          const isToday = selectedDate === new Date().toISOString().slice(0, 10);
+          if (isToday) {
+            return editorialService.getLiveNews(source).then(liveRes => {
+              if (liveRes.data && Array.isArray(liveRes.data)) {
+                setEditorials(liveRes.data);
+                setLastFetched(new Date());
+              }
+            });
+          } else {
+            setEditorials([]);
+          }
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [activeNewspaper]);
+  }, [activeNewspaper, selectedDate]);
 
   useEffect(() => {
     editorialService.getStats()
@@ -117,6 +132,15 @@ export default function DailyEditorialPage() {
             { icon: '/light.png', label: "This week's target", value: `${d.weeklyTarget ? Math.round((d.weeklyRead / d.weeklyTarget) * 100) : 0}%`, color: '#16A34A' },
             { icon: '/longeset.png', label: 'Current streak', value: `${d.streak || 0} days`, color: '#7C3AED' },
           ]);
+          // Derive 7-day checklist: fill from the left for each day read in current streak
+          const streakLen = d.streak || 0;
+          const weekChecks = Array.from({ length: 7 }, (_, i) => i < streakLen);
+          setStreakData({
+            streak: streakLen,
+            weekChecks,
+            readToday: d.readToday || 0,
+            targetToday: d.dailyTarget || 7,
+          });
         }
       })
       .catch(() => {});
@@ -394,9 +418,23 @@ export default function DailyEditorialPage() {
           <div className="flex flex-col" style={{ gap: 'clamp(14px, 1.5vw, 20px)' }}>
             {loading ? (
               <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900"></div></div>
-            ) : editorials.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">No articles in the last 24 hours. Check back later.</div>
-            ) : editorials.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((card) => {
+            ) : (() => {
+              const filtered = selectedSubject
+                ? editorials.filter((e) => {
+                    const cat = (e.category || '').toLowerCase();
+                    const tags = (e.tags || []).map((t) => t.toLowerCase());
+                    const needle = selectedSubject.toLowerCase();
+                    return cat.includes(needle) || tags.some((t) => t.includes(needle));
+                  })
+                : editorials;
+              if (filtered.length === 0) {
+                return (
+                  <div className="text-center py-12 text-gray-500">
+                    {selectedSubject ? 'No articles for this subject on this date.' : 'No articles in the last 24 hours. Check back later.'}
+                  </div>
+                );
+              }
+              return filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((card) => {
               const tagList = card.tags?.length > 0 ? card.tags : [card.category];
               return (
               <div
@@ -537,7 +575,8 @@ export default function DailyEditorialPage() {
                 </div>
               </div>
               );
-            })}
+            });
+            })()}
           </div>
 
           {/* Pagination controls */}
@@ -645,25 +684,37 @@ export default function DailyEditorialPage() {
 
             {/* Calendar grid */}
             <div className="grid grid-cols-7 text-center">
-              {calDays.map((day, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-center font-arimo"
-                  style={{
-                    width: '100%',
-                    aspectRatio: '1',
-                    maxHeight: '36px',
-                    fontSize: 'clamp(11px, 0.9vw, 13px)',
-                    borderRadius: day === today ? '50%' : '0',
-                    background: day === today ? '#101828' : 'transparent',
-                    color: day === today ? '#FFFFFF' : day ? '#364153' : 'transparent',
-                    fontWeight: day === today ? 700 : 400,
-                    cursor: day ? 'pointer' : 'default',
-                  }}
-                >
-                  {day ?? ''}
-                </div>
-              ))}
+              {calDays.map((day, idx) => {
+                if (!day) {
+                  return <div key={idx} />;
+                }
+                const iso = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isFuture = new Date(iso) > new Date();
+                const isSelected = iso === selectedDate;
+                const isToday = day === today;
+                return (
+                  <button
+                    key={idx}
+                    disabled={isFuture}
+                    onClick={() => !isFuture && setSelectedDate(iso)}
+                    className="flex items-center justify-center font-arimo"
+                    style={{
+                      width: '100%',
+                      aspectRatio: '1',
+                      maxHeight: '36px',
+                      fontSize: 'clamp(11px, 0.9vw, 13px)',
+                      borderRadius: '50%',
+                      background: isSelected ? '#101828' : isToday ? '#FEF3C7' : 'transparent',
+                      color: isSelected ? '#FFFFFF' : isFuture ? '#D1D5DB' : '#364153',
+                      fontWeight: isSelected || isToday ? 700 : 400,
+                      cursor: isFuture ? 'not-allowed' : 'pointer',
+                      border: 'none',
+                    }}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -686,28 +737,47 @@ export default function DailyEditorialPage() {
               </span>
             </div>
             <div className="grid grid-cols-2" style={{ gap: 'clamp(8px, 0.9vw, 12px)' }}>
-              {subjects.map((s) => (
-                <button
-                  key={s.label}
-                  className="flex items-center gap-2 font-arimo font-medium"
-                  style={{
-                    padding: 'clamp(8px, 0.9vw, 12px) clamp(10px, 1.1vw, 14px)',
-                    borderRadius: '12px',
-                    background: s.bg,
-                    border: `1px solid ${s.border}`,
-                    color: '#101828',
-                    fontSize: 'clamp(12px, 1.05vw, 14px)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  {s.icon
-                    ? <img src={s.icon} alt={s.label} style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
-                    : <span>{s.emoji}</span>
-                  }
-                  {s.label}
-                </button>
-              ))}
+              <button
+                onClick={() => setSelectedSubject(null)}
+                className="flex items-center gap-2 font-arimo font-medium col-span-2"
+                style={{
+                  padding: 'clamp(8px, 0.9vw, 12px) clamp(10px, 1.1vw, 14px)',
+                  borderRadius: '12px',
+                  background: selectedSubject === null ? '#101828' : '#F3F4F6',
+                  color: selectedSubject === null ? '#FFFFFF' : '#101828',
+                  border: '1px solid #E5E7EB',
+                  fontSize: 'clamp(12px, 1.05vw, 14px)',
+                  cursor: 'pointer',
+                }}
+              >
+                All subjects
+              </button>
+              {subjects.map((s) => {
+                const active = selectedSubject === s.id;
+                return (
+                  <button
+                    key={s.label}
+                    onClick={() => setSelectedSubject(active ? null : s.id)}
+                    className="flex items-center gap-2 font-arimo font-medium"
+                    style={{
+                      padding: 'clamp(8px, 0.9vw, 12px) clamp(10px, 1.1vw, 14px)',
+                      borderRadius: '12px',
+                      background: active ? '#17223E' : s.bg,
+                      border: `1px solid ${active ? '#17223E' : s.border}`,
+                      color: active ? '#FFFFFF' : '#101828',
+                      fontSize: 'clamp(12px, 1.05vw, 14px)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {s.icon
+                      ? <img src={s.icon} alt={s.label} style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                      : <span>{s.emoji}</span>
+                    }
+                    {s.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -809,17 +879,17 @@ export default function DailyEditorialPage() {
             <div className="flex items-center gap-2" style={{ marginBottom: 'clamp(6px, 0.6vw, 8px)' }}>
               <span style={{ fontSize: '20px' }}>&#x1F525;</span>
               <span className="font-arimo font-bold" style={{ fontSize: 'clamp(16px, 1.5vw, 20px)', color: '#FFD273' }}>
-                14-Day Streak
+                {streakData.streak}-Day Streak
               </span>
             </div>
 
             <p className="font-arimo" style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', color: '#9CA3AF', marginBottom: 'clamp(12px, 1.2vw, 16px)' }}>
-              Keep it up! Read 3 today
+              Keep it up! Read {streakData.readToday} today
             </p>
 
             {/* Check boxes row */}
             <div className="flex items-center" style={{ gap: 'clamp(6px, 0.6vw, 8px)', marginBottom: 'clamp(10px, 1vw, 14px)' }}>
-              {[true, true, true, false, false, false, false].map((checked, i) => (
+              {streakData.weekChecks.map((checked, i) => (
                 <div
                   key={i}
                   className="flex items-center justify-center"
@@ -839,7 +909,7 @@ export default function DailyEditorialPage() {
             </div>
 
             <p className="font-arimo" style={{ fontSize: 'clamp(11px, 0.9vw, 13px)', color: '#6B7280' }}>
-              3 of 7 articles read today
+              {streakData.readToday} of {streakData.targetToday} articles read today
             </p>
           </div>
 
@@ -1105,35 +1175,50 @@ export default function DailyEditorialPage() {
                   {[
                     {
                       emoji: summaryModal.editorial?.isSaved ? '✅' : '📌',
-                      label: summaryModal.editorial?.isSaved ? 'Saved' : 'Save Note',
+                      label: summaryModal.editorial?.isSaved ? 'Saved · View in Profile' : 'Save Note',
                       action: async () => {
                         if (!summaryModal.editorial) return;
+                        if (summaryModal.editorial.isSaved) {
+                          // Already saved — jump to bookmarks
+                          router.push('/dashboard/profile?tab=bookmarks');
+                          return;
+                        }
                         await handleSave(summaryModal.editorial.id);
                         setSummaryModal(prev => prev.editorial ? { ...prev, editorial: { ...prev.editorial!, isSaved: !prev.editorial!.isSaved } } : prev);
                       },
                     },
                     {
                       emoji: '✏️',
-                      label: 'Practice MCQ',
-                      action: () => { setSummaryModal(prev => ({ ...prev, open: false })); router.push('/dashboard/daily-mcq'); },
+                      label: 'Practice MCQ (Pro)',
+                      premium: true,
+                      action: () => {
+                        if (!summaryModal.editorial) return;
+                        setSummaryModal(prev => ({ ...prev, open: false }));
+                        router.push(`/dashboard/mock-tests?from=editorial&editorialId=${summaryModal.editorial.id}&mode=prelims`);
+                      },
                     },
                     {
                       emoji: '📝',
-                      label: 'Mains Writing',
-                      action: () => { setSummaryModal(prev => ({ ...prev, open: false })); router.push('/dashboard/daily-answer'); },
+                      label: 'Practice Potential Exam Qs (Pro)',
+                      premium: true,
+                      action: () => {
+                        if (!summaryModal.editorial) return;
+                        setSummaryModal(prev => ({ ...prev, open: false }));
+                        router.push(`/dashboard/mock-tests?from=editorial&editorialId=${summaryModal.editorial.id}&mode=mains&intent=potential-questions`);
+                      },
                     },
                     {
                       emoji: '🔗',
                       label: 'Source',
                       action: () => summaryModal.editorial?.sourceUrl && window.open(summaryModal.editorial.sourceUrl, '_blank'),
                     },
-                  ].map((btn) => (
+                  ].map((btn: any) => (
                     <button
                       key={btn.label}
                       onClick={btn.action}
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: btn.premium ? 'linear-gradient(90deg, rgba(253,199,0,0.12), rgba(255,255,255,0.06))' : 'rgba(255,255,255,0.06)',
+                        border: btn.premium ? '1px solid rgba(253,199,0,0.4)' : '1px solid rgba(255,255,255,0.1)',
                         borderRadius: '12px',
                         padding: '12px 8px',
                         color: '#CBD5E1',
@@ -1144,8 +1229,12 @@ export default function DailyEditorialPage() {
                         flexDirection: 'column',
                         alignItems: 'center',
                         gap: '6px',
+                        position: 'relative',
                       }}
                     >
+                      {btn.premium && (
+                        <span style={{ position: 'absolute', top: 6, right: 6, fontSize: '10px', color: '#FDC700' }}>★</span>
+                      )}
                       <span style={{ fontSize: '22px' }}>{btn.emoji}</span>
                       {btn.label}
                     </button>

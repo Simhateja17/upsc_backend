@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { dailyAnswerService } from '@/lib/services';
+import { liveStudentCount } from '@/lib/liveCount';
 
 interface QuestionData {
   id: string;
@@ -50,6 +51,11 @@ export default function DailyMainsChallengeContextPage() {
       </div>
     );
   }
+
+  const marksValue = data.marks ?? 15;
+  const markingPattern = marksValue >= 15
+    ? { words: 250, minutes: 11 }
+    : { words: 150, minutes: 7 };
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] font-arimo">
@@ -164,15 +170,15 @@ export default function DailyMainsChallengeContextPage() {
                 <div className="flex items-center gap-8 text-[#4A5565] font-arimo" style={{ fontSize: '14px' }}>
                     <div className="flex items-center gap-2">
                         <img src="/Icon%20(8).png" alt="Time" style={{ width: '20px', height: '20px' }} />
-                        <span>Time: {data.timeLimit} minutes</span>
+                        <span>Time: {markingPattern.minutes} minutes</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <img src="/Icon%20(7).png" alt="Word limit" style={{ width: '20px', height: '20px' }} />
-                        <span>Word limit: {data.wordLimit} words</span>
+                        <span>Word limit: {markingPattern.words} words</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <img src="/Icon%20(6).png" alt="Marks" style={{ width: '20px', height: '20px' }} />
-                        <span>Marks: {data.marks}</span>
+                        <span>Marks: {marksValue}</span>
                     </div>
                 </div>
 
@@ -221,7 +227,7 @@ export default function DailyMainsChallengeContextPage() {
                              <div className="w-8 h-8 rounded-full bg-green-400 border-2 border-white"></div>
                              <div className="w-8 h-8 rounded-full bg-purple-400 border-2 border-white"></div>
                         </div>
-                        <span className="text-[#4A5565]" style={{ fontSize: '14px' }}>{data.attemptCount}+ Students already attempted</span>
+                        <span className="text-[#4A5565]" style={{ fontSize: '14px' }}>{liveStudentCount('daily-answer')}+ Students already attempted</span>
                     </div>
                 </div>
             </div>

@@ -114,8 +114,96 @@ function formatTime(dateStr?: string | Date): string {
   return h + ':' + m.toString().padStart(2, '0') + ' ' + (am ? 'am' : 'pm');
 }
 
+/* ── Post-process AI text: em-dash, alert/citation/priority pills ── */
+function preprocessAiContent(raw: string): string {
+  if (!raw) return raw;
+  let s = raw;
+  // 1) Replace en dashes / hyphen-separators with em dashes ("Big dashes")
+  //    keep things like "20-30" alone.
+  s = s.replace(/(\s)–(\s)/g, '$1—$2');
+  s = s.replace(/(\w)\s-\s(\w)/g, '$1 — $2');
+  return s;
+}
+
+/* Auto-detect and colorize exam citations, priority alerts, and important notes */
+function colorizeText(text: string): React.ReactNode[] {
+  // 1) Explicit tokens {ALERT: ...}, {PRIO: ...}, {CITE: ...}
+  const tokenRe = /(\{(?:ALERT|PRIO|CITE):\s*[^}]+\})/g;
+  // 2) Exam citations: "UPSC Prelims 2017", "GS Paper I", "Mains 2023", etc.
+  const citeRe = /(\b(?:UPSC\s+(?:Prelims|Mains)\s*\d{4}|GS\s*Paper\s*[I-V]+|CSE\s*\d{4}|CAPF\s*\d{4}|IES\s*\d{4})\b)/gi;
+  // 3) Priority keywords
+  const prioRe = /(\b(?:Very\s+Important\s+for\s+Exam|High\s+Priority|Important|Priority\s+Alert|Must\s+Know|Exam\s+Favorite)\b)/gi;
+  // 4) Note keywords
+  const noteRe = /(\b(?:Note:|Remember:|Caution:|Tip:|Key\s+Point:)\b)/gi;
+
+  // Split by all patterns combined
+  const combinedRe = new RegExp(`(${tokenRe.source.slice(1, -1)}|${citeRe.source.slice(1, -1)}|${prioRe.source.slice(1, -1)}|${noteRe.source.slice(1, -1)})`, 'gi');
+
+  const parts = text.split(combinedRe);
+
+  return parts.map((p, i) => {
+    if (!p) return null;
+    // Explicit tokens
+    const tokenM = p.match(/^\{(ALERT|PRIO|CITE):\s*(.+)\}$/);
+    if (tokenM) {
+      const [, kind, body] = tokenM;
+      if (kind === 'ALERT') {
+        return (
+          <span key={i} style={{ background: '#FEF2F2', color: '#B91C1C', borderLeft: '3px solid #DC2626', padding: '2px 6px', margin: '0 2px', borderRadius: 4 }}>
+            ⚠ {body}
+          </span>
+        );
+      }
+      if (kind === 'PRIO') {
+        return (
+          <span key={i} style={{ background: '#FEF9C3', color: '#854D0E', borderLeft: '3px solid #FACC15', padding: '2px 6px', margin: '0 2px', borderRadius: 4 }}>
+            ⭐ {body}
+          </span>
+        );
+      }
+      if (kind === 'CITE') {
+        return (
+          <span key={i} style={{ background: '#EFF6FF', color: '#1D4ED8', padding: '2px 6px', margin: '0 2px', borderRadius: 999, fontSize: 12 }}>
+            📚 {body}
+          </span>
+        );
+      }
+    }
+
+    // Exam citations
+    if (citeRe.test(p)) {
+      return (
+        <span key={i} style={{ background: '#EFF6FF', color: '#1D4ED8', padding: '2px 8px', margin: '0 2px', borderRadius: 999, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+          {p}
+        </span>
+      );
+    }
+
+    // Priority keywords
+    if (prioRe.test(p)) {
+      return (
+        <span key={i} style={{ background: '#FFF7ED', color: '#C2410C', borderLeft: '3px solid #F97316', padding: '2px 6px', margin: '0 2px', borderRadius: 4, fontWeight: 600 }}>
+          {p}
+        </span>
+      );
+    }
+
+    // Note keywords
+    if (noteRe.test(p)) {
+      return (
+        <span key={i} style={{ background: '#FEFCE8', color: '#A16207', padding: '2px 6px', margin: '0 2px', borderRadius: 4, fontWeight: 600 }}>
+          {p}
+        </span>
+      );
+    }
+
+    return p;
+  });
+}
+
 /* ── Markdown renderer using react-markdown ── */
 function MarkdownRenderer({ content }: { content: string }) {
+  const processed = preprocessAiContent(content);
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -133,7 +221,9 @@ function MarkdownRenderer({ content }: { content: string }) {
           <h4 className="font-inter font-bold text-[14px] leading-5 mt-3 mb-1" style={{ color: '#101828' }}>{children}</h4>
         ),
         p: ({ children }) => (
-          <p className="font-inter text-[14px] leading-6 mb-2" style={{ color: '#364153' }}>{children}</p>
+          <p className="font-inter text-[14px] leading-6 mb-2" style={{ color: '#364153' }}>
+            {React.Children.map(children, (c) => (typeof c === 'string' ? colorizeText(c) : c))}
+          </p>
         ),
         ul: ({ children }) => (
           <ul className="list-disc pl-5 space-y-1 mb-3">{children}</ul>
@@ -142,7 +232,9 @@ function MarkdownRenderer({ content }: { content: string }) {
           <ol className="list-decimal pl-5 space-y-1 mb-3">{children}</ol>
         ),
         li: ({ children }) => (
-          <li className="font-inter text-[14px] leading-6" style={{ color: '#364153' }}>{children}</li>
+          <li className="font-inter text-[14px] leading-6" style={{ color: '#364153' }}>
+            {React.Children.map(children, (c) => (typeof c === 'string' ? colorizeText(c) : c))}
+          </li>
         ),
         strong: ({ children }) => (
           <strong style={{ color: '#101828' }}>{children}</strong>
@@ -221,7 +313,7 @@ function MarkdownRenderer({ content }: { content: string }) {
         ),
       }}
     >
-      {content}
+      {processed}
     </ReactMarkdown>
   );
 }
@@ -356,7 +448,7 @@ export default function JeetGPTPage() {
           <Link href="/dashboard" className="flex items-start gap-2">
             <LeafLogo />
             <div>
-              <div className="font-inter font-bold text-[18px] leading-7 text-white">Rise with Jeet IAS</div>
+              <div className="font-inter font-bold text-[18px] leading-7 text-white">Rise with Jeet</div>
               <div className="font-inter text-[10px] leading-[15px] tracking-[0.5px] uppercase mt-0.5" style={{ color: '#99A1AF' }}>India&apos;s Premier UPSC Platform</div>
             </div>
           </Link>

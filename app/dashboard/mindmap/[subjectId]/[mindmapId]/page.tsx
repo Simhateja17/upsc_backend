@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { mindmapService } from '@/lib/services';
+import { useRouter } from 'next/navigation';
+import { mindmapService, userService, pricingService } from '@/lib/services';
 
 const CheckmarkIcon = () => (
   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -40,12 +41,67 @@ type PageParams = { params: { subjectId: string; mindmapId: string } };
 
 export default function MindmapViewPage({ params }: PageParams) {
   const { subjectId, mindmapId } = params;
+  const router = useRouter();
 
   const [data, setData] = useState<MindmapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+  // Pricing/features pulled from admin pricing API (falls back to defaults).
+  const [proPricing, setProPricing] = useState<{
+    monthly: number;
+    annualMonthly: number;
+    annualTotal: number;
+    features: string[];
+  }>({
+    monthly: 299,
+    annualMonthly: 199,
+    annualTotal: 2388,
+    features: [
+      'All 42+ Mindmaps across 8 subjects',
+      'Custom Mindmap Builder — unlimited saves',
+      'Topic Quizzes + Branch-by-Branch Revision',
+      'Send maps to Flashcards + Spaced Repetition',
+      'Schedule Revision + Planner sync',
+    ],
+  });
+
+  // Load admin-defined pricing if available so the modal stays editable
+  // from /admin/pricing without code changes.
+  useEffect(() => {
+    pricingService.getPlans()
+      .then((res: any) => {
+        const plans = res?.data || [];
+        const monthly = plans.find((p: any) => /month/i.test(p.duration || ''));
+        const annual = plans.find((p: any) => /year|annual/i.test(p.duration || ''));
+        if (monthly || annual) {
+          setProPricing((prev) => ({
+            monthly: monthly?.price ?? prev.monthly,
+            annualTotal: annual?.price ?? prev.annualTotal,
+            annualMonthly: annual?.price ? Math.round(annual.price / 12) : prev.annualMonthly,
+            features: (annual?.features || monthly?.features || prev.features).filter(Boolean),
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleStartTrial = async () => {
+    try {
+      await userService.startTrial();
+      const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('proTrialEnd', trialEnd);
+        localStorage.setItem('userPlan', 'trial');
+      }
+      setShowProModal(false);
+      router.push('/dashboard/billing?trial=started');
+    } catch (err: any) {
+      alert(err?.message || 'Could not start trial. Please try again.');
+    }
+  };
 
   useEffect(() => {
     if (!subjectId || !mindmapId) return;
@@ -122,26 +178,30 @@ export default function MindmapViewPage({ params }: PageParams) {
             </div>
             <div className="p-6 -mt-4 bg-white rounded-t-[24px] relative z-10">
               <div className="space-y-4 mb-8">
-                <div className="flex items-start gap-3"><span className="text-[18px]">🧠</span><span className="text-[#374151] text-[14px] font-medium">All 42+ Mindmaps across 8 subjects</span></div>
-                <div className="flex items-start gap-3"><span className="text-[18px]">✏️</span><span className="text-[#374151] text-[14px] font-medium">Custom Mindmap Builder — unlimited saves</span></div>
-                <div className="flex items-start gap-3"><span className="text-[18px]">🧩</span><span className="text-[#374151] text-[14px] font-medium">Topic Quizzes + Branch-by-Branch Revision</span></div>
-                <div className="flex items-start gap-3"><span className="text-[18px]">🔄</span><span className="text-[#374151] text-[14px] font-medium">Send maps to Flashcards + Spaced Repetition</span></div>
-                <div className="flex items-start gap-3"><span className="text-[18px]">📅</span><span className="text-[#374151] text-[14px] font-medium">Schedule Revision + Planner sync</span></div>
+                {proPricing.features.map((feat, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="text-[18px]">✨</span>
+                    <span className="text-[#374151] text-[14px] font-medium">{feat}</span>
+                  </div>
+                ))}
               </div>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="p-4 rounded-[12px] border border-gray-200 text-center">
                   <div className="text-[12px] font-semibold text-gray-500 mb-1">Monthly</div>
-                  <div className="text-[24px] font-bold text-[#10182D]">₹299</div>
+                  <div className="text-[24px] font-bold text-[#10182D]">₹{proPricing.monthly}</div>
                   <div className="text-[11px] text-gray-400">per month</div>
                 </div>
                 <div className="p-4 rounded-[12px] border-2 border-[#10182D] bg-[#F9FAFB] text-center relative">
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#10182D] text-white text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">Best Value</div>
                   <div className="text-[12px] font-semibold text-gray-500 mb-1">Annual</div>
-                  <div className="text-[28px] font-bold text-[#10182D]">₹199</div>
-                  <div className="text-[11px] text-gray-400">per month, billed ₹2388/yr</div>
+                  <div className="text-[28px] font-bold text-[#10182D]">₹{proPricing.annualMonthly}</div>
+                  <div className="text-[11px] text-gray-400">per month, billed ₹{proPricing.annualTotal.toLocaleString('en-IN')}/yr</div>
                 </div>
               </div>
-              <button className="w-full bg-[#10182D] text-white py-4 rounded-[12px] font-bold text-[16px] flex items-center justify-center gap-2 hover:bg-[#1F2937] transition-all mb-4">
+              <button
+                onClick={handleStartTrial}
+                className="w-full bg-[#10182D] text-white py-4 rounded-[12px] font-bold text-[16px] flex items-center justify-center gap-2 hover:bg-[#1F2937] transition-all mb-4"
+              >
                 <span>⭐</span> Start Free 7-day Trial
               </button>
               <div className="text-center">

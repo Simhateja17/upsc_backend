@@ -2,7 +2,9 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { mockTestService, dashboardService } from '@/lib/services';
+import { mockTestService, dashboardService, pricingService } from '@/lib/services';
+import { liveStudentCount } from '@/lib/liveCount';
+import { UPSC_SUBJECTS } from '@/lib/upscSubjects';
 
 /* ─── Static Config (UI structure only, not data) ─── */
 
@@ -59,7 +61,11 @@ const fallbackDifficulties = [
   { id: 'hard', emoji: '🔥', label: 'Hard', description: 'Advanced level' },
   { id: 'mixed', emoji: '🎯', label: 'Mixed', description: 'All difficulty levels' },
 ];
-
+const fallbackUpgradePlans = [
+  { name: 'Monthly Pro', price: 299, duration: 'month', features: ['Unlimited tests, all subjects, PYQ, analytics'], isPopular: false },
+  { name: '6-Month Pro + Mentorship', price: 1299, duration: '6 months', features: ['Pro + personal mentorship with Jeet Sir'], isPopular: true },
+  { name: 'Annual Elite', price: 1999, duration: 'year', features: ['Full year + live classes + interview prep'], isPopular: false },
+];
 /* ─── StepHeader Helper ─── */
 
 function StepHeader({ step, label }: { step: number; label: string }) {
@@ -122,6 +128,7 @@ function MockTestsPageInner() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pricingPlans, setPricingPlans] = useState<any[]>([]);
 
   /* ─── Load all data from API ─── */
   useEffect(() => {
@@ -130,16 +137,34 @@ function MockTestsPageInner() {
       setLoading(true);
       setError(null);
       try {
-        const [subjectsRes, configRes, statsRes, platformRes] = await Promise.all([
+        const [subjectsRes, configRes, statsRes, platformRes, plansRes] = await Promise.all([
           mockTestService.getSubjects(),
           mockTestService.getConfig(),
           dashboardService.getPracticeStats(),
           mockTestService.getPlatformStats(),
+          pricingService.getPlans(),
         ]);
 
         if (cancelled) return;
 
-        if (subjectsRes.data) setSubjects(subjectsRes.data);
+        if (subjectsRes.data) {
+          // Merge API counts with the canonical UPSC subject list so students
+          // always see the full subject repository, not just whatever the
+          // question bank currently contains.
+          const apiMap: Record<string, number> = {};
+          for (const s of subjectsRes.data as Array<{ name: string; count: number }>) {
+            apiMap[s.name] = s.count;
+          }
+          const merged: Array<{ name: string; count: number }> = [
+            { name: 'All Subjects', count: apiMap['All Subjects'] ?? Object.values(apiMap).reduce((a, b) => a + b, 0) },
+            ...UPSC_SUBJECTS.map((s) => ({ name: s.label, count: apiMap[s.label] ?? 0 })),
+          ];
+          // Include any API subjects not in the canonical list (long tail)
+          for (const s of subjectsRes.data as Array<{ name: string; count: number }>) {
+            if (!merged.find((m) => m.name === s.name)) merged.push(s);
+          }
+          setSubjects(merged);
+        }
         if (configRes.data) {
           const cfg = configRes.data;
           if (cfg.questionSources) setQuestionSources(cfg.questionSources);
@@ -150,6 +175,7 @@ function MockTestsPageInner() {
         }
         if (statsRes.data) setPracticeStats(statsRes.data);
         if (platformRes.data) setPlatformStats(platformRes.data);
+        if (Array.isArray(plansRes?.data)) setPricingPlans(plansRes.data);
       } catch (err: any) {
         if (!cancelled) {
           console.error('Failed to load mock test config:', err);
@@ -173,6 +199,13 @@ function MockTestsPageInner() {
 
   /* ─── Generate Test Handler ─── */
   const handleGenerateTest = async () => {
+    // Gate: free tier is capped at 10 questions / test. Send users
+    // above the cap to the pricing page instead of silently failing.
+    const isPro = typeof window !== 'undefined' && localStorage.getItem('userPlan') === 'pro';
+    if (questionCount > 10 && !isPro) {
+      router.push('/dashboard/free-trial?plan=pro&reason=question-cap');
+      return;
+    }
     setGenerating(true);
     setError(null);
     try {
@@ -197,7 +230,10 @@ function MockTestsPageInner() {
     }
   };
 
-  const estimatedMinutes = Math.ceil(questionCount * 1.6);
+  const estimatedMinutes = selectedExamMode === 'mains'
+    ? Math.ceil(questionCount * 8)
+    : questionCount;
+  const upgradePlans = (pricingPlans.length > 0 ? pricingPlans : fallbackUpgradePlans).slice(0, 3);
 
   /* Derive display labels for summary */
   const sourceLabel = questionSources.find(s => s.id === selectedSource)?.label ?? 'Daily MCQ';
@@ -265,55 +301,56 @@ function MockTestsPageInner() {
                 <div style={{ height: '100%', width: '30%', background: 'linear-gradient(90deg, #FF6900, #FDC700)', borderRadius: '999px' }} />
               </div>
             </div>
-
-            {/* Plans */}
+            {/* Plans (admin-driven; fallback defaults) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
-              {/* Monthly Pro */}
-              <div style={{ border: '1.5px solid #E5E7EB', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '20px' }}>⚡</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '14px', color: '#101828' }}>Monthly Pro</div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#6B7280' }}>Unlimited tests, all subjects, PYQ, analytics</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '16px', color: '#101828' }}>₹299</div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#6B7280' }}>/month</div>
-                </div>
-              </div>
-
-              {/* 6-Month Pro + Mentorship (Most Popular) */}
-              <div style={{ border: '2px solid #101828', borderRadius: '14px', padding: '14px 16px', background: '#0F172B', display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
-                <span style={{
-                  position: 'absolute', top: '-11px', left: '50%', transform: 'translateX(-50%)',
-                  background: '#FDC700', color: '#101828', fontFamily: 'Inter, sans-serif',
-                  fontWeight: 700, fontSize: '10px', padding: '3px 10px', borderRadius: '999px',
-                  whiteSpace: 'nowrap',
-                }}>⭐ MOST POPULAR</span>
-                <span style={{ fontSize: '20px' }}>🎓</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '14px', color: '#FFFFFF' }}>6-Month Pro + Mentorship</div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#94A3B8' }}>Pro + personal mentorship with Jeet Sir</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '16px', color: '#FDC700' }}>₹1299</div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#94A3B8' }}>/6 months</div>
-                </div>
-              </div>
-
-              {/* Annual Elite */}
-              <div style={{ border: '1.5px solid #E5E7EB', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '20px' }}>🏆</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '14px', color: '#101828' }}>Annual Elite</div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#6B7280' }}>Full year + live classes + Interview prep</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '16px', color: '#101828' }}>₹1999</div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#6B7280' }}>/year</div>
-                </div>
-              </div>
+              {upgradePlans.map((plan, idx) => {
+                const isPopular = Boolean(plan.isPopular);
+                const desc = Array.isArray(plan.features) && plan.features.length > 0
+                  ? String(plan.features[0])
+                  : 'UPSC test practice and analytics';
+                return (
+                  <div
+                    key={`${String(plan.name)}-${idx}`}
+                    style={{
+                      border: isPopular ? '2px solid #101828' : '1.5px solid #E5E7EB',
+                      borderRadius: '14px',
+                      padding: '14px 16px',
+                      background: isPopular ? '#0F172B' : '#FFFFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      position: 'relative',
+                    }}
+                  >
+                    {isPopular && (
+                      <span style={{
+                        position: 'absolute', top: '-11px', left: '50%', transform: 'translateX(-50%)',
+                        background: '#FDC700', color: '#101828', fontFamily: 'Inter, sans-serif',
+                        fontWeight: 700, fontSize: '10px', padding: '3px 10px', borderRadius: '999px',
+                        whiteSpace: 'nowrap',
+                      }}>MOST POPULAR</span>
+                    )}
+                    <span style={{ fontSize: '20px' }}>{isPopular ? 'Pro' : (idx === 0 ? 'Core' : 'Elite')}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '14px', color: isPopular ? '#FFFFFF' : '#101828' }}>
+                        {plan.name}
+                      </div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: isPopular ? '#94A3B8' : '#6B7280' }}>
+                        {desc}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '16px', color: isPopular ? '#FDC700' : '#101828' }}>
+                        Rs {Number(plan.price || 0).toLocaleString('en-IN')}
+                      </div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: isPopular ? '#94A3B8' : '#6B7280' }}>
+                        {plan.duration ? `/${String(plan.duration).toLowerCase()}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-
             {/* CTA */}
             <a href="/dashboard/free-trial" style={{ display: 'block', textDecoration: 'none' }}>
               <button style={{
@@ -1037,19 +1074,21 @@ function MockTestsPageInner() {
                   <strong>Guideline:</strong> You&apos;re setting <strong>{questionCount} questions</strong>. Free users have <strong>10 questions daily</strong>. This generates from <strong>PYQ, questions bank</strong>.
                 </p>
               </div>
-              <button style={{
-                background: '#FDC700',
-                color: '#101828',
-                border: 'none',
-                borderRadius: '999px',
-                padding: '8px 20px',
-                fontFamily: 'Inter, sans-serif',
-                fontWeight: 700,
-                fontSize: '14px',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}>
+              <button
+                onClick={() => router.push('/dashboard/free-trial?plan=pro')}
+                style={{
+                  background: '#FDC700',
+                  color: '#101828',
+                  border: 'none',
+                  borderRadius: '999px',
+                  padding: '8px 20px',
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}>
                 Unlock
               </button>
             </div>
@@ -1272,7 +1311,7 @@ function MockTestsPageInner() {
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16A34A' }} />
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#3B82F6' }} />
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FDC700' }} />
-                <span style={{ marginLeft: '4px' }}>247 students are taking tests right now</span>
+                <span style={{ marginLeft: '4px' }}>{liveStudentCount('mock-tests')} students are taking tests right now</span>
               </div>
               </div>
             </div>
@@ -1291,3 +1330,6 @@ export default function MockTestsPage() {
     </Suspense>
   );
 }
+
+
+

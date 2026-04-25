@@ -127,7 +127,8 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
 
     const count = Math.min(questionCount || 10, 100);
     const isMainsMode = (examMode || "prelims") === "mains";
-    const duration = isMainsMode ? Math.max(10, count * 8) : Math.round(count * 1.6);
+    // Prelims: 1 minute per question. Mains: ~8 minutes per question.
+    const duration = isMainsMode ? Math.max(10, count * 8) : count;
     // Mains: 15 marks per question by UPSC convention. Prelims: 2 marks.
     const totalMarks = isMainsMode ? count * 15 : count * 2;
 
@@ -269,19 +270,62 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
         const remaining = count - finalQuestions.length;
 
         if (source === "pyq" || source === "mixed" || finalQuestions.length === 0) {
+          // UPSC-priority subject list — kept in rank order so "All Subjects"
+          // pulls a balanced mix instead of whatever was most recently seeded
+          // (which can otherwise skew toward sports/GK fillers).
+          const PRIORITY_SUBJECTS = [
+            "Polity", "Economy", "Geography", "Environment",
+            "History", "Science", "Current Affairs", "International",
+            "Ethics", "Society", "Agriculture",
+          ];
+          const EXCLUDE_SUBJECTS = ["Sports", "Entertainment", "Lifestyle"];
+
           let pyqQuery = supabaseAdmin
             .from("pyq_questions")
             .select("*")
             .eq("status", "approved")
-            .limit(Math.ceil(remaining / 2))
-            .order("created_at", { ascending: false });
+            .limit(Math.max(remaining * 3, 30))
+            .order("year", { ascending: false });
 
           if (subject && subject !== "All Subjects") {
             pyqQuery = pyqQuery.ilike("subject", `%${subject}%`);
+          } else {
+            // Drop known non-UPSC categories at the query level.
+            for (const ex of EXCLUDE_SUBJECTS) {
+              pyqQuery = pyqQuery.not("subject", "ilike", `%${ex}%`);
+            }
           }
 
           const { data } = await pyqQuery;
-          pyqQuestions = data || [];
+          const pool = data || [];
+
+          // When no subject was specified, round-robin across priority
+          // subjects so results are balanced, not dominated by whichever
+          // category has the most rows.
+          if (!subject || subject === "All Subjects") {
+            const buckets: Record<string, any[]> = {};
+            for (const q of pool) {
+              const subj = (q.subject || "Other") as string;
+              const key = PRIORITY_SUBJECTS.find((p) => subj.toLowerCase().includes(p.toLowerCase())) || "Other";
+              (buckets[key] = buckets[key] || []).push(q);
+            }
+            const ordered: any[] = [];
+            const keys = [...PRIORITY_SUBJECTS, "Other"];
+            let added = true;
+            while (ordered.length < Math.ceil(remaining / 2) && added) {
+              added = false;
+              for (const key of keys) {
+                if (buckets[key] && buckets[key].length > 0) {
+                  ordered.push(buckets[key].shift());
+                  added = true;
+                  if (ordered.length >= Math.ceil(remaining / 2)) break;
+                }
+              }
+            }
+            pyqQuestions = ordered;
+          } else {
+            pyqQuestions = pool.slice(0, Math.ceil(remaining / 2));
+          }
         }
 
         pyqCount = pyqQuestions.length;

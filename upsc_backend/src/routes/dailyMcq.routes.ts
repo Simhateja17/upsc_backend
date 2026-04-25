@@ -7,6 +7,7 @@ import {
   getTodayResults,
   getTodayReview,
   getTodayRecommendations,
+  getPracticeQuestions,
 } from "../controllers/dailyMcq.controller";
 
 const router = Router();
@@ -17,5 +18,6 @@ router.post("/today/submit", authenticate, submitMCQ);
 router.get("/today/results", authenticate, getTodayResults);
 router.get("/today/review", authenticate, getTodayReview);
 router.get("/today/recommendations", authenticate, getTodayRecommendations);
+router.get("/practice", authenticate, getPracticeQuestions);
 
 export default router;

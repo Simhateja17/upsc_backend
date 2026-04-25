@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { spacedRepService } from '@/lib/services';
+import { spacedRepService, userService } from '@/lib/services';
 
 const filterOptions = ['All', 'mcq', 'mains', 'pyq', 'custom'];
 const scheduleOptions = [3, 7, 15, 30];
@@ -76,9 +76,41 @@ export default function SpacedRepetitionPage() {
 
   const toggleRemind = (id: string, current: boolean) => {
     spacedRepService.updateItem(id, { remindEnabled: !current })
-      .then((res: { status: string }) => {
-        if (res.status === 'success') {
-          setItems((prev) => prev.map((i) => i.id === id ? { ...i, remindEnabled: !current } : i));
+      .then(async (res: { status: string }) => {
+        if (res.status !== 'success') return;
+        setItems((prev) => prev.map((i) => i.id === id ? { ...i, remindEnabled: !current } : i));
+
+        const item = items.find((i) => i.id === id);
+
+        // When turning the toggle ON, create an in-app notification and request browser permission
+        if (!current && item) {
+          // In-app notification
+          try {
+            await userService.createNotification({
+              title: 'Spaced Repetition Reminder Set',
+              body: `We'll remind you to revise "${item.questionText.slice(0, 60)}${item.questionText.length > 60 ? '...' : ''}" in ${item.scheduleDay} day${item.scheduleDay === 1 ? '' : 's'}.`,
+              type: 'spaced_rep',
+            });
+          } catch {
+            // ignore
+          }
+
+          // Browser push notification
+          if (typeof window !== 'undefined' && 'Notification' in window) {
+            try {
+              if (Notification.permission === 'default') {
+                await Notification.requestPermission();
+              }
+              if (Notification.permission === 'granted') {
+                new Notification('Reminder set', {
+                  body: `We'll remind you to revise this in ${item.scheduleDay} day${item.scheduleDay === 1 ? '' : 's'}.`,
+                  icon: '/favicon.ico',
+                });
+              }
+            } catch {
+              // ignore — backend will still deliver the reminder
+            }
+          }
         }
       })
       .catch(() => {});

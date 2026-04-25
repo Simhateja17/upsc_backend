@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { testSeriesService } from '@/lib/services';
+import PurchaseModal from '@/components/PurchaseModal';
 
 interface HeroStats {
   activeSeries: number;
@@ -109,6 +110,7 @@ export default function TestSeriesPage() {
   const [enrolling, setEnrolling] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [heroStats, setHeroStats] = useState<HeroStats | null>(null);
+  const [purchaseModal, setPurchaseModal] = useState<{ open: boolean; series: SeriesItem | null }>({ open: false, series: null });
 
   useEffect(() => {
     async function load() {
@@ -141,6 +143,11 @@ export default function TestSeriesPage() {
   }, []);
 
   const handleEnroll = async (seriesId: string) => {
+    const series = allSeries.find(s => s.id === seriesId);
+    if (series && series.price > 0) {
+      setPurchaseModal({ open: true, series });
+      return;
+    }
     if (enrolling) return;
     setEnrolling(seriesId);
     try {
@@ -331,73 +338,75 @@ export default function TestSeriesPage() {
                 })()}
               </div>
               {/* Your Active Series */}
-              <div
-                style={{
-                  width: 256,
-                  minWidth: 256,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 16,
-                  marginTop: 2,
-                  paddingLeft: 16,
-                  borderLeft: '0.8px solid rgba(255,255,255,0.16)',
-                }}
-              >
-                <span
+              {enrolledSeries.length > 0 && (
+                <div
                   style={{
-                    fontFamily: 'Inter',
-                    fontWeight: 600,
-                    fontSize: 12,
-                    lineHeight: '16px',
-                    color: '#FF8904',
-                    width: 'fit-content',
+                    width: 256,
+                    minWidth: 256,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 16,
+                    marginTop: 2,
+                    paddingLeft: 16,
+                    borderLeft: '0.8px solid rgba(255,255,255,0.16)',
                   }}
                 >
-                  YOUR ACTIVE SERIES
-                </span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {activeSeriesCards.map((s) => (
-                    <Link
-                      key={s.id}
-                      href={s.href}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        padding: '12px',
-                        borderRadius: 10,
-                        border: '0.8px solid rgba(255,255,255,0.2)',
-                        background: 'rgba(255,255,255,0.1)',
-                        borderTop: '0.8px solid rgba(255,255,255,0.2)',
-                        textDecoration: 'none',
-                        color: 'inherit',
-                        height: 61.5875,
-                        boxSizing: 'border-box',
-                      }}
-                    >
-                      <div
+                  <span
+                    style={{
+                      fontFamily: 'Inter',
+                      fontWeight: 600,
+                      fontSize: 12,
+                      lineHeight: '16px',
+                      color: '#FF8904',
+                      width: 'fit-content',
+                    }}
+                  >
+                    YOUR ACTIVE SERIES
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {activeSeriesCards.map((s) => (
+                      <Link
+                        key={s.id}
+                        href={s.href}
                         style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 4,
-                          background: s.iconBg,
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 18,
+                          gap: 12,
+                          padding: '12px',
+                          borderRadius: 10,
+                          border: '0.8px solid rgba(255,255,255,0.2)',
+                          background: 'rgba(255,255,255,0.1)',
+                          borderTop: '0.8px solid rgba(255,255,255,0.2)',
+                          textDecoration: 'none',
+                          color: 'inherit',
+                          height: 61.5875,
+                          boxSizing: 'border-box',
                         }}
                       >
-                        {s.icon}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 14, lineHeight: '20px', color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</div>
-                        <div style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 12, lineHeight: '16px', color: '#99A1AF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.subtitle}</div>
-                      </div>
-                      <span style={{ fontFamily: 'Inter', fontSize: 16, lineHeight: '24px', color: '#99A1AF' }}>→</span>
-                    </Link>
-                  ))}
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 4,
+                            background: s.iconBg,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 18,
+                          }}
+                        >
+                          {s.icon}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 14, lineHeight: '20px', color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</div>
+                          <div style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 12, lineHeight: '16px', color: '#99A1AF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.subtitle}</div>
+                        </div>
+                        <span style={{ fontFamily: 'Inter', fontSize: 16, lineHeight: '24px', color: '#99A1AF' }}>→</span>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Filter bar */}
@@ -566,6 +575,20 @@ export default function TestSeriesPage() {
           </div>
         </div>
       </div>
+
+      <PurchaseModal
+        open={purchaseModal.open}
+        onClose={() => setPurchaseModal({ open: false, series: null })}
+        itemType="test_series"
+        itemId={purchaseModal.series?.id || ''}
+        itemName={purchaseModal.series?.title || ''}
+        amount={purchaseModal.series?.price || 0}
+        onSuccess={() => {
+          if (purchaseModal.series) {
+            handleEnroll(purchaseModal.series.id);
+          }
+        }}
+      />
     </div>
   );
 }

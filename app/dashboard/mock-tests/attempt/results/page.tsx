@@ -605,16 +605,30 @@ function MockTestResultsInner() {
             >
               ↻ Reattempt
             </button>
-            <button type="button" style={{ height: 36, borderRadius: 10, padding: '0 16px', border: 'none', background: '#314158', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('mt-full-analysis');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                else router.push('/dashboard/test-analytics');
+              }}
+              style={{ height: 36, borderRadius: 10, padding: '0 16px', border: 'none', background: '#314158', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
+            >
               📊 Full Analysis
             </button>
-            <button type="button" style={{ height: 36, borderRadius: 10, padding: '0 16px', border: 'none', background: '#314158', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined') window.print();
+              }}
+              style={{ height: 36, borderRadius: 10, padding: '0 16px', border: 'none', background: '#314158', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
+            >
               📄 PDF Report
             </button>
           </div>
         </div>
 
-        <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #E5E7EB', padding: 16 }}>
+        <div id="mt-full-analysis" style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #E5E7EB', padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 800, color: '#101828', marginBottom: 12 }}>
             <span style={{ width: 18, height: 18, borderRadius: 4, border: '2px solid #00C950', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#00C950' }}>✓</span>
             Answer Review

@@ -3,8 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+const COLLAPSED_ROUTE_PREFIXES = [
+  '/dashboard/daily-answer/challenge',
+  '/dashboard/daily-answer/challenge/attempt',
+  '/dashboard/daily-mcq/challenge',
+  '/dashboard/mock-tests/attempt',
+  '/dashboard/test-series/attempt',
+];
+
 const Sidebar = ({ forceShow = false }: { forceShow?: boolean }) => {
   const pathname = usePathname();
+  const isCollapsed = COLLAPSED_ROUTE_PREFIXES.some((p) => pathname?.startsWith(p));
 
   const navigationSections = [
     {
@@ -21,7 +30,7 @@ const Sidebar = ({ forceShow = false }: { forceShow?: boolean }) => {
       items: [
         { id: 'video-lectures', label: 'Video Lectures', icon: '/sidebar-video.png', path: '/dashboard/video-lectures' },
         { id: 'study-material', label: 'Study Material', icon: '/sidebar-study-material-new2.png', path: '/dashboard/library' },
-        { id: 'current-affairs', label: 'Current Affairs', icon: '/sidebar-current-affairs.png', path: '/dashboard/current-affairs' },
+        { id: 'current-affairs', label: 'Current Affairs', icon: '/sidebar-current-affairs.png', path: '/dashboard/daily-editorial' },
         { id: 'test-series', label: 'Test Series', icon: '/sidebar-test-series.png', path: '/dashboard/test-series' },
         { id: 'mentorship', label: 'Personal Mentorship', icon: '/sidebar-mentorship-new.png', path: '/dashboard/free-trial' },
       ],
@@ -66,25 +75,28 @@ const Sidebar = ({ forceShow = false }: { forceShow?: boolean }) => {
   // Hide dashboard sidebar on Jeet GPT — it has its own sidebar (unless explicitly forced)
   if (!forceShow && pathname === '/dashboard/jeet-gpt') return null;
 
+  const asideWidth = isCollapsed ? 'w-[60px] min-w-[60px]' : 'w-[260px] min-w-[260px]';
+
   return (
-    <aside className="w-[260px] min-w-[260px] h-full bg-white overflow-y-auto flex-shrink-0" style={{ boxShadow: '3px 0 12px rgba(0,0,0,0.06), 1px 0 3px rgba(0,0,0,0.04)', zIndex: 1 }}>
-      <nav className="pt-5 pb-8 px-4">
+    <aside className={`${asideWidth} h-full bg-white overflow-y-auto flex-shrink-0`} style={{ boxShadow: '3px 0 12px rgba(0,0,0,0.06), 1px 0 3px rgba(0,0,0,0.04)', zIndex: 1, transition: 'width 200ms ease, min-width 200ms ease' }}>
+      <nav className={isCollapsed ? 'pt-5 pb-8 px-2' : 'pt-5 pb-8 px-4'}>
         {navigationSections.map((section, sectionIndex) => (
           <div key={sectionIndex} className="mb-5">
-            {/* Section Title */}
-            <h3 className="text-[#999999] font-inter font-semibold text-[10px] uppercase tracking-[0.08em] mb-2 px-3">
-              {section.title}
-            </h3>
+            {!isCollapsed && (
+              <h3 className="text-[#999999] font-inter font-semibold text-[10px] uppercase tracking-[0.08em] mb-2 px-3">
+                {section.title}
+              </h3>
+            )}
 
-            {/* Section Items */}
             <ul className="space-y-0.5">
               {section.items.map((item) => (
                 <li key={item.id}>
                   <Link
                     href={item.path}
+                    title={isCollapsed ? item.label : undefined}
                     className={`
                       flex items-center gap-[10px]
-                      px-3 py-[9px]
+                      ${isCollapsed ? 'justify-center px-0 py-[9px]' : 'px-3 py-[9px]'}
                       rounded-[6px]
                       transition-all duration-200
                       ${
@@ -100,9 +112,11 @@ const Sidebar = ({ forceShow = false }: { forceShow?: boolean }) => {
                       alt={item.label}
                       className="w-[18px] h-[18px] flex-shrink-0 object-contain"
                     />
-                    <span className="font-inter font-medium text-[13px] leading-none whitespace-nowrap">
-                      {item.label}
-                    </span>
+                    {!isCollapsed && (
+                      <span className="font-inter font-medium text-[13px] leading-none whitespace-nowrap">
+                        {item.label}
+                      </span>
+                    )}
                   </Link>
                 </li>
               ))}

@@ -10,6 +10,9 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ mode, states, syllabusData, userName }: HeroSectionProps) {
+  const prelimsDate = new Date(2026, 5, 2); // June 2, 2026
+  const daysRemaining = Math.max(0, Math.ceil((prelimsDate.getTime() - Date.now()) / 86400000));
+
   // Calculate overall stats across all modes
   const calculateModeStats = (modeKey: Mode) => {
     const subjects = syllabusData[modeKey];
@@ -89,7 +92,7 @@ export default function HeroSection({ mode, states, syllabusData, userName }: He
             </p>
             
             <div className="inline-flex items-center gap-[8px] bg-white/7 border border-white/10 rounded-[8px] px-[13px] py-[7px] text-[11.5px] font-semibold text-white/70 mb-[14px]">
-              📅 UPSC Prelims 2026 — 107 days remaining. Stay consistent.
+              📅 UPSC Prelims 2026 — {daysRemaining} days remaining. Stay consistent.
             </div>
           </div>
 

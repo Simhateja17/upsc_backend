@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { dailyAnswerService } from '@/lib/services';
+import { liveStudentCount } from '@/lib/liveCount';
 
 interface AnswerData {
   id: string;
@@ -33,12 +34,31 @@ export default function DailyMainsChallengePage() {
   const [timeLeft, setTimeLeft] = useState(15 * 60);
   const [isActive, setIsActive] = useState(false);
 
+  // Intro auto-start countdown (15s)
+  const [introCountdown, setIntroCountdown] = useState(15);
+
   useEffect(() => {
     dailyAnswerService.getToday()
       .then(res => setData(res.data))
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  // Auto-start: tick every second, navigate at 0 unless user has already started
+  useEffect(() => {
+    if (loading || error || !data || data.attempted) return;
+    if (introCountdown <= 0) {
+      router.push('/dashboard/daily-answer/challenge');
+      return;
+    }
+    const t = setTimeout(() => setIntroCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [introCountdown, loading, error, data, router]);
+
+  const marksValue = data?.marks ?? 15;
+  const markingPattern = marksValue >= 15
+    ? { words: 250, minutes: 11 }
+    : { words: 150, minutes: 7 };
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -174,7 +194,7 @@ export default function DailyMainsChallengePage() {
           >
             {/* Minutes */}
             <div className="flex flex-col items-center" style={{ gap: '2px' }}>
-              <span className="font-bold text-[#101828]" style={{ fontSize: '30px', lineHeight: '36px' }}>{data.timeLimit}</span>
+              <span className="font-bold text-[#101828]" style={{ fontSize: '30px', lineHeight: '36px' }}>{markingPattern.minutes}</span>
               <span className="text-[#4A5565] font-normal" style={{ fontSize: '12px', lineHeight: '16px' }}>Minutes</span>
             </div>
 
@@ -186,7 +206,7 @@ export default function DailyMainsChallengePage() {
 
             {/* Word Limit */}
             <div className="flex flex-col items-center" style={{ gap: '2px' }}>
-              <span className="font-bold text-[#101828]" style={{ fontSize: '30px', lineHeight: '36px' }}>{data.wordLimit}</span>
+              <span className="font-bold text-[#101828]" style={{ fontSize: '30px', lineHeight: '36px' }}>{markingPattern.words}</span>
               <span className="text-[#4A5565] font-normal" style={{ fontSize: '12px', lineHeight: '16px' }}>Word Limit</span>
             </div>
           </div>
@@ -229,9 +249,21 @@ export default function DailyMainsChallengePage() {
             </Link>
           )}
 
-          <p className="text-[#6A7282] mt-4 font-normal" style={{ fontSize: '12px' }}>
-            Skip intro (auto-start in 5s)
-          </p>
+          {!data.attempted && (
+            <button
+              onClick={() => setIntroCountdown(0)}
+              className="text-[#6A7282] mt-4 font-normal hover:text-[#17223E] transition-colors"
+              style={{ fontSize: '12px' }}
+            >
+              Skip intro (auto-start in {introCountdown}s)
+            </button>
+          )}
+
+          {/* Marking pattern hint */}
+          <div className="mt-3 text-center text-[#6A7282]" style={{ fontSize: '11px', lineHeight: '16px' }}>
+            <div>Marking pattern → 10 marker: 150 words / 7 min</div>
+            <div>15 marker: 250 words / 11 min</div>
+          </div>
         </div>
       </main>
 
@@ -345,15 +377,15 @@ export default function DailyMainsChallengePage() {
                 <div className="flex items-center gap-8 text-[#4A5565] font-arimo" style={{ fontSize: '14px' }}>
                     <div className="flex items-center gap-2">
                         <img src="/Icon%20(8).png" alt="Time" style={{ width: '20px', height: '20px' }} />
-                        <span>Time: 15 minutes</span>
+                        <span>Time: {markingPattern.minutes} minutes</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <img src="/Icon%20(7).png" alt="Word limit" style={{ width: '20px', height: '20px' }} />
-                        <span>Word limit: 250-300 words</span>
+                        <span>Word limit: {markingPattern.words} words</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <img src="/Icon%20(6).png" alt="Marks" style={{ width: '20px', height: '20px' }} />
-                        <span>Marks: 15</span>
+                        <span>Marks: {marksValue}</span>
                     </div>
                 </div>
 
@@ -400,7 +432,7 @@ export default function DailyMainsChallengePage() {
                             <div className="w-8 h-8 rounded-full bg-green-400 border-2 border-white"></div>
                             <div className="w-8 h-8 rounded-full bg-purple-400 border-2 border-white"></div>
                         </div>
-                        <span className="text-[#4A5565]" style={{ fontSize: '14px' }}>101+ Students already attempted</span>
+                        <span className="text-[#4A5565]" style={{ fontSize: '14px' }}>{liveStudentCount('daily-answer')}+ Students already attempted</span>
                     </div>
                 </div>
             </div>

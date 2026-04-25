@@ -92,6 +92,12 @@ router.post("/pricing", contentCtrl.createPricingPlan);
 router.put("/pricing/:id", contentCtrl.updatePricingPlan);
 router.delete("/pricing/:id", contentCtrl.deletePricingPlan);
 
+// ==================== FAQ Management ====================
+router.get("/faqs", contentCtrl.getFaqsAdmin);
+router.post("/faqs", contentCtrl.createFaq);
+router.put("/faqs/:id", contentCtrl.updateFaq);
+router.delete("/faqs/:id", contentCtrl.deleteFaq);
+
 // ==================== Analytics ====================
 router.get("/analytics", contentCtrl.getAnalytics);
 

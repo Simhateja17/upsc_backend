@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { dailyMcqService } from '@/lib/services';
 
 interface MCQData {
@@ -16,9 +17,15 @@ interface MCQData {
 }
 
 export default function DailyMcqIntroPage() {
+  const router = useRouter();
   const [mcq, setMcq] = useState<MCQData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [introCountdown, setIntroCountdown] = useState(15);
+
+  const FIXED_QUESTION_COUNT = 10;
+  const FIXED_TIME_LIMIT = 10;
+  const FIXED_TOTAL_MARKS = 20;
 
   useEffect(() => {
     dailyMcqService.getToday()
@@ -26,6 +33,16 @@ export default function DailyMcqIntroPage() {
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (loading || error || !mcq || mcq.attempted) return;
+    if (introCountdown <= 0) {
+      router.push('/dashboard/daily-mcq/challenge');
+      return;
+    }
+    const t = setTimeout(() => setIntroCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [introCountdown, loading, error, mcq, router]);
 
   if (loading) {
     return (
@@ -84,15 +101,15 @@ export default function DailyMcqIntroPage() {
 
           <div className="grid grid-cols-3 w-[300px] mx-auto mb-8">
             <div className="flex flex-col items-center">
-              <div className="font-arimo font-bold text-[#101828] text-[32px] leading-tight max-md:text-[24px]">{mcq.questionCount}</div>
+              <div className="font-arimo font-bold text-[#101828] text-[32px] leading-tight max-md:text-[24px]">{FIXED_QUESTION_COUNT}</div>
               <div className="font-arimo text-[#667085] text-[12px] mt-1">Questions</div>
             </div>
             <div className="flex flex-col items-center">
-              <div className="font-arimo font-bold text-[#101828] text-[32px] leading-tight max-md:text-[24px]">{mcq.timeLimit}</div>
+              <div className="font-arimo font-bold text-[#101828] text-[32px] leading-tight max-md:text-[24px]">{FIXED_TIME_LIMIT}</div>
               <div className="font-arimo text-[#667085] text-[12px] mt-1">Minutes</div>
             </div>
             <div className="flex flex-col items-center">
-              <div className="font-arimo font-bold text-[#101828] text-[32px] leading-tight max-md:text-[24px]">{mcq.totalMarks}</div>
+              <div className="font-arimo font-bold text-[#101828] text-[32px] leading-tight max-md:text-[24px]">{FIXED_TOTAL_MARKS}</div>
               <div className="font-arimo text-[#667085] text-[12px] mt-1">Marks</div>
             </div>
           </div>
@@ -115,9 +132,14 @@ export default function DailyMcqIntroPage() {
             </Link>
           )}
 
-          <p className="font-arimo text-[#9CA3AF] text-[12px] mt-4 cursor-pointer hover:text-gray-600">
-            Skip intro (auto-start in 5s)
-          </p>
+          {!mcq.attempted && (
+            <button
+              onClick={() => setIntroCountdown(0)}
+              className="font-arimo text-[#9CA3AF] text-[12px] mt-4 cursor-pointer hover:text-gray-600"
+            >
+              Skip intro (auto-start in {introCountdown}s)
+            </button>
+          )}
         </div>
       </main>
     </div>

@@ -1,15 +1,27 @@
 'use client';
 
-import { Subject, TrackerState } from '../page';
+import { useCallback, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Mode, Subject, SyllabusData, TrackerState } from '../page';
 
 interface RightPanelProps {
+  mode: Mode;
   subjects: Subject[];
   states: TrackerState;
+  syllabusData: SyllabusData;
 }
 
-export default function RightPanel({ subjects, states }: RightPanelProps) {
-  // Calculate subject progress
-  const getSubjectStats = (subject: Subject) => {
+interface SubjectProgress extends Subject {
+  total: number;
+  done: number;
+  pct: number;
+}
+
+export default function RightPanel({ mode, subjects, states, syllabusData }: RightPanelProps) {
+  const router = useRouter();
+  const [showAllModal, setShowAllModal] = useState(false);
+
+  const getSubjectStats = useCallback((subject: Subject) => {
     let total = 0;
     let done = 0;
 
@@ -21,112 +33,226 @@ export default function RightPanel({ subjects, states }: RightPanelProps) {
       });
     });
 
-    return { 
-      total, 
-      done, 
-      pct: total > 0 ? Math.round((done / total) * 100) : 0 
+    return {
+      total,
+      done,
+      pct: total > 0 ? Math.round((done / total) * 100) : 0,
     };
-  };
+  }, [states]);
+
+  const modeSummaries = useMemo(() => {
+    const keys: Mode[] = ['prelims', 'mains', 'optional'];
+    return keys.map((modeKey) => {
+      const list = syllabusData[modeKey];
+      const aggregate = list.reduce(
+        (acc, subject) => {
+          const s = getSubjectStats(subject);
+          acc.done += s.done;
+          acc.total += s.total;
+          return acc;
+        },
+        { done: 0, total: 0 }
+      );
+      const pct = aggregate.total > 0 ? Math.round((aggregate.done / aggregate.total) * 100) : 0;
+      return {
+        id: modeKey,
+        label: modeKey === 'prelims' ? 'Prelims GS' : modeKey === 'mains' ? 'Mains' : 'Optional',
+        pct,
+        done: aggregate.done,
+        total: aggregate.total,
+      };
+    });
+  }, [getSubjectStats, syllabusData]);
+
+  const allSubjects = useMemo(() => {
+    const withMode = (list: Subject[], stage: string): SubjectProgress[] =>
+      list.map((subject) => {
+        const stats = getSubjectStats(subject);
+        return { ...subject, ...stats, stage } as SubjectProgress & { stage: string };
+      });
+
+    return [
+      ...withMode(syllabusData.prelims, 'Prelims'),
+      ...withMode(syllabusData.mains, 'Mains'),
+      ...withMode(syllabusData.optional, 'Optional'),
+    ] as Array<SubjectProgress & { stage: string }>;
+  }, [getSubjectStats, syllabusData]);
 
   return (
-    <div className="w-[228px] min-w-[228px] flex flex-col gap-[11px] overflow-y-auto flex-shrink-0">
-      {/* Subject Progress Card */}
-      <div className="bg-white border-[1.5px] border-[#e0e8f4] rounded-[14px] p-[13px] shadow-sm">
-        <div className="flex items-center justify-between mb-[11px]">
-          <div className="flex items-center gap-[6px]">
-            <div className="w-[3px] h-[13px] bg-[#c9921a] rounded-[2px]" />
-            <div className="text-[9.5px] font-extrabold tracking-[1.2px] uppercase text-[#3c4f6d]">
-              Subject Progress
+    <>
+      <div className="w-[228px] min-w-[228px] flex flex-col gap-[11px] overflow-y-auto flex-shrink-0">
+        <div className="bg-white border-[1.5px] border-[#e0e8f4] rounded-[14px] p-[13px] shadow-sm">
+          <div className="flex items-center justify-between mb-[11px]">
+            <div className="flex items-center gap-[6px]">
+              <div className="w-[3px] h-[13px] bg-[#c9921a] rounded-[2px]" />
+              <div className="text-[9.5px] font-extrabold tracking-[1.2px] uppercase text-[#3c4f6d]">
+                Subject Progress
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowAllModal(true)}
+              className="text-[11px] font-bold text-[#0f1f3d] cursor-pointer no-underline transition-colors duration-150 hover:text-[#c9921a] bg-transparent border-none p-0"
+            >
+              View all →
+            </button>
           </div>
-          <a 
-            href="#" 
-            className="text-[11px] font-bold text-[#0f1f3d] cursor-pointer no-underline transition-colors duration-150 hover:text-[#c9921a]"
-          >
-            View all →
-          </a>
-        </div>
-        
-        <div>
-          {subjects.map(subject => {
-            const stats = getSubjectStats(subject);
-            const progressColor = stats.pct === 100 ? '#16a34a' : subject.color;
 
-            return (
-              <div key={subject.id} className="flex items-center gap-[7px] mb-[9px] last:mb-0">
-                <div className="text-[12px] flex-shrink-0 w-[14px] text-center">
-                  {subject.icon}
-                </div>
-                <div className="text-[10.5px] font-semibold text-[#0f1f3d] flex-shrink-0 w-[56px] whitespace-nowrap overflow-hidden text-ellipsis">
-                  {subject.short}
-                </div>
-                <div className="flex-1">
-                  <div className="h-[5px] bg-[#d8e4f5] rounded-[4px] overflow-hidden">
-                    <div
-                      className="h-full rounded-[4px] transition-all duration-900"
-                      style={{ 
-                        width: `${stats.pct}%`, 
-                        background: progressColor 
-                      }}
-                    />
+          <div>
+            {subjects.map((subject) => {
+              const stats = getSubjectStats(subject);
+              const progressColor = stats.pct === 100 ? '#16a34a' : subject.color;
+
+              return (
+                <div key={subject.id} className="flex items-center gap-[7px] mb-[9px] last:mb-0">
+                  <div className="text-[12px] flex-shrink-0 w-[14px] text-center">
+                    {subject.icon}
+                  </div>
+                  <div className="text-[10.5px] font-semibold text-[#0f1f3d] flex-shrink-0 w-[56px] whitespace-nowrap overflow-hidden text-ellipsis">
+                    {subject.short}
+                  </div>
+                  <div className="flex-1">
+                    <div className="h-[5px] bg-[#d8e4f5] rounded-[4px] overflow-hidden">
+                      <div
+                        className="h-full rounded-[4px] transition-all duration-900"
+                        style={{
+                          width: `${stats.pct}%`,
+                          background: progressColor,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div
+                    className="text-[10px] font-bold flex-shrink-0 w-[26px] text-right"
+                    style={{ color: progressColor }}
+                  >
+                    {stats.pct}%
                   </div>
                 </div>
-                <div 
-                  className="text-[10px] font-bold flex-shrink-0 w-[26px] text-right"
-                  style={{ color: progressColor }}
-                >
-                  {stats.pct}%
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        </div>
+
+        <div
+          className="border-[1.5px] border-dashed rounded-[13px] p-[16px_14px] text-center cursor-pointer transition-all duration-200"
+          style={{
+            borderColor: 'rgba(201,146,26,.30)',
+            background: 'linear-gradient(135deg, rgba(201,146,26,.04), rgba(201,146,26,.09))',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#c9921a';
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(201,146,26,.09), rgba(201,146,26,.16))';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(201,146,26,.30)';
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(201,146,26,.04), rgba(201,146,26,.09))';
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+          onClick={() => router.push('/dashboard/study-planner')}
+        >
+          <div className="text-[24px] mb-[8px]">📅</div>
+          <div className="text-[12.5px] font-extrabold text-[#0f1f3d] mb-[4px]">
+            Plan Today&apos;s Study
+          </div>
+          <div className="text-[10.5px] text-[#8795ae] mb-[12px] leading-relaxed">
+            Set daily goals with Jeet AI and stay on track for UPSC 2026.
+          </div>
+          <button
+            type="button"
+            className="inline-flex items-center gap-[5px] px-[18px] py-[8px] rounded-[9px] text-[11.5px] font-extrabold text-[#0f1f3d] cursor-pointer border-none transition-all duration-200"
+            style={{
+              background: 'linear-gradient(135deg, #e8a820, #c9921a)',
+              boxShadow: '0 2px 8px rgba(201,146,26,.28)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 4px 14px rgba(201,146,26,.36)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(201,146,26,.28)';
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push('/dashboard/study-planner');
+            }}
+          >
+            + Add in Study Planner
+          </button>
         </div>
       </div>
 
-      {/* Study Planner CTA */}
-      <div 
-        className="border-[1.5px] border-dashed rounded-[13px] p-[16px_14px] text-center cursor-pointer transition-all duration-200"
-        style={{
-          borderColor: 'rgba(201,146,26,.30)',
-          background: 'linear-gradient(135deg, rgba(201,146,26,.04), rgba(201,146,26,.09))',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = '#c9921a';
-          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(201,146,26,.09), rgba(201,146,26,.16))';
-          e.currentTarget.style.transform = 'translateY(-1px)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = 'rgba(201,146,26,.30)';
-          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(201,146,26,.04), rgba(201,146,26,.09))';
-          e.currentTarget.style.transform = 'translateY(0)';
-        }}
-        onClick={() => alert('Opening Study Planner...')}
-      >
-        <div className="text-[24px] mb-[8px]">📅</div>
-        <div className="text-[12.5px] font-extrabold text-[#0f1f3d] mb-[4px]">
-          Plan Today's Study
-        </div>
-        <div className="text-[10.5px] text-[#8795ae] mb-[12px] leading-relaxed">
-          Set daily goals with Jeet AI and stay on track for UPSC 2026.
-        </div>
-        <button 
-          className="inline-flex items-center gap-[5px] px-[18px] py-[8px] rounded-[9px] text-[11.5px] font-extrabold text-[#0f1f3d] cursor-pointer border-none transition-all duration-200"
-          style={{
-            background: 'linear-gradient(135deg, #e8a820, #c9921a)',
-            boxShadow: '0 2px 8px rgba(201,146,26,.28)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 4px 14px rgba(201,146,26,.36)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 2px 8px rgba(201,146,26,.28)';
-          }}
+      {showAllModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.38)' }}
+          onClick={() => setShowAllModal(false)}
         >
-          + Add in Study Planner
-        </button>
-      </div>
-    </div>
+          <div
+            className="w-full max-w-[780px] max-h-[85vh] overflow-y-auto bg-white rounded-[16px] border border-[#E5E7EB] shadow-xl p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[16px] font-bold text-[#0f1f3d]">Syllabus Progress Overview</h3>
+              <button
+                type="button"
+                className="w-8 h-8 rounded-full border border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]"
+                onClick={() => setShowAllModal(false)}
+                aria-label="Close progress modal"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+              {modeSummaries.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-[12px] border p-3"
+                  style={{
+                    borderColor: mode === item.id ? '#1D4ED8' : '#E5E7EB',
+                    background: mode === item.id ? '#EFF6FF' : '#FFFFFF',
+                  }}
+                >
+                  <div className="text-[12px] font-semibold text-[#475569]">{item.label}</div>
+                  <div className="text-[24px] font-bold text-[#0f1f3d] leading-tight mt-1">{item.pct}%</div>
+                  <div className="text-[11px] text-[#64748B] mt-1">{item.done} of {item.total} topics done</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-2">
+              {allSubjects.map((subject) => (
+                <div key={subject.id} className="rounded-[10px] border border-[#E5E7EB] p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span>{subject.icon}</span>
+                      <span className="font-semibold text-[13px] text-[#0f1f3d]">{subject.name}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#334155]">
+                        {subject.stage}
+                      </span>
+                    </div>
+                    <span className="text-[12px] font-bold" style={{ color: subject.color }}>
+                      {subject.pct}%
+                    </span>
+                  </div>
+                  <div className="h-[6px] bg-[#E2E8F0] rounded overflow-hidden">
+                    <div
+                      className="h-full rounded transition-all"
+                      style={{ width: `${subject.pct}%`, background: subject.color }}
+                    />
+                  </div>
+                  <div className="text-[11px] text-[#64748B] mt-1">
+                    {subject.done} of {subject.total} topics done
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

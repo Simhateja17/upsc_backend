@@ -20,6 +20,13 @@ function taskDurationSecs(task: Task): number {
   return 3600;
 }
 
+function toDateParam(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function pieSlicePath(cx: number, cy: number, r: number, startAngle: number, endAngle: number): string {
   const x1 = cx + r * Math.cos(startAngle);
   const y1 = cy + r * Math.sin(startAngle);
@@ -70,9 +77,6 @@ export default function StudyPlannerPage() {
   const focusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    studyPlannerService.getTodayTasks()
-      .then(res => { if (res.data) setTasks(res.data); })
-      .catch(() => {});
     studyPlannerService.getStreak()
       .then(res => {
         if (res.data) {
@@ -104,6 +108,12 @@ export default function StudyPlannerPage() {
   }, []);
 
   useEffect(() => {
+    studyPlannerService.getTodayTasks(toDateParam(currentDate))
+      .then(res => { if (res.data) setTasks(res.data); else setTasks([]); })
+      .catch(() => setTasks([]));
+  }, [currentDate]);
+
+  useEffect(() => {
     studyPlannerService.getMonthlyActivity(currentDate.getFullYear(), currentDate.getMonth() + 1)
       .then(res => {
         if (res.data?.studiedDays) setStudiedDays(res.data.studiedDays);
@@ -119,7 +129,8 @@ export default function StudyPlannerPage() {
       const res = await studyPlannerService.createTask({
         title: taskTitle,
         subject: taskSubject || undefined,
-        type: studyType || 'study',
+        type: studyType || 'reading',
+        date: toDateParam(currentDate),
         startTime,
         endTime,
       });
@@ -244,16 +255,40 @@ export default function StudyPlannerPage() {
     ['GS1', 'GS2', 'GS3', 'GS4'],
   ];
 
-  // Items that map to a subject in the dropdown — fills both title and subject
-  const subjectItems = new Set(['Polity', 'History', 'Science & Technology', 'Economics', 'Geography', 'Environment', 'Ethics']);
+  const quickAddSubjectMap: Record<string, string> = {
+    Polity: 'Polity',
+    History: 'History',
+    'Science & Technology': 'Science & Technology',
+    Economics: 'Economics',
+    Geography: 'Geography',
+    Environment: 'Environment',
+    Ethics: 'Ethics',
+    GS1: 'GS1',
+    GS2: 'GS2',
+    GS3: 'GS3',
+    GS4: 'GS4',
+    'Mock Test': 'Mock Test',
+    'Answer Writing': 'Essay',
+  };
+
+  const quickAddTypeMap: Record<string, string> = {
+    Revision: 'revision',
+    'Mock Test': 'test',
+    'Answer Writing': 'answer',
+  };
 
   const handleQuickAdd = (item: string) => {
-    if (subjectItems.has(item)) {
-      setTaskTitle(`${item} Study Session`);
-      setTaskSubject(item);
+    const mappedSubject = quickAddSubjectMap[item];
+    const mappedType = quickAddTypeMap[item] || 'reading';
+
+    if (mappedSubject) {
+      setTaskSubject(mappedSubject);
     } else {
-      setTaskTitle(item);
+      setTaskSubject('');
     }
+
+    setStudyType(mappedType);
+    setTaskTitle(item === 'Mock Test' ? 'Mock Test Practice' : `${item} Study Session`);
   };
 
   const timeOptions = [
@@ -293,7 +328,11 @@ export default function StudyPlannerPage() {
   ];
   const timeByType = typeConfig.map(tc => {
     const mins = tasks
-      .filter(t => t.type === tc.id && t.startTime && t.endTime)
+      .filter(t => {
+        if (!t.startTime || !t.endTime) return false;
+        if (tc.id === 'reading' && (!t.type || t.type === 'study')) return true;
+        return t.type === tc.id;
+      })
       .reduce((sum, t) => {
         const [sh, sm] = t.startTime!.split(':').map(Number);
         const [eh, em] = t.endTime!.split(':').map(Number);
@@ -659,7 +698,13 @@ export default function StudyPlannerPage() {
                         <option value="Science & Technology">Science &amp; Technology</option>
                         <option value="Ethics">Ethics</option>
                         <option value="Current Affairs">Current Affairs</option>
+                        <option value="GS1">GS1</option>
+                        <option value="GS2">GS2</option>
+                        <option value="GS3">GS3</option>
+                        <option value="GS4">GS4</option>
                         <option value="Essay">Essay</option>
+                        <option value="Optional">Optional</option>
+                        <option value="Mock Test">Mock Test</option>
                       </select>
                       <svg className="absolute pointer-events-none" style={{ right: '14px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px' }} viewBox="0 0 24 24" fill="none">
                         <path d="M6 9l6 6 6-6" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

@@ -45,6 +45,19 @@ export default function AuthCallback() {
           }
         }
 
+        if (userRole !== 'admin') {
+          const createdAtMs = session.user?.created_at ? new Date(session.user.created_at).getTime() : Number.NaN;
+          const lastSignInAtMs = session.user?.last_sign_in_at ? new Date(session.user.last_sign_in_at).getTime() : Number.NaN;
+          const isLikelyFirstGoogleSignIn =
+            Number.isFinite(createdAtMs) &&
+            Number.isFinite(lastSignInAtMs) &&
+            Math.abs(lastSignInAtMs - createdAtMs) < 120000;
+
+          if (!isLikelyFirstGoogleSignIn) {
+            localStorage.setItem('rwj_has_logged_in', '1');
+          }
+          sessionStorage.setItem('rwj_login_success', '1');
+        }
         router.replace(userRole === 'admin' ? '/admin' : '/dashboard');
       } catch (err) {
         setErrorMsg(err instanceof Error ? err.message : 'Something went wrong.');

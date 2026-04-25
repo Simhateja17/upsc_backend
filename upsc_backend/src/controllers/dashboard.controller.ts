@@ -19,6 +19,13 @@ function avg(arr: number[]): number {
   return arr.reduce((s, v) => s + v, 0) / arr.length;
 }
 
+function getDailyDummyRank(): number {
+  const now = new Date();
+  const daySeed = now.getUTCFullYear() * 10000 + (now.getUTCMonth() + 1) * 100 + now.getUTCDate();
+  const hash = ((daySeed * 9301 + 49297) % 233280) / 233280;
+  return Math.floor(670 + hash * (810 - 670 + 1));
+}
+
 /**
  * GET /api/user/dashboard
  * Overall dashboard summary
@@ -29,7 +36,7 @@ export const getDashboard = async (req: Request, res: Response, next: NextFuncti
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [todayTasks, recentActivity, streak, todayMcq, todayEditorial, todayMains, mcqAttemptToday, mainsAttemptToday] = await Promise.all([
+    const [todayTasks, recentActivity, streak, todayMcq, todayEditorial, todayMains, mcqAttemptToday, mainsAttemptToday, editorialReadToday] = await Promise.all([
       prisma.studyPlanTask.count({ where: { userId, date: today, isCompleted: false } }),
       prisma.userActivity.findMany({
         where: { userId },
@@ -42,25 +49,26 @@ export const getDashboard = async (req: Request, res: Response, next: NextFuncti
       prisma.dailyMainsQuestion.findFirst({ where: { date: today }, select: { id: true, subject: true } }),
       prisma.mCQAttempt.findFirst({ where: { userId, createdAt: { gte: today } } }),
       prisma.mainsAttempt.findFirst({ where: { userId, createdAt: { gte: today } } }),
+      prisma.editorialProgress.findFirst({ where: { userId, isRead: true, readAt: { gte: today } } }),
     ]);
 
-    // Compute days remaining until UPSC Prelims 2026 (approx May 24, 2026)
-    const prelimsDate = new Date(2026, 4, 24); // May 24, 2026
+    // Compute days remaining until UPSC Prelims 2026.
+    const prelimsDate = new Date(2026, 5, 2); // June 2, 2026
     const daysRemaining = Math.max(0, Math.ceil((prelimsDate.getTime() - Date.now()) / 86400000));
 
     // Today's trio status
     const trio = {
       mcq: {
-        status: mcqAttemptToday ? 'completed' : (todayMcq ? 'available' : 'unavailable'),
+        status: mcqAttemptToday ? 'completed' : (todayMcq ? 'pending' : 'unavailable'),
         topic: todayMcq?.title || 'Daily MCQ Challenge',
         questionCount: todayMcq?.questions?.length || 10,
       },
       editorial: {
-        status: todayEditorial ? 'available' : 'unavailable',
+        status: editorialReadToday ? 'completed' : (todayEditorial ? 'pending' : 'unavailable'),
         topic: todayEditorial?.title || 'Current Affairs',
       },
       mains: {
-        status: mainsAttemptToday ? 'completed' : (todayMains ? 'available' : 'unavailable'),
+        status: mainsAttemptToday ? 'completed' : (todayMains ? 'pending' : 'unavailable'),
         topic: todayMains?.subject || 'Answer Writing',
       },
     };
@@ -155,7 +163,7 @@ export const getPerformance = async (req: Request, res: Response, next: NextFunc
         _count: { id: true },
         _sum: { correctCount: true, wrongCount: true, skippedCount: true },
         _avg: { accuracy: true, timeTaken: true },
-        _max: { percentile: true },
+        _max: { percentile: true, rank: true },
       }),
       prisma.mCQAttempt.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 20 }),
       prisma.mainsAttempt.count({ where: { userId } }),
@@ -220,8 +228,8 @@ export const getPerformance = async (req: Request, res: Response, next: NextFunc
     const mainsQuestions = mainsCount + mockMainsCount + pyqMainsCount;
     const questionsAttempted = mcqQuestions + mockPrelimsQuestions + seriesQuestions + mainsQuestions;
 
-    // Rank — placeholder (could be computed from leaderboard later)
-    const rank = null;
+    // Rank: use measured rank when available; otherwise daily dummy rank for early cohorts.
+    const rank = mcqAgg._max.rank ?? getDailyDummyRank();
     const rankPercentile = mcqAgg._max.percentile ?? null;
 
     // Jeet coins — placeholder

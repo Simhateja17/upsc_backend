@@ -342,12 +342,13 @@ export const getTodayRecommendations = async (req: Request, res: Response, next:
 
     if (attempt) {
       if (attempt.weakTopics.length > 0) {
+        const topicsParam = encodeURIComponent(attempt.weakTopics.join(','));
         recommendations.push({
           type: "study",
           title: "Review Weak Areas",
           description: `Focus on: ${attempt.weakTopics.join(", ")}`,
-          action: "Go to Study Material",
-          link: "/dashboard/library",
+          action: "Practice Weak Areas",
+          link: `/dashboard/daily-mcq/practice?topics=${topicsParam}`,
         });
       }
       if (attempt.accuracy < 60) {
@@ -421,3 +422,72 @@ function getWeekActivity(today: Date): boolean[] {
   activity[mondayIndex] = true;
   return activity;
 }
+
+/**
+ * GET /api/daily-mcq/practice?topics=Polity,History&limit=10
+ * Returns practice questions from weak topics
+ */
+export const getPracticeQuestions = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const topicsParam = req.query.topics as string;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 20);
+
+    let topics: string[] = [];
+    if (topicsParam) {
+      topics = topicsParam.split(',').map(t => t.trim()).filter(Boolean);
+    }
+
+    // If no topics provided, fall back to user's weak topics from latest attempt
+    if (topics.length === 0) {
+      const latestAttempt = await prisma.mCQAttempt.findFirst({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+      });
+      if (latestAttempt?.weakTopics.length) {
+        topics = latestAttempt.weakTopics;
+      }
+    }
+
+    if (topics.length === 0) {
+      return res.status(400).json({ status: "error", message: "No topics provided and no weak topics found" });
+    }
+
+    // Find questions matching topics (from past 90 days to keep them relevant)
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 90);
+
+    const questions = await prisma.mCQQuestion.findMany({
+      where: {
+        category: { in: topics },
+        dailyMcq: { date: { gte: cutoff } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit * 3, // oversample so we can shuffle
+      select: {
+        id: true,
+        questionNum: true,
+        questionText: true,
+        category: true,
+        difficulty: true,
+        options: true,
+        correctOption: true,
+        explanation: true,
+      },
+    });
+
+    // Shuffle and pick limit
+    const shuffled = questions.sort(() => Math.random() - 0.5).slice(0, limit);
+
+    res.json({
+      status: "success",
+      data: {
+        topics,
+        questionCount: shuffled.length,
+        questions: shuffled,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

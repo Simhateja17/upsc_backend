@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { pricingService } from '@/lib/services';
+import PurchaseModal from '@/components/PurchaseModal';
 
 /* ------------------------------------------------------------------ */
 /*  Data                                                               */
@@ -153,6 +154,27 @@ export default function FreeTrialPage() {
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState('');
 
+  /* ---- Dynamic seats left ---- */
+  const [seatsLeft, setSeatsLeft] = useState(4);
+  useEffect(() => {
+    // Simulate slowly decreasing seats; in production this should come from API
+    const stored = localStorage.getItem('mentorshipSeatsLeft');
+    const storedTime = localStorage.getItem('mentorshipSeatsTime');
+    const now = Date.now();
+    if (stored && storedTime) {
+      const elapsed = now - parseInt(storedTime, 10);
+      const hoursPassed = Math.floor(elapsed / (1000 * 60 * 60));
+      const decrease = Math.min(hoursPassed, 4); // decrease by up to 4 over time
+      const base = Math.max(1, parseInt(stored, 10) - decrease);
+      setSeatsLeft(base);
+    } else {
+      const initial = 4;
+      localStorage.setItem('mentorshipSeatsLeft', String(initial));
+      localStorage.setItem('mentorshipSeatsTime', String(now));
+      setSeatsLeft(initial);
+    }
+  }, []);
+
   /* ---- Fetch plans & testimonials on mount ---- */
   useEffect(() => {
     pricingService.getPlans()
@@ -195,6 +217,11 @@ export default function FreeTrialPage() {
 
   const displayPlans = (apiPlans ?? []).map(transformPlan);
   const displayTestimonials = (apiTestimonials ?? []).map(transformTestimonial);
+
+  const [purchaseModal, setPurchaseModal] = useState<{
+    open: boolean;
+    plan: any;
+  }>({ open: false, plan: null });
 
   return (
     <div style={{ background: '#F9FAFB', minHeight: '100vh' }}>
@@ -518,7 +545,7 @@ export default function FreeTrialPage() {
                   }}
                   className="font-arimo"
                 >
-                  ✦ Only 4 seats left
+                  ✦ Only {seatsLeft} seats left
                 </span>
                 <span
                   style={{
@@ -774,6 +801,7 @@ export default function FreeTrialPage() {
 
                 {/* CTA */}
                 <button
+                  onClick={() => setPurchaseModal({ open: true, plan })}
                   style={{
                     width: '100%',
                     padding: 'clamp(12px, 1vw, 16px)',
@@ -1539,7 +1567,11 @@ export default function FreeTrialPage() {
                   <input
                     type="tel"
                     value={bookingPhone}
-                    onChange={(e) => setBookingPhone(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setBookingPhone(val);
+                    }}
+                    maxLength={10}
                     placeholder="e.g. 9876543210"
                     style={{
                       width: '100%',
@@ -1637,6 +1669,15 @@ export default function FreeTrialPage() {
           </div>
         </div>
       )}
+
+      <PurchaseModal
+        open={purchaseModal.open}
+        onClose={() => setPurchaseModal({ open: false, plan: null })}
+        itemType="plan"
+        itemId={purchaseModal.plan?.name || ''}
+        itemName={purchaseModal.plan?.name || ''}
+        amount={Number(purchaseModal.plan?.price?.replace?.(/[^0-9]/g, '')) || 0}
+      />
     </div>
   );
 }

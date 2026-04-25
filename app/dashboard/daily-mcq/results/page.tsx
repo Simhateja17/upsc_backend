@@ -48,7 +48,9 @@ export default function DailyMcqResultsPage() {
 
   const minutes = Math.floor(r.timeTaken / 60);
   const seconds = r.timeTaken % 60;
-  const speed = r.questionCount > 0 ? (r.timeTaken / 60 / r.questionCount).toFixed(2) : '0';
+  const attemptedCount = r.correctCount + r.wrongCount;
+  const effectiveTimeSeconds = Math.min(r.timeTaken, 10 * 60);
+  const speed = attemptedCount > 0 ? (effectiveTimeSeconds / 60 / attemptedCount).toFixed(2) : '0';
 
   return (
     <div className="flex flex-col min-h-screen panel-recessed">

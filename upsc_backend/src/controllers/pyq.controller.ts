@@ -37,27 +37,57 @@ export const getPublicPYQQuestions = async (
     if (year) where.year = parseInt(year);
     if (paper) where.paper = paper;
 
-    const [questions, total] = await Promise.all(
+    // UPSC priority subject order for "All Papers" default sort.
+    const PRIORITY = [
+      "polity", "economy", "geography", "environment",
+      "history", "science", "current affairs", "international",
+    ];
+
+    // Drop non-UPSC noise from default listing
+    const EXCLUDE_SUBJECTS = ["sports", "entertainment", "lifestyle"];
+
+    const [rawQuestions, total] = await Promise.all(
       mode === "mains"
         ? [
             prisma.pYQMainsQuestion.findMany({
               where,
-              orderBy: { createdAt: "desc" },
+              // Latest year first, latest created as tiebreaker
+              orderBy: [{ year: "desc" }, { createdAt: "desc" }],
               skip,
-              take: limit,
+              take: limit * 3, // over-fetch for re-ranking by subject
             }),
             prisma.pYQMainsQuestion.count({ where }),
           ]
         : [
             prisma.pYQQuestion.findMany({
               where,
-              orderBy: { createdAt: "desc" },
+              orderBy: [{ year: "desc" }, { createdAt: "desc" }],
               skip,
-              take: limit,
+              take: limit * 3,
             }),
             prisma.pYQQuestion.count({ where }),
           ]
     );
+
+    // Drop noise subjects and re-rank by priority when no subject filter is set
+    const filtered = rawQuestions.filter((q: any) => {
+      const s = (q.subject || "").toLowerCase();
+      return !EXCLUDE_SUBJECTS.some((ex) => s.includes(ex));
+    });
+
+    let questions = filtered;
+    if (!subject || subject === "All Papers") {
+      const rank = (subj: string) => {
+        const s = (subj || "").toLowerCase();
+        const idx = PRIORITY.findIndex((p) => s.includes(p));
+        return idx === -1 ? PRIORITY.length : idx;
+      };
+      questions = [...filtered].sort((a: any, b: any) => {
+        if (a.year !== b.year) return (b.year || 0) - (a.year || 0);
+        return rank(a.subject) - rank(b.subject);
+      });
+    }
+    questions = questions.slice(0, limit);
 
     console.log(`[PYQ] Found ${questions.length} questions (total: ${total})`);
 
