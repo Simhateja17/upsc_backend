@@ -15,6 +15,17 @@ if [ "$1" != "--post-pull" ]; then
   exec bash "$APP_DIR/deploy/2-deploy.sh" --post-pull
 fi
 
+echo "=== Checking Node.js version ==="
+NODE_VERSION=$(node -v | sed 's/v//')
+NODE_MAJOR=$(echo "$NODE_VERSION" | cut -d. -f1)
+NODE_MINOR=$(echo "$NODE_VERSION" | cut -d. -f2)
+if [ "$NODE_MAJOR" -lt 20 ] || { [ "$NODE_MAJOR" -eq 20 ] && [ "$NODE_MINOR" -lt 19 ]; }; then
+  echo "Node.js $NODE_VERSION is too old (pdf-to-img requires >= 20.19.0). Upgrading..."
+  sudo apt-get update -qq
+  sudo apt-get install -y -qq nodejs
+  echo "Node.js is now $(node -v)"
+fi
+
 echo "=== Installing dependencies ==="
 npm install
 

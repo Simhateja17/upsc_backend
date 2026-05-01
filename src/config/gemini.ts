@@ -1,5 +1,4 @@
 import { azureClient, chatDeployment, generateJSON as azureGenerateJSON } from "./azure";
-import { pdf } from "pdf-to-img";
 
 export async function generateJSON<T>(
   prompt: string,
@@ -92,6 +91,7 @@ export async function extractTextFromFile(
     // Convert PDF to image and OCR — handles both text-based and scanned PDFs
     console.log("[OCR] Converting PDF page 1 to image for vision OCR...");
     try {
+      const { pdf } = await import("pdf-to-img");
       const document = await pdf(fileBuffer, { scale: 2 });
       let firstPageBuffer: Buffer | null = null;
       for await (const image of document) {
