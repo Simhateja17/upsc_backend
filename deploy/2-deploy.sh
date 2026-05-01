@@ -11,7 +11,7 @@ echo "=== Pulling latest code ==="
 git pull origin main
 
 echo "=== Installing dependencies ==="
-npm ci --production=false
+npm install
 
 echo "=== Generating Prisma client ==="
 npx prisma generate
