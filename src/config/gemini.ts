@@ -88,8 +88,22 @@ export async function extractTextFromFile(
   mimeType: string
 ): Promise<string> {
   if (mimeType === "application/pdf") {
+    console.log("[OCR] PDF detected — trying pdf-parse first...");
+    try {
+      // Dynamic require to avoid TypeScript import issues with this CJS package
+      const pdfParse = require("pdf-parse");
+      const parsed = await pdfParse(fileBuffer);
+      const text = parsed.text?.trim() || "";
+      if (text.length >= 50) {
+        console.log(`[OCR] pdf-parse OK (${text.length} chars)`);
+        return text;
+      }
+      console.log(`[OCR] pdf-parse returned only ${text.length} chars — likely a scanned/image PDF.`);
+    } catch {
+      console.log("[OCR] pdf-parse failed — treating as scanned PDF.");
+    }
     throw new Error(
-      "Azure vision OCR does not accept raw PDF in image_url. Convert PDF pages to images first."
+      "Your uploaded PDF appears to be a scanned image. Please upload a clear photo (JPG/PNG) of your handwritten answer instead."
     );
   }
 
