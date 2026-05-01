@@ -110,12 +110,22 @@ export function createPrismaMockTestRepository(): MockTestRepository {
     async countUserAttemptsToday(userId) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const { count } = await supabaseAdmin
-        .from("mock_test_attempts")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .gte("completed_at", today.toISOString());
-      return count || 0;
+      const todayIso = today.toISOString();
+
+      const [prelimsRes, mainsRes] = await Promise.all([
+        supabaseAdmin
+          .from("mock_test_attempts")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .gte("completed_at", todayIso),
+        supabaseAdmin
+          .from("mock_test_mains_attempts")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .gte("submitted_at", todayIso),
+      ]);
+
+      return (prelimsRes.count || 0) + (mainsRes.count || 0);
     },
 
     async findPYQMains(subject, paperType, limit = 40) {
