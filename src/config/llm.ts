@@ -108,6 +108,16 @@ export async function invokeModel(
         },
         { signal: AbortSignal.timeout(45000) }
       );
+    } else if (msg.includes("temperature")) {
+      // Some models (e.g. gpt-5.3-chat) do not support temperature values other than the default.
+      response = await azureClient.chat.completions.create(
+        {
+          model: chatDeployment,
+          messages: openaiMessages,
+          max_completion_tokens: maxTokens,
+        },
+        { signal: AbortSignal.timeout(45000) }
+      );
     } else {
       throw err;
     }
