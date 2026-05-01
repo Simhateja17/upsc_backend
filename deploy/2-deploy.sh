@@ -24,9 +24,6 @@ npx prisma generate
 echo "=== Building TypeScript ==="
 npm run build
 
-echo "=== Running DB migrations ==="
-npx prisma migrate deploy
-
 echo "=== Restarting PM2 ==="
 pm2 startOrReload "$APP_DIR/deploy/ecosystem.config.js" --env production
 
