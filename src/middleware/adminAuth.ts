@@ -16,7 +16,7 @@ export const requireAdmin = (
     });
   }
 
-  if ((req.user as any).role !== "admin") {
+  if ((req.user as { role?: string }).role !== "admin") {
     return res.status(403).json({
       status: "error",
       message: "Admin access required",

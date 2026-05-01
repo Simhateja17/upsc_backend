@@ -5,10 +5,18 @@ import { uploadPDF } from "../middleware/upload";
 import { uploadSingle } from "../middleware/upload";
 import { aiLimiter } from "../middleware/rateLimit";
 
-// Admin controllers
+// Admin controllers — split by domain
 import * as pyqCtrl from "../controllers/admin/pyq.controller";
 import * as editorialCtrl from "../controllers/admin/editorial.controller";
-import * as contentCtrl from "../controllers/admin/content.controller";
+import * as dailyMcqCtrl from "../controllers/admin/daily-mcq.controller";
+import * as dailyMainsCtrl from "../controllers/admin/daily-mains.controller";
+import * as libraryCtrl from "../controllers/admin/library.controller";
+import * as usersCtrl from "../controllers/admin/users.controller";
+import * as videoCtrl from "../controllers/admin/video.controller";
+import * as testimonialsCtrl from "../controllers/admin/testimonials.controller";
+import * as pricingCtrl from "../controllers/admin/pricing.controller";
+import * as faqCtrl from "../controllers/admin/faq.controller";
+import * as analyticsCtrl from "../controllers/admin/analytics.controller";
 import * as aiCostCtrl from "../controllers/admin/aiCost.controller";
 import * as cmsCtrl from "../controllers/admin/cms.controller";
 import * as studyMaterialCtrl from "../controllers/admin/studyMaterial.controller";
@@ -39,15 +47,15 @@ router.post("/editorials/sync-rss", aiLimiter, editorialCtrl.triggerRssSync);
 router.post("/editorials/:id/summarize", aiLimiter, editorialCtrl.triggerSummarize);
 
 // ==================== Daily MCQ Management ====================
-router.get("/daily-mcq", contentCtrl.getDailyMCQSets);
-router.post("/daily-mcq", contentCtrl.createDailyMCQ);
-router.post("/daily-mcq/generate", aiLimiter, contentCtrl.triggerDailyMCQ);
+router.get("/daily-mcq", dailyMcqCtrl.getDailyMCQSets);
+router.post("/daily-mcq", dailyMcqCtrl.createDailyMCQ);
+router.post("/daily-mcq/generate", aiLimiter, dailyMcqCtrl.triggerDailyMCQ);
 
 // ==================== Daily Mains Management ====================
-router.get("/daily-mains", contentCtrl.getDailyMainsQuestions);
-router.post("/daily-mains", contentCtrl.createDailyMains);
-router.put("/daily-mains/:id", contentCtrl.updateDailyMains);
-router.post("/daily-mains/generate", aiLimiter, contentCtrl.triggerDailyMains);
+router.get("/daily-mains", dailyMainsCtrl.getDailyMainsQuestions);
+router.post("/daily-mains", dailyMainsCtrl.createDailyMains);
+router.put("/daily-mains/:id", dailyMainsCtrl.updateDailyMains);
+router.post("/daily-mains/generate", aiLimiter, dailyMainsCtrl.triggerDailyMains);
 
 // ==================== Study Material RAG (Mock Test Source) ====================
 router.post("/study-materials/upload", uploadPDF, studyMaterialCtrl.uploadStudyMaterial);
@@ -60,40 +68,46 @@ router.get("/mock-test-materials", mockTestMaterialCtrl.getMockTestMaterials);
 router.delete("/mock-test-materials/:id", mockTestMaterialCtrl.deleteMockTestMaterial);
 
 // ==================== Library Management ====================
-router.post("/library/subjects", contentCtrl.createSubject);
-router.post("/library/chapters", contentCtrl.createChapter);
-router.post("/library/materials/upload", uploadSingle("file"), contentCtrl.uploadMaterial);
+router.post("/library/subjects", libraryCtrl.createSubject);
+router.post("/library/chapters", libraryCtrl.createChapter);
+router.post("/library/materials/upload", uploadSingle("file"), libraryCtrl.uploadMaterial);
 
 // ==================== User Management ====================
-router.get("/users", contentCtrl.getUsers);
-router.put("/users/:id", contentCtrl.updateUser);
+router.get("/users", usersCtrl.getUsers);
+router.put("/users/:id", usersCtrl.updateUser);
 
 // ==================== Video Management ====================
-router.get("/videos/subjects", contentCtrl.getVideoSubjects);
-router.post("/videos/subjects", contentCtrl.createVideoSubject);
-router.put("/videos/subjects/:id", contentCtrl.updateVideoSubject);
-router.delete("/videos/subjects/:id", contentCtrl.deleteVideoSubject);
-router.post("/videos", contentCtrl.createVideo);
-router.put("/videos/:id", contentCtrl.updateVideo);
-router.delete("/videos/:id", contentCtrl.deleteVideo);
-router.get("/videos/:id/questions", contentCtrl.getVideoQuestions);
-router.post("/videos/:id/questions", contentCtrl.createVideoQuestion);
-router.delete("/videos/:videoId/questions/:qid", contentCtrl.deleteVideoQuestion);
+router.get("/videos/subjects", videoCtrl.getVideoSubjects);
+router.post("/videos/subjects", videoCtrl.createVideoSubject);
+router.put("/videos/subjects/:id", videoCtrl.updateVideoSubject);
+router.delete("/videos/subjects/:id", videoCtrl.deleteVideoSubject);
+router.post("/videos", videoCtrl.createVideo);
+router.put("/videos/:id", videoCtrl.updateVideo);
+router.delete("/videos/:id", videoCtrl.deleteVideo);
+router.get("/videos/:id/questions", videoCtrl.getVideoQuestions);
+router.post("/videos/:id/questions", videoCtrl.createVideoQuestion);
+router.delete("/videos/:videoId/questions/:qid", videoCtrl.deleteVideoQuestion);
 
 // ==================== Testimonials Management ====================
-router.get("/testimonials", contentCtrl.getTestimonialsAdmin);
-router.post("/testimonials", contentCtrl.createTestimonial);
-router.put("/testimonials/:id", contentCtrl.updateTestimonial);
-router.delete("/testimonials/:id", contentCtrl.deleteTestimonial);
+router.get("/testimonials", testimonialsCtrl.getTestimonialsAdmin);
+router.post("/testimonials", testimonialsCtrl.createTestimonial);
+router.put("/testimonials/:id", testimonialsCtrl.updateTestimonial);
+router.delete("/testimonials/:id", testimonialsCtrl.deleteTestimonial);
 
 // ==================== Pricing Plans Management ====================
-router.get("/pricing", contentCtrl.getPricingPlansAdmin);
-router.post("/pricing", contentCtrl.createPricingPlan);
-router.put("/pricing/:id", contentCtrl.updatePricingPlan);
-router.delete("/pricing/:id", contentCtrl.deletePricingPlan);
+router.get("/pricing", pricingCtrl.getPricingPlansAdmin);
+router.post("/pricing", pricingCtrl.createPricingPlan);
+router.put("/pricing/:id", pricingCtrl.updatePricingPlan);
+router.delete("/pricing/:id", pricingCtrl.deletePricingPlan);
+
+// ==================== FAQ Management ====================
+router.get("/faqs", faqCtrl.getFaqsAdmin);
+router.post("/faqs", faqCtrl.createFaq);
+router.put("/faqs/:id", faqCtrl.updateFaq);
+router.delete("/faqs/:id", faqCtrl.deleteFaq);
 
 // ==================== Analytics ====================
-router.get("/analytics", contentCtrl.getAnalytics);
+router.get("/analytics", analyticsCtrl.getAnalytics);
 
 // ==================== AI Cost Tracking ====================
 router.get("/ai-cost", aiCostCtrl.getAiCost);

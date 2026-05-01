@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
-import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify } from "jose";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { supabaseAdmin } from "../config/supabase";
 
 // ── Dynamic JWKS — fetches keys from Supabase, cached in-memory ────────────
@@ -8,9 +8,8 @@ import { supabaseAdmin } from "../config/supabase";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 if (!SUPABASE_URL) throw new Error("Missing SUPABASE_URL env var");
 
-const issuer = `${SUPABASE_URL.replace(/\/$/, "")}/auth/v1`;
 const JWKS = createRemoteJWKSet(
-  new URL(`${issuer}/.well-known/jwks.json`),
+  new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`),
   {
     cacheMaxAge: 3_600_000,    // cache keys for 1 hour
     cooldownDuration: 30_000,  // wait 30s between re-fetches on failure
@@ -35,7 +34,7 @@ declare global {
 
 interface SupabaseJwtPayload {
   sub: string;
-  email?: string;
+  email: string;
   user_metadata?: {
     first_name?: string;
     last_name?: string;
@@ -76,12 +75,10 @@ async function findUserBySupabaseId(supabaseId: string) {
  */
 async function createUser(authUser: {
   id: string;
-  email?: string;
+  email: string;
   user_metadata?: SupabaseJwtPayload["user_metadata"];
   email_confirmed_at?: string;
 }) {
-  if (!authUser.email) return null;
-
   const metadata = authUser.user_metadata || {};
   const now = new Date().toISOString();
   const { data, error } = await supabaseAdmin
@@ -145,68 +142,14 @@ export const authenticate = async (
 
     const token = authHeader.split(" ")[1];
 
-    // Verify token with remote JWKS so key rotation is handled automatically.
-    // Fallback to Supabase Auth API when JWKS path fails unexpectedly.
+    // Verify token using embedded public key — zero network calls
     let payload: SupabaseJwtPayload;
     try {
-      const { payload: jwtPayload } = await jwtVerify(token, JWKS, {
-        issuer,
-        audience: "authenticated",
-      });
+      const { payload: jwtPayload } = await jwtVerify(token, JWKS);
       payload = jwtPayload as unknown as SupabaseJwtPayload;
     } catch (err) {
-      try {
-        const {
-          data: { user: authUser },
-          error,
-        } = await supabaseAdmin.auth.getUser(token);
-
-        if (error || !authUser) throw error;
-
-        payload = {
-          sub: authUser.id,
-          email: authUser.email,
-          user_metadata: authUser.user_metadata as SupabaseJwtPayload["user_metadata"],
-          email_confirmed_at: authUser.email_confirmed_at ?? undefined,
-        };
-      } catch (fallbackErr) {
-        const kid = (() => {
-          try {
-            return decodeProtectedHeader(token).kid;
-          } catch {
-            return undefined;
-          }
-        })();
-        const reason =
-          fallbackErr instanceof Error
-            ? fallbackErr.message
-            : err instanceof Error
-            ? err.message
-            : "unknown";
-
-        console.log(
-          `[Auth] Invalid/expired token for ${req.method} ${req.originalUrl} (kid=${kid ?? "n/a"}, reason=${reason})`
-        );
-        return res.status(401).json({
-          status: "error",
-          message: "Invalid or expired token",
-        });
-      }
-
-      if (!payload.sub) {
-        console.log(
-          `[Auth] Invalid token payload for ${req.method} ${req.originalUrl} (missing sub)`
-        );
-        return res.status(401).json({
-          status: "error",
-          message: "Invalid or expired token",
-        });
-      }
-    }
-
-    if (!payload.sub || !payload.email) {
       console.log(
-        `[Auth] Invalid token payload for ${req.method} ${req.originalUrl} (missing sub/email)`
+        `[Auth] Invalid/expired token for ${req.method} ${req.originalUrl}`
       );
       return res.status(401).json({
         status: "error",
@@ -267,28 +210,10 @@ export const optionalAuth = async (
 
     let payload: SupabaseJwtPayload;
     try {
-      const { payload: jwtPayload } = await jwtVerify(token, JWKS, {
-        issuer,
-        audience: "authenticated",
-      });
+      const { payload: jwtPayload } = await jwtVerify(token, JWKS);
       payload = jwtPayload as unknown as SupabaseJwtPayload;
     } catch (err) {
-      try {
-        const {
-          data: { user: authUser },
-          error,
-        } = await supabaseAdmin.auth.getUser(token);
-
-        if (error || !authUser) return next();
-        payload = {
-          sub: authUser.id,
-          email: authUser.email,
-          user_metadata: authUser.user_metadata as SupabaseJwtPayload["user_metadata"],
-          email_confirmed_at: authUser.email_confirmed_at ?? undefined,
-        };
-      } catch {
-        return next();
-      }
+      return next();
     }
 
     const authUser = {
@@ -298,7 +223,7 @@ export const optionalAuth = async (
       email_confirmed_at: payload.email_confirmed_at,
     };
 
-    if (authUser.email && authUser.id) {
+    if (authUser.email) {
       let user = await findUserBySupabaseId(authUser.id);
 
       if (!user) {

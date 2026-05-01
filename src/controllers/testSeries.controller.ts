@@ -40,6 +40,46 @@ export const getSeriesStats = async (_req: Request, res: Response, next: NextFun
 };
 
 /**
+ * GET /api/test-series/:id
+ * Get a single test series detail (public)
+ */
+export const getSeriesDetail = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const seriesId = req.params.id as string;
+
+    const series = await prisma.testSeries.findUnique({
+      where: { id: seriesId, isActive: true },
+      include: {
+        _count: { select: { enrollments: true } },
+      },
+    });
+
+    if (!series) {
+      return res.status(404).json({ status: "error", message: "Test series not found" });
+    }
+
+    res.json({
+      status: "success",
+      data: {
+        id: series.id,
+        title: series.title,
+        description: series.description,
+        examMode: series.examMode,
+        subject: series.subject,
+        difficulty: series.difficulty,
+        totalTests: series.totalTests,
+        questionsPerTest: series.questionsPerTest,
+        price: series.price,
+        enrollmentCount: series._count.enrollments,
+        createdAt: series.createdAt,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/test-series
  * List all active test series (public)
  */
@@ -53,7 +93,7 @@ export const listSeries = async (req: Request, res: Response, next: NextFunction
       orderBy: { createdAt: "desc" },
     });
 
-    const result = series.map((s: any) => ({
+    const result = series.map((s) => ({
       id: s.id,
       title: s.title,
       description: s.description,
@@ -93,7 +133,7 @@ export const getEnrolledSeries = async (req: Request, res: Response, next: NextF
       orderBy: { enrolledAt: "desc" },
     });
 
-    const result = enrollments.map((e: any) => ({
+    const result = enrollments.map((e) => ({
       enrollmentId: e.id,
       enrolledAt: e.enrolledAt,
       testsCompleted: e.testsCompleted,

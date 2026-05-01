@@ -32,6 +32,8 @@ model User {
   streak            UserStreak?
   mcqAttempts       MCQAttempt[]
   mainsAttempts     MainsAttempt[]
+  pyqMainsAttempts  PyqMainsAttempt[]
+  mockTestMainsAttempts MockTestMainsAttempt[]
   editorialProgress EditorialProgress[]
   editorialBookmarks EditorialBookmark[]
   mockTestAttempts  MockTestAttempt[]
@@ -41,12 +43,14 @@ model User {
   syllabusCoverage  SyllabusCoverage[]
   mentorQuestions   MentorQuestion[]
   mentorBookings    MentorBooking[]
+  notifications     Notification[]
   pyqUploads                PYQUpload[]
   seenMcqQuestions          UserSeenMCQ[]
   chatConversations         ChatConversation[]
   studyMaterialUploads      StudyMaterialUpload[]
   mockTestMaterialUploads   MockTestMaterialUpload[]
   seriesEnrollments         UserSeriesEnrollment[]
+  orders                    Order[]
 
   @@map("users")
 }
@@ -207,11 +211,12 @@ model MainsEvaluation {
   attemptId       String   @unique @map("attempt_id")
   score           Float
   maxScore        Float    @map("max_score")
-  status          String   @default("pending") // pending, evaluating, completed
+  status          String   @default("pending") // pending, evaluating, completed, failed
   strengths       String[] // things done well
   improvements    String[] // areas to improve
   suggestions     String[] // value-add ideas
   detailedFeedback String? @map("detailed_feedback")
+  metrics         Json?    // AI-generated per-dimension metrics
   evaluatedAt     DateTime? @map("evaluated_at")
   createdAt       DateTime @default(now()) @map("created_at")
 
@@ -288,6 +293,7 @@ model MockTest {
 
   questions MockTestQuestion[]
   attempts  MockTestAttempt[]
+  mainsAttempts MockTestMainsAttempt[]
 
   @@map("mock_tests")
 }
@@ -306,6 +312,7 @@ model MockTestQuestion {
   createdAt    DateTime @default(now()) @map("created_at")
 
   mockTest MockTest @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+  mainsAttempts MockTestMainsAttempt[]
 
   @@unique([mockTestId, questionNum])
   @@map("mock_test_questions")
@@ -622,6 +629,27 @@ model PYQQuestion {
   @@map("pyq_questions")
 }
 
+model PYQMainsQuestion {
+  id           String   @id @default(uuid())
+  year         Int
+  paper        String   // GS-I, GS-II, GS-III, GS-IV, Essay
+  questionText String   @map("question_text")
+  subject      String
+  topic        String?
+  difficulty   String   @default("Medium") // Easy, Medium, Hard
+  sourceFile   String?  @map("source_file")
+  status       String   @default("draft") // draft, approved, rejected
+  uploadId     String?  @map("upload_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  upload PYQUpload? @relation(fields: [uploadId], references: [id], onDelete: SetNull)
+  mainsAttempts PyqMainsAttempt[]
+
+  @@index([subject, status])
+  @@index([year, paper])
+  @@map("pyq_mains_questions")
+}
+
 // ==================== MOCK TEST CHUNKS (RAG) ====================
 
 model MockTestMaterialUpload {
@@ -729,7 +757,9 @@ model PYQUpload {
   fileUrl        String   @map("file_url")
   year           Int
   paper          String
+  mode           String   @default("prelims") // prelims, mains
   status         String   @default("processing") // processing, parsed, reviewed, completed, vectorized
+  errorMessage   String?  @map("error_message")
   totalExtracted Int      @default(0) @map("total_extracted")
   totalApproved  Int      @default(0) @map("total_approved")
   uploadedById   String   @map("uploaded_by_id")
@@ -737,6 +767,7 @@ model PYQUpload {
 
   uploadedBy User          @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
   questions  PYQQuestion[]
+  mainsQuestions PYQMainsQuestion[]
 
   @@map("pyq_uploads")
 }
@@ -1014,4 +1045,135 @@ model SyllabusSubTopic {
 
   @@unique([topicId, name])
   @@map("syllabus_sub_topics")
+}
+
+// ==================== PYQ MAINS EVALUATION ====================
+
+model PyqMainsAttempt {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  pyqMainsQuestionId String    @map("pyq_mains_question_id")
+  answerText    String?   @map("answer_text")
+  fileUrl       String?   @map("file_url")
+  wordCount     Int       @default(0) @map("word_count")
+  submittedAt   DateTime? @map("submitted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mainsQuestion   PYQMainsQuestion    @relation(fields: [pyqMainsQuestionId], references: [id], onDelete: Cascade)
+  evaluation PyqMainsEvaluation?
+
+  @@index([userId, pyqMainsQuestionId])
+  @@map("pyq_mains_attempts")
+}
+
+model PyqMainsEvaluation {
+  id               String    @id @default(uuid())
+  attemptId        String    @unique @map("attempt_id")
+  score            Float
+  maxScore         Float     @map("max_score")
+  status           String    @default("pending") // pending, evaluating, completed, failed
+  strengths        String[]
+  improvements     String[]
+  suggestions      String[]
+  detailedFeedback String?   @map("detailed_feedback")
+  metrics          Json?     // AI-generated per-dimension metrics
+  evaluatedAt      DateTime? @map("evaluated_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  attempt PyqMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("pyq_mains_evaluations")
+}
+
+// ==================== FAQ ====================
+
+model Faq {
+  id        String   @id @default(uuid())
+  category  String
+  question  String
+  answer    String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("faqs")
+}
+
+// ==================== ORDERS ====================
+
+model Order {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  itemType    String   @map("item_type") // plan, test_series
+  itemId      String   @map("item_id")
+  itemName    String   @map("item_name")
+  amount      Int      // in paise (INR)
+  status      String   @default("pending") // pending, paid, failed, refunded
+  paymentMethod String? @map("payment_method")
+  paymentId   String?  @map("payment_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("orders")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  body      String
+  type      String   @default("general") // general, spaced_rep, mcq, answer, streak
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@map("notifications")
+}
+
+// ==================== MOCK TEST MAINS EVALUATION ====================
+
+model MockTestMainsAttempt {
+  id                 String    @id @default(uuid())
+  userId             String    @map("user_id")
+  mockTestId         String    @map("mock_test_id")
+  mockTestQuestionId String    @map("mock_test_question_id")
+  answerText         String?   @map("answer_text")
+  fileUrl            String?   @map("file_url")
+  wordCount          Int       @default(0) @map("word_count")
+  submittedAt        DateTime? @map("submitted_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  user       User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mockTest   MockTest                  @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+  question   MockTestQuestion          @relation(fields: [mockTestQuestionId], references: [id], onDelete: Cascade)
+  evaluation MockTestMainsEvaluation?
+
+  @@index([userId, mockTestId])
+  @@map("mock_test_mains_attempts")
+}
+
+model MockTestMainsEvaluation {
+  id               String    @id @default(uuid())
+  attemptId        String    @unique @map("attempt_id")
+  score            Float
+  maxScore         Float     @map("max_score")
+  status           String    @default("pending") // pending, evaluating, completed, failed
+  strengths        String[]
+  improvements     String[]
+  suggestions      String[]
+  detailedFeedback String?   @map("detailed_feedback")
+  metrics          Json?     // AI-generated per-dimension metrics
+  evaluatedAt      DateTime? @map("evaluated_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  attempt MockTestMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("mock_test_mains_evaluations")
 }

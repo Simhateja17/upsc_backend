@@ -29,31 +29,8 @@ export const signup = async (
     const { email, password, firstName, lastName, phone } = req.body;
     console.log(`[Signup] Attempt for email: ${email}`);
 
-    if (!email || !password) {
-      return res.status(400).json({ status: "error", message: "Email and password are required" });
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ status: "error", message: "Invalid email format" });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ status: "error", message: "Password must be at least 6 characters" });
-    }
-
-    // Check if user already exists via REST
-    const { data: existing } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("email", email.toLowerCase())
-      .single();
-
-    if (existing) {
-      return res.status(409).json({ status: "error", message: "An account with this email already exists" });
-    }
-
-    // Create user in Supabase Auth
+    // Zod validation middleware guarantees email + password are present and valid.
+    // Direct to Supabase — avoids user enumeration via timing discrimination.
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.toLowerCase(),
       password,
@@ -137,10 +114,7 @@ export const login = async (
     const { email, password } = req.body;
     console.log(`[Login] Attempt for email: ${email}`);
 
-    if (!email || !password) {
-      return res.status(400).json({ status: "error", message: "Email and password are required" });
-    }
-
+    // Zod validation middleware guarantees email + password are present.
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: email.toLowerCase(),
       password,
@@ -178,32 +152,25 @@ export const login = async (
       user = newUser;
     }
 
-    if (!user) {
-      return res.status(500).json({
-        status: "error",
-        message: "Failed to load user profile after login",
-      });
-    }
-
     if (authData.user.email_confirmed_at && !user?.email_verified) {
       await supabaseAdmin
         .from("users")
         .update({ email_verified: true })
-        .eq("id", user.id);
+        .eq("id", user!.id);
     }
 
-    console.log(`[Login] Successful for: ${user.email} (${user.id})`);
+    console.log(`[Login] Successful for: ${user!.email} (${user!.id})`);
     res.json({
       status: "success",
       message: "Login successful",
       data: {
         user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          avatarUrl: user.avatar_url,
-          role: user.role,
+          id: user!.id,
+          email: user!.email,
+          firstName: user!.first_name,
+          lastName: user!.last_name,
+          avatarUrl: user!.avatar_url,
+          role: user!.role,
         },
         session: {
           accessToken: authData.session.access_token,
@@ -382,31 +349,87 @@ export const authCallback = async (
       return res.status(401).json({ status: "error", message: "Invalid token" });
     }
 
-    let { data: user } = await supabaseAdmin
+    if (!authUser.email) {
+      return res.status(400).json({ status: "error", message: "Authenticated user email is missing" });
+    }
+
+    const { data: existingUser, error: lookupError } = await supabaseAdmin
       .from("users")
       .select("*")
       .eq("supabase_id", authUser.id)
-      .single();
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error("[AuthCallback] User lookup failed:", lookupError.message, lookupError.code);
+    }
+
+    let user = existingUser;
 
     const metadata = authUser.user_metadata || {};
     const metaFirst = metadata.first_name || metadata.full_name?.split(" ")[0] || null;
     const metaLast = metadata.last_name || metadata.full_name?.split(" ").slice(1).join(" ") || null;
 
     if (!user) {
-      const { data: newUser } = await supabaseAdmin
+      const { data: newUser, error: insertError } = await supabaseAdmin
         .from("users")
         .insert({
           id: randomUUID(),
           supabase_id: authUser.id,
-          email: authUser.email!.toLowerCase(),
+          email: authUser.email.toLowerCase(),
           first_name: metaFirst,
           last_name: metaLast,
           avatar_url: metadata.avatar_url || metadata.picture,
           email_verified: !!authUser.email_confirmed_at,
         })
         .select("*")
-        .single();
+        .maybeSingle();
       user = newUser;
+
+      if (insertError) {
+        console.error("[AuthCallback] User insert failed:", insertError.message, insertError.code);
+
+        // If a previous request created the user, recover instead of crashing.
+        const { data: recoveredBySupabaseId, error: recoverBySupabaseIdError } = await supabaseAdmin
+          .from("users")
+          .select("*")
+          .eq("supabase_id", authUser.id)
+          .maybeSingle();
+
+        if (recoverBySupabaseIdError) {
+          console.error("[AuthCallback] User recovery by Supabase id failed:", recoverBySupabaseIdError.message, recoverBySupabaseIdError.code);
+        }
+
+        if (recoveredBySupabaseId) {
+          user = recoveredBySupabaseId;
+        } else {
+          const { data: recoveredByEmail, error: recoverByEmailError } = await supabaseAdmin
+            .from("users")
+            .select("*")
+            .eq("email", authUser.email.toLowerCase())
+            .maybeSingle();
+
+          if (recoverByEmailError) {
+            console.error("[AuthCallback] User recovery by email failed:", recoverByEmailError.message, recoverByEmailError.code);
+          }
+
+          if (recoveredByEmail && recoveredByEmail.supabase_id !== authUser.id) {
+            const { data: relinkedUser, error: relinkError } = await supabaseAdmin
+              .from("users")
+              .update({ supabase_id: authUser.id })
+              .eq("id", recoveredByEmail.id)
+              .select("*")
+              .maybeSingle();
+
+            if (relinkError) {
+              console.error("[AuthCallback] User relink failed:", relinkError.message, relinkError.code);
+            }
+
+            user = relinkedUser || recoveredByEmail;
+          } else {
+            user = recoveredByEmail;
+          }
+        }
+      }
     } else if (!user.first_name && !user.last_name && (metaFirst || metaLast)) {
       const { data: updated } = await supabaseAdmin
         .from("users")
@@ -415,6 +438,13 @@ export const authCallback = async (
         .select("*")
         .single();
       user = updated || user;
+    }
+
+    if (!user) {
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to sync user profile",
+      });
     }
 
     res.json({

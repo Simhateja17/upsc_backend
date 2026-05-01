@@ -72,7 +72,6 @@ export const submitTextAnswer = async (req: Request, res: Response, next: NextFu
   try {
     const userId = req.user!.id;
     const { answerText } = req.body;
-    console.log(`[Daily Answer] Text submission by user: ${userId}, length: ${answerText?.length || 0}`);
 
     if (!answerText || answerText.trim().length === 0) {
       return res.status(400).json({ status: "error", message: "Answer text is required" });
@@ -99,8 +98,8 @@ export const submitTextAnswer = async (req: Request, res: Response, next: NextFu
       update: { answerText, wordCount, submittedAt: new Date() },
     });
 
-    // Start evaluation (simulated AI evaluation)
-    await startEvaluation(attempt.id, answerText, question);
+    // Start evaluation (real Azure OpenAI scoring for typed answers)
+    await startEvaluation(attempt.id, answerText, question, null);
 
     // Log activity
     await prisma.userActivity.create({
@@ -125,7 +124,6 @@ export const submitTextAnswer = async (req: Request, res: Response, next: NextFu
 export const uploadAnswer = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    console.log(`[Daily Answer] File upload by user: ${userId}, file: ${req.file?.originalname || "URL"}`);
     const today = getToday();
     const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: today } });
 
@@ -159,7 +157,7 @@ export const uploadAnswer = async (req: Request, res: Response, next: NextFuncti
       update: { fileUrl, submittedAt: new Date() },
     });
 
-    await startEvaluation(attempt.id, null, question);
+    await startEvaluation(attempt.id, null, question, attempt.fileUrl);
 
     await prisma.userActivity.create({
       data: { userId, type: "answer", title: "Uploaded Daily Answer", description: question.subject },
@@ -248,16 +246,20 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
   }
 };
 
-// Real AI evaluation using Bedrock/Claude
-async function startEvaluation(attemptId: string, answerText: string | null, question: any) {
-  console.log(`[Evaluation] Starting AI evaluation for attempt: ${attemptId}`);
+// Real AI evaluation using Azure OpenAI (typed) or Gemini OCR → Azure OpenAI (uploads)
+async function startEvaluation(
+  attemptId: string,
+  answerText: string | null,
+  question: { questionText: string; subject: string; marks: number; paper: string },
+  fileUrl: string | null
+) {
   // Run evaluation asynchronously (don't block the response)
   evaluateAnswer(attemptId, answerText, {
     questionText: question.questionText,
     subject: question.subject,
     marks: question.marks,
     paper: question.paper,
-  }, question.fileUrl)
+  }, fileUrl)
     .then(async () => {
       // Send email notification on completion
       try {
@@ -274,8 +276,7 @@ async function startEvaluation(attemptId: string, answerText: string | null, que
           );
         }
       } catch (err) {
-        console.error("Email notification error:", err);
+        // Email notification failure is non-critical; silently ignore
       }
-    })
-    .catch((err) => console.error("Evaluation error:", err));
+    });
 }

@@ -43,3 +43,23 @@ export const getPageContent = async (req: Request, res: Response) => {
     res.status(500).json({ status: "error", message: error.message });
   }
 };
+
+// GET /faqs — Returns active FAQs grouped by category (no auth)
+export const getFaqsPublic = async (_req: Request, res: Response) => {
+  try {
+    const faqs = await prisma.faq.findMany({
+      where: { isActive: true },
+      orderBy: { order: "asc", createdAt: "desc" },
+    });
+
+    const grouped: Record<string, Array<{ id: string; question: string; answer: string }>> = {};
+    for (const f of faqs) {
+      if (!grouped[f.category]) grouped[f.category] = [];
+      grouped[f.category].push({ id: f.id, question: f.question, answer: f.answer });
+    }
+
+    res.json({ status: "success", data: grouped });
+  } catch (error: any) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
+};

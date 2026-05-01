@@ -141,3 +141,43 @@ export const getTestimonials = async (_req: Request, res: Response, next: NextFu
     next(error);
   }
 };
+
+/**
+ * POST /api/pricing/orders
+ * Create a purchase order
+ */
+export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const { itemType, itemId, itemName, amount } = req.body;
+
+    if (!itemType || !itemId || !itemName || amount === undefined) {
+      return res.status(400).json({ status: "error", message: "itemType, itemId, itemName, and amount are required" });
+    }
+
+    const order = await prisma.order.create({
+      data: { userId, itemType, itemId, itemName, amount: Number(amount), status: "pending" },
+    });
+
+    res.status(201).json({ status: "success", data: order });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/pricing/orders
+ * List user's orders
+ */
+export const getOrders = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const orders = await prisma.order.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json({ status: "success", data: orders });
+  } catch (error) {
+    next(error);
+  }
+};

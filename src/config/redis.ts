@@ -10,8 +10,8 @@ if (REDIS_URL) {
       maxRetriesPerRequest: 3,
       lazyConnect: true,
     });
-    redisClient.connect().catch((err: unknown) => {
-      console.warn("[Redis] Connection failed, falling back to in-memory:", (err as Error).message);
+    redisClient.connect().catch((err) => {
+      console.warn("[Redis] Connection failed, falling back to in-memory:", err.message);
       redisClient = null;
     });
     console.log("[Redis] Client initialized");

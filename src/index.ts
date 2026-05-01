@@ -3,6 +3,7 @@ dns.setDefaultResultOrder("ipv4first");
 
 import express, { Application } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import dotenv from "dotenv";
 
 // Load environment variables
@@ -25,10 +26,10 @@ const app: Application = express();
 app.use(requestId);
 app.use(pinoHttp({
   logger,
-  genReqId: (req: any) => req.id,
+  genReqId: (req) => (req as any).id,
   serializers: {
-    req: (req: any) => ({ method: req.method, url: req.url, id: req.id }),
-    res: (res: any) => ({ statusCode: res.statusCode }),
+    req: (req) => ({ method: req.method, url: req.url, id: req.id }),
+    res: (res) => ({ statusCode: res.statusCode }),
   },
 }));
 
@@ -37,6 +38,10 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
+    // Allow only the exact Next.js dev port
+    if (config.nodeEnv === "development" && /^http:\/\/localhost(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
     if (config.cors.origins.includes(origin)) {
       return callback(null, true);
     }
@@ -44,8 +49,9 @@ app.use(cors({
   },
   credentials: true,
 }));
+app.use(helmet());
 app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 
 // Apply general rate limiter to all API routes
 app.use("/api", generalLimiter);

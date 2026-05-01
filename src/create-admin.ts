@@ -5,10 +5,15 @@ import prisma from "./config/database";
 dotenv.config();
 
 async function createAdminUser() {
-  const email = "mg8751721@gmail.com";
-  const password = "Admin@123456"; // You should change this!
-  const firstName = "Admin";
-  const lastName = "User";
+  const email = process.env.ADMIN_SEED_EMAIL;
+  const password = process.env.ADMIN_SEED_PASSWORD;
+  const firstName = process.env.ADMIN_SEED_FIRST_NAME || "Admin";
+  const lastName = process.env.ADMIN_SEED_LAST_NAME || "User";
+
+  if (!email || !password) {
+    console.error("❌ ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD must be set in .env");
+    process.exit(1);
+  }
 
   console.log("🔧 Creating admin account...");
   console.log(`   Email: ${email}`);
@@ -115,7 +120,7 @@ async function createAdminUser() {
     console.log("✅ Admin account created successfully!");
     console.log("\n📝 Login credentials:");
     console.log(`   Email: ${email}`);
-    console.log(`   Password: ${password}`);
+    console.log("   Password: [SAVE THIS — it will not be displayed again]");
     console.log("\n⚠️  IMPORTANT: Change this password after first login!");
     console.log("\n🚀 You can now login at: http://localhost:3000/login");
 

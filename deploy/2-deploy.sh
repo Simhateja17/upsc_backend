@@ -7,12 +7,8 @@ set -e
 APP_DIR="/var/www/backend"
 cd "$APP_DIR"
 
-# Pull first, then re-exec so bash always runs the latest version of this script
-if [ "$1" != "post-update" ]; then
-  echo "=== Pulling latest code ==="
-  git pull origin main
-  exec bash "$0" post-update
-fi
+echo "=== Pulling latest code ==="
+git pull origin main
 
 echo "=== Installing dependencies ==="
 npm ci --production=false
@@ -22,6 +18,10 @@ npx prisma generate
 
 echo "=== Building TypeScript ==="
 npm run build
+
+echo "=== Running DB migrations ==="
+# Remove --skip-seed if you want to seed on each deploy
+npx prisma migrate deploy
 
 echo "=== Restarting PM2 ==="
 pm2 startOrReload "$APP_DIR/deploy/ecosystem.config.js" --env production

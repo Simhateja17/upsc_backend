@@ -38,7 +38,7 @@ export const getSyllabus = async (req: Request, res: Response, next: NextFunctio
         bg: subj.bg,
         topics: subj.topics.map((t) => ({
           name: t.name,
-          subs: t.subTopics.map((st: any) => st.name),
+          subs: t.subTopics.map((st) => st.name),
         })),
       });
     }
