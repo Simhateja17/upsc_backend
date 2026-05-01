@@ -192,12 +192,14 @@ export const getEvaluationStatus = async (req: Request, res: Response, next: Nex
       return res.status(404).json({ status: "error", message: "No attempt found" });
     }
 
+    const evalStatus = attempt.evaluation?.status || "pending";
     res.json({
       status: "success",
       data: {
         attemptId: attempt.id,
-        evaluationStatus: attempt.evaluation?.status || "pending",
-        isComplete: attempt.evaluation?.status === "completed",
+        evaluationStatus: evalStatus,
+        // "completed" and "failed" are both terminal — the client should stop polling in either case.
+        isComplete: evalStatus === "completed" || evalStatus === "failed",
       },
     });
   } catch (error) {

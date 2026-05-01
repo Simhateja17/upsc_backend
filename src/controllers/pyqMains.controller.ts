@@ -182,12 +182,14 @@ export const getPyqMainsEvaluationStatus = async (
       return res.status(404).json({ status: "error", message: "Attempt not found" });
     }
 
+    const status = attempt.evaluation?.status || "pending";
     res.json({
       status: "success",
       data: {
         attemptId: attempt.id,
-        evaluationStatus: attempt.evaluation?.status || "pending",
-        isComplete: attempt.evaluation?.status === "completed",
+        evaluationStatus: status,
+        // "completed" and "failed" are both terminal — the client should stop polling in either case.
+        isComplete: status === "completed" || status === "failed",
       },
     });
   } catch (error) {
