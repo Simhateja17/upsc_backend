@@ -1,4 +1,5 @@
 import { azureClient, chatDeployment, generateJSON as azureGenerateJSON } from "./azure";
+import { pdf } from "pdf-to-img";
 
 export async function generateJSON<T>(
   prompt: string,
@@ -102,9 +103,29 @@ export async function extractTextFromFile(
     } catch {
       console.log("[OCR] pdf-parse failed — treating as scanned PDF.");
     }
-    throw new Error(
-      "Your uploaded PDF appears to be a scanned image. Please upload a clear photo (JPG/PNG) of your handwritten answer instead."
-    );
+
+    // Scanned/image PDF — convert first page to image and OCR it
+    console.log("[OCR] Converting PDF page 1 to image for vision OCR...");
+    try {
+      const document = await pdf(fileBuffer, { scale: 2 });
+      let firstPageBuffer: Buffer | null = null;
+      for await (const image of document) {
+        firstPageBuffer = image;
+        break; // Only need the first page
+      }
+      if (!firstPageBuffer) {
+        throw new Error("Could not render any pages from the PDF.");
+      }
+      console.log(`[OCR] PDF page 1 rendered (${firstPageBuffer.length} bytes)`);
+      const text = await extractTextWithAzure(firstPageBuffer, "image/png");
+      console.log(`[OCR] Azure vision on PDF page 1 OK (${text.length} chars)`);
+      return text;
+    } catch (err: any) {
+      console.error("[OCR] PDF-to-image conversion failed:", err.message);
+      throw new Error(
+        "Could not read your PDF. Please upload a clear photo (JPG/PNG) of your handwritten answer instead."
+      );
+    }
   }
 
   if (!azureClient) {
