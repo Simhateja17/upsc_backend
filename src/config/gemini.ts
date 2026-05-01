@@ -30,24 +30,51 @@ async function extractTextWithAzure(
   const base64Data = fileBuffer.toString("base64");
   const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
-  const response = await azureClient.chat.completions.create(
-    {
-      model: chatDeployment,
-      messages: [
-        { role: "system", content: OCR_INSTRUCTION },
+  let response;
+  try {
+    response = await azureClient.chat.completions.create(
+      {
+        model: chatDeployment,
+        messages: [
+          { role: "system", content: OCR_INSTRUCTION },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Extract all handwritten text from this image:" },
+              { type: "image_url", image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+        max_completion_tokens: 4096,
+        temperature: 0,
+      },
+      { signal: AbortSignal.timeout(30000) }
+    );
+  } catch (err: any) {
+    const msg = String(err?.message || err || "");
+    // Some models (e.g. gpt-5.3-chat) do not support temperature values other than the default.
+    if (msg.includes("temperature")) {
+      response = await azureClient.chat.completions.create(
         {
-          role: "user",
-          content: [
-            { type: "text", text: "Extract all handwritten text from this image:" },
-            { type: "image_url", image_url: { url: dataUrl } },
+          model: chatDeployment,
+          messages: [
+            { role: "system", content: OCR_INSTRUCTION },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "Extract all handwritten text from this image:" },
+                { type: "image_url", image_url: { url: dataUrl } },
+              ],
+            },
           ],
+          max_completion_tokens: 4096,
         },
-      ],
-      max_completion_tokens: 4096,
-      temperature: 0,
-    },
-    { signal: AbortSignal.timeout(30000) }
-  );
+        { signal: AbortSignal.timeout(30000) }
+      );
+    } else {
+      throw err;
+    }
+  }
 
   return (response.choices[0]?.message?.content ?? "").trim();
 }

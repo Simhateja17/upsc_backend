@@ -34,14 +34,31 @@ export async function generateJSON<T>(
     );
   }
 
-  const response = await azureClient.chat.completions.create({
-    model: chatDeployment,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: prompt },
-    ],
-    temperature,
-  });
+  let response;
+  try {
+    response = await azureClient.chat.completions.create({
+      model: chatDeployment,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: prompt },
+      ],
+      temperature,
+    });
+  } catch (err: any) {
+    const msg = String(err?.message || err || "");
+    // Some models (e.g. gpt-5.3-chat) do not support temperature values other than the default.
+    if (msg.includes("temperature")) {
+      response = await azureClient.chat.completions.create({
+        model: chatDeployment,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: prompt },
+        ],
+      });
+    } else {
+      throw err;
+    }
+  }
 
   const text = response.choices[0]?.message?.content ?? "";
 
