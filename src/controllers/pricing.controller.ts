@@ -149,14 +149,20 @@ export const getTestimonials = async (_req: Request, res: Response, next: NextFu
 export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { itemType, itemId, itemName, amount } = req.body;
+    const { planId } = req.body;
 
-    if (!itemType || !itemId || !itemName || amount === undefined) {
-      return res.status(400).json({ status: "error", message: "itemType, itemId, itemName, and amount are required" });
+    if (!planId) {
+      return res.status(400).json({ status: "error", message: "planId is required" });
+    }
+
+    const plan = await prisma.pricingPlan.findUnique({ where: { id: planId } });
+    if (!plan || !plan.isActive) {
+      return res.status(404).json({ status: "error", message: "Plan not found or inactive" });
     }
 
     const order = await prisma.order.create({
-      data: { userId, itemType, itemId, itemName, amount: Number(amount), status: "pending" },
+      data: { userId, planId, amount: plan.price, status: "pending" },
+      include: { plan: true },
     });
 
     res.status(201).json({ status: "success", data: order });
