@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../../config/database";
+import { isValidSubject, normalizeSubject } from "../../constants/subjects";
 
 export const getVideoSubjects = async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -17,8 +18,12 @@ export const createVideoSubject = async (req: Request, res: Response, next: Next
   try {
     const { name, description, iconUrl, order } = req.body;
     if (!name) return res.status(400).json({ status: "error", message: "Name is required" });
+    const normalized = normalizeSubject(name);
+    if (!isValidSubject(normalized)) {
+      return res.status(400).json({ status: "error", message: `Invalid subject "${name}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+    }
     const subject = await prisma.videoSubject.create({
-      data: { name, description, iconUrl, order: order ?? 0 },
+      data: { name: normalized, description, iconUrl, order: order ?? 0 },
     });
     res.status(201).json({ status: "success", data: subject });
   } catch (error) {
@@ -31,7 +36,13 @@ export const updateVideoSubject = async (req: Request, res: Response, next: Next
     const id = req.params.id as string;
     const { name, description, iconUrl, order } = req.body;
     const data: any = {};
-    if (name !== undefined) data.name = name;
+    if (name !== undefined) {
+      const normalized = normalizeSubject(name);
+      if (!isValidSubject(normalized)) {
+        return res.status(400).json({ status: "error", message: `Invalid subject "${name}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+      }
+      data.name = normalized;
+    }
     if (description !== undefined) data.description = description;
     if (iconUrl !== undefined) data.iconUrl = iconUrl;
     if (order !== undefined) data.order = order;

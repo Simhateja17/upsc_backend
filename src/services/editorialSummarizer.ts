@@ -60,7 +60,7 @@ Title: "${title}"
 First paragraph: "${firstParagraph}"
 
 Return ONLY one of these categories (just the category name, nothing else):
-Polity, Economy, International Relations, Environment, Science & Tech, Society, Security, Governance, History, Geography`;
+History, Geography, Polity, Economy, Environment & Ecology, Science & Technology`;
 
   const result = await invokeModel(
     [{ role: "user", content: prompt }],
@@ -68,8 +68,8 @@ Polity, Economy, International Relations, Environment, Science & Tech, Society, 
   );
 
   const validCategories = [
-    "Polity", "Economy", "International Relations", "Environment",
-    "Science & Tech", "Society", "Security", "Governance", "History", "Geography",
+    "History", "Geography", "Polity", "Economy",
+    "Environment & Ecology", "Science & Technology",
   ];
 
   const category = result.trim();

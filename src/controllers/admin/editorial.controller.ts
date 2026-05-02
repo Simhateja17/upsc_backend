@@ -4,6 +4,7 @@ import { runEditorialScraper } from "../../services/editorialScraper";
 import { summarizeEditorial } from "../../services/editorialSummarizer";
 import { runRssFetch } from "../../services/rssFetcher";
 import { runEditorialSummarization } from "../../jobs/dailyEditorialJob";
+import { isValidSubject, normalizeSubject } from "../../constants/subjects";
 
 function qs(val: string | string[] | undefined): string | undefined {
   return Array.isArray(val) ? val[0] : val;
@@ -76,15 +77,23 @@ export const createEditorial = async (req: Request, res: Response, next: NextFun
       });
     }
 
+    const normalizedCategory = normalizeSubject(category);
+    if (!isValidSubject(normalizedCategory)) {
+      return res.status(400).json({
+        status: "error",
+        message: `Invalid category "${category}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology`,
+      });
+    }
+
     const editorial = await prisma.editorial.create({
       data: {
         title,
         source,
         sourceUrl,
-        category,
+        category: normalizedCategory,
         summary,
         content,
-        tags: tags || [category, source],
+        tags: tags || [normalizedCategory, source],
         publishedAt: new Date(),
       },
     });
@@ -108,7 +117,16 @@ export const updateEditorial = async (req: Request, res: Response, next: NextFun
     if (title !== undefined) updateData.title = title;
     if (source !== undefined) updateData.source = source;
     if (sourceUrl !== undefined) updateData.sourceUrl = sourceUrl;
-    if (category !== undefined) updateData.category = category;
+    if (category !== undefined) {
+      const normalized = normalizeSubject(category);
+      if (!isValidSubject(normalized)) {
+        return res.status(400).json({
+          status: "error",
+          message: `Invalid category "${category}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology`,
+        });
+      }
+      updateData.category = normalized;
+    }
     if (summary !== undefined) updateData.summary = summary;
     if (content !== undefined) updateData.content = content;
     if (tags !== undefined) updateData.tags = tags;

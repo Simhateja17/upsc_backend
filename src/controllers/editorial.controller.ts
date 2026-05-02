@@ -3,7 +3,7 @@ import { editorialRepo } from "../repositories/prisma-editorial.repository";
 import { summarizeEditorial } from "../services/editorialSummarizer";
 import { getNewsArticlesBySource, syncNewsToEditorials } from "../services/newsApi";
 import { runRssFetch } from "../services/rssFetcher";
-import { categorize, extractTags, relevanceScore } from "../services/categorizer";
+import { categorize, extractTags, relevanceScore, isValidCategory } from "../services/categorizer";
 
 /**
  * GET /api/editorials/today
@@ -31,8 +31,9 @@ export const getTodayEditorials = async (req: Request, res: Response, next: Next
 
     const parsedLimit = limit ? parseInt(limit as string) : 30;
 
-    // Rank by UPSC relevance; recency is tiebreaker
+    // Filter to only canonical subjects, then rank by UPSC relevance
     const editorials = rawEditorials
+      .filter((e) => isValidCategory(e.category))
       .map((e) => ({
         e,
         score: relevanceScore(e.title, e.summary, e.category ? `${e.category} ${(e.tags || []).join(" ")}` : null),
@@ -179,19 +180,21 @@ export const getLiveNews = async (req: Request, res: Response, next: NextFunctio
 
     const articles = await getNewsArticlesBySource(sourceType);
 
-    const transformedArticles = articles.map((article) => ({
-      id: Buffer.from(article.url).toString("base64").slice(0, 16),
-      title: article.title,
-      source: article.source.name || sourceType,
-      sourceUrl: article.url,
-      category: categorize(article.title, article.description, article.content),
-      summary: article.description || null,
-      content: article.content || null,
-      tags: extractTags(article.title, article.description, article.content),
-      publishedAt: article.publishedAt,
-      isRead: false,
-      isSaved: false,
-    }));
+    const transformedArticles = articles
+      .map((article) => ({
+        id: Buffer.from(article.url).toString("base64").slice(0, 16),
+        title: article.title,
+        source: article.source.name || sourceType,
+        sourceUrl: article.url,
+        category: categorize(article.title, article.description, article.content),
+        summary: article.description || null,
+        content: article.content || null,
+        tags: extractTags(article.title, article.description, article.content),
+        publishedAt: article.publishedAt,
+        isRead: false,
+        isSaved: false,
+      }))
+      .filter((a) => isValidCategory(a.category));
 
     res.json({ status: "success", data: transformedArticles });
   } catch (error: any) {

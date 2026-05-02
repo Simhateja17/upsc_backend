@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../../config/database";
 import { rotateDailyMCQ } from "../../jobs/dailyContentJob";
 import { qs } from "./util";
+import { isValidSubject, normalizeSubject } from "../../constants/subjects";
 
 export const getDailyMCQSets = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -63,12 +64,20 @@ export const createDailyMCQ = async (req: Request, res: Response, next: NextFunc
 
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
+      const rawCategory = q.category || q.subject || "General";
+      const normalized = normalizeSubject(rawCategory);
+      if (!isValidSubject(normalized)) {
+        return res.status(400).json({
+          status: "error",
+          message: `Invalid category "${rawCategory}" for question ${i + 1}. Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology`,
+        });
+      }
       await prisma.mCQQuestion.create({
         data: {
           dailyMcqId: dailyMcq.id,
           questionNum: i + 1,
           questionText: q.questionText,
-          category: q.category || q.subject || "General",
+          category: normalized,
           difficulty: q.difficulty || "Medium",
           options: q.options,
           correctOption: q.correctOption,

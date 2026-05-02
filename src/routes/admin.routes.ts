@@ -11,6 +11,7 @@ import * as editorialCtrl from "../controllers/admin/editorial.controller";
 import * as dailyMcqCtrl from "../controllers/admin/daily-mcq.controller";
 import * as dailyMainsCtrl from "../controllers/admin/daily-mains.controller";
 import * as libraryCtrl from "../controllers/admin/library.controller";
+import * as syllabusCtrl from "../controllers/admin/syllabus.controller";
 import * as usersCtrl from "../controllers/admin/users.controller";
 import * as videoCtrl from "../controllers/admin/video.controller";
 import * as testimonialsCtrl from "../controllers/admin/testimonials.controller";
@@ -68,9 +69,29 @@ router.get("/mock-test-materials", mockTestMaterialCtrl.getMockTestMaterials);
 router.delete("/mock-test-materials/:id", mockTestMaterialCtrl.deleteMockTestMaterial);
 
 // ==================== Library Management ====================
+router.get("/library/subjects", libraryCtrl.getSubjects);
 router.post("/library/subjects", libraryCtrl.createSubject);
+router.put("/library/subjects/:id", libraryCtrl.updateSubject);
+router.delete("/library/subjects/:id", libraryCtrl.deleteSubject);
+router.get("/library/chapters", libraryCtrl.getChapters);
 router.post("/library/chapters", libraryCtrl.createChapter);
+router.put("/library/chapters/:id", libraryCtrl.updateChapter);
+router.delete("/library/chapters/:id", libraryCtrl.deleteChapter);
+router.get("/library/materials", libraryCtrl.getMaterials);
 router.post("/library/materials/upload", uploadSingle("file"), libraryCtrl.uploadMaterial);
+router.delete("/library/materials/:id", libraryCtrl.deleteMaterial);
+
+// ==================== Syllabus Management ====================
+router.get("/syllabus/subjects", syllabusCtrl.getSyllabusSubjects);
+router.post("/syllabus/subjects", syllabusCtrl.createSyllabusSubject);
+router.put("/syllabus/subjects/:id", syllabusCtrl.updateSyllabusSubject);
+router.delete("/syllabus/subjects/:id", syllabusCtrl.deleteSyllabusSubject);
+router.post("/syllabus/topics", syllabusCtrl.createSyllabusTopic);
+router.put("/syllabus/topics/:id", syllabusCtrl.updateSyllabusTopic);
+router.delete("/syllabus/topics/:id", syllabusCtrl.deleteSyllabusTopic);
+router.post("/syllabus/sub-topics", syllabusCtrl.createSyllabusSubTopic);
+router.put("/syllabus/sub-topics/:id", syllabusCtrl.updateSyllabusSubTopic);
+router.delete("/syllabus/sub-topics/:id", syllabusCtrl.deleteSyllabusSubTopic);
 
 // ==================== User Management ====================
 router.get("/users", usersCtrl.getUsers);

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../../config/database";
 import { createDailyMainsQuestion } from "../../jobs/dailyContentJob";
 import { qs } from "./util";
+import { isValidSubject, normalizeSubject } from "../../constants/subjects";
 
 export const getDailyMainsQuestions = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -36,6 +37,14 @@ export const createDailyMains = async (req: Request, res: Response, next: NextFu
       });
     }
 
+    const normalizedSubject = normalizeSubject(subject);
+    if (!isValidSubject(normalizedSubject)) {
+      return res.status(400).json({
+        status: "error",
+        message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology`,
+      });
+    }
+
     const questionDate = new Date(date);
     questionDate.setHours(0, 0, 0, 0);
 
@@ -45,7 +54,7 @@ export const createDailyMains = async (req: Request, res: Response, next: NextFu
         title,
         questionText,
         paper,
-        subject,
+        subject: normalizedSubject,
         marks: marks || 15,
         wordLimit: wordLimit || 250,
         timeLimit: timeLimit || 20,
@@ -69,7 +78,16 @@ export const updateDailyMains = async (req: Request, res: Response, next: NextFu
     if (title !== undefined) updateData.title = title;
     if (questionText !== undefined) updateData.questionText = questionText;
     if (paper !== undefined) updateData.paper = paper;
-    if (subject !== undefined) updateData.subject = subject;
+    if (subject !== undefined) {
+      const normalized = normalizeSubject(subject);
+      if (!isValidSubject(normalized)) {
+        return res.status(400).json({
+          status: "error",
+          message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology`,
+        });
+      }
+      updateData.subject = normalized;
+    }
     if (marks !== undefined) updateData.marks = marks;
     if (wordLimit !== undefined) updateData.wordLimit = wordLimit;
     if (timeLimit !== undefined) updateData.timeLimit = timeLimit;

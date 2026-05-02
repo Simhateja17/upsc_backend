@@ -32,12 +32,12 @@ export const getSubjects = async (_req: Request, res: Response, next: NextFuncti
       return res.json({
         status: "success",
         data: [
-          { id: "1", name: "Indian Polity", description: "M. Laxmikanth", tags: ["Prelims", "Mains"], chapterCount: 12, pdfCount: 48 },
-          { id: "2", name: "History", description: "Spectrum & Bipin Chandra", tags: ["Prelims"], chapterCount: 15, pdfCount: 52 },
-          { id: "3", name: "Geography", description: "Majid Husain & NCERT", tags: ["Prelims", "Mains"], chapterCount: 10, pdfCount: 38 },
+          { id: "1", name: "History", description: "Spectrum & Bipin Chandra", tags: ["Prelims"], chapterCount: 15, pdfCount: 52 },
+          { id: "2", name: "Geography", description: "Majid Husain & NCERT", tags: ["Prelims", "Mains"], chapterCount: 10, pdfCount: 38 },
+          { id: "3", name: "Polity", description: "M. Laxmikanth", tags: ["Prelims", "Mains"], chapterCount: 12, pdfCount: 48 },
           { id: "4", name: "Economy", description: "Ramesh Singh & Sriram IAS", tags: ["Prelims", "Mains"], chapterCount: 14, pdfCount: 45 },
-          { id: "5", name: "Science & Technology", description: "Current focus", tags: ["Prelims"], chapterCount: 8, pdfCount: 24 },
-          { id: "6", name: "Environment", description: "Shankar IAS", tags: ["Prelims", "Mains"], chapterCount: 6, pdfCount: 18 },
+          { id: "5", name: "Environment & Ecology", description: "Shankar IAS", tags: ["Prelims", "Mains"], chapterCount: 6, pdfCount: 18 },
+          { id: "6", name: "Science & Technology", description: "Current focus", tags: ["Prelims"], chapterCount: 8, pdfCount: 24 },
         ],
       });
     }

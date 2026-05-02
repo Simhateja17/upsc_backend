@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { dailyMcqRepo } from "../repositories/prisma-daily-mcq.repository";
+import { isValidSubject } from "../constants/subjects";
 
 function getToday(): Date {
   const d = new Date();
@@ -45,7 +46,7 @@ export const getTodayQuestions = async (req: Request, res: Response, next: NextF
     const mcq = await getOrCreateTodayMCQ();
     if (!mcq) return res.status(404).json({ status: "error", message: "No MCQ challenge available for today" });
 
-    const questions = await dailyMcqRepo.findQuestions(mcq.id, true);
+    const questions = (await dailyMcqRepo.findQuestions(mcq.id, true)).filter((q: any) => isValidSubject(q.category));
     res.json({ status: "success", data: { mcqId: mcq.id, timeLimit: mcq.timeLimit, totalMarks: mcq.totalMarks, questions } });
   } catch (error) {
     next(error);
@@ -89,8 +90,8 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
     const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
     const score = correctCount * (mcq.totalMarks / mcq.questionCount);
 
-    const strongTopics = Object.entries(topicResults).filter(([, v]) => v.total > 0 && v.correct / v.total >= 0.7).map(([k]) => k);
-    const weakTopics = Object.entries(topicResults).filter(([, v]) => v.total > 0 && v.correct / v.total < 0.5).map(([k]) => k);
+    const strongTopics = Object.entries(topicResults).filter(([k, v]) => isValidSubject(k) && v.total > 0 && v.correct / v.total >= 0.7).map(([k]) => k);
+    const weakTopics = Object.entries(topicResults).filter(([k, v]) => isValidSubject(k) && v.total > 0 && v.correct / v.total < 0.5).map(([k]) => k);
 
     const attempt = await dailyMcqRepo.upsertAttempt({
       userId, dailyMcqId: mcq.id,
@@ -153,10 +154,12 @@ export const getTodayReview = async (req: Request, res: Response, next: NextFunc
     if (!attempt) return res.status(404).json({ status: "error", message: "No attempt found" });
 
     const responseMap = new Map<string, any>(attempt.responses.map((r: any) => [r.questionId, r]));
-    const reviewData = mcq.questions.map((q: any) => {
-      const response = responseMap.get(q.id);
-      return { id: q.id, questionNum: q.questionNum, questionText: q.questionText, category: q.category, difficulty: q.difficulty, options: q.options, correctOption: q.correctOption, explanation: q.explanation, selectedOption: response?.selectedOption || null, isCorrect: response?.isCorrect || false };
-    });
+    const reviewData = mcq.questions
+      .filter((q: any) => isValidSubject(q.category))
+      .map((q: any) => {
+        const response = responseMap.get(q.id);
+        return { id: q.id, questionNum: q.questionNum, questionText: q.questionText, category: q.category, difficulty: q.difficulty, options: q.options, correctOption: q.correctOption, explanation: q.explanation, selectedOption: response?.selectedOption || null, isCorrect: response?.isCorrect || false };
+      });
 
     res.json({ status: "success", data: { questions: reviewData } });
   } catch (error) {
@@ -209,7 +212,7 @@ export const getPracticeQuestions = async (req: Request, res: Response, next: Ne
 
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 90);
-    const questions = await dailyMcqRepo.findQuestionsByTopics(topics, cutoff, limit * 3);
+    const questions = (await dailyMcqRepo.findQuestionsByTopics(topics, cutoff, limit * 3)).filter((q: any) => isValidSubject(q.category));
     const shuffled = questions.sort(() => Math.random() - 0.5).slice(0, limit);
 
     res.json({ status: "success", data: { topics, questionCount: shuffled.length, questions: shuffled } });

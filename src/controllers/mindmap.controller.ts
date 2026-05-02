@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { isValidSubject, normalizeSubject } from "../constants/subjects";
 
 function param(req: Request, key: string): string {
   const v = req.params[key];
@@ -22,28 +23,30 @@ export const getSubjects = async (
     });
 
     const data = await Promise.all(
-      subjects.map(async (s) => {
-        const total = s.maps.length;
-        let explored = 0;
+      subjects
+        .filter((s) => isValidSubject(s.name))
+        .map(async (s) => {
+          const total = s.maps.length;
+          let explored = 0;
 
-        if (userId && total > 0) {
-          explored = await prisma.userMindmapProgress.count({
-            where: { userId, viewed: true, mindmapId: { in: s.maps.map((m) => m.id) } },
-          });
-        }
+          if (userId && total > 0) {
+            explored = await prisma.userMindmapProgress.count({
+              where: { userId, viewed: true, mindmapId: { in: s.maps.map((m) => m.id) } },
+            });
+          }
 
-        const progress = total > 0 ? Math.round((explored / total) * 100) : 0;
+          const progress = total > 0 ? Math.round((explored / total) * 100) : 0;
 
-        return {
-          id: s.slug,
-          name: s.name,
-          icon: s.icon,
-          slug: s.slug,
-          total,
-          explored,
-          progress,
-        };
-      })
+          return {
+            id: s.slug,
+            name: s.name,
+            icon: s.icon,
+            slug: s.slug,
+            total,
+            explored,
+            progress,
+          };
+        })
     );
 
     res.json({ status: "success", data });
@@ -223,8 +226,13 @@ export const adminCreateMindmapSubject = async (req: Request, res: Response, nex
       res.status(400).json({ status: "error", message: "name and slug are required" });
       return;
     }
+    const normalized = normalizeSubject(name);
+    if (!isValidSubject(normalized)) {
+      res.status(400).json({ status: "error", message: `Invalid subject "${name}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+      return;
+    }
     const subject = await prisma.mindmapSubject.create({
-      data: { name, slug, icon: icon || "🗺️" },
+      data: { name: normalized, slug, icon: icon || "🗺️" },
     });
     res.status(201).json({ status: "success", data: subject });
   } catch (error) {
@@ -239,7 +247,16 @@ export const adminUpdateMindmapSubject = async (req: Request, res: Response, nex
   try {
     const id = param(req, "id");
     const { name, slug, icon } = req.body;
-    const subject = await prisma.mindmapSubject.update({ where: { id }, data: { name, slug, icon } });
+    const data: any = { slug, icon };
+    if (name !== undefined) {
+      const normalized = normalizeSubject(name);
+      if (!isValidSubject(normalized)) {
+        res.status(400).json({ status: "error", message: `Invalid subject "${name}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+        return;
+      }
+      data.name = normalized;
+    }
+    const subject = await prisma.mindmapSubject.update({ where: { id }, data });
     res.json({ status: "success", data: subject });
   } catch (error) {
     next(error);
