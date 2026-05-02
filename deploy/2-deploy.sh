@@ -11,7 +11,7 @@ cd "$APP_DIR"
 # reads the updated version instead of the buffered old one.
 if [ "$1" != "--post-pull" ]; then
   echo "=== Pulling latest code ==="
-  git checkout -- package-lock.json
+  git reset --hard HEAD
   git pull origin main
   exec bash "$APP_DIR/deploy/2-deploy.sh" --post-pull
 fi
