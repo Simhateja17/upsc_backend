@@ -1,0 +1,1246 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== AUTH ====================
+
+model User {
+  id            String   @id @default(uuid())
+  supabaseId    String   @unique @map("supabase_id")
+  email         String   @unique
+  firstName     String?  @map("first_name")
+  lastName      String?  @map("last_name")
+  phone         String?
+  avatarUrl     String?  @map("avatar_url")
+  role          String   @default("user") // user, admin
+  isActive      Boolean  @default(true) @map("is_active")
+  emailVerified Boolean  @default(false) @map("email_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+  bio           String?
+  settings      Json?    // { notifications, preferences, privacy }
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  activities        UserActivity[]
+  feedbacks              Feedback[]
+  contactSubmissions     ContactSubmission[]
+  syllabusTrackerState   SyllabusTrackerState?
+  streak            UserStreak?
+  mcqAttempts       MCQAttempt[]
+  mainsAttempts     MainsAttempt[]
+  pyqMainsAttempts  PyqMainsAttempt[]
+  mockTestMainsAttempts MockTestMainsAttempt[]
+  editorialProgress EditorialProgress[]
+  editorialBookmarks EditorialBookmark[]
+  mockTestAttempts  MockTestAttempt[]
+  studyPlanTasks    StudyPlanTask[]
+  studyStreak       StudyStreak?
+  weeklyGoals       WeeklyGoal[]
+  syllabusCoverage  SyllabusCoverage[]
+  mentorQuestions   MentorQuestion[]
+  mentorBookings    MentorBooking[]
+  subscriptions     Subscription[]
+  orders            Order[]
+  payments          Payment[]
+  notifications     Notification[]
+  pyqUploads                PYQUpload[]
+  seenMcqQuestions          UserSeenMCQ[]
+  chatConversations         ChatConversation[]
+  studyMaterialUploads      StudyMaterialUpload[]
+  mockTestMaterialUploads   MockTestMaterialUpload[]
+  seriesEnrollments         UserSeriesEnrollment[]
+
+  @@map("users")
+}
+
+// ==================== DASHBOARD ====================
+
+model UserActivity {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  type        String   // mcq, answer, editorial, mock_test, study
+  title       String
+  description String?
+  metadata    Json?    // flexible extra data
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("user_activities")
+}
+
+model UserStreak {
+  id             String   @id @default(uuid())
+  userId         String   @unique @map("user_id")
+  currentStreak  Int      @default(0) @map("current_streak")
+  longestStreak  Int      @default(0) @map("longest_streak")
+  lastActiveDate DateTime? @map("last_active_date")
+  weekActivity   Json?    @map("week_activity") // [true, false, true, ...] for M-S
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_streaks")
+}
+
+// ==================== DAILY MCQ ====================
+
+model DailyMCQ {
+  id            String   @id @default(uuid())
+  date          DateTime @unique @db.Date
+  title         String
+  topic         String
+  tags          String[] // e.g. ['Indian Polity', 'Prelims Focus']
+  questionCount Int      @map("question_count")
+  timeLimit     Int      @map("time_limit") // minutes
+  totalMarks    Int      @map("total_marks")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  questions MCQQuestion[]
+  attempts  MCQAttempt[]
+
+  @@map("daily_mcqs")
+}
+
+model MCQQuestion {
+  id           String   @id @default(uuid())
+  dailyMcqId   String   @map("daily_mcq_id")
+  questionNum  Int      @map("question_num")
+  questionText String   @map("question_text")
+  category     String   // Polity, Geography, etc.
+  difficulty   String   // Easy, Moderate, Hard
+  options      Json     // [{id: 'A', text: '...'}, ...]
+  correctOption String  @map("correct_option") // 'A', 'B', 'C', 'D'
+  explanation  String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  dailyMcq  DailyMCQ      @relation(fields: [dailyMcqId], references: [id], onDelete: Cascade)
+  responses MCQResponse[]
+
+  @@unique([dailyMcqId, questionNum])
+  @@map("mcq_questions")
+}
+
+model MCQAttempt {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  dailyMcqId    String    @map("daily_mcq_id")
+  score         Int       @default(0)
+  totalMarks    Int       @map("total_marks")
+  correctCount  Int       @default(0) @map("correct_count")
+  wrongCount    Int       @default(0) @map("wrong_count")
+  skippedCount  Int       @default(0) @map("skipped_count")
+  accuracy      Float     @default(0)
+  timeTaken     Int       @default(0) @map("time_taken") // seconds
+  rank          Int?
+  percentile    Float?
+  strongTopics  String[]  @map("strong_topics")
+  weakTopics    String[]  @map("weak_topics")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyMcq  DailyMCQ      @relation(fields: [dailyMcqId], references: [id], onDelete: Cascade)
+  responses MCQResponse[]
+
+  @@unique([userId, dailyMcqId])
+  @@map("mcq_attempts")
+}
+
+model MCQResponse {
+  id             String   @id @default(uuid())
+  attemptId      String   @map("attempt_id")
+  questionId     String   @map("question_id")
+  selectedOption String?  @map("selected_option")
+  isCorrect      Boolean? @map("is_correct")
+  timeTaken      Int      @default(0) @map("time_taken") // seconds
+
+  attempt  MCQAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question MCQQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@map("mcq_responses")
+}
+
+// ==================== DAILY ANSWER WRITING ====================
+
+model DailyMainsQuestion {
+  id          String   @id @default(uuid())
+  date        DateTime @unique @db.Date
+  title       String
+  questionText String  @map("question_text")
+  paper       String   // GS Paper I, II, III, IV
+  subject     String   // Polity & Governance, etc.
+  marks       Int
+  wordLimit   Int      @map("word_limit")
+  timeLimit   Int      @map("time_limit") // minutes
+  instructions String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  attempts MainsAttempt[]
+
+  @@map("daily_mains_questions")
+}
+
+model MainsAttempt {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  questionId  String    @map("question_id")
+  answerText  String?   @map("answer_text")
+  fileUrl     String?   @map("file_url")
+  wordCount   Int       @default(0) @map("word_count")
+  submittedAt DateTime? @map("submitted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   DailyMainsQuestion  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  evaluation MainsEvaluation?
+
+  @@unique([userId, questionId])
+  @@map("mains_attempts")
+}
+
+model MainsEvaluation {
+  id              String   @id @default(uuid())
+  attemptId       String   @unique @map("attempt_id")
+  score           Float
+  maxScore        Float    @map("max_score")
+  status          String   @default("pending") // pending, evaluating, completed, failed
+  strengths       String[] // things done well
+  improvements    String[] // areas to improve
+  suggestions     String[] // value-add ideas
+  detailedFeedback String? @map("detailed_feedback")
+  metrics         Json?    // AI-generated per-dimension metrics
+  evaluatedAt     DateTime? @map("evaluated_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  attempt MainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("mains_evaluations")
+}
+
+// ==================== EDITORIALS ====================
+
+model Editorial {
+  id          String   @id @default(uuid())
+  title       String
+  source      String   // The Hindu, Indian Express
+  sourceUrl   String?  @map("source_url")
+  category    String   // Economy, Polity, Environment, etc.
+  summary     String?
+  content     String?
+  aiSummary   String?  @map("ai_summary")
+  tags        String[]
+  publishedAt DateTime @map("published_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  progress  EditorialProgress[]
+  bookmarks EditorialBookmark[]
+
+  @@index([publishedAt])
+  @@map("editorials")
+}
+
+model EditorialProgress {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  editorialId String   @map("editorial_id")
+  isRead      Boolean  @default(false) @map("is_read")
+  readAt      DateTime? @map("read_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  editorial Editorial @relation(fields: [editorialId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, editorialId])
+  @@map("editorial_progress")
+}
+
+model EditorialBookmark {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  editorialId String   @map("editorial_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  editorial Editorial @relation(fields: [editorialId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, editorialId])
+  @@map("editorial_bookmarks")
+}
+
+// ==================== MOCK TESTS ====================
+
+model MockTest {
+  id             String   @id @default(uuid())
+  title          String
+  source         String   // daily_mcq, pyq, subject_wise, mixed, full_length
+  examMode       String   @map("exam_mode") // prelims, mains
+  paperType      String?  @map("paper_type") // GS I, II, III, IV
+  subject        String?
+  difficulty     String   // easy, medium, hard, mixed
+  questionCount  Int      @map("question_count")
+  duration       Int      // minutes
+  totalMarks     Int      @map("total_marks")
+  isGenerated    Boolean  @default(false) @map("is_generated")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  questions MockTestQuestion[]
+  attempts  MockTestAttempt[]
+  mainsAttempts MockTestMainsAttempt[]
+
+  @@map("mock_tests")
+}
+
+model MockTestQuestion {
+  id           String @id @default(uuid())
+  mockTestId   String @map("mock_test_id")
+  questionNum  Int    @map("question_num")
+  questionText String @map("question_text")
+  subject      String
+  category     String
+  difficulty   String
+  options      Json   // [{id: 'A', text: '...'}, ...]
+  correctOption String @map("correct_option")
+  explanation  String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  mockTest MockTest @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+  mainsAttempts MockTestMainsAttempt[]
+
+  @@unique([mockTestId, questionNum])
+  @@map("mock_test_questions")
+}
+
+model MockTestAttempt {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  mockTestId    String    @map("mock_test_id")
+  answers       Json?     // {questionId: selectedOption, ...}
+  score         Int       @default(0)
+  totalMarks    Int       @map("total_marks")
+  correctCount  Int       @default(0) @map("correct_count")
+  wrongCount    Int       @default(0) @map("wrong_count")
+  skippedCount  Int       @default(0) @map("skipped_count")
+  accuracy      Float     @default(0)
+  timeTaken     Int       @default(0) @map("time_taken") // seconds
+  subjectWise   Json?     @map("subject_wise") // {subject: {correct, wrong, total}}
+  analysis      String?   // AI-generated analysis
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mockTest MockTest @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+
+  @@map("mock_test_attempts")
+}
+
+// ==================== TEST SERIES ====================
+
+model TestSeries {
+  id               String   @id @default(uuid())
+  title            String
+  description      String
+  examMode         String   @map("exam_mode")        // "prelims" | "mains"
+  subject          String?                            // null = all subjects
+  difficulty       String                             // "easy" | "medium" | "hard" | "mixed"
+  totalTests       Int      @map("total_tests")
+  questionsPerTest Int      @map("questions_per_test")
+  price            Int      @default(0)               // 0 = free
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  enrollments UserSeriesEnrollment[]
+
+  @@map("test_series")
+}
+
+model UserSeriesEnrollment {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  seriesId       String   @map("series_id")
+  testsCompleted Int      @default(0) @map("tests_completed")
+  enrolledAt     DateTime @default(now()) @map("enrolled_at")
+
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series TestSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, seriesId])
+  @@map("user_series_enrollments")
+}
+
+// ==================== STUDY PLANNER ====================
+
+model StudyPlanTask {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  title       String
+  description String?
+  subject     String?
+  type        String    @default("study") // study, revision, practice, break
+  date        DateTime  @db.Date
+  startTime   String?   @map("start_time") // HH:MM
+  endTime     String?   @map("end_time")   // HH:MM
+  duration    Int?      // minutes
+  isCompleted Boolean   @default(false) @map("is_completed")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("study_plan_tasks")
+}
+
+model StudyStreak {
+  id             String   @id @default(uuid())
+  userId         String   @unique @map("user_id")
+  currentStreak  Int      @default(0) @map("current_streak")
+  longestStreak  Int      @default(0) @map("longest_streak")
+  totalStudyDays Int      @default(0) @map("total_study_days")
+  lastStudyDate  DateTime? @map("last_study_date")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("study_streaks")
+}
+
+model WeeklyGoal {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  title       String
+  targetCount Int      @map("target_count")
+  currentCount Int     @default(0) @map("current_count")
+  weekStart   DateTime @map("week_start") @db.Date
+  isCompleted Boolean  @default(false) @map("is_completed")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, weekStart])
+  @@map("weekly_goals")
+}
+
+model SyllabusCoverage {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  subject       String
+  coveredTopics Int      @default(0) @map("covered_topics")
+  totalTopics   Int      @map("total_topics")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subject])
+  @@map("syllabus_coverage")
+}
+
+// ==================== VIDEO LECTURES ====================
+
+model VideoSubject {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  iconUrl     String?  @map("icon_url")
+  videoCount  Int      @default(0) @map("video_count")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  videos Video[]
+
+  @@map("video_subjects")
+}
+
+model Video {
+  id          String   @id @default(uuid())
+  subjectId   String   @map("subject_id")
+  title       String
+  description String?
+  videoUrl    String?  @map("video_url")
+  thumbnailUrl String? @map("thumbnail_url")
+  duration    Int?     // seconds
+  instructor  String?
+  order       Int      @default(0)
+  isPublished Boolean  @default(true) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  subject   VideoSubject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  questions VideoQuestion[]
+
+  @@map("videos")
+}
+
+model VideoQuestion {
+  id            String   @id @default(uuid())
+  videoId       String   @map("video_id")
+  question      String
+  options       Json     // array of 4 option strings
+  correctOption Int      @map("correct_option") // index 0-3
+  explanation   String?
+  order         Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@map("video_questions")
+}
+
+model MentorQuestion {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  question  String
+  answer    String?
+  status    String   @default("pending") // pending, answered
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mentor_questions")
+}
+
+// ==================== LIBRARY ====================
+
+model Subject {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  iconUrl     String?  @map("icon_url")
+  tags        String[]
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  chapters Chapter[]
+
+  @@map("subjects")
+}
+
+model Chapter {
+  id          String   @id @default(uuid())
+  subjectId   String   @map("subject_id")
+  title       String
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  subject   Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  materials StudyMaterial[]
+
+  @@map("chapters")
+}
+
+model StudyMaterial {
+  id          String   @id @default(uuid())
+  chapterId   String   @map("chapter_id")
+  title       String
+  type        String   @default("pdf") // pdf, notes
+  fileUrl     String?  @map("file_url")
+  fileSize    Int?     @map("file_size") // bytes
+  pageCount   Int?     @map("page_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@map("study_materials")
+}
+
+// ==================== PRICING & MENTORSHIP ====================
+
+model PricingPlan {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  price         Int      // in INR (rupees)
+  originalPrice Int?     @map("original_price") // for strikethrough/discount
+  duration      String   // "3 months", "6 months", "12 months"
+  durationDays  Int      @default(90) @map("duration_days") // actual days for calculation
+  features      String[] // included features
+  notIncluded   String[] @map("not_included") // excluded features
+  badge         String?  // e.g. "Most Popular", "Best Value"
+  isPopular     Boolean  @default(false) @map("is_popular")
+  order         Int      @default(0)
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  subscriptions Subscription[]
+  orders        Order[]
+
+  @@map("pricing_plans")
+}
+
+model MentorBooking {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  email     String
+  phone     String?
+  message   String?
+  status    String   @default("pending") // pending, confirmed, completed, cancelled
+  bookedAt  DateTime @default(now()) @map("booked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mentor_bookings")
+}
+
+model Testimonial {
+  id        String   @id @default(uuid())
+  name      String
+  title     String   // e.g. "IAS 2024 - AIR 45"
+  content   String
+  avatarUrl String?  @map("avatar_url")
+  rating    Int      @default(5)
+  isActive  Boolean  @default(true) @map("is_active")
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("testimonials")
+}
+
+// ==================== PYQ QUESTION BANK ====================
+
+model PYQQuestion {
+  id            String   @id @default(uuid())
+  year          Int
+  paper         String   // GS-I, GS-II, GS-III, GS-IV, CSAT
+  questionNum   Int?     @map("question_num")
+  questionText  String   @map("question_text")
+  subject       String   // Polity, History, Geography, Economy, etc.
+  topic         String?
+  difficulty    String   @default("Medium") // Easy, Medium, Hard
+  options       Json     // [{label: "A", text: "..."}, ...]
+  correctOption String?  @map("correct_option") // A, B, C, D
+  explanation   String?
+  sourceFile    String?  @map("source_file")
+  status        String   @default("draft") // draft, approved, rejected
+  duplicateOfId String?  @map("duplicate_of_id")
+  uploadId      String?  @map("upload_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  upload      PYQUpload?   @relation(fields: [uploadId], references: [id], onDelete: SetNull)
+  duplicateOf PYQQuestion? @relation("PYQDuplicates", fields: [duplicateOfId], references: [id], onDelete: SetNull)
+  duplicates  PYQQuestion[] @relation("PYQDuplicates")
+  seenBy      UserSeenMCQ[]
+
+  @@index([subject, status])
+  @@index([year, paper])
+  @@map("pyq_questions")
+}
+
+model PYQMainsQuestion {
+  id           String   @id @default(uuid())
+  year         Int
+  paper        String   // GS-I, GS-II, GS-III, GS-IV, Essay
+  questionText String   @map("question_text")
+  subject      String
+  topic        String?
+  difficulty   String   @default("Medium") // Easy, Medium, Hard
+  explanation  String?  // AI-generated or extracted explanation / model answer approach
+  marks        Int?     // marks allotted per question (e.g. 10, 15, 20)
+  sourceFile   String?  @map("source_file")
+  status       String   @default("draft") // draft, approved, rejected
+  uploadId     String?  @map("upload_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  upload PYQUpload? @relation(fields: [uploadId], references: [id], onDelete: SetNull)
+  mainsAttempts PyqMainsAttempt[]
+
+  @@index([subject, status])
+  @@index([year, paper])
+  @@map("pyq_mains_questions")
+}
+
+// ==================== MOCK TEST CHUNKS (RAG) ====================
+
+model MockTestMaterialUpload {
+  id           String   @id @default(cuid())
+  fileName     String   @map("file_name")
+  fileUrl      String   @map("file_url")
+  subject      String
+  topic        String?
+  source       String?
+  status       String   @default("processing") // processing, vectorized, failed
+  totalChunks  Int      @default(0) @map("total_chunks")
+  uploadedById String   @map("uploaded_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  uploadedBy User              @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  chunks     MockTestChunk[]
+
+  @@index([subject])
+  @@map("mock_test_material_uploads")
+}
+
+model MockTestChunk {
+  id         String                   @id @default(cuid())
+  uploadId   String                   @map("upload_id")
+  upload     MockTestMaterialUpload   @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  pageNumber Int                      @map("page_number")
+  chunkIndex Int                      @map("chunk_index")
+  chunkText  String                   @map("chunk_text")
+  embedding  Unsupported("vector(1536)")?
+  metadata   Json
+  createdAt  DateTime                 @default(now()) @map("created_at")
+
+  @@index([uploadId])
+  @@map("mock_test_chunks")
+}
+
+// ==================== MOCK TEST STUDY MATERIAL (RAG) ====================
+
+model StudyMaterialUpload {
+  id           String   @id @default(cuid())
+  fileName     String   @map("file_name")
+  fileUrl      String   @map("file_url")
+  subject      String
+  topic        String?
+  source       String?  // e.g. "NCERT Class 11", "Laxmikanth", "Notes"
+  status       String   @default("processing") // processing, vectorized, failed
+  totalChunks  Int      @default(0) @map("total_chunks")
+  uploadedById String   @map("uploaded_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  uploadedBy User                 @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  chunks     StudyMaterialChunk[]
+
+  @@index([subject])
+  @@map("study_material_uploads")
+}
+
+model StudyMaterialChunk {
+  id         String              @id @default(cuid())
+  uploadId   String              @map("upload_id")
+  upload     StudyMaterialUpload @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  pageNumber Int                 @map("page_number")
+  chunkIndex Int                 @map("chunk_index")
+  chunkText  String              @map("chunk_text")
+  embedding  Unsupported("vector(1536)")? // Gemini Embedding 2, MRL 1536 dims
+  metadata   Json                // { subject, topic, source, fileName, pageNumber, uploadId }
+  createdAt  DateTime            @default(now()) @map("created_at")
+
+  @@index([uploadId])
+  @@map("study_material_chunks")
+}
+
+// ==================== JEET AI CHAT ====================
+
+model ChatConversation {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String   // Auto-generated from first message (60 chars)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([userId, createdAt])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String   @id @default(uuid())
+  conversationId String   @map("conversation_id")
+  role           String   // "user" | "assistant"
+  content        String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("chat_messages")
+}
+
+model PYQUpload {
+  id             String   @id @default(uuid())
+  fileName       String   @map("file_name")
+  fileUrl        String   @map("file_url")
+  year           Int
+  paper          String
+  mode           String   @default("prelims") // prelims, mains
+  status         String   @default("processing") // processing, parsed, reviewed, completed, vectorized
+  errorMessage   String?  @map("error_message")
+  totalExtracted Int      @default(0) @map("total_extracted")
+  totalApproved  Int      @default(0) @map("total_approved")
+  uploadedById   String   @map("uploaded_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  uploadedBy User          @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  questions  PYQQuestion[]
+  mainsQuestions PYQMainsQuestion[]
+
+  @@map("pyq_uploads")
+}
+
+model UserSeenMCQ {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  pyqQuestionId String   @map("pyq_question_id")
+  seenAt        DateTime @default(now()) @map("seen_at")
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question PYQQuestion @relation(fields: [pyqQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pyqQuestionId])
+  @@map("user_seen_mcqs")
+}
+
+model AiUsageLog {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now()) @map("created_at")
+  service      String   // e.g. "answerEvaluator", "questionGenerator"
+  model        String   // e.g. "claude-sonnet-4-6"
+  inputTokens  Int      @map("input_tokens")
+  outputTokens Int      @map("output_tokens")
+  costUsd      Float    @map("cost_usd")
+  costInr      Float    @map("cost_inr")
+
+  @@index([createdAt])
+  @@index([service])
+  @@map("ai_usage_logs")
+}
+
+// ==================== FLASHCARDS ====================
+
+model FlashcardDeck {
+  id        String      @id @default(cuid())
+  subject   String
+  subjectId String      @unique @map("subject_id")
+  icon      String      @default("📚")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  cards Flashcard[]
+
+  @@map("flashcard_decks")
+}
+
+model Flashcard {
+  id         String        @id @default(cuid())
+  deckId     String        @map("deck_id")
+  topic      String
+  topicId    String        @map("topic_id")
+  question   String
+  answer     String
+  difficulty String        @default("Medium")
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  deck     FlashcardDeck           @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  progress UserFlashcardProgress[]
+
+  @@index([deckId, topicId])
+  @@map("flashcards")
+}
+
+model UserFlashcardProgress {
+  id       String    @id @default(cuid())
+  userId   String    @map("user_id")
+  cardId   String    @map("card_id")
+  mastered Boolean   @default(false)
+  lastSeen DateTime  @default(now()) @map("last_seen")
+
+  card Flashcard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId])
+  @@map("user_flashcard_progress")
+}
+
+// ==================== SPACED REPETITION ====================
+
+model SpacedRepItem {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  questionText     String   @map("question_text")
+  source           String
+  sourceType       String   @map("source_type")
+  subject          String
+  scheduleDay      Int      @default(3) @map("schedule_day")
+  scheduleDays     Json?    @map("schedule_days")
+  remindEnabled    Boolean  @default(false) @map("remind_enabled")
+  addedToFlashcard Boolean  @default(false) @map("added_to_flashcard")
+  nextReviewAt     DateTime @default(now()) @map("next_review_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([userId, nextReviewAt])
+  @@map("spaced_rep_items")
+}
+
+// ==================== MINDMAP ====================
+
+model MindmapSubject {
+  id   String    @id @default(cuid())
+  name String
+  slug String    @unique
+  icon String    @default("🗺️")
+
+  maps Mindmap[]
+
+  @@map("mindmap_subjects")
+}
+
+model Mindmap {
+  id        String   @id @default(cuid())
+  subjectId String   @map("subject_id")
+  title     String
+  slug      String
+  branches  Json
+  nodes     Json
+  quizData  Json?    @map("quiz_data")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  subject  MindmapSubject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  progress UserMindmapProgress[]
+
+  @@unique([subjectId, slug])
+  @@map("mindmaps")
+}
+
+model UserMindmapProgress {
+  id        String  @id @default(cuid())
+  userId    String  @map("user_id")
+  mindmapId String  @map("mindmap_id")
+  viewed    Boolean @default(false)
+  mastery   Int     @default(0)
+
+  mindmap Mindmap @relation(fields: [mindmapId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mindmapId])
+  @@map("user_mindmap_progress")
+}
+
+// ==================== CMS ====================
+
+model Page {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  description String?
+  isPublished Boolean  @default(true) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  sections PageSection[]
+
+  @@map("pages")
+}
+
+model PageSection {
+  id        String   @id @default(uuid())
+  pageId    String   @map("page_id")
+  key       String
+  type      String   @default("text")
+  content   String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, key])
+  @@map("page_sections")
+}
+
+// ==================== SPACED REP SEEDS (Admin library) ====================
+
+model SpacedRepSeed {
+  id           String   @id @default(cuid())
+  subject      String
+  topic        String?
+  questionText String   @map("question_text")
+  difficulty   String   @default("Medium")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("spaced_rep_seeds")
+}
+
+// ==================== FEEDBACK ====================
+
+model Feedback {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  rating        Int      // 1-5
+  category      String?
+  workingWell   String?  @map("working_well")
+  couldBeBetter String?  @map("could_be_better")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("feedbacks")
+}
+
+// ==================== CONTACT SUBMISSIONS ====================
+
+model ContactSubmission {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  email     String
+  subject   String
+  message   String
+  status    String   @default("new") // new, read, replied
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("contact_submissions")
+}
+
+// ==================== SYLLABUS TRACKER ====================
+
+model SyllabusTrackerState {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  mode      String   @default("prelims")
+  states    Json     @default("{}")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("syllabus_tracker_states")
+}
+
+model SyllabusSubject {
+  id        String   @id @default(uuid())
+  stage     String   // prelims, mains, optional
+  name      String
+  short     String
+  icon      String
+  color     String
+  bg        String
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  topics SyllabusTopic[]
+
+  @@unique([stage, name])
+  @@map("syllabus_subjects")
+}
+
+model SyllabusTopic {
+  id        String   @id @default(uuid())
+  subjectId String   @map("subject_id")
+  name      String
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  subject  SyllabusSubject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subTopics SyllabusSubTopic[]
+
+  @@unique([subjectId, name])
+  @@map("syllabus_topics")
+}
+
+model SyllabusSubTopic {
+  id        String   @id @default(uuid())
+  topicId   String   @map("topic_id")
+  name      String
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  topic SyllabusTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, name])
+  @@map("syllabus_sub_topics")
+}
+
+// ==================== PYQ MAINS EVALUATION ====================
+
+model PyqMainsAttempt {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  pyqMainsQuestionId String    @map("pyq_mains_question_id")
+  answerText    String?   @map("answer_text")
+  fileUrl       String?   @map("file_url")
+  wordCount     Int       @default(0) @map("word_count")
+  submittedAt   DateTime? @map("submitted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mainsQuestion   PYQMainsQuestion    @relation(fields: [pyqMainsQuestionId], references: [id], onDelete: Cascade)
+  evaluation PyqMainsEvaluation?
+
+  @@index([userId, pyqMainsQuestionId])
+  @@map("pyq_mains_attempts")
+}
+
+model PyqMainsEvaluation {
+  id               String    @id @default(uuid())
+  attemptId        String    @unique @map("attempt_id")
+  score            Float
+  maxScore         Float     @map("max_score")
+  status           String    @default("pending") // pending, evaluating, completed, failed
+  strengths        String[]
+  improvements     String[]
+  suggestions      String[]
+  detailedFeedback String?   @map("detailed_feedback")
+  metrics          Json?     // AI-generated per-dimension metrics
+  evaluatedAt      DateTime? @map("evaluated_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  attempt PyqMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("pyq_mains_evaluations")
+}
+
+// ==================== FAQ ====================
+
+model Faq {
+  id        String   @id @default(uuid())
+  category  String
+  question  String
+  answer    String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("faqs")
+}
+
+// ==================== ORDERS ====================
+
+model Order {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  planId      String?  @map("plan_id")
+  itemType    String?  @map("item_type") // plan, test_series
+  itemId      String?  @map("item_id")
+  itemName    String?  @map("item_name")
+  amount      Int      // in INR (rupees)
+  status      String   @default("pending") // pending, paid, failed, refunded
+  paymentMethod String? @map("payment_method")
+  paymentId   String?  @map("payment_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan PricingPlan? @relation(fields: [planId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@index([userId, status])
+  @@map("orders")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  body      String
+  type      String   @default("general") // general, spaced_rep, mcq, answer, streak
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@map("notifications")
+}
+
+// ==================== MOCK TEST MAINS EVALUATION ====================
+
+model MockTestMainsAttempt {
+  id                 String    @id @default(uuid())
+  userId             String    @map("user_id")
+  mockTestId         String    @map("mock_test_id")
+  mockTestQuestionId String    @map("mock_test_question_id")
+  answerText         String?   @map("answer_text")
+  fileUrl            String?   @map("file_url")
+  wordCount          Int       @default(0) @map("word_count")
+  submittedAt        DateTime? @map("submitted_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  user       User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mockTest   MockTest                  @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+  question   MockTestQuestion          @relation(fields: [mockTestQuestionId], references: [id], onDelete: Cascade)
+  evaluation MockTestMainsEvaluation?
+
+  @@index([userId, mockTestId])
+  @@map("mock_test_mains_attempts")
+}
+
+model MockTestMainsEvaluation {
+  id               String    @id @default(uuid())
+  attemptId        String    @unique @map("attempt_id")
+  score            Float
+  maxScore         Float     @map("max_score")
+  status           String    @default("pending") // pending, evaluating, completed, failed
+  strengths        String[]
+  improvements     String[]
+  suggestions      String[]
+  detailedFeedback String?   @map("detailed_feedback")
+  metrics          Json?     // AI-generated per-dimension metrics
+  evaluatedAt      DateTime? @map("evaluated_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  attempt MockTestMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("mock_test_mains_evaluations")
+}
+
+// ==================== BILLING & SUBSCRIPTIONS ====================
+
+model Subscription {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  planId      String   @map("plan_id")
+  status      String   @default("active") // active, cancelled, expired, pending
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  autoRenew   Boolean  @default(true) @map("auto_renew")
+  cancelledAt DateTime? @map("cancelled_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan PricingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@index([userId, status])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  orderId       String?  @map("order_id")
+  subscriptionId String? @map("subscription_id")
+  amount        Int      // in INR (rupees)
+  currency      String   @default("INR")
+  status        String   @default("pending") // pending, success, failed, refunded
+  provider      String   @default("razorpay") // razorpay, stripe, etc.
+  providerPaymentId String? @map("provider_payment_id")
+  providerOrderId   String? @map("provider_order_id")
+  receiptUrl    String?  @map("receipt_url")
+  paidAt        DateTime? @map("paid_at")
+  failedAt      DateTime? @map("failed_at")
+  failureReason String?  @map("failure_reason")
+  metadata      Json?    // extra payment data
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order        Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([providerPaymentId])
+  @@map("payments")
+}
