@@ -21,6 +21,8 @@ import testSeriesRoutes from "./testSeries.routes";
 import searchRoutes from "./search.routes";
 import userRoutes from "./user.routes";
 import contactRoutes from "./contact.routes";
+import forumRoutes from "./forum.routes";
+import mentalHealthRoutes from "./mentalHealth.routes";
 import * as cmsPublicCtrl from "../controllers/cms.public.controller";
 import { getSyllabus } from "../controllers/syllabus.controller";
 
@@ -126,6 +128,12 @@ router.use("/test-series", testSeriesRoutes);
 // Semantic search routes
 router.use("/search", searchRoutes);
 
+// Leaderboard routes (public list, auth required for /me)
+// router.use("/leaderboard", leaderboardRoutes);
+
+// Forum routes
+router.use("/forum", forumRoutes);
+
 // Contact form (public)
 router.use("/contact", contactRoutes);
 
@@ -138,7 +146,13 @@ router.get("/cms/:slug", cmsPublicCtrl.getPageContent);
 // Public FAQs
 router.get("/faqs", cmsPublicCtrl.getFaqsPublic);
 
+// Study Groups routes
+// router.use("/study-groups", studyGroupRoutes);
+
 // Jeet AI chat routes
 router.use("/ai", aiRoutes);
+
+// Mental Health Buddy routes
+// router.use("/mental-health", mentalHealthRoutes);
 
 export default router;

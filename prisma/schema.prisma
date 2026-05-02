@@ -51,6 +51,16 @@ model User {
   mockTestMaterialUploads   MockTestMaterialUpload[]
   seriesEnrollments         UserSeriesEnrollment[]
   orders                    Order[]
+  forumPosts        ForumPost[]
+  forumAnswers      ForumAnswer[]
+  forumVotes        ForumVote[]
+  forumBookmarks    ForumBookmark[]
+  createdGroups     StudyGroup[]     @relation("CreatedGroups")
+  groupMemberships  StudyGroupMember[]
+  groupMessages     GroupMessage[]
+  moodCheckIns      MoodCheckIn[]
+  wellnessStreak    WellnessStreak?
+  mindToolSessions  MindToolSession[]
 
   @@map("users")
 }
@@ -350,7 +360,7 @@ model TestSeries {
   examMode         String   @map("exam_mode")        // "prelims" | "mains"
   subject          String?                            // null = all subjects
   difficulty       String                             // "easy" | "medium" | "hard" | "mixed"
-  totalTests       Int      @map("total_tests")
+  totalTests       Int      @default(0) @map("total_tests")
   questionsPerTest Int      @map("questions_per_test")
   price            Int      @default(0)               // 0 = free
   isActive         Boolean  @default(true) @map("is_active")
@@ -1052,7 +1062,7 @@ model SyllabusSubTopic {
 model PyqMainsAttempt {
   id            String    @id @default(uuid())
   userId        String    @map("user_id")
-  pyqMainsQuestionId String    @map("pyq_mains_question_id")
+  pyqMainsQuestionId String?   @map("pyq_mains_question_id")
   answerText    String?   @map("answer_text")
   fileUrl       String?   @map("file_url")
   wordCount     Int       @default(0) @map("word_count")
@@ -1060,7 +1070,7 @@ model PyqMainsAttempt {
   createdAt     DateTime  @default(now()) @map("created_at")
 
   user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mainsQuestion   PYQMainsQuestion    @relation(fields: [pyqMainsQuestionId], references: [id], onDelete: Cascade)
+  mainsQuestion   PYQMainsQuestion?    @relation(fields: [pyqMainsQuestionId], references: [id], onDelete: Cascade)
   evaluation PyqMainsEvaluation?
 
   @@index([userId, pyqMainsQuestionId])
@@ -1084,57 +1094,6 @@ model PyqMainsEvaluation {
   attempt PyqMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@map("pyq_mains_evaluations")
-}
-
-// ==================== FAQ ====================
-
-model Faq {
-  id        String   @id @default(uuid())
-  category  String
-  question  String
-  answer    String
-  order     Int      @default(0)
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("faqs")
-}
-
-// ==================== ORDERS ====================
-
-model Order {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  itemType    String   @map("item_type") // plan, test_series
-  itemId      String   @map("item_id")
-  itemName    String   @map("item_name")
-  amount      Int      // in paise (INR)
-  status      String   @default("pending") // pending, paid, failed, refunded
-  paymentMethod String? @map("payment_method")
-  paymentId   String?  @map("payment_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, status])
-  @@map("orders")
-}
-
-model Notification {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  title     String
-  body      String
-  type      String   @default("general") // general, spaced_rep, mcq, answer, streak
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, read, createdAt])
-  @@map("notifications")
 }
 
 // ==================== MOCK TEST MAINS EVALUATION ====================
@@ -1176,4 +1135,220 @@ model MockTestMainsEvaluation {
   attempt MockTestMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@map("mock_test_mains_evaluations")
+}
+
+// ==================== FAQ ====================
+
+model Faq {
+  id        String   @id @default(uuid())
+  category  String
+  question  String
+  answer    String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("faqs")
+}
+
+// ==================== STUDY GROUPS ====================
+
+model StudyGroup {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  subject     String
+  status      String   @default("open") // open, live, closed
+  maxMembers  Int      @default(50) @map("max_members")
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  creator     User              @relation("CreatedGroups", fields: [createdById], references: [id], onDelete: Cascade)
+  members     StudyGroupMember[]
+  messages    GroupMessage[]
+
+  @@index([subject])
+  @@index([status])
+  @@map("study_groups")
+}
+
+model StudyGroupMember {
+  id        String   @id @default(uuid())
+  groupId   String   @map("group_id")
+  userId    String   @map("user_id")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+  isActive  Boolean  @default(true) @map("is_active")
+
+  group StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@map("study_group_members")
+}
+
+model GroupMessage {
+  id        String   @id @default(uuid())
+  groupId   String   @map("group_id")
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  group StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, createdAt])
+  @@map("group_messages")
+}
+
+// ==================== ORDERS ====================
+
+model Order {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  itemType    String   @map("item_type") // plan, test_series
+  itemId      String   @map("item_id")
+  itemName    String   @map("item_name")
+  amount      Int      // in paise (INR)
+  status      String   @default("pending") // pending, paid, failed, refunded
+  paymentMethod String? @map("payment_method")
+  paymentId   String?  @map("payment_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("orders")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  body      String
+  type      String   @default("general") // general, spaced_rep, mcq, answer, streak
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@map("notifications")
+}
+
+model ForumPost {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  body      String
+  subject   String
+  tags      String[]
+  status    String   @default("open")
+  votes     Int      @default(0)
+  views     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers   ForumAnswer[]
+  votesRel  ForumVote[]
+  bookmarks ForumBookmark[]
+
+  @@index([subject, createdAt])
+  @@index([status, createdAt])
+  @@map("forum_posts")
+}
+
+model ForumAnswer {
+  id         String   @id @default(uuid())
+  postId     String   @map("post_id")
+  userId     String   @map("user_id")
+  body       String
+  isAccepted Boolean  @default(false) @map("is_accepted")
+  votes      Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post     ForumPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  votesRel ForumVote[]
+
+  @@index([postId, createdAt])
+  @@map("forum_answers")
+}
+
+model ForumVote {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  postId    String?  @map("post_id")
+  answerId  String?  @map("answer_id")
+  direction Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post   ForumPost?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  answer ForumAnswer? @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@unique([userId, answerId])
+  @@map("forum_votes")
+}
+
+model ForumBookmark {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  postId    String   @map("post_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("forum_bookmarks")
+}
+
+model MoodCheckIn {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  mood      String
+  energy    Int      @default(5)
+  note      String?
+  date      DateTime @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("mood_check_ins")
+}
+
+model WellnessStreak {
+  id             String   @id @default(uuid())
+  userId         String   @unique @map("user_id")
+  currentStreak  Int      @default(0) @map("current_streak")
+  longestStreak  Int      @default(0) @map("longest_streak")
+  lastCheckIn    DateTime? @map("last_check_in")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wellness_streaks")
+}
+
+model MindToolSession {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  toolType  String   @map("tool_type")
+  duration  Int
+  completed Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mind_tool_sessions")
 }

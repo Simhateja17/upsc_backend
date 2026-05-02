@@ -240,13 +240,13 @@ export const getPyqMainsResults = async (
         wordCount: attempt.wordCount,
         submittedAt: attempt.submittedAt,
         answerText: attempt.answerText,
-        question: {
-          id: attempt.mainsQuestion.id,
-          questionText: attempt.mainsQuestion.questionText,
-          paper: attempt.mainsQuestion.paper,
-          subject: attempt.mainsQuestion.subject,
-          year: attempt.mainsQuestion.year,
-        },
+        question: attempt.mainsQuestion ? {
+          id: attempt.mainsQuestion!.id,
+          questionText: attempt.mainsQuestion!.questionText,
+          paper: attempt.mainsQuestion!.paper,
+          subject: attempt.mainsQuestion!.subject,
+          year: attempt.mainsQuestion!.year,
+        } : null,
       },
     });
   } catch (error) {
