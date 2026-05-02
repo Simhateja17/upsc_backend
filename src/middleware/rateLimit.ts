@@ -23,11 +23,13 @@ function createLimiter(opts: Partial<Options>) {
 const isDev = process.env.NODE_ENV !== "production";
 
 /**
- * General API rate limiter — 100 req/15min in production, 1000 in dev
+ * General API rate limiter — 50,000 req/15min in production, 1000 in dev.
+ * Skips preflight OPTIONS requests so CORS handshakes don't count against the limit.
  */
 export const generalLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
-  max: isDev ? 1000 : 100,
+  max: isDev ? 1000 : 50000,
+  skip: (req) => req.method === "OPTIONS",
   message: { status: "error", message: "Too many requests, please try again later" },
 });
 

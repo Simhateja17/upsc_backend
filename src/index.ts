@@ -22,6 +22,9 @@ import { runLatestNewsJob } from "./jobs/latestNewsJob";
 
 const app: Application = express();
 
+// Trust the reverse proxy (Render, AWS ELB, etc.) so req.ip reflects the real client IP
+app.set("trust proxy", 1);
+
 // Request ID + structured logging
 app.use(requestId);
 app.use(pinoHttp({
