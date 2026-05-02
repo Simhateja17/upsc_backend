@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { supabaseAdmin } from "../../config/supabase";
 import { uploadFile, STORAGE_BUCKETS } from "../../config/storage";
 import { vectorizeStudyMaterial } from "../../services/studyMaterialVectorizer";
+import { isValidSubject, normalizeSubject } from "../../constants/subjects";
 
 const LOG = "[RAG-UPLOAD]";
 function log(step: string, msg: string, data?: any) {
@@ -41,6 +42,11 @@ export const uploadStudyMaterial = async (req: Request, res: Response, next: Nex
       return res.status(400).json({ status: "error", message: "subject is required" });
     }
 
+    const normalizedSubject = normalizeSubject(subject.trim());
+    if (!isValidSubject(normalizedSubject)) {
+      return res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+    }
+
     log("UPLOAD", `Received PDF upload`, {
       fileName: req.file.originalname,
       sizeBytes: req.file.size,
@@ -66,7 +72,7 @@ export const uploadStudyMaterial = async (req: Request, res: Response, next: Nex
         id: randomUUID(),
         file_name: req.file.originalname,
         file_url: filePath,
-        subject: subject.trim(),
+        subject: normalizedSubject,
         topic: topic?.trim() || null,
         source: source?.trim() || null,
         status: "processing",

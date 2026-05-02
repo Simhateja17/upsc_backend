@@ -3,6 +3,7 @@ dns.setDefaultResultOrder("ipv4first");
 
 import express, { Application } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import dotenv from "dotenv";
 
 // Load environment variables
@@ -37,7 +38,7 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
-    // In development, allow any localhost port
+    // Allow only the exact Next.js dev port
     if (config.nodeEnv === "development" && /^http:\/\/localhost(:\d+)?$/.test(origin)) {
       return callback(null, true);
     }
@@ -48,8 +49,9 @@ app.use(cors({
   },
   credentials: true,
 }));
+app.use(helmet());
 app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 
 // Apply general rate limiter to all API routes
 app.use("/api", generalLimiter);

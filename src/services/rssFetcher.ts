@@ -1,5 +1,6 @@
 import Parser from "rss-parser";
-import prisma from "../config/database";
+import { editorialRepo } from "../repositories/prisma-editorial.repository";
+import { categorize, extractTags, isRelevant } from "./categorizer";
 
 const parser = new Parser({ timeout: 10000 });
 
@@ -14,74 +15,6 @@ const RSS_SOURCES = [
   { url: "https://www.livemint.com/rss/economy",                             source: "LiveMint",          section: "Economy" },
   { url: "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3",          source: "PIB",               section: "Government" },
 ];
-
-// UPSC syllabus keyword groups
-const UPSC_KEYWORDS = [
-  // Polity & Governance
-  "parliament", "constitution", "supreme court", "high court", "government", "policy",
-  "election", "judiciary", "cabinet", "ministry", "legislation", "bill passed",
-  "governor", "president", "prime minister", "lok sabha", "rajya sabha", "pib",
-  // Economy
-  "gdp", "inflation", "rbi", "reserve bank", "budget", "fiscal", "monetary",
-  "trade", "export", "import", "economy", "tax", "gst", "investment",
-  // International Relations
-  "bilateral", "diplomacy", "foreign", "treaty", "un ", "nato", "brics", "g20",
-  "china", "pakistan", "usa", "russia", "india-", "summit",
-  // Environment
-  "climate", "environment", "pollution", "forest", "wildlife", "biodiversity",
-  "carbon", "renewable", "solar", "green energy", "ngt",
-  // Science & Technology
-  "isro", "space", "nuclear", "technology", "digital", "cyber", "ai ", "research",
-  "satellite", "launch", "mission",
-  // Security & Defence
-  "defence", "army", "navy", "air force", "border", "terrorism", "security",
-  "military", "isro", "drdo",
-  // Society
-  "education", "health", "poverty", "agriculture", "farmer", "rural", "welfare",
-  "scheme", "initiative", "program", "women", "child",
-  // Geography
-  "disaster", "flood", "earthquake", "cyclone", "drought", "infrastructure",
-];
-
-function isUpscRelevant(title: string, summary: string): boolean {
-  const text = `${title} ${summary}`.toLowerCase();
-  return UPSC_KEYWORDS.some(kw => text.includes(kw));
-}
-
-function categorize(title: string, summary: string): string {
-  const text = `${title} ${summary}`.toLowerCase();
-
-  if (text.match(/parliament|constitution|court|election|judiciary|governor|lok sabha|rajya sabha|polity/i))
-    return "Polity";
-  if (text.match(/gdp|inflation|rbi|budget|fiscal|trade|economy|tax|gst|monetary/i))
-    return "Economy";
-  if (text.match(/bilateral|diplomacy|foreign|treaty|china|pakistan|usa|russia|g20|brics|un /i))
-    return "International Relations";
-  if (text.match(/climate|environment|pollution|forest|wildlife|biodiversity|carbon|renewable/i))
-    return "Environment";
-  if (text.match(/isro|space|nuclear|digital|cyber|ai |research|satellite|technology/i))
-    return "Science & Tech";
-  if (text.match(/defence|army|navy|border|terrorism|security|military|drdo/i))
-    return "Security";
-  if (text.match(/education|health|poverty|agriculture|farmer|welfare|scheme|women|child/i))
-    return "Society";
-  if (text.match(/pib|ministry|government|policy|initiative|programme|cabinet/i))
-    return "Governance";
-
-  return "Current Affairs";
-}
-
-function extractTags(title: string, summary: string): string[] {
-  const text = `${title} ${summary}`.toLowerCase();
-  const tagKeywords = [
-    "economy", "polity", "environment", "technology", "international relations",
-    "security", "society", "governance", "agriculture", "education", "health",
-    "judiciary", "parliament", "rbi", "isro", "climate",
-  ];
-  return [...new Set(
-    tagKeywords.filter(k => text.includes(k)).map(k => k.charAt(0).toUpperCase() + k.slice(1))
-  )].slice(0, 5);
-}
 
 export interface FetchedArticle {
   title: string;
@@ -112,7 +45,7 @@ export async function fetchRssArticles(): Promise<FetchedArticle[]> {
             .trim()
             .substring(0, 500);
 
-          if (!isUpscRelevant(title, summary)) continue;
+          if (!isRelevant(title, summary)) continue;
 
           results.push({
             title,
@@ -142,22 +75,19 @@ export async function saveArticlesToDb(articles: FetchedArticle[]): Promise<numb
   for (const article of articles) {
     if (!article.sourceUrl) continue;
 
-    const exists = await prisma.editorial.findFirst({
-      where: { sourceUrl: article.sourceUrl },
-      select: { id: true },
-    });
+    const exists = await editorialRepo.findBySourceUrl(article.sourceUrl);
     if (exists) continue;
 
-    await prisma.editorial.create({
-      data: {
-        title: article.title,
-        source: article.source,
-        sourceUrl: article.sourceUrl,
-        category: article.category,
-        summary: article.summary,
-        tags: article.tags,
-        publishedAt: article.publishedAt,
-      },
+    await editorialRepo.create({
+      title: article.title,
+      source: article.source,
+      sourceUrl: article.sourceUrl,
+      category: article.category,
+      summary: article.summary,
+      content: null,
+      tags: article.tags,
+      aiSummary: null,
+      publishedAt: article.publishedAt,
     });
     saved++;
   }

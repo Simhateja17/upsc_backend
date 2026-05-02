@@ -9,9 +9,10 @@ import {
 
 const router = Router();
 
-router.get("/subjects", getSubjects);
-router.get("/:subjectId", getMindmaps);
-router.get("/:subjectId/:mindmapId", getMindmap);
+// Mindmaps are premium content — require authentication for all access
+router.get("/subjects", authenticate, getSubjects);
+router.get("/:subjectId", authenticate, getMindmaps);
+router.get("/:subjectId/:mindmapId", authenticate, getMindmap);
 router.patch("/:mindmapId/progress", authenticate, updateProgress);
 
 export default router;

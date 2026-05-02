@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
-import { getDashboard, getStreak, getActivity, getPerformance, getTestAnalytics } from "../controllers/dashboard.controller";
+import { getDashboardHandler as getDashboard, getStreak, getActivity, getPerformanceHandler as getPerformance, getTestAnalyticsHandler as getTestAnalytics } from "../controllers/dashboard.controller";
 import { getPracticeStats } from "../controllers/mockTest.controller";
 
 const router = Router();

@@ -2,15 +2,19 @@ import prisma from "../config/database";
 import { invokeModelJSON } from "../config/llm";
 import { generateMCQQuestions } from "../services/questionGenerator";
 
+/**
+ * UPSC subject taxonomy — sourced from the shared categorizer categories.
+ * Only subjects relevant for MCQ/mains question generation.
+ */
 const UPSC_SUBJECTS = [
-  "Polity",
-  "History",
-  "Geography",
+  "Polity & Governance",
   "Economy",
-  "Environment",
-  "Science & Tech",
-  "Art & Culture",
   "International Relations",
+  "Environment & Ecology",
+  "Science & Technology",
+  "Social Issues & Welfare",
+  "History & Culture",
+  "Geography & Disasters",
 ];
 
 /**
@@ -257,6 +261,7 @@ Make it a thought-provoking, analytical question typical of UPSC Mains. Focus on
         system:
           "You are a UPSC question paper setter. Generate exam-quality Mains questions. Return valid JSON only.",
         maxTokens: 512,
+        temperature: 0.7,
         serviceName: "dailyMainsQuestion",
       }
     );

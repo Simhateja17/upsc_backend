@@ -10,9 +10,10 @@ import {
 
 const router = Router();
 
-router.get("/subjects", getSubjects);
-router.get("/:subjectId/topics", getTopics);
-router.get("/:subjectId/:topicId", getCards);
+// Flashcards are premium content — require authentication for all access
+router.get("/subjects", authenticate, getSubjects);
+router.get("/:subjectId/topics", authenticate, getTopics);
+router.get("/:subjectId/:topicId", authenticate, getCards);
 router.post("/", authenticate, createCard);
 router.patch("/:cardId/progress", authenticate, updateProgress);
 

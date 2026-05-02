@@ -15,7 +15,10 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci
+      - run: npm install
+
+      - name: Generate Prisma client
+        run: npx prisma generate
 
       - name: Type-check (lint)
         run: npm run lint

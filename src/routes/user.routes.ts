@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
+import { getDashboardHandler, getStreak, getActivity, getPerformanceHandler, getTestAnalyticsHandler } from "../controllers/dashboard.controller";
+import { getPracticeStats } from "../controllers/mockTest.controller";
 import { getProfile, updateProfile, updateSettings, getSessions, revokeSession } from "../controllers/user.controller";
 import { submitFeedback } from "../controllers/feedback.controller";
 import { getTrackerState, saveTrackerState } from "../controllers/syllabusTracker.controller";
@@ -8,9 +10,18 @@ import { getNotifications, createNotification, markRead, markAllRead } from "../
 
 const router = Router();
 
-// All routes require authentication
+// All user routes require authentication
 router.use(authenticate);
 
+// Dashboard & analytics
+router.get("/dashboard", getDashboardHandler);
+router.get("/streak", getStreak);
+router.get("/activity", getActivity);
+router.get("/performance", getPerformanceHandler);
+router.get("/practice-stats", getPracticeStats);
+router.get("/test-analytics", getTestAnalyticsHandler);
+
+// Profile & settings
 router.get("/profile", getProfile);
 router.put("/profile", updateProfile);
 router.put("/settings", updateSettings);

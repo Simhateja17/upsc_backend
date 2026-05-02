@@ -35,7 +35,7 @@ Keep the summary concise (300-400 words).`;
 
   const summary = await invokeModel(
     [{ role: "user", content: prompt }],
-    { system, maxTokens: 1024, serviceName: "editorialSummarizer" }
+    { system, maxTokens: 1024, temperature: 0.3, serviceName: "editorialSummarizer" }
   );
 
   // Cache the summary
@@ -60,16 +60,16 @@ Title: "${title}"
 First paragraph: "${firstParagraph}"
 
 Return ONLY one of these categories (just the category name, nothing else):
-Polity, Economy, International Relations, Environment, Science & Tech, Society, Security, Governance, History, Geography`;
+History, Geography, Polity, Economy, Environment & Ecology, Science & Technology`;
 
   const result = await invokeModel(
     [{ role: "user", content: prompt }],
-    { maxTokens: 50, serviceName: "editorialCategorizer" }
+    { maxTokens: 50, temperature: 0.1, serviceName: "editorialCategorizer" }
   );
 
   const validCategories = [
-    "Polity", "Economy", "International Relations", "Environment",
-    "Science & Tech", "Society", "Security", "Governance", "History", "Geography",
+    "History", "Geography", "Polity", "Economy",
+    "Environment & Ecology", "Science & Technology",
   ];
 
   const category = result.trim();

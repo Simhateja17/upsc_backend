@@ -4,15 +4,16 @@
   "description": "UPSC Backend API with Express, TypeScript, Prisma and Supabase",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "prisma generate && cross-env NODE_OPTIONS=--dns-result-order=ipv4first tsx watch src/index.ts",
+    "dev": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first tsx watch src/index.ts",
     "build": "prisma generate && tsc",
-    "postinstall": "prisma generate",
     "start": "NODE_OPTIONS=--dns-result-order=ipv4first node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "seed:cms": "npx tsx prisma/seed-cms.ts"
   },
   "keywords": [
@@ -34,7 +35,6 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.0.0",
-    "@types/node": "^25.3.2",
     "@types/node-cron": "^3.0.11",
     "@types/pdf-parse": "^1.1.5",
     "@types/pg": "^8.16.0",
@@ -45,12 +45,14 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
     "ioredis": "^5.10.1",
     "jose": "^6.2.1",
     "multer": "^2.1.0",
     "node-cron": "^4.2.1",
     "openai": "^6.33.0",
     "pdf-parse": "^2.4.5",
+    "pdf-to-img": "^6.0.0",
     "pg": "^8.19.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
@@ -62,12 +64,14 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
     "@types/pino-http": "^5.8.4",
     "cross-env": "^10.1.0",
     "nodemon": "^3.1.14",
     "prisma": "^7.4.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.5"
   }
 }

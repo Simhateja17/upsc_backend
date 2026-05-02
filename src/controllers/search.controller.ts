@@ -1,19 +1,30 @@
 import { Request, Response, NextFunction } from "express";
 import { supabaseAdmin } from "../config/supabase";
 import { embedText } from "../services/embedding.service";
+import { isValidSubject, normalizeSubject } from "../constants/subjects";
 
 const SIMILARITY_THRESHOLD = 0.65;
 
 export const semanticSearch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const q = (req.query.q as string)?.trim();
-    const subject = (req.query.subject as string) || null;
+    const rawSubject = (req.query.subject as string) || null;
     const topic = (req.query.topic as string) || null;
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 30);
 
     if (!q) {
       res.status(400).json({ status: "error", message: "Query parameter 'q' is required" });
       return;
+    }
+
+    let subject = rawSubject;
+    if (rawSubject) {
+      const normalized = normalizeSubject(rawSubject);
+      if (!isValidSubject(normalized)) {
+        res.status(400).json({ status: "error", message: `Invalid subject "${rawSubject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+        return;
+      }
+      subject = normalized;
     }
 
     if (!supabaseAdmin) {

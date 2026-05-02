@@ -3,7 +3,6 @@ import prisma from "../config/database";
 import { supabaseAdmin } from "../config/supabase";
 import authRoutes from "./auth.routes";
 import aiRoutes from "./ai.routes";
-import dashboardRoutes from "./dashboard.routes";
 import dailyMcqRoutes from "./dailyMcq.routes";
 import dailyAnswerRoutes from "./dailyAnswer.routes";
 import editorialRoutes from "./editorial.routes";
@@ -21,8 +20,9 @@ import mindmapRoutes from "./mindmap.routes";
 import testSeriesRoutes from "./testSeries.routes";
 import searchRoutes from "./search.routes";
 import userRoutes from "./user.routes";
-import billingRoutes from "./billing.routes";
 import contactRoutes from "./contact.routes";
+import forumRoutes from "./forum.routes";
+import mentalHealthRoutes from "./mentalHealth.routes";
 import * as cmsPublicCtrl from "../controllers/cms.public.controller";
 import { getSyllabus } from "../controllers/syllabus.controller";
 
@@ -45,28 +45,26 @@ router.get("/health", (req: Request, res: Response) => {
 });
 
 router.get("/health/deep", async (req: Request, res: Response) => {
-  const checks: Record<string, { status: string; latencyMs: number; error?: string }> = {};
+  const checks: Record<string, { status: string; latencyMs: number }> = {};
 
-  // Database check
   const dbStart = Date.now();
   try {
     await prisma.$queryRaw`SELECT 1`;
     checks.database = { status: "ok", latencyMs: Date.now() - dbStart };
-  } catch (e: any) {
-    checks.database = { status: "error", latencyMs: Date.now() - dbStart, error: e.message };
+  } catch {
+    checks.database = { status: "error", latencyMs: Date.now() - dbStart };
   }
 
-  // Supabase Storage check
   const stStart = Date.now();
   try {
     await supabaseAdmin.storage.listBuckets();
     checks.storage = { status: "ok", latencyMs: Date.now() - stStart };
-  } catch (e: any) {
-    checks.storage = { status: "error", latencyMs: Date.now() - stStart, error: e.message };
+  } catch {
+    checks.storage = { status: "error", latencyMs: Date.now() - stStart };
   }
 
-  const allOk = Object.values(checks).every(c => c.status === "ok");
-  const anyError = Object.values(checks).some(c => c.status === "error");
+  const allOk = Object.values(checks).every((c) => c.status === "ok");
+  const anyError = Object.values(checks).some((c) => c.status === "error");
 
   res.status(allOk ? 200 : 503).json({
     status: allOk ? "healthy" : anyError ? "unhealthy" : "degraded",
@@ -79,8 +77,8 @@ router.get("/health/deep", async (req: Request, res: Response) => {
 // Auth routes
 router.use("/auth", authRoutes);
 
-// Dashboard & user routes
-router.use("/user", dashboardRoutes);
+// User routes (dashboard, profile, settings, notifications, subscription — merged)
+router.use("/user", userRoutes);
 
 // Daily MCQ routes
 router.use("/daily-mcq", dailyMcqRoutes);
@@ -106,7 +104,7 @@ router.use("/library", libraryRoutes);
 // Pricing routes
 router.use("/pricing", pricingRoutes);
 
-// Mentorship routes (separate from pricing)
+// Mentorship routes
 router.use("/mentorship", mentorshipRoutes);
 
 // Admin routes
@@ -130,11 +128,11 @@ router.use("/test-series", testSeriesRoutes);
 // Semantic search routes
 router.use("/search", searchRoutes);
 
-// User profile, settings & feedback routes
-router.use("/user", userRoutes);
+// Leaderboard routes (public list, auth required for /me)
+// router.use("/leaderboard", leaderboardRoutes);
 
-// Billing & subscription routes
-router.use("/billing", billingRoutes);
+// Forum routes
+router.use("/forum", forumRoutes);
 
 // Contact form (public)
 router.use("/contact", contactRoutes);
@@ -142,13 +140,19 @@ router.use("/contact", contactRoutes);
 // Syllabus data (public)
 router.get("/syllabus", getSyllabus);
 
-// Public CMS route (no auth - slug is URL-encoded for nested paths)
+// Public CMS route
 router.get("/cms/:slug", cmsPublicCtrl.getPageContent);
 
-// Public FAQs (no auth)
+// Public FAQs
 router.get("/faqs", cmsPublicCtrl.getFaqsPublic);
+
+// Study Groups routes
+// router.use("/study-groups", studyGroupRoutes);
 
 // Jeet AI chat routes
 router.use("/ai", aiRoutes);
+
+// Mental Health Buddy routes
+// router.use("/mental-health", mentalHealthRoutes);
 
 export default router;

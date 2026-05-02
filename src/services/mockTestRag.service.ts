@@ -153,7 +153,7 @@ Return a JSON array with this exact structure:
   }
 ]`;
 
-  const questions = await generateJSON<RAGGeneratedQuestion[]>(prompt, system);
+  const questions = await generateJSON<RAGGeneratedQuestion[]>(prompt, system, 0.3);
 
   return Array.isArray(questions) ? questions.slice(0, questionCount) : [];
 }

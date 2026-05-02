@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { isValidSubject, normalizeSubject } from "../constants/subjects";
 
 function param(req: Request, key: string): string {
   const v = req.params[key];
@@ -22,33 +23,35 @@ export const getSubjects = async (
     });
 
     const deckData = await Promise.all(
-      decks.map(async (deck) => {
-        const totalCards = deck.cards.length;
-        let masteredCards = 0;
+      decks
+        .filter((deck) => isValidSubject(deck.subject))
+        .map(async (deck) => {
+          const totalCards = deck.cards.length;
+          let masteredCards = 0;
 
-        if (userId && totalCards > 0) {
-          masteredCards = await prisma.userFlashcardProgress.count({
-            where: {
-              userId,
-              mastered: true,
-              cardId: { in: deck.cards.map((c) => c.id) },
-            },
-          });
-        }
+          if (userId && totalCards > 0) {
+            masteredCards = await prisma.userFlashcardProgress.count({
+              where: {
+                userId,
+                mastered: true,
+                cardId: { in: deck.cards.map((c) => c.id) },
+              },
+            });
+          }
 
-        const mastery = totalCards > 0 ? Math.round((masteredCards / totalCards) * 100) : 0;
-        const topics = new Set(deck.cards.map((c) => c.topicId)).size;
+          const mastery = totalCards > 0 ? Math.round((masteredCards / totalCards) * 100) : 0;
+          const topics = new Set(deck.cards.map((c) => c.topicId)).size;
 
-        return {
-          id: deck.subjectId,
-          subject: deck.subject,
-          icon: deck.icon,
-          totalCards,
-          topics,
-          mastery,
-          masteredCards,
-        };
-      })
+          return {
+            id: deck.subjectId,
+            subject: deck.subject,
+            icon: deck.icon,
+            totalCards,
+            topics,
+            mastery,
+            masteredCards,
+          };
+        })
     );
 
     res.json({ status: "success", data: deckData });
@@ -230,8 +233,13 @@ export const adminCreateDeck = async (req: Request, res: Response, next: NextFun
       res.status(400).json({ status: "error", message: "subject and subjectId are required" });
       return;
     }
+    const normalized = normalizeSubject(subject);
+    if (!isValidSubject(normalized)) {
+      res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+      return;
+    }
     const deck = await prisma.flashcardDeck.create({
-      data: { subject, subjectId, icon: icon || "📚" },
+      data: { subject: normalized, subjectId, icon: icon || "📚" },
     });
     res.status(201).json({ status: "success", data: deck });
   } catch (error) {
@@ -246,9 +254,18 @@ export const adminUpdateDeck = async (req: Request, res: Response, next: NextFun
   try {
     const id = param(req, "id");
     const { subject, subjectId, icon } = req.body;
+    const data: any = { subjectId, icon };
+    if (subject !== undefined) {
+      const normalized = normalizeSubject(subject);
+      if (!isValidSubject(normalized)) {
+        res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+        return;
+      }
+      data.subject = normalized;
+    }
     const deck = await prisma.flashcardDeck.update({
       where: { id },
-      data: { subject, subjectId, icon },
+      data,
     });
     res.json({ status: "success", data: deck });
   } catch (error) {

@@ -25,14 +25,12 @@ export const getSubjects = async (_req: Request, res: Response, next: NextFuncti
       return res.json({
         status: "success",
         data: [
-          { id: "1", name: "Indian Polity", description: "Constitution, Governance", videoCount: 45 },
-          { id: "2", name: "History", description: "Ancient, Medieval, Modern", videoCount: 62 },
-          { id: "3", name: "Geography", description: "Physical, Human, Indian", videoCount: 38 },
+          { id: "1", name: "History", description: "Ancient, Medieval, Modern", videoCount: 62 },
+          { id: "2", name: "Geography", description: "Physical, Human, Indian", videoCount: 38 },
+          { id: "3", name: "Polity", description: "Constitution, Governance", videoCount: 45 },
           { id: "4", name: "Economy", description: "Macro, Micro, Indian Economy", videoCount: 41 },
-          { id: "5", name: "Science & Technology", description: "Current developments", videoCount: 28 },
-          { id: "6", name: "Environment", description: "Ecology, Biodiversity", videoCount: 22 },
-          { id: "7", name: "Ethics", description: "GS Paper IV", videoCount: 18 },
-          { id: "8", name: "Current Affairs", description: "Monthly compilations", videoCount: 35 },
+          { id: "5", name: "Environment & Ecology", description: "Ecology, Biodiversity", videoCount: 22 },
+          { id: "6", name: "Science & Technology", description: "Current developments", videoCount: 28 },
         ],
       });
     }

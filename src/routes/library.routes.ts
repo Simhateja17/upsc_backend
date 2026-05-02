@@ -4,8 +4,9 @@ import { getSubjects, getChapters, getDownloadUrl } from "../controllers/library
 
 const router = Router();
 
-router.get("/subjects", getSubjects);
-router.get("/subjects/:id/chapters", getChapters);
+// Premium library content — require authentication for browsing + download
+router.get("/subjects", authenticate, getSubjects);
+router.get("/subjects/:id/chapters", authenticate, getChapters);
 router.get("/download/:chapterId", authenticate, getDownloadUrl);
 
 export default router;

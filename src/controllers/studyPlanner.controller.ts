@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { isValidSubject, normalizeSubject } from "../constants/subjects";
 
 function getToday(): Date {
   const d = new Date();
@@ -46,6 +47,13 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
       return res.status(400).json({ status: "error", message: "Title is required" });
     }
 
+    if (subject) {
+      const normalized = normalizeSubject(subject);
+      if (!isValidSubject(normalized)) {
+        return res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+      }
+    }
+
     const taskDate = date ? new Date(date) : getToday();
     taskDate.setHours(0, 0, 0, 0);
 
@@ -54,7 +62,7 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
         userId,
         title,
         description,
-        subject,
+        subject: subject ? normalizeSubject(subject) : subject,
         type: type || "study",
         date: taskDate,
         startTime,
@@ -88,7 +96,13 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
     const updateData: any = {};
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
-    if (subject !== undefined) updateData.subject = subject;
+    if (subject !== undefined) {
+      const normalized = normalizeSubject(subject);
+      if (!isValidSubject(normalized)) {
+        return res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+      }
+      updateData.subject = normalized;
+    }
     if (type !== undefined) updateData.type = type;
     if (date !== undefined) { const d = new Date(date); d.setHours(0, 0, 0, 0); updateData.date = d; }
     if (startTime !== undefined) updateData.startTime = startTime;

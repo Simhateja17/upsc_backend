@@ -26,8 +26,6 @@ interface ParsedMainsQuestion {
   subject: string;
   topic: string;
   difficulty: string;
-  explanation: string | null;
-  marks: number | null;
   year: number | null;
   paper: string | null;
 }
@@ -290,22 +288,19 @@ function buildPrompt(
   if (mode === "mains") {
     return {
       system:
-        "You are a UPSC Mains question extractor and answer writer. Extract descriptive questions and produce high-quality model answer explanations. Return strict JSON only.",
+        "You are a UPSC Mains question extractor. Extract only descriptive/written questions. Return strict JSON only.",
       prompt: `Extract all descriptive/written UPSC Mains questions from this text. For each question return:
 - questionText: full descriptive question text
 - subject: one of [${UPSC_SUBJECTS.join(", ")}]
 - topic: specific topic within the subject
 - difficulty: "Easy", "Medium", or "Hard"
-- marks: integer marks allotted to this question (look for patterns like "(10 marks)", "10 Marks", "[15]", "20 marks" near the question; null if not found)
-- explanation: if the PDF contains an answer/explanation for this question, extract and rephrase it into a clear model answer approach (do NOT copy verbatim). If no explanation is present, generate a concise, high-quality model answer approach covering: key points to address, relevant examples, and structure hints — suitable for a UPSC aspirant. Never leave this null.
 - year: 4-digit year for this question, or null if unknown
 - paper: one of "GS-I", "GS-II", "GS-III", "GS-IV", "Essay", or null if unknown
 
 IMPORTANT:
 - Extract only descriptive/written mains questions
-- Do NOT include MCQ options or answer keys
-- Detect year, paper, and marks per question from surrounding context
-- Always provide a non-null explanation
+- Do NOT include options or answer keys
+- Detect year and paper per question
 
 Text to parse:
 ${chunk}
@@ -358,7 +353,7 @@ async function parseChunkWithAI(
       () =>
         invokeModelJSON<Array<ParsedPrelimsQuestion | ParsedMainsQuestion>>(
           [{ role: "user", content: prompt }],
-          { system, maxTokens: 4096, serviceName: "pyqParser" }
+          { system, maxTokens: 4096, temperature: 0.1, serviceName: "pyqParser" }
         ),
       `chunk-${chunkIndex + 1}`
     );
@@ -523,17 +518,14 @@ export async function parsePYQPdf(
             },
           });
         } else {
-          const mq = q as ParsedMainsQuestion;
           await prisma.pYQMainsQuestion.create({
             data: {
               year: qYear,
               paper: qPaper,
-              questionText: mq.questionText,
-              subject: mq.subject || "Current Affairs",
-              topic: mq.topic || null,
-              difficulty: mq.difficulty || "Medium",
-              explanation: mq.explanation || null,
-              marks: mq.marks || null,
+              questionText: q.questionText,
+              subject: q.subject || "Current Affairs",
+              topic: q.topic || null,
+              difficulty: q.difficulty || "Medium",
               status: "approved",
               uploadId,
             },

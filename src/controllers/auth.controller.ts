@@ -16,10 +16,6 @@ interface LoginBody {
   password: string;
 }
 
-function getPhoneVerifiedFlag(authUser: { phone_confirmed_at?: string | null } | null | undefined) {
-  return !!authUser?.phone_confirmed_at;
-}
-
 /**
  * Sign up a new user
  * POST /api/auth/signup
@@ -33,31 +29,8 @@ export const signup = async (
     const { email, password, firstName, lastName, phone } = req.body;
     console.log(`[Signup] Attempt for email: ${email}`);
 
-    if (!email || !password) {
-      return res.status(400).json({ status: "error", message: "Email and password are required" });
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ status: "error", message: "Invalid email format" });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ status: "error", message: "Password must be at least 6 characters" });
-    }
-
-    // Check if user already exists via REST
-    const { data: existing } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("email", email.toLowerCase())
-      .single();
-
-    if (existing) {
-      return res.status(409).json({ status: "error", message: "An account with this email already exists" });
-    }
-
-    // Create user in Supabase Auth
+    // Zod validation middleware guarantees email + password are present and valid.
+    // Direct to Supabase — avoids user enumeration via timing discrimination.
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.toLowerCase(),
       password,
@@ -104,14 +77,7 @@ export const signup = async (
         status: "success",
         message: "Account created successfully. Please check your email to verify your account.",
         data: {
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.first_name,
-            lastName: user.last_name,
-            emailVerified: !!authData.user.email_confirmed_at,
-            phoneVerified: getPhoneVerifiedFlag(authData.user as { phone_confirmed_at?: string | null }),
-          },
+          user: { id: user.id, email: user.email, firstName: user.first_name, lastName: user.last_name },
           session: null,
           requiresEmailVerification: true,
         },
@@ -122,15 +88,7 @@ export const signup = async (
       status: "success",
       message: "Account created successfully",
       data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          emailVerified: !!authData.user.email_confirmed_at,
-          phoneVerified: getPhoneVerifiedFlag(authData.user as { phone_confirmed_at?: string | null }),
-          role: user.role,
-        },
+        user: { id: user.id, email: user.email, firstName: user.first_name, lastName: user.last_name, role: user.role },
         session: {
           accessToken: authData.session.access_token,
           refreshToken: authData.session.refresh_token,
@@ -156,10 +114,7 @@ export const login = async (
     const { email, password } = req.body;
     console.log(`[Login] Attempt for email: ${email}`);
 
-    if (!email || !password) {
-      return res.status(400).json({ status: "error", message: "Email and password are required" });
-    }
-
+    // Zod validation middleware guarantees email + password are present.
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: email.toLowerCase(),
       password,
@@ -215,8 +170,6 @@ export const login = async (
           firstName: user!.first_name,
           lastName: user!.last_name,
           avatarUrl: user!.avatar_url,
-          emailVerified: !!authData.user.email_confirmed_at,
-          phoneVerified: getPhoneVerifiedFlag(authData.user as { phone_confirmed_at?: string | null }),
           role: user!.role,
         },
         session: {
@@ -258,9 +211,6 @@ export const getMe = async (
       return res.status(404).json({ status: "error", message: "User not found" });
     }
 
-    const { data: authLookup } = await supabaseAdmin.auth.admin.getUserById(user.supabase_id);
-    const authUser = authLookup?.user;
-
     res.json({
       status: "success",
       data: {
@@ -272,7 +222,6 @@ export const getMe = async (
           phone: user.phone,
           avatarUrl: user.avatar_url,
           emailVerified: user.email_verified,
-          phoneVerified: getPhoneVerifiedFlag(authUser as { phone_confirmed_at?: string | null }),
           role: user.role,
           createdAt: user.created_at,
         },
@@ -507,8 +456,6 @@ export const authCallback = async (
           firstName: user!.first_name,
           lastName: user!.last_name,
           avatarUrl: user!.avatar_url,
-          emailVerified: !!authUser.email_confirmed_at,
-          phoneVerified: getPhoneVerifiedFlag(authUser as { phone_confirmed_at?: string | null }),
           role: user!.role,
         },
         session: { accessToken, refreshToken },

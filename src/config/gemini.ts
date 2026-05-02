@@ -2,17 +2,18 @@ import { azureClient, chatDeployment, generateJSON as azureGenerateJSON } from "
 
 export async function generateJSON<T>(
   prompt: string,
-  system: string
+  system: string,
+  temperature = 0.7
 ): Promise<T> {
   // Backwards-compatible wrapper name; uses Azure infrastructure only.
-  return azureGenerateJSON<T>(prompt, system);
+  return azureGenerateJSON<T>(prompt, system, temperature);
 }
 
 const OCR_INSTRUCTION =
-  "You are an OCR assistant for UPSC Mains handwritten answer sheets. " +
+  "You are an OCR assistant for UPSC Mains answer sheets. " +
   "Extract the student's answer verbatim, preserving paragraph breaks and ordering. " +
   "Do not summarize, correct, rewrite, or add any commentary. " +
-  "If the image is blank, unreadable, or contains no handwritten text, return an empty string.";
+  "If the image is blank or unreadable, return an empty string.";
 
 /**
  * OCR via Azure OpenAI vision (GPT-5.4-mini / GPT-4o support image inputs).
@@ -29,23 +30,51 @@ async function extractTextWithAzure(
   const base64Data = fileBuffer.toString("base64");
   const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
-  const response = await azureClient.chat.completions.create(
-    {
-      model: chatDeployment,
-      messages: [
-        { role: "system", content: OCR_INSTRUCTION },
+  let response;
+  try {
+    response = await azureClient.chat.completions.create(
+      {
+        model: chatDeployment,
+        messages: [
+          { role: "system", content: OCR_INSTRUCTION },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Extract all text from this image:" },
+              { type: "image_url", image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+        max_completion_tokens: 4096,
+        temperature: 0,
+      },
+      { signal: AbortSignal.timeout(30000) }
+    );
+  } catch (err: any) {
+    const msg = String(err?.message || err || "");
+    // Some models (e.g. gpt-5.3-chat) do not support temperature values other than the default.
+    if (msg.includes("temperature")) {
+      response = await azureClient.chat.completions.create(
         {
-          role: "user",
-          content: [
-            { type: "text", text: "Extract all handwritten text from this image:" },
-            { type: "image_url", image_url: { url: dataUrl } },
+          model: chatDeployment,
+          messages: [
+            { role: "system", content: OCR_INSTRUCTION },
+            {
+              role: "user",
+              content: [
+              { type: "text", text: "Extract all text from this image:" },
+                { type: "image_url", image_url: { url: dataUrl } },
+              ],
+            },
           ],
+          max_completion_tokens: 4096,
         },
-      ],
-      max_completion_tokens: 4096,
-    },
-    { signal: AbortSignal.timeout(30000) }
-  );
+        { signal: AbortSignal.timeout(30000) }
+      );
+    } else {
+      throw err;
+    }
+  }
 
   return (response.choices[0]?.message?.content ?? "").trim();
 }
@@ -59,9 +88,29 @@ export async function extractTextFromFile(
   mimeType: string
 ): Promise<string> {
   if (mimeType === "application/pdf") {
-    throw new Error(
-      "Azure vision OCR does not accept raw PDF in image_url. Convert PDF pages to images first."
-    );
+    // Convert PDF to image and OCR — handles both text-based and scanned PDFs
+    console.log("[OCR] Converting PDF page 1 to image for vision OCR...");
+    try {
+      const { pdf } = await import("pdf-to-img");
+      const document = await pdf(fileBuffer, { scale: 2 });
+      let firstPageBuffer: Buffer | null = null;
+      for await (const image of document) {
+        firstPageBuffer = image;
+        break; // Only need the first page
+      }
+      if (!firstPageBuffer) {
+        throw new Error("Could not render any pages from the PDF.");
+      }
+      console.log(`[OCR] PDF page 1 rendered (${firstPageBuffer.length} bytes)`);
+      const text = await extractTextWithAzure(firstPageBuffer, "image/png");
+      console.log(`[OCR] Azure vision on PDF page 1 OK (${text.length} chars)`);
+      return text;
+    } catch (err: any) {
+      console.error("[OCR] PDF-to-image conversion failed:", err.message);
+      throw new Error(
+        "Could not read your PDF. Please upload a clear photo (JPG/PNG) of your handwritten answer instead."
+      );
+    }
   }
 
   if (!azureClient) {

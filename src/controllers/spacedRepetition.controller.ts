@@ -1,35 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import { Prisma } from "@prisma/client";
 import prisma from "../config/database";
+import { isValidSubject, normalizeSubject } from "../constants/subjects";
 
 function param(req: Request, key: string): string {
   const v = req.params[key];
   return Array.isArray(v) ? v[0] : (v ?? "");
-}
-
-function normalizeScheduleDays(scheduleDays: unknown, fallbackDay = 3): number[] {
-  if (Array.isArray(scheduleDays)) {
-    return Array.from(
-      new Set(
-        scheduleDays
-          .map((day) => Number(day))
-          .filter((day) => Number.isFinite(day) && day > 0)
-      )
-    ).sort((a, b) => a - b);
-  }
-
-  if (typeof scheduleDays === "number" && Number.isFinite(scheduleDays) && scheduleDays > 0) {
-    return [scheduleDays];
-  }
-
-  return [fallbackDay];
-}
-
-function getNextReviewAt(scheduleDays: number[]) {
-  const nextReviewAt = new Date();
-  const days = scheduleDays.length > 0 ? Math.min(...scheduleDays) : 3;
-  nextReviewAt.setDate(nextReviewAt.getDate() + days);
-  return nextReviewAt;
 }
 
 /**
@@ -53,20 +28,12 @@ export const getItems = async (
     const where: { userId: string; sourceType?: string } = { userId };
     if (sourceType) where.sourceType = sourceType;
 
-    const items = await prisma.spacedRepItem.findMany({
+    const items = (await prisma.spacedRepItem.findMany({
       where,
       orderBy: { nextReviewAt: "asc" },
-    });
+    })).filter((item) => isValidSubject(item.subject));
 
-    res.json({
-      status: "success",
-      data: items.map((item) => ({
-        ...item,
-        scheduleDays: Array.isArray(item.scheduleDays)
-          ? item.scheduleDays
-          : [item.scheduleDay],
-      })),
-    });
+    res.json({ status: "success", data: items });
   } catch (error) {
     next(error);
   }
@@ -82,16 +49,22 @@ export const addItem = async (
 ) => {
   try {
     const userId = req.user!.id;
-    const { questionText, source, sourceType, subject, scheduleDay, scheduleDays, remindEnabled } = req.body;
+    const { questionText, source, sourceType, subject, scheduleDay, remindEnabled } = req.body;
 
     if (!questionText || !subject) {
       res.status(400).json({ status: "error", message: "questionText and subject are required" });
       return;
     }
 
-    const normalizedScheduleDays = normalizeScheduleDays(scheduleDays, typeof scheduleDay === "number" ? scheduleDay : 3);
-    const primaryScheduleDay = normalizedScheduleDays[0] ?? (typeof scheduleDay === "number" ? scheduleDay : 3);
-    const nextReviewAt = getNextReviewAt(normalizedScheduleDays);
+    const normalizedSubject = normalizeSubject(subject);
+    if (!isValidSubject(normalizedSubject)) {
+      res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+      return;
+    }
+
+    const days = typeof scheduleDay === "number" ? scheduleDay : 3;
+    const nextReviewAt = new Date();
+    nextReviewAt.setDate(nextReviewAt.getDate() + days);
 
     const item = await prisma.spacedRepItem.create({
       data: {
@@ -99,21 +72,14 @@ export const addItem = async (
         questionText,
         source: source || "Custom",
         sourceType: sourceType || "custom",
-        subject,
-        scheduleDay: primaryScheduleDay,
-        scheduleDays: normalizedScheduleDays,
+        subject: normalizedSubject,
+        scheduleDay: days,
         remindEnabled: Boolean(remindEnabled),
         nextReviewAt,
       },
     });
 
-    res.status(201).json({
-      status: "success",
-      data: {
-        ...item,
-        scheduleDays: normalizedScheduleDays,
-      },
-    });
+    res.status(201).json({ status: "success", data: item });
   } catch (error) {
     next(error);
   }
@@ -130,7 +96,7 @@ export const updateItem = async (
   try {
     const userId = req.user!.id;
     const id = param(req, "id");
-    const { scheduleDay, scheduleDays, remindEnabled, addedToFlashcard } = req.body;
+    const { scheduleDay, remindEnabled, addedToFlashcard } = req.body;
 
     const existing = await prisma.spacedRepItem.findFirst({ where: { id, userId } });
     if (!existing) {
@@ -140,37 +106,23 @@ export const updateItem = async (
 
     const updateData: {
       scheduleDay?: number;
-      scheduleDays?: Prisma.InputJsonValue;
       nextReviewAt?: Date;
       remindEnabled?: boolean;
       addedToFlashcard?: boolean;
     } = {};
 
-    if (scheduleDays !== undefined) {
-      const normalizedScheduleDays = normalizeScheduleDays(scheduleDays, existing.scheduleDay);
-      updateData.scheduleDays = normalizedScheduleDays as Prisma.InputJsonValue;
-      updateData.scheduleDay = normalizedScheduleDays[0] ?? existing.scheduleDay;
-      updateData.nextReviewAt = getNextReviewAt(normalizedScheduleDays);
-    }
     if (typeof scheduleDay === "number") {
       updateData.scheduleDay = scheduleDay;
-      updateData.scheduleDays = [scheduleDay] as Prisma.InputJsonValue;
-      updateData.nextReviewAt = getNextReviewAt([scheduleDay]);
+      const nextReviewAt = new Date();
+      nextReviewAt.setDate(nextReviewAt.getDate() + scheduleDay);
+      updateData.nextReviewAt = nextReviewAt;
     }
     if (remindEnabled !== undefined) updateData.remindEnabled = Boolean(remindEnabled);
     if (addedToFlashcard !== undefined) updateData.addedToFlashcard = Boolean(addedToFlashcard);
 
     const updated = await prisma.spacedRepItem.update({ where: { id }, data: updateData });
 
-    res.json({
-      status: "success",
-      data: {
-        ...updated,
-        scheduleDays: Array.isArray(updated.scheduleDays)
-          ? updated.scheduleDays
-          : [updated.scheduleDay],
-      },
-    });
+    res.json({ status: "success", data: updated });
   } catch (error) {
     next(error);
   }
@@ -184,10 +136,10 @@ export const updateItem = async (
 export const adminGetSeeds = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const subject = req.query.subject as string | undefined;
-    const seeds = await prisma.spacedRepSeed.findMany({
+    const seeds = (await prisma.spacedRepSeed.findMany({
       where: subject ? { subject } : {},
       orderBy: { createdAt: "asc" },
-    });
+    })).filter((s) => isValidSubject(s.subject));
     res.json({ status: "success", data: seeds });
   } catch (error) {
     next(error);
@@ -204,8 +156,13 @@ export const adminCreateSeed = async (req: Request, res: Response, next: NextFun
       res.status(400).json({ status: "error", message: "subject and questionText are required" });
       return;
     }
+    const normalized = normalizeSubject(subject);
+    if (!isValidSubject(normalized)) {
+      res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+      return;
+    }
     const seed = await prisma.spacedRepSeed.create({
-      data: { subject, topic: topic || null, questionText, difficulty: difficulty || "Medium" },
+      data: { subject: normalized, topic: topic || null, questionText, difficulty: difficulty || "Medium" },
     });
     res.status(201).json({ status: "success", data: seed });
   } catch (error) {
@@ -220,9 +177,18 @@ export const adminUpdateSeed = async (req: Request, res: Response, next: NextFun
   try {
     const id = param(req, "id");
     const { subject, topic, questionText, difficulty } = req.body;
+    const data: any = { topic, questionText, difficulty };
+    if (subject !== undefined) {
+      const normalized = normalizeSubject(subject);
+      if (!isValidSubject(normalized)) {
+        res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+        return;
+      }
+      data.subject = normalized;
+    }
     const seed = await prisma.spacedRepSeed.update({
       where: { id },
-      data: { subject, topic, questionText, difficulty },
+      data,
     });
     res.json({ status: "success", data: seed });
   } catch (error) {
@@ -249,10 +215,10 @@ export const adminDeleteSeed = async (req: Request, res: Response, next: NextFun
 export const getSeeds = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const subject = req.query.subject as string | undefined;
-    const seeds = await prisma.spacedRepSeed.findMany({
+    const seeds = (await prisma.spacedRepSeed.findMany({
       where: subject ? { subject } : {},
       orderBy: { createdAt: "asc" },
-    });
+    })).filter((s) => isValidSubject(s.subject));
     res.json({ status: "success", data: seeds });
   } catch (error) {
     next(error);

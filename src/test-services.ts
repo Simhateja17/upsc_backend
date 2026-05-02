@@ -57,6 +57,7 @@ async function testAzureOpenAI() {
       model: deployment,
       max_tokens: 100,
       messages: [{ role: "user", content: "Say 'Hello from Azure OpenAI!' and nothing else." }],
+      temperature: 0,
     });
 
     const text = response.choices[0]?.message?.content ?? "";

@@ -27,6 +27,7 @@ export interface EvaluationUpdate {
   improvements: string[];
   suggestions: string[];
   detailedFeedback: string;
+  metrics?: any; // AI-generated per-dimension metrics
   evaluatedAt: Date | null;
 }
 
@@ -52,53 +53,126 @@ async function runAzureEvaluation(
   question: QuestionContext,
   ocrNote: boolean
 ): Promise<EvaluationResult> {
+  const wordCount = answerText.trim().split(/\s+/).filter(Boolean).length;
+  const expectedWords = question.marks >= 15 ? 250 : question.marks >= 10 ? 150 : 100;
+
   const messages: BedrockMessage[] = [
     {
       role: "user",
-      content: `Evaluate this UPSC Mains answer for the question below.
+      content: `You are grading a UPSC Civil Services Mains answer. Be strict — UPSC marks are notoriously tight.
 
-Question (${question.paper} - ${question.subject}, ${question.marks} marks):
+QUESTION (${question.paper} · ${question.subject} · ${question.marks} marks · ~${expectedWords} words expected):
 "${question.questionText}"
 
-Student's Answer:
+STUDENT'S ANSWER (${wordCount} words):
+---
 ${answerText}
+---
 
-${ocrNote
-  ? "This answer was OCR-extracted from a handwritten submission; grade the content rigorously but be lenient about minor spelling artifacts that may come from OCR.\n\n"
-  : ""}Score on a scale of 0-${question.marks} based on:
-1. Structure & Organization (introduction, body, conclusion)
-2. Content Depth & Accuracy
-3. Balance of Perspectives (multiple viewpoints)
-4. Use of Examples & Facts (data, case studies, reports)
-5. Clarity & Language Quality
-6. Relevance to Question Asked
+${ocrNote ? "NOTE: This text was OCR-extracted from a handwritten sheet. Grade content rigorously but forgive minor spelling/OCR artifacts.\n\n" : ""}GRADING RULES — follow precisely:
+- Empty / single-line / gibberish / off-topic answers → score 0-1. Do not reward effort.
+- Answer that rephrases the question without substance → 2-4 out of ${question.marks}.
+- Answer with some valid points but missing core demand, no examples, no structure → 5-7 out of ${question.marks}.
+- Answer that addresses the question directly, has clear structure (intro/body/conclusion), relevant facts, but is incomplete or one-sided → 8-10 out of ${question.marks}.
+- Well-structured, multi-dimensional, with specific examples (reports/schemes/data/committees/case studies), balanced conclusion → 11-13 out of ${question.marks}.
+- Reserve 14-${question.marks} ONLY for exceptional answers: precise directive (examine/discuss/critically analyze) addressed, original insight, contemporary linkage, committee/data references, crisp conclusion. A topper-level answer.
+- Penalize if word count is wildly off (>50% over or under ~${expectedWords}).
+- Penalize factual errors heavily. If a claim is wrong, call it out in "improvements".
+- NEVER give pity marks. A blank or one-sentence answer should not get more than 1/${question.marks}.
 
-Return ONLY a JSON object with:
+Rubric weights (for your internal reasoning; surface in metrics):
+1. Relevance to directive & question demand (30%)
+2. Content depth, accuracy, and factual correctness (25%)
+3. Structure & organization — intro, body with sub-headings/points, conclusion (15%)
+4. Examples, data, committees, schemes, case studies (15%)
+5. Balance of perspectives / multi-dimensional analysis (10%)
+6. Language clarity & concision (5%)
+
+Return ONLY a JSON object (no prose, no markdown fences):
 {
-  "score": <number 0-${question.marks}>,
-  "strengths": ["strength1", "strength2", "strength3"],
-  "improvements": ["improvement1", "improvement2", "improvement3"],
-  "suggestions": ["suggestion1", "suggestion2"],
-  "detailedFeedback": "2-3 paragraph detailed feedback",
+  "score": <integer 0-${question.marks}>,
+  "strengths": ["specific strength tied to the answer — no generic praise"],
+  "improvements": ["concrete, actionable — name the missing dimension/fact/structure"],
+  "suggestions": ["specific source/report/scheme the student should read to improve"],
+  "detailedFeedback": "2-3 paragraph examiner-style feedback: what the answer did, where it falls on the rubric, and exactly what to fix. Be blunt, not encouraging.",
   "metrics": [
-    {"label": "Structure", "value": <0-10>, "maxValue": 10},
+    {"label": "Relevance", "value": <0-10>, "maxValue": 10},
     {"label": "Content", "value": <0-10>, "maxValue": 10},
+    {"label": "Structure", "value": <0-10>, "maxValue": 10},
     {"label": "Examples", "value": <0-10>, "maxValue": 10},
-    {"label": "Language", "value": <0-10>, "maxValue": 10},
-    {"label": "Relevance", "value": <0-10>, "maxValue": 10}
+    {"label": "Balance", "value": <0-10>, "maxValue": 10}
   ]
 }`,
     },
   ];
 
   const system =
-    "You are an expert UPSC Mains answer evaluator. You evaluate answers strictly but fairly, like a UPSC examiner. Always return valid JSON only.";
+    "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. Your feedback is specific, pointed, and cites exactly what is missing.";
 
   return invokeModelJSON<EvaluationResult>(messages, {
     system,
     maxTokens: 2048,
+    temperature: 0.1,
     serviceName: "answerEvaluator",
   });
+}
+
+/**
+ * Short-circuit grader for obvious non-answers. Saves an Azure call and
+ * prevents the model from accidentally rewarding gibberish or empty input.
+ * Returns null when the answer looks legitimate and should be sent to the LLM.
+ * Exported for testability — pure function, no dependencies.
+ */
+export function triviallyBadAnswer(
+  answerText: string,
+  question: QuestionContext
+): EvaluationResult | null {
+  const text = answerText.trim();
+  const words = text.split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
+
+  const tooShort = wordCount < 15;
+  const mostlyNonAlpha = text.replace(/[^A-Za-z]/g, "").length < Math.max(20, text.length * 0.4);
+
+  // Keyword overlap with the question — if the answer shares almost no content
+  // words with the question, it's almost certainly off-topic.
+  const stop = new Set([
+    "the", "a", "an", "and", "or", "of", "to", "in", "on", "is", "are", "was", "were",
+    "be", "been", "with", "for", "by", "at", "as", "that", "this", "it", "its",
+    "from", "how", "what", "why", "which", "has", "have", "had", "do", "does",
+    "did", "india", "indian",
+  ]);
+  const qTokens = new Set(
+    question.questionText
+      .toLowerCase()
+      .split(/[^a-z]+/)
+      .filter((w) => w.length > 3 && !stop.has(w))
+  );
+  const overlap = words.filter((w) => qTokens.has(w.toLowerCase().replace(/[^a-z]/g, ""))).length;
+  const noOverlap = qTokens.size >= 3 && overlap === 0 && wordCount >= 20;
+
+  if (!tooShort && !mostlyNonAlpha && !noOverlap) return null;
+
+  const reason = tooShort
+    ? `Answer is too short (${wordCount} words). UPSC mains answers for ${question.marks} marks need roughly ${question.marks >= 15 ? 250 : 150} words.`
+    : mostlyNonAlpha
+      ? "Answer is unreadable or contains mostly non-text characters."
+      : "Answer does not address the question — it does not engage with any of the key terms in the directive.";
+
+  return {
+    score: tooShort && wordCount >= 10 ? 1 : 0,
+    strengths: [],
+    improvements: [
+      reason,
+      "Read the question's directive word carefully (examine / discuss / critically analyze) and structure your answer around it.",
+      "Target roughly " + (question.marks >= 15 ? "250 words with 3-4 body sub-points" : "150 words with 2-3 body points") + ", plus a crisp intro and conclusion.",
+    ],
+    suggestions: [
+      "Revise the relevant chapter before re-attempting.",
+      "Practise a topic-based answer first with bullet-pointed structure to build muscle memory.",
+    ],
+    detailedFeedback: reason + " No further grading was possible — please resubmit a full answer that directly addresses the question.",
+  };
 }
 
 /**
@@ -116,28 +190,21 @@ export async function evaluateAnswerGeneric(params: {
   const { attemptId, answerText, fileUrl, question, dbOps } = params;
 
   try {
-    console.log(`[eval] attempt ${attemptId} → markEvaluating (marks=${question.marks})`);
     await dbOps.markEvaluating(question.marks);
-    console.log(`[eval] attempt ${attemptId} → markEvaluating OK`);
 
     let textToGrade = answerText?.trim() || "";
     let viaOcr = false;
 
     // Handwritten path: OCR the file into text, then reuse the text path.
     if (!textToGrade && fileUrl) {
-      console.log(`[eval] attempt ${attemptId} → OCR path: downloading file from ${fileUrl}`);
       const { buffer, contentType } = await downloadFile(
         STORAGE_BUCKETS.ANSWER_UPLOADS,
         fileUrl
       );
-      console.log(`[eval] attempt ${attemptId} → download OK (${buffer.length} bytes, ${contentType})`);
 
-      console.log(`[eval] attempt ${attemptId} → calling Gemini OCR...`);
       const ocrText = await extractTextFromFile(buffer, contentType);
-      console.log(`[eval] attempt ${attemptId} → OCR OK (${ocrText.length} chars extracted)`);
 
       if (ocrText.length < 20) {
-        console.log(`[eval] attempt ${attemptId} → OCR text too short (<20 chars), marking unreadable`);
         await dbOps.saveEvaluation({
           score: 0,
           maxScore: question.marks,
@@ -163,50 +230,59 @@ export async function evaluateAnswerGeneric(params: {
       viaOcr = true;
 
       const wordCount = textToGrade.split(/\s+/).filter(Boolean).length;
-      console.log(`[eval] attempt ${attemptId} → saving OCR text (${wordCount} words)`);
       await dbOps.saveAttemptText(textToGrade, wordCount);
-      console.log(`[eval] attempt ${attemptId} → saveAttemptText OK`);
     }
 
     if (!textToGrade) {
       throw new Error("No answer text or file URL provided");
     }
 
-    console.log(`[eval] attempt ${attemptId} → calling Azure grading (${textToGrade.length} chars, ocr=${viaOcr})...`);
-    const result = await runAzureEvaluation(textToGrade, question, viaOcr);
-    console.log(`[eval] attempt ${attemptId} → Azure OK (score: ${result.score}/${question.marks})`);
+    // Short-circuit: trivially bad answers (empty, off-topic, gibberish) get
+    // graded deterministically instead of being sent to the LLM, so we never
+    // reward non-answers with sympathy marks.
+    const trivial = triviallyBadAnswer(textToGrade, question);
+    let result: EvaluationResult;
+    if (trivial) {
+      result = trivial;
+    } else {
+      result = await runAzureEvaluation(textToGrade, question, viaOcr);
+    }
 
+    const clampedScore = Math.max(
+      0,
+      Math.min(Math.round(Number(result.score) || 0), question.marks)
+    );
     await dbOps.saveEvaluation({
-      score: Math.min(result.score, question.marks),
+      score: clampedScore,
       maxScore: question.marks,
       status: "completed",
       strengths: result.strengths || [],
       improvements: result.improvements || [],
       suggestions: result.suggestions || [],
       detailedFeedback: result.detailedFeedback || "",
+      metrics: result.metrics || null,
       evaluatedAt: new Date(),
     });
-    console.log(`[eval] attempt ${attemptId} → evaluation saved ✓`);
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
-    const errStack = error instanceof Error ? error.stack : String(error);
-    console.error(`[eval] attempt ${attemptId} FAILED:`, errStack);
+    console.error(`[eval] attempt ${attemptId} FAILED:`, errMsg);
 
-    // Fallback: save with baseline estimate but don't crash
+    // Record the failure honestly — do NOT award sympathy marks. The user
+    // should see that the evaluator failed and be offered a resubmit, rather
+    // than a silent 50% that masks the real problem.
     try {
       await dbOps.saveEvaluation({
-        score: Math.round(question.marks * 0.5),
+        score: 0,
         maxScore: question.marks,
-        status: "completed",
-        strengths: ["Answer submitted successfully"],
-        improvements: ["AI evaluation encountered an issue — manual review recommended"],
-        suggestions: ["Try resubmitting for a fresh evaluation"],
-        detailedFeedback:
-          `Evaluation failed: ${errMsg}. Your answer has been scored with a baseline estimate. Please try resubmitting.`,
+        status: "failed",
+        strengths: [],
+        improvements: ["AI evaluation could not complete — please resubmit."],
+        suggestions: ["If the issue persists, type the answer directly instead of uploading a file."],
+        detailedFeedback: `Evaluation failed: ${errMsg}. Your answer was received but not graded. Please resubmit.`,
         evaluatedAt: new Date(),
       });
     } catch (updateError) {
-      console.error("[eval] Failed to save fallback evaluation:", updateError);
+      console.error("[eval] Failed to save failure marker:", updateError);
     }
   }
 }

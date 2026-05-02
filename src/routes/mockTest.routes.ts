@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
-import { submissionLimiter } from "../middleware/rateLimit";
+import { submissionLimiter, aiLimiter } from "../middleware/rateLimit";
 import { uploadSingle } from "../middleware/upload";
 import {
   getSubjects,
@@ -25,7 +25,7 @@ const router = Router();
 router.get("/subjects", getSubjects);
 router.get("/config", getConfig);
 router.get("/platform-stats", getPlatformStats);
-router.post("/generate", authenticate, generateTest);
+router.post("/generate", authenticate, aiLimiter, generateTest);
 router.get("/:testId/questions", authenticate, getTestQuestions);
 router.post("/:testId/submit", authenticate, submitTest);
 router.put("/:testId/save-progress", authenticate, saveProgress);

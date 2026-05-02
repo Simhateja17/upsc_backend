@@ -48,7 +48,7 @@ export async function invokeModel(
   messages: BedrockMessage[],
   options: {
     maxTokens?: number;
-
+    temperature?: number;
     system?: string;
     serviceName?: string;
   } = {}
@@ -61,6 +61,7 @@ export async function invokeModel(
 
   const {
     maxTokens = 4096,
+    temperature = 0.3,
     system,
     serviceName = "unknown",
   } = options;
@@ -90,6 +91,7 @@ export async function invokeModel(
         model: chatDeployment,
         messages: openaiMessages,
         max_completion_tokens: maxTokens,
+        temperature,
       },
       { signal: AbortSignal.timeout(45000) }
     );
@@ -102,6 +104,17 @@ export async function invokeModel(
           model: chatDeployment,
           messages: openaiMessages,
           max_tokens: maxTokens,
+          temperature,
+        },
+        { signal: AbortSignal.timeout(45000) }
+      );
+    } else if (msg.includes("temperature")) {
+      // Some models (e.g. gpt-5.3-chat) do not support temperature values other than the default.
+      response = await azureClient.chat.completions.create(
+        {
+          model: chatDeployment,
+          messages: openaiMessages,
+          max_completion_tokens: maxTokens,
         },
         { signal: AbortSignal.timeout(45000) }
       );
@@ -122,7 +135,7 @@ export async function invokeModelJSON<T = any>(
   messages: BedrockMessage[],
   options: {
     maxTokens?: number;
-
+    temperature?: number;
     system?: string;
     serviceName?: string;
   } = {}

@@ -19,11 +19,10 @@ export const errorHandler = (
     stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
   });
 
-  res.status(statusCode).json({
-    status,
-    message: err.message,
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-  });
+  // Never expose stack traces in API responses — log them server-side only
+  const message = statusCode === 500 ? "Internal server error" : err.message;
+
+  res.status(statusCode).json({ status, message });
 };
 
 export const notFoundHandler = (req: Request, res: Response) => {
