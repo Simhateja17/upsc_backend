@@ -30,6 +30,18 @@ jobs:
     needs: quality-gates
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync files to EC2
+        uses: burnett01/rsync-deployments@6.0.0
+        with:
+          switches: -avzr --delete --exclude='.git' --exclude='node_modules' --exclude='.env' --exclude='dist' --exclude='*.dump'
+          path: .
+          remote_path: /var/www/backend
+          remote_host: ${{ secrets.BACKEND_EC2_HOST }}
+          remote_user: ubuntu
+          remote_key: ${{ secrets.BACKEND_EC2_SSH_KEY }}
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:

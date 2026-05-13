@@ -1,19 +1,11 @@
 #!/bin/bash
-# Run on every deployment to pull latest code and restart
+# Run on every deployment - code is already synced by GitHub Actions via rsync
 # Usage: bash /var/www/backend/deploy/2-deploy.sh
 
 set -e
 
 APP_DIR="/var/www/backend"
 cd "$APP_DIR"
-
-# First invocation: pull latest code, then re-exec this script so bash
-# reads the updated version instead of the buffered old one.
-if [ "$1" != "--post-pull" ]; then
-  echo "=== Pulling latest code ==="
-  git pull origin main
-  exec bash "$APP_DIR/deploy/2-deploy.sh" --post-pull
-fi
 
 echo "=== Checking Node.js version ==="
 NODE_VERSION=$(node -v | sed 's/v//')
