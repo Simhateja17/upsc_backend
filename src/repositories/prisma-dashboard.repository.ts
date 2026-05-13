@@ -122,7 +122,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
             select: {
               id: true, score: true, totalMarks: true, accuracy: true, timeTaken: true,
               correctCount: true, wrongCount: true, skippedCount: true, createdAt: true,
-              dailyMcq: { select: { title: true } },
+              dailyMcq: { select: { title: true, subject: true } },
             },
           }),
           prisma.mockTestAttempt.findMany({

@@ -50,6 +50,7 @@ model User {
   studyMaterialUploads      StudyMaterialUpload[]
   mockTestMaterialUploads   MockTestMaterialUpload[]
   seriesEnrollments         UserSeriesEnrollment[]
+  testSeriesAttempts        TestSeriesAttempt[]
   orders                    Order[]
   forumPosts        ForumPost[]
   forumAnswers      ForumAnswer[]
@@ -61,6 +62,8 @@ model User {
   moodCheckIns      MoodCheckIn[]
   wellnessStreak    WellnessStreak?
   mindToolSessions  MindToolSession[]
+  bookmarks         Bookmark[]
+  supportTickets    SupportTicket[]
 
   @@map("users")
 }
@@ -367,6 +370,7 @@ model TestSeries {
   createdAt        DateTime @default(now()) @map("created_at")
 
   enrollments UserSeriesEnrollment[]
+  tests       TestSeriesTest[]
 
   @@map("test_series")
 }
@@ -383,6 +387,74 @@ model UserSeriesEnrollment {
 
   @@unique([userId, seriesId])
   @@map("user_series_enrollments")
+}
+
+model TestSeriesTest {
+  id               String   @id @default(uuid())
+  seriesId         String   @map("series_id")
+  title            String
+  description      String?
+  testNumber       Int      @map("test_number")
+  examMode         String   @map("exam_mode")     // "prelims" | "mains"
+  subject          String?
+  questionCount    Int      @map("question_count")
+  duration         Int      @default(120)         // minutes
+  totalMarks       Int      @map("total_marks")
+  isPublished      Boolean  @default(false) @map("is_published")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  series           TestSeries                    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  questions        TestSeriesQuestion[]
+  attempts         TestSeriesAttempt[]
+
+  @@unique([seriesId, testNumber])
+  @@index([seriesId])
+  @@map("test_series_tests")
+}
+
+model TestSeriesQuestion {
+  id           String   @id @default(uuid())
+  testId       String   @map("test_id")
+  questionNum  Int      @map("question_num")
+  questionText String   @map("question_text")
+  subject      String
+  category     String
+  difficulty   String
+  options      Json     // [{id: 'A', text: '...'}, ...]
+  correctOption String  @map("correct_option")
+  explanation  String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  test         TestSeriesTest  @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@unique([testId, questionNum])
+  @@index([testId])
+  @@map("test_series_questions")
+}
+
+model TestSeriesAttempt {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  testId        String    @map("test_id")
+  answers       Json?     // {questionId: selectedOption, ...}
+  score         Int       @default(0)
+  totalMarks    Int       @map("total_marks")
+  correctCount  Int       @default(0) @map("correct_count")
+  wrongCount    Int       @default(0) @map("wrong_count")
+  skippedCount  Int       @default(0) @map("skipped_count")
+  accuracy      Float     @default(0)
+  timeTaken     Int       @default(0) @map("time_taken") // seconds
+  subjectWise   Json?     @map("subject_wise")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  test          TestSeriesTest    @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, testId])
+  @@index([userId])
+  @@index([testId])
+  @@map("test_series_attempts")
 }
 
 // ==================== STUDY PLANNER ====================
@@ -1351,4 +1423,48 @@ model MindToolSession {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("mind_tool_sessions")
+}
+
+// ==================== BOOKMARKS ====================
+
+model Bookmark {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  entityType String   @map("entity_type") // mcq, editorial, pyq, mock_test, video, etc.
+  entityId   String   @map("entity_id")
+  title      String
+  source     String
+  sourceUrl  String?  @map("source_url")
+  tag        String?
+  tagColor   String?  @map("tag_color")
+  isPinned   Boolean  @default(false) @map("is_pinned")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, entityType])
+  @@index([userId, createdAt])
+  @@map("bookmarks")
+}
+
+// ==================== SUPPORT TICKETS ====================
+
+model SupportTicket {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  subject     String
+  description String
+  category    String   @default("general") // general, billing, technical, content
+  status      String   @default("open")    // open, in_progress, resolved, closed
+  priority    String   @default("medium")  // low, medium, high, urgent
+  adminNotes  String?  @map("admin_notes")
+  resolvedAt  DateTime? @map("resolved_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@map("support_tickets")
 }

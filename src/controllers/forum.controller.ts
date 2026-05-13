@@ -56,7 +56,11 @@ export const getPosts = async (req: Request, res: Response, next: NextFunction) 
     }));
 
     res.json({ status: "success", data, meta: { total, page: parseInt(page as string), limit: take } });
-  } catch (error) {
+  } catch (error: any) {
+    // If the table doesn't exist yet, return empty data instead of 500
+    if (error?.code === "P2021" || error?.code === "P2010" || error?.message?.includes("does not exist")) {
+      return res.json({ status: "success", data: [], meta: { total: 0, page: 1, limit: 10 } });
+    }
     next(error);
   }
 };

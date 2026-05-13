@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { dailyMcqRepo } from "../repositories/prisma-daily-mcq.repository";
-import { isValidSubject } from "../constants/subjects";
+import { isValidSubject, normalizeSubject } from "../constants/subjects";
 
 function getToday(): Date {
   const d = new Date();
@@ -46,7 +46,13 @@ export const getTodayQuestions = async (req: Request, res: Response, next: NextF
     const mcq = await getOrCreateTodayMCQ();
     if (!mcq) return res.status(404).json({ status: "error", message: "No MCQ challenge available for today" });
 
-    const questions = (await dailyMcqRepo.findQuestions(mcq.id, true)).filter((q: any) => isValidSubject(q.category));
+    const allQuestions = await dailyMcqRepo.findQuestions(mcq.id, true);
+    // Normalize category before filtering — allows aliases like "Environment" → "Environment & Ecology"
+    const questions = allQuestions.filter((q: any) => {
+      const normalized = normalizeSubject(q.category || "");
+      return isValidSubject(normalized);
+    });
+    console.log(`[Daily MCQ] Returning ${questions.length} of ${allQuestions.length} questions after subject filter`);
     res.json({ status: "success", data: { mcqId: mcq.id, timeLimit: mcq.timeLimit, totalMarks: mcq.totalMarks, questions } });
   } catch (error) {
     next(error);

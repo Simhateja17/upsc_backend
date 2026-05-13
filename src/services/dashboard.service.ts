@@ -193,16 +193,47 @@ export async function getTestAnalytics(userId: string) {
     hours: Math.round((dailyMap[day].time / 3600) * 10) / 10,
   }));
 
-  // Subject accuracy from mock attempts
+  // Canonical prelims subjects (display names)
+  const PRELIMS_SUBJECTS = new Set([
+    "History", "Geography", "Polity", "Economy",
+    "Environment & Ecology", "Science & Technology", "Current Affairs",
+  ]);
+
+  function normalizeSubjectName(s: string): string | null {
+    const lower = s.toLowerCase().trim();
+    if (lower === "environment" || lower === "environment and ecology") return "Environment & Ecology";
+    if (lower === "science & tech" || lower === "science and technology" || lower === "s&t" || lower === "sci-tech") return "Science & Technology";
+    if (lower === "current affairs" || lower === "current-affairs") return "Current Affairs";
+    if (lower === "general studies" || lower === "gs" || lower === "general knowledge") return null; // exclude
+    const match = [...PRELIMS_SUBJECTS].find(v => v.toLowerCase() === lower);
+    return match ?? (PRELIMS_SUBJECTS.has(s.trim()) ? s.trim() : null);
+  }
+
+  // Subject accuracy from mock attempts + daily MCQ attempts
   const subjectMap: Record<string, { correct: number; wrong: number }> = {};
+
   for (const attempt of raw.mockAttempts) {
     if (!attempt.subjectWise) continue;
     for (const [subject, stats] of Object.entries(attempt.subjectWise as Record<string, { correct: number; wrong: number }>)) {
-      if (!subjectMap[subject]) subjectMap[subject] = { correct: 0, wrong: 0 };
-      subjectMap[subject].correct += stats.correct ?? 0;
-      subjectMap[subject].wrong += stats.wrong ?? 0;
+      const normalized = normalizeSubjectName(subject);
+      if (!normalized) continue;
+      if (!subjectMap[normalized]) subjectMap[normalized] = { correct: 0, wrong: 0 };
+      subjectMap[normalized].correct += stats.correct ?? 0;
+      subjectMap[normalized].wrong += stats.wrong ?? 0;
     }
   }
+
+  // Also add daily MCQ attempts (each attempt belongs to one subject)
+  for (const attempt of raw.recentMcq) {
+    const subjectRaw = (attempt as any).dailyMcq?.subject;
+    if (!subjectRaw) continue;
+    const normalized = normalizeSubjectName(subjectRaw);
+    if (!normalized) continue;
+    if (!subjectMap[normalized]) subjectMap[normalized] = { correct: 0, wrong: 0 };
+    subjectMap[normalized].correct += attempt.correctCount ?? 0;
+    subjectMap[normalized].wrong += attempt.wrongCount ?? 0;
+  }
+
   const subjectAccuracy = Object.entries(subjectMap)
     .map(([subject, { correct, wrong }]) => ({
       subject,
@@ -253,12 +284,13 @@ export async function getTestAnalytics(userId: string) {
     source: p.source,
   }));
   const mainsScores = mainsTrend.map((t) => t.score);
+  const mainsRawScores = mainsPoints.map((p) => p.score);
   const mainsStats = {
     totalAnswers: raw.mainsAttempts.length + raw.mockTestMainsAttempts.length + raw.pyqMainsAttempts.length,
     evaluatedAnswers: mainsPoints.length,
-    avgScore: mainsScores.length > 0 ? Math.round(avg(mainsScores) * 10) / 10 : 0,
-    latestScore: mainsScores[mainsScores.length - 1] ?? 0,
-    improvement: mainsScores.length >= 2 ? mainsScores[mainsScores.length - 1] - mainsScores[mainsScores.length - 2] : 0,
+    avgScore: mainsRawScores.length > 0 ? Math.round(avg(mainsRawScores) * 10) / 10 : 0,
+    latestScore: mainsRawScores[mainsRawScores.length - 1] ?? 0,
+    improvement: mainsRawScores.length >= 2 ? Math.round((mainsRawScores[mainsRawScores.length - 1] - mainsRawScores[mainsRawScores.length - 2]) * 10) / 10 : 0,
     breakdown: {
       dailyAnswer: raw.mainsAttempts.length,
       mockTestMains: raw.mockTestMainsAttempts.length,
@@ -284,7 +316,7 @@ export async function getTestAnalytics(userId: string) {
   for (const a of raw.recentMcq) {
     const createdAt = new Date(a.createdAt);
     historyRows.push({
-      id: a.id, name: a.dailyMcq?.title || "Daily MCQ", series: "Daily MCQ",
+      id: a.id, name: a.dailyMcq?.title || "Daily MCQ Challenge", series: "Daily MCQ Challenge",
       date: relDate(createdAt), score: `${a.score}/${a.totalMarks}`,
       accuracy: Math.round(a.accuracy), sortAt: createdAt.getTime(), rank: null, type: "daily-mcq",
     });
@@ -369,6 +401,7 @@ export async function getTestAnalytics(userId: string) {
         raw.mockAttempts.length + raw.mockTestMainsAttempts.length + raw.pyqMainsAttempts.length +
         seriesAttempts.length + (raw.mcqAgg._count.id ?? 0) + raw.mainsAttempts.length,
       avgAccuracy: Math.round((raw.mcqAgg._avg.accuracy ?? 0) * 10) / 10,
+      avgScore: mainsStats.avgScore,
       bestPercentile: raw.mcqAgg._max.percentile ?? 0,
       currentStreak: raw.streak?.currentStreak ?? 0,
       totalQuestions,

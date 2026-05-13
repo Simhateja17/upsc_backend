@@ -150,3 +150,34 @@ export async function sendWeeklyProgress(
     `,
   });
 }
+
+export async function sendBookingConfirmation(
+  to: string,
+  name: string,
+  phone?: string,
+  message?: string
+): Promise<boolean> {
+  const firstName = name.split(" ")[0];
+  return sendEmail({
+    to,
+    subject: "Your Discovery Call is Booked! 📞",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1a365d;">Discovery Call Booked, ${firstName}!</h2>
+        <p>Thank you for booking your free 20-minute discovery call with Jeet Sir.</p>
+        <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0; font-weight: bold;">What happens next:</p>
+          <ul style="margin: 8px 0 0 20px;">
+            <li>We'll review your preparation stage and goals</li>
+            <li>Jeet Sir will prepare a rough strategy outline for you</li>
+            <li>You'll receive a confirmation email with call details within 24 hours</li>
+          </ul>
+        </div>
+        ${phone ? `<p><strong>Your phone:</strong> ${phone}</p>` : ""}
+        ${message ? `<p><strong>Your message:</strong> ${message}</p>` : ""}
+        <p style="color: #666; margin-top: 24px;">No hard sell, no commitment — just an honest conversation about your UPSC journey.</p>
+        <p style="color: #666;">— Team Rise with Jeet</p>
+      </div>
+    `,
+  });
+}

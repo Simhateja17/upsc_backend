@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { sendBookingConfirmation } from "../services/emailService";
 
 /**
  * GET /api/pricing/plans
@@ -66,7 +67,18 @@ export const getPlans = async (_req: Request, res: Response, next: NextFunction)
     }
 
     res.json({ status: "success", data: plans });
-  } catch (error) {
+  } catch (error: any) {
+    // If the table doesn't exist yet, return defaults instead of 500
+    if (error?.code === "P2021" || error?.code === "P2010" || error?.message?.includes("does not exist")) {
+      return res.json({
+        status: "success",
+        data: [
+          { id: "1", name: "3 Month Plan", price: 4999, duration: "3 months", features: ["All Daily MCQs & Answer Writing", "Basic Mock Tests", "Editorial Analysis", "Study Planner", "Email Support"], isPopular: false },
+          { id: "2", name: "6 Month Plan", price: 7999, duration: "6 months", features: ["Everything in 3 Month Plan", "Unlimited Mock Tests", "AI Answer Evaluation", "Video Lectures Access", "Personal Mentor Support", "Priority Support"], isPopular: true },
+          { id: "3", name: "12 Month Plan", price: 11999, duration: "12 months", features: ["Everything in 6 Month Plan", "1-on-1 Mentorship Sessions", "Complete Study Material Library", "Interview Preparation", "Lifetime Community Access", "Dedicated Study Manager"], isPopular: false },
+        ],
+      });
+    }
     next(error);
   }
 };
@@ -88,6 +100,11 @@ export const bookCall = async (req: Request, res: Response, next: NextFunction) 
       data: { userId, name, email, phone, message },
     });
     console.log(`[Mentorship] Call booked by user: ${userId}, name: ${name}`);
+
+    // Send confirmation email
+    sendBookingConfirmation(email, name, phone || undefined, message || undefined)
+      .then((sent) => console.log(`[Mentorship] Booking confirmation email ${sent ? "sent" : "skipped"} to ${email}`))
+      .catch((err) => console.error("[Mentorship] Email send failed:", err));
 
     res.status(201).json({ status: "success", data: booking, message: "Call booked successfully! We'll reach out within 24 hours." });
   } catch (error) {
