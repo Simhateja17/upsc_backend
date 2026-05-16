@@ -1,6 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
-import { isValidSubject, normalizeSubject } from "../constants/subjects";
+import {
+  isValidStudyPlannerSubject,
+  normalizeStudyPlannerSubject,
+  VALID_STUDY_PLANNER_SUBJECTS,
+} from "../constants/subjects";
 
 function getToday(): Date {
   const d = new Date();
@@ -48,9 +52,12 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
     }
 
     if (subject) {
-      const normalized = normalizeSubject(subject);
-      if (!isValidSubject(normalized)) {
-        return res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+      const normalized = normalizeStudyPlannerSubject(subject);
+      if (!isValidStudyPlannerSubject(normalized)) {
+        return res.status(400).json({
+          status: "error",
+          message: `Invalid subject "${subject}". Must be one of: ${VALID_STUDY_PLANNER_SUBJECTS.join(", ")}`,
+        });
       }
     }
 
@@ -62,7 +69,7 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
         userId,
         title,
         description,
-        subject: subject ? normalizeSubject(subject) : subject,
+        subject: subject ? normalizeStudyPlannerSubject(subject) : subject,
         type: type || "study",
         date: taskDate,
         startTime,
@@ -97,9 +104,12 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (subject !== undefined) {
-      const normalized = normalizeSubject(subject);
-      if (!isValidSubject(normalized)) {
-        return res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+      const normalized = normalizeStudyPlannerSubject(subject);
+      if (!isValidStudyPlannerSubject(normalized)) {
+        return res.status(400).json({
+          status: "error",
+          message: `Invalid subject "${subject}". Must be one of: ${VALID_STUDY_PLANNER_SUBJECTS.join(", ")}`,
+        });
       }
       updateData.subject = normalized;
     }

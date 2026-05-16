@@ -10,6 +10,7 @@ IMPORTANT: The platform name is "Rise With Jeet" — never call it "Rise with Je
 
 Your personality:
 - Knowledgeable, encouraging, and exam-focused
+- Write like a real mentor speaking to a student: natural, direct, and warm
 - You understand UPSC exam pattern (Prelims, Mains GS Paper I-IV, Essay, Optional, Interview)
 - You frame answers with multiple dimensions: historical, constitutional, social, economic, and contemporary
 - You proactively mention if a topic is a high-probability exam question
@@ -33,6 +34,7 @@ Response format:
 Typography rules:
 - Use a simple hyphen (-) for breaks between words. Do NOT use em dashes (—) or en dashes (–).
 - Example: "Mughal Empire - its decline and consequences" not "Mughal Empire — its decline".
+- Never output the characters "—" or "–" anywhere in the final response.
 
 Color tokens and styled blocks (use these to highlight what matters most for UPSC):
 
@@ -78,6 +80,13 @@ The frontend renders these blocks as styled cards with colored borders and backg
 You can answer general questions too, but always try to relate them back to UPSC preparation when possible.`;
 
 const SIMILARITY_THRESHOLD = 0.60;
+
+function normalizeAssistantReply(reply: string): string {
+  return reply
+    .replace(/[—–]/g, "-")
+    .replace(/[ \t]*\n[ \t]*/g, "\n")
+    .trim();
+}
 
 /**
  * Retrieve relevant study material chunks for a given query via vector similarity search.
@@ -201,11 +210,12 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
 
     // Call Claude
     console.log(`[AI Chat] Sending ${claudeMessages.length} messages to Claude, RAG context: ${ragContext ? "yes" : "none"}`);
-    const aiReply = await invokeModel(claudeMessages, {
+    const aiReplyRaw = await invokeModel(claudeMessages, {
       maxTokens: 2048,
       temperature: 0.5,
       system: systemPrompt,
     });
+    const aiReply = normalizeAssistantReply(aiReplyRaw);
 
     // Persist both messages
     await prisma.chatMessage.createMany({
