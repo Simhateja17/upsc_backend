@@ -106,7 +106,11 @@ export function createPrismaDashboardRepository(): DashboardRepository {
     },
 
     async getTestAnalyticsRaw(userId) {
-      const [mcqAgg, recentMcq, mockAttempts, mainsAttempts, mockTestMainsAttempts, pyqMainsAttempts, streak, seriesRes] =
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+
+      const [mcqAgg, recentMcq, mockAttempts, mainsAttempts, mockTestMainsAttempts, pyqMainsAttempts, completedStudyTasksLast7Days, streak, seriesRes] =
         await Promise.all([
           prisma.mCQAttempt.aggregate({
             where: { userId },
@@ -152,6 +156,26 @@ export function createPrismaDashboardRepository(): DashboardRepository {
               mainsQuestion: { select: { subject: true, paper: true, year: true } },
             },
           }),
+          prisma.studyPlanTask.findMany({
+            where: {
+              userId,
+              isCompleted: true,
+              OR: [
+                { completedAt: { gte: sevenDaysAgo } },
+                { date: { gte: sevenDaysAgo } },
+              ],
+            },
+            select: {
+              title: true,
+              description: true,
+              type: true,
+              date: true,
+              duration: true,
+              startTime: true,
+              endTime: true,
+              completedAt: true,
+            },
+          }),
           prisma.userStreak.findUnique({ where: { userId } }),
           supabaseAdmin
             .from("test_series_attempts")
@@ -168,6 +192,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
         mainsAttempts,
         mockTestMainsAttempts,
         pyqMainsAttempts,
+        completedStudyTasksLast7Days,
         streak,
         seriesAttempts: { data: seriesRes.data ?? [] },
       };

@@ -40,6 +40,16 @@ export interface TestAnalyticsRaw {
   mainsAttempts: any[];
   mockTestMainsAttempts: any[];
   pyqMainsAttempts: any[];
+  completedStudyTasksLast7Days: Array<{
+    title: string;
+    description: string | null;
+    type: string;
+    date: Date;
+    duration: number | null;
+    startTime: string | null;
+    endTime: string | null;
+    completedAt: Date | null;
+  }>;
   streak: any;
   seriesAttempts: { data: any[] };
 }

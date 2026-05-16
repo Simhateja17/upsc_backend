@@ -2,6 +2,11 @@ import { dashboardRepo } from "../repositories/prisma-dashboard.repository";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const ORDERED_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const STUDY_TYPE_COLORS: Record<string, string> = {
+  Reading: "#55B9AA",
+  "Video Lectures": "#E65B64",
+  Practice: "#E8C363",
+};
 
 function getIsoWeekKey(d: Date): string {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -15,6 +20,38 @@ function getIsoWeekKey(d: Date): string {
 function avg(arr: number[]): number {
   if (!arr.length) return 0;
   return arr.reduce((s, v) => s + v, 0) / arr.length;
+}
+
+function parseTimeToMinutes(t?: string | null): number | null {
+  if (!t) return null;
+  const [hRaw, mRaw] = t.split(":");
+  const h = Number(hRaw);
+  const m = Number(mRaw);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  return h * 60 + m;
+}
+
+function getTaskDurationMinutes(task: {
+  duration?: number | null;
+  startTime?: string | null;
+  endTime?: string | null;
+}): number {
+  if (task.duration && task.duration > 0) return task.duration;
+  const start = parseTimeToMinutes(task.startTime);
+  const end = parseTimeToMinutes(task.endTime);
+  if (start === null || end === null) return 0;
+  const diff = end - start;
+  return diff > 0 ? diff : 0;
+}
+
+function classifyStudyTaskType(task: { title?: string | null; description?: string | null; type?: string | null }): "Reading" | "Video Lectures" | "Practice" | null {
+  const explicitType = String(task.type ?? "").toLowerCase();
+  if (explicitType === "practice") return "Practice";
+  if (explicitType === "break") return null;
+
+  const haystack = `${task.title ?? ""} ${task.description ?? ""}`.toLowerCase();
+  if (/(video|lecture|watch|youtube)/.test(haystack)) return "Video Lectures";
+  return "Reading";
 }
 
 function getDailyDummyRank(): number {
@@ -187,11 +224,48 @@ export async function getTestAnalytics(userId: string) {
       }
     }
   }
+  const studyTimeByDayHours: Record<string, number> = {};
+  for (const day of ORDERED_DAYS) studyTimeByDayHours[day] = 0;
+  const studyTypeMinutes: Record<"Reading" | "Video Lectures" | "Practice", number> = {
+    Reading: 0,
+    "Video Lectures": 0,
+    Practice: 0,
+  };
+
+  for (const task of raw.completedStudyTasksLast7Days) {
+    const when = task.completedAt ? new Date(task.completedAt) : new Date(task.date);
+    if (now.getTime() - when.getTime() >= 7 * 86400000) continue;
+    const durationMinutes = getTaskDurationMinutes(task);
+    if (durationMinutes <= 0) continue;
+
+    const dayKey = DAY_NAMES[when.getDay()];
+    if (studyTimeByDayHours[dayKey] !== undefined) {
+      studyTimeByDayHours[dayKey] += durationMinutes / 60;
+    }
+
+    const label = classifyStudyTaskType(task);
+    if (label) {
+      studyTypeMinutes[label] += durationMinutes;
+    }
+  }
+
   const dailyActivity = ORDERED_DAYS.map((day) => ({
     day,
     questionsAttempted: dailyMap[day].questions,
-    hours: Math.round((dailyMap[day].time / 3600) * 10) / 10,
+    hours: Math.round((studyTimeByDayHours[day] ?? 0) * 10) / 10,
   }));
+
+  const totalStudyTypeMinutes = Object.values(studyTypeMinutes).reduce((s, v) => s + v, 0);
+  const studyTypeDistribution = (Object.keys(studyTypeMinutes) as Array<keyof typeof studyTypeMinutes>).map((label) => {
+    const minutes = studyTypeMinutes[label];
+    const hours = Math.round((minutes / 60) * 10) / 10;
+    return {
+      label,
+      hours,
+      percentage: totalStudyTypeMinutes > 0 ? Math.round((minutes / totalStudyTypeMinutes) * 100) : 0,
+      color: STUDY_TYPE_COLORS[label],
+    };
+  });
 
   // Canonical prelims subjects (display names)
   const PRELIMS_SUBJECTS = new Set([
@@ -421,6 +495,7 @@ export async function getTestAnalytics(userId: string) {
     subjectAccuracy,
     weeklyMcqTrend,
     dailyActivity,
+    studyTypeDistribution,
     mainsTrend,
     mainsStats,
     timePerQuestion,
