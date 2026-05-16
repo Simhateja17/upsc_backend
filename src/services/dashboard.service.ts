@@ -225,7 +225,7 @@ export async function getTestAnalytics(userId: string) {
 
   // Also add daily MCQ attempts (each attempt belongs to one subject)
   for (const attempt of raw.recentMcq) {
-    const subjectRaw = (attempt as any).dailyMcq?.subject;
+    const subjectRaw = (attempt as any).dailyMcq?.topic;
     if (!subjectRaw) continue;
     const normalized = normalizeSubjectName(subjectRaw);
     if (!normalized) continue;
