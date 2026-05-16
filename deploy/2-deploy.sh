@@ -25,7 +25,26 @@ echo "=== Generating Prisma client ==="
 npx prisma generate
 
 echo "=== Running database migrations ==="
-npx prisma migrate deploy
+set +e
+MIGRATE_OUTPUT=$(npx prisma migrate deploy 2>&1)
+MIGRATE_EXIT=$?
+set -e
+
+if [ "$MIGRATE_EXIT" -ne 0 ]; then
+  echo "$MIGRATE_OUTPUT"
+  if echo "$MIGRATE_OUTPUT" | grep -q "P3005"; then
+    echo "=== Prisma reported P3005 (non-empty schema without migration history). Baseline existing migrations once. ==="
+    for migration_dir in $(find prisma/migrations -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort); do
+      echo "Marking migration as applied: $migration_dir"
+      npx prisma migrate resolve --applied "$migration_dir"
+    done
+    echo "=== Retrying database migrations after baseline ==="
+    npx prisma migrate deploy
+  else
+    echo "Migration failed with a non-baseline error."
+    exit "$MIGRATE_EXIT"
+  fi
+fi
 
 echo "=== Building TypeScript ==="
 npm run build
