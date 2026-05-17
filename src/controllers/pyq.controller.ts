@@ -19,22 +19,37 @@ export const getPublicPYQQuestions = async (
   try {
     const mode = (qs(req.query.mode as string) || "prelims").toLowerCase();
     const subject = qs(req.query.subject as string);
+    const subSubject = qs(req.query.subSubject as string) || qs(req.query.sub_subject as string);
+    const topic = qs(req.query.topic as string);
     const year = qs(req.query.year as string);
+    const yearFrom = qs(req.query.yearFrom as string);
+    const yearTo = qs(req.query.yearTo as string);
     const paper = qs(req.query.paper as string);
     const page = parseInt(qs(req.query.page as string) || "1");
     const limit = parseInt(qs(req.query.limit as string) || "20");
     const skip = (page - 1) * limit;
 
     console.log(
-      `[PYQ] Query params: mode=${mode}, subject=${subject}, year=${year}, paper=${paper}, page=${page}, limit=${limit}`
+      `[PYQ] Query params: mode=${mode}, subject=${subject}, subSubject=${subSubject}, topic=${topic}, year=${year}, paper=${paper}, page=${page}, limit=${limit}`
     );
 
     const where: any = { status: "approved" };
 
     if (subject && subject !== "All Papers") {
-      where.subject = { contains: subject, mode: "insensitive" };
+      where.subject = { equals: subject, mode: "insensitive" };
+    }
+    if (subSubject) {
+      where.subSubject = { equals: subSubject, mode: "insensitive" };
+    }
+    if (topic) {
+      where.topic = { equals: topic, mode: "insensitive" };
     }
     if (year) where.year = parseInt(year);
+    if (!year && (yearFrom || yearTo)) {
+      where.year = {};
+      if (yearFrom) where.year.gte = parseInt(yearFrom);
+      if (yearTo) where.year.lte = parseInt(yearTo);
+    }
     if (paper) where.paper = paper;
 
     // UPSC priority subject order for "All Papers" default sort.

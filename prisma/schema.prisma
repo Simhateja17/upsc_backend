@@ -696,6 +696,7 @@ model PYQQuestion {
   questionNum   Int?     @map("question_num")
   questionText  String   @map("question_text")
   subject       String   // Polity, History, Geography, Economy, etc.
+  subSubject    String?  @map("sub_subject")
   topic         String?
   difficulty    String   @default("Medium") // Easy, Medium, Hard
   options       Json     // [{label: "A", text: "..."}, ...]
@@ -713,6 +714,8 @@ model PYQQuestion {
   seenBy      UserSeenMCQ[]
 
   @@index([subject, status])
+  @@index([subSubject])
+  @@index([topic])
   @@index([year, paper])
   @@map("pyq_questions")
 }

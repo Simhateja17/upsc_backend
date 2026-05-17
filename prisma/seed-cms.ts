@@ -272,7 +272,7 @@ const pages: PageSeed[] = [
       { key: "hero_badge", type: "text", content: "PERSONALIZED SYLLABUS TRACKER", order: 0 },
       { key: "hero_title_prefix", type: "text", content: "Know Exactly Where You Stand,", order: 1 },
       { key: "hero_title_suffix", type: "text", content: ".", order: 2 },
-      { key: "hero_subtitle", type: "text", content: "Your UPSC syllabus, fully mapped. Track every topic across Prelims, Mains and Optional — see what's done, what's pending, and what to conquer next.", order: 3 },
+      { key: "hero_subtitle", type: "text", content: "Your UPSC syllabus, fully mapped. Track every topic across Prelims, Mains and Optional, see what's done, what's pending, and what to conquer next.", order: 3 },
       { key: "stat_labels", type: "json", content: JSON.stringify({ overall: "Overall", done: "Done", revising: "Revising", remaining: "Remaining" }), order: 4 },
       { key: "stage_tabs", type: "json", content: JSON.stringify({ prelims: "Prelims", mains: "Mains", optional: "Optional" }), order: 5 },
       { key: "filter_labels", type: "json", content: JSON.stringify({ all: "All", pending: "Pending", done: "Done", important: "Important" }), order: 6 },
