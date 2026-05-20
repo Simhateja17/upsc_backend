@@ -5,6 +5,14 @@ function qs(val: string | string[] | undefined): string | undefined {
   return Array.isArray(val) ? val[0] : val;
 }
 
+function qsList(val: string | string[] | undefined): string[] {
+  const raw = Array.isArray(val) ? val : val ? [val] : [];
+  return raw
+    .flatMap((v) => String(v).split(","))
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
 /**
  * GET /api/pyq/questions
  * Public endpoint - returns approved questions with optional filters.
@@ -20,7 +28,7 @@ export const getPublicPYQQuestions = async (
     const mode = (qs(req.query.mode as string) || "prelims").toLowerCase();
     const subject = qs(req.query.subject as string);
     const subSubject = qs(req.query.subSubject as string) || qs(req.query.sub_subject as string);
-    const topic = qs(req.query.topic as string);
+    const topics = qsList(req.query.topic as string | string[]);
     const year = qs(req.query.year as string);
     const yearFrom = qs(req.query.yearFrom as string);
     const yearTo = qs(req.query.yearTo as string);
@@ -30,7 +38,7 @@ export const getPublicPYQQuestions = async (
     const skip = (page - 1) * limit;
 
     console.log(
-      `[PYQ] Query params: mode=${mode}, subject=${subject}, subSubject=${subSubject}, topic=${topic}, year=${year}, paper=${paper}, page=${page}, limit=${limit}`
+      `[PYQ] Query params: mode=${mode}, subject=${subject}, subSubject=${subSubject}, topics=${topics.join("|")}, year=${year}, paper=${paper}, page=${page}, limit=${limit}`
     );
 
     const where: any = { status: "approved" };
@@ -41,8 +49,15 @@ export const getPublicPYQQuestions = async (
     if (subSubject) {
       where.subSubject = { equals: subSubject, mode: "insensitive" };
     }
-    if (topic) {
-      where.topic = { equals: topic, mode: "insensitive" };
+    if (topics.length === 1) {
+      // Topic strings in dataset can be a comma-separated list; use contains so
+      // selecting one topic still matches those rows.
+      where.topic = { contains: topics[0], mode: "insensitive" };
+    } else if (topics.length > 1) {
+      // Multi-topic selection should return questions matching ANY selected topic.
+      where.OR = topics.map((topic) => ({
+        topic: { contains: topic, mode: "insensitive" },
+      }));
     }
     if (year) where.year = parseInt(year);
     if (!year && (yearFrom || yearTo)) {
@@ -120,6 +135,105 @@ export const getPublicPYQQuestions = async (
     });
   } catch (error) {
     console.error("[PYQ] Error fetching questions:", error);
+    next(error);
+  }
+};
+
+/**
+ * GET /api/pyq/counts
+ * Public endpoint - returns approved question counts for the sidebar tree.
+ */
+export const getPublicPYQCounts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const mode = (qs(req.query.mode as string) || "prelims").toLowerCase();
+    const year = qs(req.query.year as string);
+    const yearFrom = qs(req.query.yearFrom as string);
+    const yearTo = qs(req.query.yearTo as string);
+    const where: any = { status: "approved" };
+
+    if (year) where.year = parseInt(year);
+    if (!year && (yearFrom || yearTo)) {
+      where.year = {};
+      if (yearFrom) where.year.gte = parseInt(yearFrom);
+      if (yearTo) where.year.lte = parseInt(yearTo);
+    }
+
+    if (mode === "mains") {
+      const [total, bySubject, byTopic] = await Promise.all([
+        prisma.pYQMainsQuestion.count({ where }),
+        prisma.pYQMainsQuestion.groupBy({
+          by: ["subject"],
+          _count: { id: true },
+          where,
+        }),
+        prisma.pYQMainsQuestion.groupBy({
+          by: ["subject", "topic"],
+          _count: { id: true },
+          where,
+        }),
+      ]);
+
+      return res.json({
+        status: "success",
+        data: {
+          mode,
+          total,
+          bySubject: bySubject.map((s: any) => ({ subject: s.subject, count: s._count.id })),
+          bySubSubject: [],
+          byTopic: byTopic.map((t: any) => ({
+            subject: t.subject,
+            subSubject: null,
+            topic: t.topic,
+            count: t._count.id,
+          })),
+        },
+      });
+    }
+
+    const [total, bySubject, bySubSubject, byTopic] = await Promise.all([
+      prisma.pYQQuestion.count({ where }),
+      prisma.pYQQuestion.groupBy({
+        by: ["subject"],
+        _count: { id: true },
+        where,
+      }),
+      prisma.pYQQuestion.groupBy({
+        by: ["subject", "subSubject"],
+        _count: { id: true },
+        where,
+      }),
+      prisma.pYQQuestion.groupBy({
+        by: ["subject", "subSubject", "topic"],
+        _count: { id: true },
+        where,
+      }),
+    ]);
+
+    return res.json({
+      status: "success",
+      data: {
+        mode,
+        total,
+        bySubject: bySubject.map((s: any) => ({ subject: s.subject, count: s._count.id })),
+        bySubSubject: bySubSubject.map((s: any) => ({
+          subject: s.subject,
+          subSubject: s.subSubject,
+          count: s._count.id,
+        })),
+        byTopic: byTopic.map((t: any) => ({
+          subject: t.subject,
+          subSubject: t.subSubject,
+          topic: t.topic,
+          count: t._count.id,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error("[PYQ] Error fetching counts:", error);
     next(error);
   }
 };

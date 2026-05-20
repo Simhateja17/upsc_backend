@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getPublicPYQQuestions } from "../controllers/pyq.controller";
+import { getPublicPYQCounts, getPublicPYQQuestions } from "../controllers/pyq.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import { submissionLimiter } from "../middleware/rateLimit";
 import { uploadSingle } from "../middleware/upload";
@@ -12,6 +12,7 @@ import {
 const router = Router();
 
 router.get("/questions", getPublicPYQQuestions);
+router.get("/counts", getPublicPYQCounts);
 
 // Mains AI evaluation (typed or handwritten)
 router.post(
