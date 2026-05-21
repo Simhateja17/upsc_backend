@@ -1,0 +1,2 @@
+ALTER TABLE "pricing_plans"
+ADD COLUMN IF NOT EXISTS "duration_days" INTEGER NOT NULL DEFAULT 90;
