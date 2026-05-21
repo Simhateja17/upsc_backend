@@ -28,6 +28,8 @@ import bookmarkRoutes from "./bookmark.routes";
 import supportRoutes from "./support.routes";
 import billingRoutes from "./billing.routes";
 import mentalHealthRoutes from "./mentalHealth.routes";
+import { initiatePayment, verifyPayment } from "../controllers/billing.controller";
+import { authenticate } from "../middleware/auth.middleware";
 import * as cmsPublicCtrl from "../controllers/cms.public.controller";
 import { getSyllabus } from "../controllers/syllabus.controller";
 
@@ -179,6 +181,10 @@ router.use("/support", supportRoutes);
 
 // Billing routes
 router.use("/billing", billingRoutes);
+
+// Razorpay Standard Checkout aliases
+router.post("/create-order", authenticate, initiatePayment);
+router.post("/verify-payment", authenticate, verifyPayment);
 
 // Jeet AI chat routes
 router.use("/ai", aiRoutes);

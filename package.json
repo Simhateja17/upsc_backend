@@ -57,6 +57,7 @@
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
     "rate-limit-redis": "^4.3.1",
+    "razorpay": "^2.9.6",
     "resend": "^6.9.3",
     "rss-parser": "^3.13.0",
     "string-similarity": "^4.0.4",
