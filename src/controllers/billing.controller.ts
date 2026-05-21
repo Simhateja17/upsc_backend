@@ -78,6 +78,22 @@ function getRazorpayErrorStatus(error: unknown) {
   return 500;
 }
 
+function getRazorpayErrorMessage(error: unknown, fallback: string) {
+  const razorpayError = error as {
+    message?: string;
+    statusCode?: number;
+    status?: number;
+    error?: { description?: string; reason?: string; code?: string };
+  };
+  const statusCode = razorpayError.statusCode || razorpayError.status;
+
+  if (statusCode === 401) {
+    return "Razorpay authentication failed. Check backend RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET, then restart the backend with updated env.";
+  }
+
+  return razorpayError.error?.description || razorpayError.message || fallback;
+}
+
 // ==================== USER BILLING APIs ====================
 
 /**
@@ -289,7 +305,14 @@ export const initiatePayment = async (req: Request, res: Response, next: NextFun
   } catch (error) {
     const statusCode = getRazorpayErrorStatus(error);
     if (statusCode !== 500) {
-      return res.status(statusCode).json({ status: "error", message: (error as Error).message || "Unable to create Razorpay order" });
+      console.error("[Billing] Razorpay order creation failed:", {
+        statusCode,
+        message: getRazorpayErrorMessage(error, "Unable to create Razorpay order"),
+      });
+      return res.status(statusCode).json({
+        status: "error",
+        message: getRazorpayErrorMessage(error, "Unable to create Razorpay order"),
+      });
     }
     next(error);
   }
@@ -430,7 +453,14 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
   } catch (error) {
     const statusCode = getRazorpayErrorStatus(error);
     if (statusCode !== 500) {
-      return res.status(statusCode).json({ status: "error", message: (error as Error).message || "Unable to verify payment" });
+      console.error("[Billing] Razorpay payment verification failed:", {
+        statusCode,
+        message: getRazorpayErrorMessage(error, "Unable to verify payment"),
+      });
+      return res.status(statusCode).json({
+        status: "error",
+        message: getRazorpayErrorMessage(error, "Unable to verify payment"),
+      });
     }
     next(error);
   }
