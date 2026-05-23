@@ -38,6 +38,7 @@ model User {
   editorialBookmarks EditorialBookmark[]
   mockTestAttempts  MockTestAttempt[]
   studyPlanTasks    StudyPlanTask[]
+  calendarSyncSetting CalendarSyncSetting?
   studyStreak       StudyStreak?
   weeklyGoals       WeeklyGoal[]
   syllabusCoverage  SyllabusCoverage[]
@@ -474,6 +475,9 @@ model StudyPlanTask {
   duration    Int?      // minutes
   isCompleted Boolean   @default(false) @map("is_completed")
   completedAt DateTime? @map("completed_at")
+  googleCalendarEventId String?   @map("google_calendar_event_id")
+  googleCalendarSyncedAt DateTime? @map("google_calendar_synced_at")
+  googleCalendarSyncError String?  @map("google_calendar_sync_error")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
@@ -481,6 +485,29 @@ model StudyPlanTask {
 
   @@index([userId, date])
   @@map("study_plan_tasks")
+}
+
+model CalendarSyncSetting {
+  id                         String    @id @default(uuid())
+  userId                     String    @unique @map("user_id")
+  provider                   String    @default("google")
+  enabled                    Boolean   @default(false)
+  enabledAt                  DateTime? @map("enabled_at")
+  googleAccessTokenEncrypted String?   @map("google_access_token_encrypted") @db.Text
+  googleRefreshTokenEncrypted String?  @map("google_refresh_token_encrypted") @db.Text
+  googleTokenExpiresAt       DateTime? @map("google_token_expires_at")
+  googleScope                String?   @map("google_scope") @db.Text
+  googleCalendarId           String    @default("primary") @map("google_calendar_id")
+  timezone                   String    @default("Asia/Kolkata")
+  lastSyncError              String?   @map("last_sync_error") @db.Text
+  connectedAt                DateTime? @map("connected_at")
+  createdAt                  DateTime  @default(now()) @map("created_at")
+  updatedAt                  DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([provider, enabled])
+  @@map("calendar_sync_settings")
 }
 
 model StudyStreak {
@@ -625,16 +652,23 @@ model Chapter {
 
 model StudyMaterial {
   id          String   @id @default(uuid())
-  chapterId   String   @map("chapter_id")
+  chapterId   String?  @map("chapter_id")
+  syllabusSubTopicId String? @map("syllabus_sub_topic_id")
   title       String
-  type        String   @default("pdf") // pdf, notes
+  type        String   @default("Notes")
+  description String?
+  accessLevel String  @default("free") @map("access_level") // free, trial, paid
+  isPublished Boolean @default(true) @map("is_published")
+  order       Int     @default(0)
   fileUrl     String?  @map("file_url")
   fileSize    Int?     @map("file_size") // bytes
   pageCount   Int?     @map("page_count")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  syllabusSubTopic SyllabusSubTopic? @relation(fields: [syllabusSubTopicId], references: [id], onDelete: SetNull)
 
+  @@index([syllabusSubTopicId])
   @@map("study_materials")
 }
 
@@ -1133,6 +1167,7 @@ model SyllabusSubTopic {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   topic SyllabusTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  studyMaterials StudyMaterial[]
 
   @@unique([topicId, name])
   @@map("syllabus_sub_topics")

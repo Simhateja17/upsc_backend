@@ -2,17 +2,70 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import { getSignedUrl, STORAGE_BUCKETS } from "../config/storage";
 
+function hasAccess(userPlan: string, accessLevel: string): boolean {
+  if (accessLevel === "free") return true;
+  if (accessLevel === "trial") return ["trial", "pro", "pro-annual", "paid"].includes(userPlan);
+  if (accessLevel === "paid") return ["pro", "pro-annual", "paid"].includes(userPlan);
+  return false;
+}
+
+async function getUserPlan(userId: string): Promise<string> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      settings: true,
+      subscriptions: {
+        where: { status: "active", endDate: { gt: new Date() } },
+        take: 1,
+        select: { id: true },
+      },
+    },
+  });
+  const settings = (user?.settings as any) || {};
+  const sub = settings.subscription || {};
+  if (sub.plan === "trial" && sub.trialEndsOn && new Date(sub.trialEndsOn) > new Date()) return "trial";
+  if (["pro", "pro-annual", "paid"].includes(sub.plan) && ["active", "trial"].includes(sub.status)) return sub.plan;
+  if ((user?.subscriptions?.length || 0) > 0) return "paid";
+  return "free";
+}
+
+function publicMaterial(material: any, userPlan = "free") {
+  const allowed = hasAccess(userPlan, material.accessLevel || "free");
+  return {
+    id: material.id,
+    title: material.title,
+    type: material.type,
+    description: material.description,
+    accessLevel: material.accessLevel,
+    isLocked: !allowed,
+    fileSize: material.fileSize,
+    pageCount: material.pageCount,
+    order: material.order,
+    createdAt: material.createdAt,
+  };
+}
+
 /**
  * GET /api/library/subjects
  * Subjects with PDF counts and tags
  */
 export const getSubjects = async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const subjects = await prisma.subject.findMany({
-      orderBy: { order: "asc" },
+    const subjects = await prisma.syllabusSubject.findMany({
+      where: { stage: "prelims" },
+      orderBy: { sortOrder: "asc" },
       include: {
-        chapters: {
-          include: { _count: { select: { materials: true } } },
+        topics: {
+          include: {
+            subTopics: {
+              include: {
+                studyMaterials: {
+                  where: { isPublished: true },
+                  select: { id: true, pageCount: true },
+                },
+              },
+            },
+          },
         },
       },
     });
@@ -20,27 +73,22 @@ export const getSubjects = async (_req: Request, res: Response, next: NextFuncti
     const data = subjects.map((s: any) => ({
       id: s.id,
       name: s.name,
-      description: s.description,
-      iconUrl: s.iconUrl,
-      tags: s.tags,
-      chapterCount: s.chapters.length,
-      pdfCount: s.chapters.reduce((sum: number, c: any) => sum + c._count.materials, 0),
+      short: s.short,
+      icon: s.icon,
+      color: s.color,
+      bg: s.bg,
+      description: `${s.topics.length} sub-subjects mapped from the Prelims syllabus.`,
+      tags: ["Prelims"],
+      chapterCount: s.topics.length,
+      pdfCount: s.topics.reduce(
+        (sum: number, t: any) => sum + t.subTopics.reduce((inner: number, st: any) => inner + st.studyMaterials.length, 0),
+        0
+      ),
+      pageCount: s.topics.reduce(
+        (sum: number, t: any) => sum + t.subTopics.reduce((inner: number, st: any) => inner + st.studyMaterials.reduce((p: number, m: any) => p + (m.pageCount || 0), 0), 0),
+        0
+      ),
     }));
-
-    // Return defaults if empty
-    if (data.length === 0) {
-      return res.json({
-        status: "success",
-        data: [
-          { id: "1", name: "History", description: "Spectrum & Bipin Chandra", tags: ["Prelims"], chapterCount: 15, pdfCount: 52 },
-          { id: "2", name: "Geography", description: "Majid Husain & NCERT", tags: ["Prelims", "Mains"], chapterCount: 10, pdfCount: 38 },
-          { id: "3", name: "Polity", description: "M. Laxmikanth", tags: ["Prelims", "Mains"], chapterCount: 12, pdfCount: 48 },
-          { id: "4", name: "Economy", description: "Ramesh Singh & Sriram IAS", tags: ["Prelims", "Mains"], chapterCount: 14, pdfCount: 45 },
-          { id: "5", name: "Environment & Ecology", description: "Shankar IAS", tags: ["Prelims", "Mains"], chapterCount: 6, pdfCount: 18 },
-          { id: "6", name: "Science & Technology", description: "Current focus", tags: ["Prelims"], chapterCount: 8, pdfCount: 24 },
-        ],
-      });
-    }
 
     res.json({ status: "success", data });
   } catch (error) {
@@ -55,16 +103,23 @@ export const getSubjects = async (_req: Request, res: Response, next: NextFuncti
 export const getChapters = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = req.params.id as string;
-    console.log(`[Library] Fetching chapters for subject: ${id}`);
+    const userPlan = req.user?.id ? await getUserPlan(req.user.id) : "free";
+    console.log(`[Library] Fetching topic tree for subject: ${id}`);
 
-    const subject = await prisma.subject.findUnique({
+    const subject = await prisma.syllabusSubject.findUnique({
       where: { id },
       include: {
-        chapters: {
-          orderBy: { order: "asc" },
+        topics: {
+          orderBy: { sortOrder: "asc" },
           include: {
-            materials: {
-              select: { id: true, title: true, type: true, fileSize: true, pageCount: true },
+            subTopics: {
+              orderBy: { sortOrder: "asc" },
+              include: {
+                studyMaterials: {
+                  where: { isPublished: true },
+                  orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+                },
+              },
             },
           },
         },
@@ -75,48 +130,78 @@ export const getChapters = async (req: Request, res: Response, next: NextFunctio
       return res.status(404).json({ status: "error", message: "Subject not found" });
     }
 
-    res.json({ status: "success", data: { subject: { id: subject.id, name: subject.name }, chapters: subject.chapters } });
+    const subSubjects = subject.topics.map((topic) => ({
+      id: topic.id,
+      title: topic.name,
+      name: topic.name,
+      order: topic.sortOrder,
+      topics: topic.subTopics.map((subTopic) => ({
+        id: subTopic.id,
+        title: subTopic.name,
+        name: subTopic.name,
+        order: subTopic.sortOrder,
+        materials: subTopic.studyMaterials.map((material) => publicMaterial(material, userPlan)),
+      })),
+    }));
+
+    res.json({ status: "success", data: { subject: { id: subject.id, name: subject.name }, chapters: subSubjects, subSubjects } });
   } catch (error) {
     next(error);
   }
 };
 
 /**
- * GET /api/library/download/:chapterId
+ * GET /api/library/download/material/:materialId
  * PDF download URL
+ */
+export const getMaterialDownloadUrl = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const materialId = req.params.materialId as string;
+    console.log(`[Library] Download requested for material: ${materialId}`);
+
+    const material = await prisma.studyMaterial.findUnique({
+      where: { id: materialId },
+    });
+
+    if (!material || !material.isPublished) {
+      return res.status(404).json({ status: "error", message: "Material not found" });
+    }
+
+    const userPlan = await getUserPlan(req.user!.id);
+    if (!hasAccess(userPlan, material.accessLevel || "free")) {
+      return res.status(403).json({ status: "error", message: "Upgrade required to access this PDF" });
+    }
+
+    let downloadUrl = material.fileUrl;
+    if (material.fileUrl && !material.fileUrl.startsWith("http")) {
+      downloadUrl = await getSignedUrl(STORAGE_BUCKETS.STUDY_MATERIALS, material.fileUrl, 3600);
+    }
+
+    res.json({ status: "success", data: { id: material.id, title: material.title, fileUrl: downloadUrl, downloadUrl } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Legacy chapter download endpoint. Returns signed URLs for all accessible
+ * materials under a legacy chapter, preserving old clients during migration.
  */
 export const getDownloadUrl = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const chapterId = req.params.chapterId as string;
-    console.log(`[Library] Download requested for chapter: ${chapterId}`);
-
+    const userPlan = await getUserPlan(req.user!.id);
     const materials = await prisma.studyMaterial.findMany({
-      where: { chapterId },
+      where: { chapterId, isPublished: true },
     });
 
-    if (materials.length === 0) {
-      return res.status(404).json({ status: "error", message: "No materials found for this chapter" });
-    }
-
-    // Generate signed download URLs for materials that are in Supabase Storage
     const materialsWithUrls = await Promise.all(
-      materials.map(async (m) => {
+      materials.filter((m) => hasAccess(userPlan, m.accessLevel || "free")).map(async (m) => {
         let downloadUrl = m.fileUrl;
         if (m.fileUrl && !m.fileUrl.startsWith("http")) {
-          try {
-            downloadUrl = await getSignedUrl(STORAGE_BUCKETS.STUDY_MATERIALS, m.fileUrl, 3600);
-          } catch {
-            downloadUrl = m.fileUrl;
-          }
+          downloadUrl = await getSignedUrl(STORAGE_BUCKETS.STUDY_MATERIALS, m.fileUrl, 3600);
         }
-        return {
-          id: m.id,
-          title: m.title,
-          type: m.type,
-          fileUrl: downloadUrl,
-          fileSize: m.fileSize,
-          pageCount: m.pageCount,
-        };
+        return { id: m.id, title: m.title, type: m.type, fileUrl: downloadUrl, fileSize: m.fileSize, pageCount: m.pageCount };
       })
     );
 

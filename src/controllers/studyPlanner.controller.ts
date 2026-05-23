@@ -5,11 +5,29 @@ import {
   normalizeStudyPlannerSubject,
   VALID_STUDY_PLANNER_SUBJECTS,
 } from "../constants/subjects";
+import {
+  deleteStudyPlanTaskFromGoogle,
+  syncStudyPlanTaskToGoogle,
+} from "../services/googleCalendarSync.service";
 
 function getToday(): Date {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+function parsePlannerDate(dateParam: string | undefined): Date {
+  if (!dateParam) return getToday();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+    const parsed = new Date(dateParam);
+    if (isNaN(parsed.getTime())) return parsed;
+    parsed.setHours(0, 0, 0, 0);
+    return parsed;
+  }
+
+  // Keep date-only values stable across server timezones. `new Date("YYYY-MM-DD")`
+  // is UTC midnight; calling setHours can shift it to the previous DB date in IST.
+  return new Date(`${dateParam}T12:00:00.000Z`);
 }
 
 /**
@@ -20,11 +38,10 @@ export const getTodayTasks = async (req: Request, res: Response, next: NextFunct
   try {
     const userId = req.user!.id;
     const dateParam = req.query.date as string | undefined;
-    const targetDate = dateParam ? new Date(dateParam) : getToday();
+    const targetDate = parsePlannerDate(dateParam);
     if (dateParam && isNaN(targetDate.getTime())) {
       return res.status(400).json({ status: "error", message: "Invalid date format" });
     }
-    targetDate.setHours(0, 0, 0, 0);
 
     const tasks = await prisma.studyPlanTask.findMany({
       where: { userId, date: targetDate },
@@ -61,8 +78,7 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
       }
     }
 
-    const taskDate = date ? new Date(date) : getToday();
-    taskDate.setHours(0, 0, 0, 0);
+    const taskDate = parsePlannerDate(date);
 
     const task = await prisma.studyPlanTask.create({
       data: {
@@ -77,6 +93,8 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
         duration,
       },
     });
+
+    await syncStudyPlanTaskToGoogle(task);
 
     res.status(201).json({ status: "success", data: task });
   } catch (error) {
@@ -114,7 +132,7 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
       updateData.subject = normalized;
     }
     if (type !== undefined) updateData.type = type;
-    if (date !== undefined) { const d = new Date(date); d.setHours(0, 0, 0, 0); updateData.date = d; }
+    if (date !== undefined) updateData.date = parsePlannerDate(date);
     if (startTime !== undefined) updateData.startTime = startTime;
     if (endTime !== undefined) updateData.endTime = endTime;
     if (duration !== undefined) updateData.duration = duration;
@@ -124,6 +142,8 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
     }
 
     const task = await prisma.studyPlanTask.update({ where: { id }, data: updateData });
+
+    await syncStudyPlanTaskToGoogle(task);
 
     // Update study streak if completed
     if (isCompleted) {
@@ -150,6 +170,7 @@ export const deleteTask = async (req: Request, res: Response, next: NextFunction
       return res.status(404).json({ status: "error", message: "Task not found" });
     }
 
+    await deleteStudyPlanTaskFromGoogle(existing);
     await prisma.studyPlanTask.delete({ where: { id } });
     res.json({ status: "success", message: "Task deleted" });
   } catch (error) {

@@ -1,4 +1,6 @@
 import "dotenv/config";
+import fs from "node:fs";
+import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
@@ -10,6 +12,85 @@ const pool = new pg.Pool({
 });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
+
+type SeedSubject = {
+  name: string;
+  short: string;
+  icon: string;
+  color: string;
+  bg: string;
+  topics: { name: string; subs: string[] }[];
+};
+
+type CsvSubject = {
+  subject: string;
+  subSubjects: { label: string; topics: string[] }[];
+};
+
+const PRELIMS_META: Record<string, Omit<SeedSubject, "name" | "short" | "topics"> & { short: string }> = {
+  History: {
+    short: "History",
+    icon: "🏛️",
+    color: "#e07b39",
+    bg: "rgba(224,123,57,.11)",
+  },
+  Geography: {
+    short: "Geog.",
+    icon: "🌍",
+    color: "#2e7dd4",
+    bg: "rgba(46,125,212,.10)",
+  },
+  Polity: {
+    short: "Polity",
+    icon: "⚖️",
+    color: "#7c3aed",
+    bg: "rgba(124,58,237,.09)",
+  },
+  Economy: {
+    short: "Economy",
+    icon: "💰",
+    color: "#059669",
+    bg: "rgba(5,150,105,.09)",
+  },
+  "Environment & Ecology": {
+    short: "Env.",
+    icon: "🌿",
+    color: "#16a34a",
+    bg: "rgba(22,163,74,.10)",
+  },
+  "Science & Technology": {
+    short: "S&T",
+    icon: "🔬",
+    color: "#0891b2",
+    bg: "rgba(8,145,178,.10)",
+  },
+};
+
+function loadPrelimsFromCsvJson(): SeedSubject[] {
+  const jsonPath = path.resolve(__dirname, "..", "..", "upsc_frontend", "data", "syllabus", "prelimsSyllabus.json");
+  const csvSubjects = JSON.parse(fs.readFileSync(jsonPath, "utf8")) as CsvSubject[];
+
+  return csvSubjects.map((item) => {
+    const meta = PRELIMS_META[item.subject] ?? {
+      short: item.subject,
+      icon: "📚",
+      color: "#0f1f3d",
+      bg: "rgba(15,31,61,.08)",
+    };
+
+    return {
+      name: item.subject,
+      short: meta.short,
+      icon: meta.icon,
+      color: meta.color,
+      bg: meta.bg,
+      topics: item.subSubjects.map((subSubject) => ({
+        name: subSubject.label,
+        subs: subSubject.topics,
+      })),
+    };
+  });
+}
 
 const SYLLABUS_DATA = {
   prelims: [
@@ -202,17 +283,24 @@ const SYLLABUS_DATA = {
 
 async function seedSyllabus() {
   console.log("Seeding syllabus data...");
+  const seedData = {
+    ...SYLLABUS_DATA,
+    prelims: loadPrelimsFromCsvJson(),
+  };
 
-  // Clear existing data
-  await prisma.syllabusSubTopic.deleteMany();
-  await prisma.syllabusTopic.deleteMany();
-  await prisma.syllabusSubject.deleteMany();
-
-  for (const [stage, subjects] of Object.entries(SYLLABUS_DATA)) {
+  for (const [stage, subjects] of Object.entries(seedData)) {
     for (let si = 0; si < subjects.length; si++) {
       const subj = subjects[si];
-      const dbSubject = await prisma.syllabusSubject.create({
-        data: {
+      const dbSubject = await prisma.syllabusSubject.upsert({
+        where: { stage_name: { stage, name: subj.name } },
+        update: {
+          short: subj.short,
+          icon: subj.icon,
+          color: subj.color,
+          bg: subj.bg,
+          sortOrder: si,
+        },
+        create: {
           stage,
           name: subj.name,
           short: subj.short,
@@ -226,21 +314,26 @@ async function seedSyllabus() {
 
       for (let ti = 0; ti < subj.topics.length; ti++) {
         const topic = subj.topics[ti];
-        const dbTopic = await prisma.syllabusTopic.create({
-          data: {
+        const dbTopic = await prisma.syllabusTopic.upsert({
+          where: { subjectId_name: { subjectId: dbSubject.id, name: topic.name } },
+          update: {
+            sortOrder: ti,
+          },
+          create: {
             subjectId: dbSubject.id,
             name: topic.name,
             sortOrder: ti,
           },
         });
 
-        await prisma.syllabusSubTopic.createMany({
-          data: topic.subs.map((name, sti) => ({
-            topicId: dbTopic.id,
-            name,
-            sortOrder: sti,
-          })),
-        });
+        for (let sti = 0; sti < topic.subs.length; sti++) {
+          const name = topic.subs[sti];
+          await prisma.syllabusSubTopic.upsert({
+            where: { topicId_name: { topicId: dbTopic.id, name } },
+            update: { sortOrder: sti },
+            create: { topicId: dbTopic.id, name, sortOrder: sti },
+          });
+        }
       }
     }
   }

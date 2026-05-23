@@ -69,6 +69,7 @@ router.get("/mock-test-materials", mockTestMaterialCtrl.getMockTestMaterials);
 router.delete("/mock-test-materials/:id", mockTestMaterialCtrl.deleteMockTestMaterial);
 
 // ==================== Library Management ====================
+router.get("/library/tree", libraryCtrl.getSyllabusTree);
 router.get("/library/subjects", libraryCtrl.getSubjects);
 router.post("/library/subjects", libraryCtrl.createSubject);
 router.put("/library/subjects/:id", libraryCtrl.updateSubject);
@@ -78,7 +79,7 @@ router.post("/library/chapters", libraryCtrl.createChapter);
 router.put("/library/chapters/:id", libraryCtrl.updateChapter);
 router.delete("/library/chapters/:id", libraryCtrl.deleteChapter);
 router.get("/library/materials", libraryCtrl.getMaterials);
-router.post("/library/materials/upload", uploadSingle("file"), libraryCtrl.uploadMaterial);
+router.post("/library/materials/upload", uploadPDF, libraryCtrl.uploadMaterial);
 router.delete("/library/materials/:id", libraryCtrl.deleteMaterial);
 
 // ==================== Syllabus Management ====================
