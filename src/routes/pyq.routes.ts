@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getPublicPYQCounts, getPublicPYQQuestions } from "../controllers/pyq.controller";
+import { getPublicPYQCounts, getPublicPYQQuestions, submitPyqPrelimsAnswer } from "../controllers/pyq.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import { submissionLimiter } from "../middleware/rateLimit";
 import { uploadSingle } from "../middleware/upload";
@@ -13,6 +13,7 @@ const router = Router();
 
 router.get("/questions", getPublicPYQQuestions);
 router.get("/counts", getPublicPYQCounts);
+router.post("/prelims/:questionId/submit", authenticate, submitPyqPrelimsAnswer);
 
 // Mains AI evaluation (typed or handwritten)
 router.post(

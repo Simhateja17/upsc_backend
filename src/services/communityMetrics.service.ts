@@ -11,12 +11,20 @@ export interface SyntheticLeaderboardRow {
   mcqAvg: number;
   mockAvg: number;
   mainsAvg: number;
+  dailyMcqScore: number;
+  pyqPrelimsScore: number;
+  mockPrelimsScore: number;
+  dailyAnswerScore: number;
+  pyqMainsScore: number;
+  mockMainsScore: number;
   dailyAnswerAvg: number;
   pyqAvg: number;
   streak: number;
   studyHours: number;
   accuracy: number;
   questionsSolved: number;
+  attemptCount: number;
+  isRankUnlocked: true;
   isSynthetic: true;
 }
 
@@ -81,57 +89,79 @@ export function buildSyntheticLeaderboardRows(range = "all", count = 937, now = 
     const lastName = LAST_NAMES[Math.floor(rnd() * LAST_NAMES.length)];
     const tier = rnd();
 
-    let mcqAvg: number;
-    let mockAvg: number;
-    let dailyAnswerAvg: number;
-    let pyqAvg: number;
+    let dailyMcqScore: number;
+    let pyqPrelimsScore: number;
+    let mockPrelimsScore: number;
+    let dailyAnswerScore: number;
+    let pyqMainsScore: number;
+    let mockMainsScore: number;
     let streak: number;
     let studyHours: number;
     let questionsSolved: number;
 
     if (tier < 0.05) {
-      mcqAvg = 84 + Math.floor(rnd() * 13);
-      mockAvg = 78 + Math.floor(rnd() * 15);
-      dailyAnswerAvg = 62 + Math.floor(rnd() * 23);
-      pyqAvg = 70 + Math.floor(rnd() * 20);
+      dailyMcqScore = 8.4 + rnd() * 1.4;
+      pyqPrelimsScore = 8.0 + rnd() * 1.5;
+      mockPrelimsScore = 7.8 + rnd() * 1.6;
+      dailyAnswerScore = 6.6 + rnd() * 2.0;
+      pyqMainsScore = 6.8 + rnd() * 1.9;
+      mockMainsScore = 6.4 + rnd() * 2.0;
       streak = 18 + Math.floor(rnd() * 32);
       studyHours = 70 + Math.floor(rnd() * 45);
       questionsSolved = 850 + Math.floor(rnd() * 380);
     } else if (tier < 0.2) {
-      mcqAvg = 70 + Math.floor(rnd() * 14);
-      mockAvg = 66 + Math.floor(rnd() * 14);
-      dailyAnswerAvg = 50 + Math.floor(rnd() * 18);
-      pyqAvg = 58 + Math.floor(rnd() * 18);
+      dailyMcqScore = 7.0 + rnd() * 1.4;
+      pyqPrelimsScore = 6.6 + rnd() * 1.5;
+      mockPrelimsScore = 6.4 + rnd() * 1.5;
+      dailyAnswerScore = 5.0 + rnd() * 1.8;
+      pyqMainsScore = 5.2 + rnd() * 1.8;
+      mockMainsScore = 5.0 + rnd() * 1.8;
       streak = 9 + Math.floor(rnd() * 20);
       studyHours = 42 + Math.floor(rnd() * 36);
       questionsSolved = 480 + Math.floor(rnd() * 360);
     } else if (tier < 0.55) {
-      mcqAvg = 55 + Math.floor(rnd() * 16);
-      mockAvg = 50 + Math.floor(rnd() * 18);
-      dailyAnswerAvg = 36 + Math.floor(rnd() * 18);
-      pyqAvg = 42 + Math.floor(rnd() * 20);
+      dailyMcqScore = 5.2 + rnd() * 1.8;
+      pyqPrelimsScore = 4.8 + rnd() * 2.0;
+      mockPrelimsScore = 4.6 + rnd() * 2.0;
+      dailyAnswerScore = 3.6 + rnd() * 1.9;
+      pyqMainsScore = 3.8 + rnd() * 2.0;
+      mockMainsScore = 3.5 + rnd() * 2.0;
       streak = 3 + Math.floor(rnd() * 12);
       studyHours = 18 + Math.floor(rnd() * 36);
       questionsSolved = 190 + Math.floor(rnd() * 290);
     } else {
-      mcqAvg = 34 + Math.floor(rnd() * 22);
-      mockAvg = 30 + Math.floor(rnd() * 22);
-      dailyAnswerAvg = 22 + Math.floor(rnd() * 18);
-      pyqAvg = 28 + Math.floor(rnd() * 18);
+      dailyMcqScore = 2.8 + rnd() * 2.4;
+      pyqPrelimsScore = 2.5 + rnd() * 2.3;
+      mockPrelimsScore = 2.2 + rnd() * 2.4;
+      dailyAnswerScore = 1.8 + rnd() * 2.2;
+      pyqMainsScore = 2.0 + rnd() * 2.2;
+      mockMainsScore = 1.8 + rnd() * 2.1;
       streak = Math.floor(rnd() * 7);
       studyHours = 4 + Math.floor(rnd() * 22);
       questionsSolved = 35 + Math.floor(rnd() * 170);
     }
 
-    const drift = Math.floor(rnd() * 7) - 3;
-    mcqAvg = clamp(mcqAvg + drift, 20, 99);
-    mockAvg = clamp(mockAvg + Math.floor(rnd() * 5) - 2, 20, 99);
-    dailyAnswerAvg = clamp(dailyAnswerAvg + Math.floor(rnd() * 5) - 2, 15, 95);
-    pyqAvg = clamp(pyqAvg + Math.floor(rnd() * 5) - 2, 20, 99);
+    dailyMcqScore = clamp(dailyMcqScore + (rnd() * 0.4 - 0.2), 0, 10);
+    pyqPrelimsScore = clamp(pyqPrelimsScore + (rnd() * 0.4 - 0.2), 0, 10);
+    mockPrelimsScore = clamp(mockPrelimsScore + (rnd() * 0.4 - 0.2), 0, 10);
+    dailyAnswerScore = clamp(dailyAnswerScore + (rnd() * 0.4 - 0.2), 0, 10);
+    pyqMainsScore = clamp(pyqMainsScore + (rnd() * 0.4 - 0.2), 0, 10);
+    mockMainsScore = clamp(mockMainsScore + (rnd() * 0.4 - 0.2), 0, 10);
 
-    const mainsAvg = parseFloat(avg([dailyAnswerAvg, pyqAvg]).toFixed(1));
-    const totalScore = parseFloat(((mcqAvg + mockAvg + dailyAnswerAvg + pyqAvg) / 4).toFixed(2));
-    const accuracy = parseFloat(avg([mcqAvg, mockAvg, dailyAnswerAvg, pyqAvg]).toFixed(1));
+    const mcqAvg = parseFloat(avg([dailyMcqScore, pyqPrelimsScore, mockPrelimsScore]).toFixed(2));
+    const mockAvg = parseFloat(avg([mockPrelimsScore, mockMainsScore]).toFixed(2));
+    const dailyAnswerAvg = parseFloat(dailyAnswerScore.toFixed(2));
+    const pyqAvg = parseFloat(avg([pyqPrelimsScore, pyqMainsScore]).toFixed(2));
+    const mainsAvg = parseFloat(avg([dailyAnswerScore, pyqMainsScore, mockMainsScore]).toFixed(2));
+    const totalScore = parseFloat(avg([
+      dailyMcqScore,
+      pyqPrelimsScore,
+      mockPrelimsScore,
+      dailyAnswerScore,
+      pyqMainsScore,
+      mockMainsScore,
+    ]).toFixed(2));
+    const accuracy = parseFloat((totalScore * 10).toFixed(1));
     const name = `${firstName} ${lastName}`;
 
     return {
@@ -147,12 +177,20 @@ export function buildSyntheticLeaderboardRows(range = "all", count = 937, now = 
       mcqAvg,
       mockAvg,
       mainsAvg,
+      dailyMcqScore: parseFloat(dailyMcqScore.toFixed(2)),
+      pyqPrelimsScore: parseFloat(pyqPrelimsScore.toFixed(2)),
+      mockPrelimsScore: parseFloat(mockPrelimsScore.toFixed(2)),
+      dailyAnswerScore: parseFloat(dailyAnswerScore.toFixed(2)),
+      pyqMainsScore: parseFloat(pyqMainsScore.toFixed(2)),
+      mockMainsScore: parseFloat(mockMainsScore.toFixed(2)),
       dailyAnswerAvg,
       pyqAvg,
       streak,
       studyHours,
       accuracy,
       questionsSolved,
+      attemptCount: 6 + Math.floor(rnd() * 40),
+      isRankUnlocked: true,
       isSynthetic: true,
     };
   });
@@ -160,7 +198,6 @@ export function buildSyntheticLeaderboardRows(range = "all", count = 937, now = 
 
 export function buildCommunityStats(params: {
   realUserCount: number;
-  realQuestionsSolved: number;
   rows: Array<{ accuracy: number; questionsSolved?: number }>;
   now?: Date;
 }): CommunityStats {
@@ -171,13 +208,13 @@ export function buildCommunityStats(params: {
   const bucketRnd = seededRand(bucketSeed);
   const activeBase = 590 + Math.floor(dayRnd() * 71);
   const activeToday = clamp(activeBase + Math.floor(bucketRnd() * 21) - 10, 590, 690) + params.realUserCount;
-  const syntheticQuestions = params.rows.reduce((sum, row) => sum + (row.questionsSolved ?? 0), 0);
+  const questionsSolved = params.rows.reduce((sum, row) => sum + (row.questionsSolved ?? 0), 0);
   const avgAccuracy = Math.round(avg(params.rows.map((row) => Number(row.accuracy) || 0).filter(Boolean)));
 
   return {
     totalAspirants: 937 + params.realUserCount,
     activeToday,
-    questionsSolved: syntheticQuestions + params.realQuestionsSolved,
+    questionsSolved,
     avgAccuracy,
   };
 }

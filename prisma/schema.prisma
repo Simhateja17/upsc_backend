@@ -33,6 +33,7 @@ model User {
   mcqAttempts       MCQAttempt[]
   mainsAttempts     MainsAttempt[]
   pyqMainsAttempts  PyqMainsAttempt[]
+  pyqPrelimsAttempts PyqPrelimsAttempt[]
   mockTestMainsAttempts MockTestMainsAttempt[]
   editorialProgress EditorialProgress[]
   editorialBookmarks EditorialBookmark[]
@@ -746,6 +747,7 @@ model PYQQuestion {
   duplicateOf PYQQuestion? @relation("PYQDuplicates", fields: [duplicateOfId], references: [id], onDelete: SetNull)
   duplicates  PYQQuestion[] @relation("PYQDuplicates")
   seenBy      UserSeenMCQ[]
+  attempts    PyqPrelimsAttempt[]
 
   @@index([subject, status])
   @@index([subSubject])
@@ -910,6 +912,27 @@ model UserSeenMCQ {
 
   @@unique([userId, pyqQuestionId])
   @@map("user_seen_mcqs")
+}
+
+model PyqPrelimsAttempt {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  pyqQuestionId String    @map("pyq_question_id")
+  selectedOption String?  @map("selected_option")
+  correctOption  String?  @map("correct_option")
+  isCorrect     Boolean   @default(false) @map("is_correct")
+  score         Float     @default(0)
+  totalMarks    Float     @default(1) @map("total_marks")
+  accuracy      Float     @default(0)
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question PYQQuestion @relation(fields: [pyqQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pyqQuestionId])
+  @@index([userId, createdAt])
+  @@map("pyq_prelims_attempts")
 }
 
 model AiUsageLog {

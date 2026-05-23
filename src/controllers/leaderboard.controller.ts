@@ -13,25 +13,27 @@ interface LeaderboardRawRow {
   email: string;
   avatar_url: string | null;
   mcq_avg: number;
-  mock_avg: number;
+  pyq_prelims_avg: number;
+  mock_prelims_avg: number;
   mock_mains_avg: number;
   daily_mains_avg: number;
-  pyq_avg: number;
+  pyq_mains_avg: number;
   mains_avg: number;
   streak: number;
   study_hours: number;
   questions_solved: number;
+  attempt_count: number;
 }
 
 type LeaderboardRow = ReturnType<typeof mapRealRows>[number] | SyntheticLeaderboardRow;
 
-function avg(values: number[]) {
-  const filtered = values.filter((value) => Number.isFinite(value) && value > 0);
+function avg(values: number[], includeZeros = false) {
+  const filtered = values.filter((value) => Number.isFinite(value) && (includeZeros || value > 0));
   return filtered.length ? filtered.reduce((sum, value) => sum + value, 0) / filtered.length : 0;
 }
 
-function computeScore(mcqAvg: number, mockAvg: number, dailyAnswerAvg: number, pyqAvg: number) {
-  return parseFloat(((mcqAvg + mockAvg + dailyAnswerAvg + pyqAvg) / 4).toFixed(2));
+function pctToTen(value: number) {
+  return parseFloat(((Number(value) || 0) / 10).toFixed(2));
 }
 
 function getDateFilter(range: string, tableAlias: string) {
@@ -42,15 +44,27 @@ function getDateFilter(range: string, tableAlias: string) {
 
 function mapRealRows(rows: LeaderboardRawRow[]) {
   return rows.map((row) => {
-    const mcqAvg = parseFloat((Number(row.mcq_avg) || 0).toFixed(1));
-    const mockPrelimsAvg = Number(row.mock_avg) || 0;
-    const mockMainsAvg = Number(row.mock_mains_avg) || 0;
-    const mockAvg = parseFloat(avg([mockPrelimsAvg, mockMainsAvg]).toFixed(1));
-    const dailyAnswerAvg = parseFloat((Number(row.daily_mains_avg) || 0).toFixed(1));
-    const pyqAvg = parseFloat((Number(row.pyq_avg) || 0).toFixed(1));
-    const mainsAvg = parseFloat(avg([dailyAnswerAvg, pyqAvg, mockMainsAvg]).toFixed(1));
-    const totalScore = computeScore(mcqAvg, mockAvg, dailyAnswerAvg, pyqAvg);
-    const accuracy = parseFloat(avg([mcqAvg, mockAvg, dailyAnswerAvg, pyqAvg]).toFixed(1));
+    const dailyMcqScore = pctToTen(Number(row.mcq_avg) || 0);
+    const pyqPrelimsScore = pctToTen(Number(row.pyq_prelims_avg) || 0);
+    const mockPrelimsScore = pctToTen(Number(row.mock_prelims_avg) || 0);
+    const dailyAnswerScore = pctToTen(Number(row.daily_mains_avg) || 0);
+    const pyqMainsScore = pctToTen(Number(row.pyq_mains_avg) || 0);
+    const mockMainsScore = pctToTen(Number(row.mock_mains_avg) || 0);
+    const mcqAvg = parseFloat(avg([dailyMcqScore, pyqPrelimsScore, mockPrelimsScore], true).toFixed(2));
+    const mockAvg = parseFloat(avg([mockPrelimsScore, mockMainsScore], true).toFixed(2));
+    const dailyAnswerAvg = dailyAnswerScore;
+    const pyqAvg = parseFloat(avg([pyqPrelimsScore, pyqMainsScore], true).toFixed(2));
+    const mainsAvg = parseFloat(avg([dailyAnswerScore, pyqMainsScore, mockMainsScore], true).toFixed(2));
+    const totalScore = parseFloat(avg([
+      dailyMcqScore,
+      pyqPrelimsScore,
+      mockPrelimsScore,
+      dailyAnswerScore,
+      pyqMainsScore,
+      mockMainsScore,
+    ], true).toFixed(2));
+    const accuracy = parseFloat((totalScore * 10).toFixed(1));
+    const attemptCount = Number(row.attempt_count) || 0;
 
     return {
       userId: row.id,
@@ -65,12 +79,20 @@ function mapRealRows(rows: LeaderboardRawRow[]) {
       mcqAvg,
       mockAvg,
       mainsAvg,
+      dailyMcqScore,
+      pyqPrelimsScore,
+      mockPrelimsScore,
+      dailyAnswerScore,
+      pyqMainsScore,
+      mockMainsScore,
       dailyAnswerAvg,
       pyqAvg,
       streak: Number(row.streak) || 0,
       studyHours: parseFloat((Number(row.study_hours) || 0).toFixed(1)),
       accuracy,
       questionsSolved: Number(row.questions_solved) || 0,
+      attemptCount,
+      isRankUnlocked: attemptCount >= 3,
       isSynthetic: false,
     };
   });
@@ -90,6 +112,7 @@ function sortLeaderboard(rows: LeaderboardRow[], tab: string) {
 function buildLeaderboardQuery(range: string, includeInactiveUsers: boolean) {
   const mcqFilter = getDateFilter(range, "m");
   const mockFilter = getDateFilter(range, "mt");
+  const pyqPrelimsFilter = getDateFilter(range, "ppa");
   const dailyMainsFilter = getDateFilter(range, "ma");
   const pyqFilter = getDateFilter(range, "pma");
   const mockMainsFilter = getDateFilter(range, "mma");
@@ -98,6 +121,7 @@ function buildLeaderboardQuery(range: string, includeInactiveUsers: boolean) {
     ? ""
     : `WHERE COALESCE(mcq.mcq_count, 0) > 0
         OR COALESCE(mock.mock_count, 0) > 0
+        OR COALESCE(pyq_prelims.pyq_prelims_count, 0) > 0
         OR COALESCE(daily_mains.daily_mains_count, 0) > 0
         OR COALESCE(pyq.pyq_count, 0) > 0
         OR COALESCE(mock_mains.mock_mains_count, 0) > 0
@@ -114,11 +138,19 @@ function buildLeaderboardQuery(range: string, includeInactiveUsers: boolean) {
         GROUP BY m.user_id
       ),
       mock AS (
-        SELECT mt.user_id, AVG(mt.accuracy) as mock_avg, COUNT(mt.id) as mock_count,
+        SELECT mt.user_id, AVG(mt.accuracy) as mock_prelims_avg, COUNT(mt.id) as mock_count,
                SUM(COALESCE(mt.correct_count, 0) + COALESCE(mt.wrong_count, 0) + COALESCE(mt.skipped_count, 0)) as mock_questions
         FROM mock_test_attempts mt
         WHERE 1=1 ${mockFilter}
         GROUP BY mt.user_id
+      ),
+      pyq_prelims AS (
+        SELECT ppa.user_id,
+               AVG(ppa.accuracy) as pyq_prelims_avg,
+               COUNT(ppa.id) as pyq_prelims_count
+        FROM pyq_prelims_attempts ppa
+        WHERE 1=1 ${pyqPrelimsFilter}
+        GROUP BY ppa.user_id
       ),
       daily_mains AS (
         SELECT ma.user_id,
@@ -131,7 +163,7 @@ function buildLeaderboardQuery(range: string, includeInactiveUsers: boolean) {
       ),
       pyq AS (
         SELECT pma.user_id,
-               AVG(pme.score / NULLIF(pme.max_score, 0) * 100) as pyq_avg,
+               AVG(pme.score / NULLIF(pme.max_score, 0) * 100) as pyq_mains_avg,
                COUNT(pma.id) as pyq_count
         FROM pyq_mains_attempts pma
         LEFT JOIN pyq_mains_evaluations pme ON pme.attempt_id = pma.id AND pme.status = 'completed'
@@ -162,21 +194,30 @@ function buildLeaderboardQuery(range: string, includeInactiveUsers: boolean) {
       u.email,
       u.avatar_url,
       COALESCE(mcq.mcq_avg, 0) as mcq_avg,
-      COALESCE(mock.mock_avg, 0) as mock_avg,
+      COALESCE(pyq_prelims.pyq_prelims_avg, 0) as pyq_prelims_avg,
+      COALESCE(mock.mock_prelims_avg, 0) as mock_prelims_avg,
       COALESCE(mock_mains.mock_mains_avg, 0) as mock_mains_avg,
       COALESCE(daily_mains.daily_mains_avg, 0) as daily_mains_avg,
-      COALESCE(pyq.pyq_avg, 0) as pyq_avg,
-      COALESCE((COALESCE(daily_mains.daily_mains_avg, 0) + COALESCE(pyq.pyq_avg, 0) + COALESCE(mock_mains.mock_mains_avg, 0)) / 3, 0) as mains_avg,
+      COALESCE(pyq.pyq_mains_avg, 0) as pyq_mains_avg,
+      COALESCE((COALESCE(daily_mains.daily_mains_avg, 0) + COALESCE(pyq.pyq_mains_avg, 0) + COALESCE(mock_mains.mock_mains_avg, 0)) / 3, 0) as mains_avg,
       COALESCE(us.current_streak, 0) as streak,
       COALESCE(study.study_hours, 0) as study_hours,
       COALESCE(mcq.mcq_questions, 0)
         + COALESCE(mock.mock_questions, 0)
+        + COALESCE(pyq_prelims.pyq_prelims_count, 0)
         + COALESCE(daily_mains.daily_mains_count, 0)
         + COALESCE(pyq.pyq_count, 0)
-        + COALESCE(mock_mains.mock_mains_count, 0) as questions_solved
+        + COALESCE(mock_mains.mock_mains_count, 0) as questions_solved,
+      COALESCE(mcq.mcq_count, 0)
+        + COALESCE(mock.mock_count, 0)
+        + COALESCE(pyq_prelims.pyq_prelims_count, 0)
+        + COALESCE(daily_mains.daily_mains_count, 0)
+        + COALESCE(pyq.pyq_count, 0)
+        + COALESCE(mock_mains.mock_mains_count, 0) as attempt_count
     FROM users u
     LEFT JOIN mcq ON mcq.user_id = u.id
     LEFT JOIN mock ON mock.user_id = u.id
+    LEFT JOIN pyq_prelims ON pyq_prelims.user_id = u.id
     LEFT JOIN daily_mains ON daily_mains.user_id = u.id
     LEFT JOIN pyq ON pyq.user_id = u.id
     LEFT JOIN mock_mains ON mock_mains.user_id = u.id
@@ -199,16 +240,16 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
       prisma.user.count({ where: { isActive: true } }),
     ]);
     const realRows = mapRealRows(rows);
+    const realRankedCount = realRows.filter((row) => row.isRankUnlocked).length;
     const syntheticRows = buildSyntheticLeaderboardRows(range);
-    const merged = [...realRows, ...syntheticRows];
+    const merged = realRankedCount < 100 ? [...realRows, ...syntheticRows] : realRows;
     const withRank = sortLeaderboard(merged, tab).map((item, index) => ({ ...item, rank: index + 1 }));
     const communityStats = buildCommunityStats({
       realUserCount,
-      realQuestionsSolved: realRows.reduce((sum, row) => sum + row.questionsSolved, 0),
       rows: merged,
     });
 
-    res.json({ status: "success", data: withRank.slice(0, 60), meta: { communityStats } });
+    res.json({ status: "success", data: withRank.slice(0, 60), meta: { communityStats, realRankedCount } });
   } catch (error) {
     next(error);
   }
@@ -223,7 +264,10 @@ export const getMyRank = async (req: Request, res: Response, next: NextFunction)
     const userId = req.user!.id;
 
     const rows = await prisma.$queryRawUnsafe<LeaderboardRawRow[]>(buildLeaderboardQuery(range, true));
-    const mapped = [...mapRealRows(rows), ...buildSyntheticLeaderboardRows(range)];
+    const realRows = mapRealRows(rows);
+    const realRankedCount = realRows.filter((row) => row.isRankUnlocked).length;
+    const myData = realRows.find((item) => item.userId === userId);
+    const mapped = realRankedCount < 100 ? [...realRows, ...buildSyntheticLeaderboardRows(range)] : realRows;
 
     const overallSorted = sortLeaderboard(mapped, "overall");
     const myOverallIndex = overallSorted.findIndex((item) => item.userId === userId);
@@ -234,14 +278,18 @@ export const getMyRank = async (req: Request, res: Response, next: NextFunction)
     const mainsSorted = sortLeaderboard(mapped, "mains");
     const myMainsIndex = mainsSorted.findIndex((item) => item.userId === userId);
 
-    const myData = mapped.find((item) => item.userId === userId);
+    const isRankUnlocked = Boolean(myData?.isRankUnlocked);
+    const attemptsToUnlockRank = Math.max(0, 3 - (myData?.attemptCount ?? 0));
 
     res.json({
       status: "success",
       data: {
-        rank: myOverallIndex >= 0 ? myOverallIndex + 1 : null,
-        mcqRank: myMcqIndex >= 0 ? myMcqIndex + 1 : null,
-        mainsRank: myMainsIndex >= 0 ? myMainsIndex + 1 : null,
+        rank: isRankUnlocked && myOverallIndex >= 0 ? myOverallIndex + 1 : null,
+        mcqRank: isRankUnlocked && myMcqIndex >= 0 ? myMcqIndex + 1 : null,
+        mainsRank: isRankUnlocked && myMainsIndex >= 0 ? myMainsIndex + 1 : null,
+        isRankUnlocked,
+        attemptsToUnlockRank,
+        realRankedCount,
         ...myData,
       },
     });

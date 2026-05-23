@@ -237,3 +237,90 @@ export const getPublicPYQCounts = async (
     next(error);
   }
 };
+
+/**
+ * POST /api/pyq/prelims/:questionId/submit
+ * Stores a scored PYQ Prelims attempt for leaderboard scoring.
+ */
+export const submitPyqPrelimsAnswer = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.id;
+    const questionId = String(req.params.questionId || "");
+    const selectedOption = String(req.body?.selectedOption || "").trim().toUpperCase();
+
+    if (!selectedOption) {
+      return res.status(400).json({ status: "error", message: "selectedOption is required" });
+    }
+
+    const question = await prisma.pYQQuestion.findFirst({
+      where: { id: questionId, status: "approved" },
+      select: { id: true, correctOption: true },
+    });
+
+    if (!question) {
+      return res.status(404).json({ status: "error", message: "PYQ Prelims question not found" });
+    }
+
+    const correctOption = question.correctOption?.trim().toUpperCase() || null;
+    const isCorrect = Boolean(correctOption && selectedOption === correctOption);
+    const score = isCorrect ? 1 : 0;
+    const accuracy = isCorrect ? 100 : 0;
+
+    const attempt = await prisma.pyqPrelimsAttempt.upsert({
+      where: { userId_pyqQuestionId: { userId, pyqQuestionId: question.id } },
+      create: {
+        userId,
+        pyqQuestionId: question.id,
+        selectedOption,
+        correctOption,
+        isCorrect,
+        score,
+        totalMarks: 1,
+        accuracy,
+        completedAt: new Date(),
+      },
+      update: {
+        selectedOption,
+        correctOption,
+        isCorrect,
+        score,
+        totalMarks: 1,
+        accuracy,
+        completedAt: new Date(),
+      },
+    });
+
+    await prisma.userSeenMCQ.upsert({
+      where: { userId_pyqQuestionId: { userId, pyqQuestionId: question.id } },
+      create: { userId, pyqQuestionId: question.id },
+      update: { seenAt: new Date() },
+    });
+
+    await prisma.userActivity.create({
+      data: {
+        userId,
+        type: "mcq",
+        title: "Attempted PYQ Prelims",
+        description: isCorrect ? "Correct answer" : "Incorrect answer",
+      },
+    });
+
+    res.json({
+      status: "success",
+      data: {
+        attemptId: attempt.id,
+        isCorrect,
+        correctOption,
+        score,
+        totalMarks: 1,
+        accuracy,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
