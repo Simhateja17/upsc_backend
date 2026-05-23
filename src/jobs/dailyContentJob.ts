@@ -1,21 +1,25 @@
 import prisma from "../config/database";
 import { invokeModelJSON } from "../config/llm";
 import { generateMCQQuestions } from "../services/questionGenerator";
+import { isValidSubject, normalizeSubject, VALID_UPSC_SUBJECTS } from "../constants/subjects";
 
 /**
  * UPSC subject taxonomy — sourced from the shared categorizer categories.
  * Only subjects relevant for MCQ/mains question generation.
  */
-const UPSC_SUBJECTS = [
-  "Polity & Governance",
-  "Economy",
-  "International Relations",
-  "Environment & Ecology",
-  "Science & Technology",
-  "Social Issues & Welfare",
-  "History & Culture",
-  "Geography & Disasters",
-];
+const UPSC_SUBJECTS = [...VALID_UPSC_SUBJECTS];
+const DAILY_MCQ_QUESTION_COUNT = 10;
+const DAILY_MCQ_TIME_LIMIT_MINUTES = 10;
+const DAILY_MCQ_MARKS_PER_QUESTION = 2;
+
+interface MCQItem {
+  questionText: string;
+  options: any;
+  correctOption: string;
+  explanation: string | null;
+  subject: string;
+  difficulty: string;
+}
 
 /**
  * Shuffle an array in place (Fisher-Yates)
@@ -50,18 +54,65 @@ export async function rotateDailyMCQ(): Promise<void> {
 /**
  * Create daily MCQ set for a given date: 5 PYQ + 5 AI-generated questions, mixed randomly
  */
+async function deleteIncompleteDailyMCQ(id: string): Promise<void> {
+  const completedAttempts = await prisma.mCQAttempt.count({
+    where: { dailyMcqId: id, completedAt: { not: null } },
+  });
+  if (completedAttempts > 0) return;
+
+  await prisma.mCQResponse.deleteMany({ where: { attempt: { dailyMcqId: id } } });
+  await prisma.mCQAttempt.deleteMany({ where: { dailyMcqId: id } });
+  await prisma.mCQQuestion.deleteMany({ where: { dailyMcqId: id } });
+  await prisma.dailyMCQ.delete({ where: { id } });
+}
+
+function toDailyMcqItem(q: {
+  questionText: string;
+  options: any;
+  correctOption?: string | null;
+  explanation?: string | null;
+  subject?: string | null;
+  category?: string | null;
+  difficulty?: string | null;
+}) {
+  const subject = normalizeSubject(q.subject || q.category || "");
+  if (!isValidSubject(subject)) return null;
+
+  return {
+    questionText: q.questionText,
+    options: q.options,
+    correctOption: q.correctOption || "A",
+    explanation: q.explanation || null,
+    subject,
+    difficulty: q.difficulty || "Medium",
+  };
+}
+
 async function createDailyMCQForDate(targetDate: Date): Promise<void> {
   // Check if already created
   const existing = await prisma.dailyMCQ.findUnique({
     where: { date: targetDate },
+    include: { questions: true },
   });
   if (existing) {
-    console.log(`[DailyMCQ] Already created for ${targetDate.toISOString().split("T")[0]}`);
-    return;
+    const validQuestionCount = existing.questions.filter((q) => isValidSubject(normalizeSubject(q.category))).length;
+    if (validQuestionCount < DAILY_MCQ_QUESTION_COUNT || existing.questionCount !== DAILY_MCQ_QUESTION_COUNT) {
+      await deleteIncompleteDailyMCQ(existing.id);
+      const stillExists = await prisma.dailyMCQ.findUnique({ where: { date: targetDate } });
+      if (stillExists) {
+        console.log(
+          `[DailyMCQ] Existing attempted set for ${targetDate.toISOString().split("T")[0]} has ${validQuestionCount} valid questions; not replacing.`
+        );
+        return;
+      }
+    } else {
+      console.log(`[DailyMCQ] Already created for ${targetDate.toISOString().split("T")[0]}`);
+      return;
+    }
   }
 
   const PYQ_COUNT = 5;
-  const AI_COUNT = 5;
+  const AI_COUNT = DAILY_MCQ_QUESTION_COUNT - PYQ_COUNT;
 
   // ── Step 1: Get 5 PYQ questions (diverse subjects) ──
   const pyqQuestions = [];
@@ -96,6 +147,20 @@ async function createDailyMCQForDate(targetDate: Date): Promise<void> {
     pyqQuestions.push(...extra);
   }
 
+  const validPyqQuestions = pyqQuestions
+    .map((q) =>
+      toDailyMcqItem({
+        questionText: q.questionText,
+        options: q.options as any,
+        correctOption: q.correctOption || "A",
+        explanation: q.explanation,
+        subject: q.subject,
+        difficulty: q.difficulty,
+      })
+    )
+    .filter((q): q is MCQItem => q !== null)
+    .slice(0, PYQ_COUNT);
+
   // ── Step 2: Generate 5 AI questions (pick 2-3 random subjects) ──
   const aiSubjects = shuffle([...UPSC_SUBJECTS]).slice(0, 3);
   let aiQuestions: Array<{
@@ -128,35 +193,42 @@ async function createDailyMCQForDate(targetDate: Date): Promise<void> {
         }))
       );
     }
+
+    while (validPyqQuestions.length + aiQuestions.length < DAILY_MCQ_QUESTION_COUNT) {
+      const subject = UPSC_SUBJECTS[aiQuestions.length % UPSC_SUBJECTS.length];
+      const needed = DAILY_MCQ_QUESTION_COUNT - validPyqQuestions.length - aiQuestions.length;
+      const generated = await generateMCQQuestions({
+        subject,
+        difficulty: "Medium",
+        count: Math.min(needed, 3),
+      });
+      if (generated.length === 0) break;
+      aiQuestions.push(
+        ...generated.map((g) => ({
+          questionText: g.questionText,
+          options: g.options,
+          correctOption: g.correctOption || "A",
+          explanation: g.explanation || null,
+          subject: g.subject || subject,
+          difficulty: g.difficulty || "Medium",
+        }))
+      );
+    }
     console.log(`[DailyMCQ] AI generated ${aiQuestions.length} questions`);
   } catch (error) {
     console.error("[DailyMCQ] AI question generation failed:", error);
   }
 
   // ── Step 3: Combine and shuffle ──
-  interface MCQItem {
-    questionText: string;
-    options: any;
-    correctOption: string;
-    explanation: string | null;
-    subject: string;
-    difficulty: string;
-  }
-
   const allQuestions: MCQItem[] = [
-    ...pyqQuestions.map((q) => ({
-      questionText: q.questionText,
-      options: q.options as any,
-      correctOption: q.correctOption || "A",
-      explanation: q.explanation,
-      subject: q.subject,
-      difficulty: q.difficulty,
-    })),
+    ...validPyqQuestions,
     ...aiQuestions,
-  ];
+  ].map(toDailyMcqItem).filter((q): q is MCQItem => q !== null).slice(0, DAILY_MCQ_QUESTION_COUNT);
 
-  if (allQuestions.length === 0) {
-    console.log("[DailyMCQ] No questions available (PYQ or AI). Skipping.");
+  if (allQuestions.length < DAILY_MCQ_QUESTION_COUNT) {
+    console.log(
+      `[DailyMCQ] Only ${allQuestions.length}/${DAILY_MCQ_QUESTION_COUNT} valid questions available. Skipping daily challenge creation.`
+    );
     return;
   }
 
@@ -178,9 +250,9 @@ async function createDailyMCQForDate(targetDate: Date): Promise<void> {
       title: `Daily Challenge — ${primaryTopic}`,
       topic: primaryTopic,
       tags: Object.keys(subjectCounts),
-      questionCount: allQuestions.length,
-      timeLimit: allQuestions.length * 2, // 2 min per question
-      totalMarks: allQuestions.length * 2,
+      questionCount: DAILY_MCQ_QUESTION_COUNT,
+      timeLimit: DAILY_MCQ_TIME_LIMIT_MINUTES,
+      totalMarks: DAILY_MCQ_QUESTION_COUNT * DAILY_MCQ_MARKS_PER_QUESTION,
       isActive: true,
     },
   });

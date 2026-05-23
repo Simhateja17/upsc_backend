@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { dailyMcqRepo } from "../repositories/prisma-daily-mcq.repository";
 import { isValidSubject, normalizeSubject } from "../constants/subjects";
 
+const DAILY_MCQ_QUESTION_COUNT = 10;
+
 function getToday(): Date {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
@@ -18,7 +20,17 @@ function getWeekActivity(today: Date): boolean[] {
 
 async function getOrCreateTodayMCQ() {
   let mcq = await dailyMcqRepo.findTodayMCQ();
-  if (!mcq) {
+  if (mcq) {
+    const questions = await dailyMcqRepo.findQuestions(mcq.id, true);
+    const validQuestionCount = questions.filter((q: any) => isValidSubject(normalizeSubject(q.category || ""))).length;
+    if (validQuestionCount < DAILY_MCQ_QUESTION_COUNT || mcq.questionCount !== DAILY_MCQ_QUESTION_COUNT) {
+      console.log(
+        `[Daily MCQ] Today's set has ${validQuestionCount}/${DAILY_MCQ_QUESTION_COUNT} valid questions — attempting repair...`
+      );
+      await dailyMcqRepo.createTodayMCQ();
+      mcq = await dailyMcqRepo.findTodayMCQ();
+    }
+  } else {
     console.log("[Daily MCQ] No MCQ for today — generating on the fly...");
     await dailyMcqRepo.createTodayMCQ();
     mcq = await dailyMcqRepo.findTodayMCQ();
@@ -51,8 +63,14 @@ export const getTodayQuestions = async (req: Request, res: Response, next: NextF
     const questions = allQuestions.filter((q: any) => {
       const normalized = normalizeSubject(q.category || "");
       return isValidSubject(normalized);
-    });
+    }).map((q: any) => ({ ...q, category: normalizeSubject(q.category || "") }));
     console.log(`[Daily MCQ] Returning ${questions.length} of ${allQuestions.length} questions after subject filter`);
+    if (questions.length !== DAILY_MCQ_QUESTION_COUNT) {
+      return res.status(503).json({
+        status: "error",
+        message: `Today's MCQ challenge is not ready. Expected ${DAILY_MCQ_QUESTION_COUNT} questions, found ${questions.length}.`,
+      });
+    }
     res.json({ status: "success", data: { mcqId: mcq.id, timeLimit: mcq.timeLimit, totalMarks: mcq.totalMarks, questions } });
   } catch (error) {
     next(error);
@@ -67,16 +85,25 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
     const mcq = await dailyMcqRepo.findTodayWithQuestions();
     if (!mcq) return res.status(404).json({ status: "error", message: "No MCQ challenge available for today" });
 
+    const validQuestions = mcq.questions
+      .filter((q: any) => isValidSubject(normalizeSubject(q.category || "")))
+      .map((q: any) => ({ ...q, category: normalizeSubject(q.category || "") }));
+    if (validQuestions.length !== DAILY_MCQ_QUESTION_COUNT) {
+      return res.status(503).json({
+        status: "error",
+        message: `Today's MCQ challenge is not ready. Expected ${DAILY_MCQ_QUESTION_COUNT} questions, found ${validQuestions.length}.`,
+      });
+    }
+
     const existing = await dailyMcqRepo.checkUserAttempt(userId, mcq.id);
     if (existing?.completedAt) return res.status(400).json({ status: "error", message: "You have already submitted today's MCQ" });
 
     // Score answers
-    const questionMap = new Map(mcq.questions.map((q: any) => [q.id, q]));
     let correctCount = 0, wrongCount = 0, skippedCount = 0;
     const topicResults: Record<string, { correct: number; total: number }> = {};
     const responseData: Array<{ questionId: string; selectedOption: string | null; isCorrect: boolean | null; timeTaken: number }> = [];
 
-    for (const q of mcq.questions) {
+    for (const q of validQuestions) {
       const answer = answers?.find((a: any) => a.questionId === q.id);
       const selected = answer?.selectedOption || null;
       const isCorrect = selected ? selected === q.correctOption : null;
@@ -94,7 +121,7 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
 
     const totalAnswered = correctCount + wrongCount;
     const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
-    const score = correctCount * (mcq.totalMarks / mcq.questionCount);
+    const score = correctCount * (mcq.totalMarks / DAILY_MCQ_QUESTION_COUNT);
 
     const strongTopics = Object.entries(topicResults).filter(([k, v]) => isValidSubject(k) && v.total > 0 && v.correct / v.total >= 0.7).map(([k]) => k);
     const weakTopics = Object.entries(topicResults).filter(([k, v]) => isValidSubject(k) && v.total > 0 && v.correct / v.total < 0.5).map(([k]) => k);
@@ -113,7 +140,7 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
 
     await dailyMcqRepo.createActivity({
       userId, type: "mcq", title: "Completed Daily MCQ",
-      description: `Scored ${correctCount}/${mcq.questionCount} (${Math.round(accuracy)}%)`,
+      description: `Scored ${correctCount}/${DAILY_MCQ_QUESTION_COUNT} (${Math.round(accuracy)}%)`,
     });
 
     await dailyMcqRepo.getOrCreateStreak(userId, getWeekActivity(new Date()));
