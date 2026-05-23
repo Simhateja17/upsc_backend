@@ -1350,7 +1350,9 @@ model Payment {
   status            String    // pending, success, failed, refunded
   provider          String    // razorpay, stripe, etc.
   providerPaymentId String?   @map("provider_payment_id")
+  providerOrderId   String?   @map("provider_order_id")
   receiptUrl        String?   @map("receipt_url")
+  metadata          Json?
   paidAt            DateTime? @map("paid_at")
   failedAt          DateTime? @map("failed_at")
   failureReason     String?   @map("failure_reason")

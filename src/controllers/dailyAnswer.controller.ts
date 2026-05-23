@@ -3,6 +3,7 @@ import prisma from "../config/database";
 import { evaluateAnswer } from "../services/answerEvaluator";
 import { sendEvaluationComplete } from "../services/emailService";
 import { uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { getSyntheticDailyAnswerAttemptCount } from "../services/communityMetrics.service";
 
 function getToday(): Date {
   const d = new Date();
@@ -35,7 +36,9 @@ export const getTodayQuestion = async (req: Request, res: Response, next: NextFu
       });
       attempted = !!attempt?.submittedAt;
     }
-    attemptCount = await prisma.mainsAttempt.count({ where: { questionId: question.id } });
+    attemptCount = getSyntheticDailyAnswerAttemptCount(
+      await prisma.mainsAttempt.count({ where: { questionId: question.id } })
+    );
 
     res.json({ status: "success", data: { ...question, attempted, attemptCount } });
   } catch (error) {
@@ -56,7 +59,9 @@ export const getTodayFullQuestion = async (req: Request, res: Response, next: Ne
       return res.status(404).json({ status: "error", message: "No mains question for today" });
     }
 
-    const attemptCount = await prisma.mainsAttempt.count({ where: { questionId: question.id } });
+    const attemptCount = getSyntheticDailyAnswerAttemptCount(
+      await prisma.mainsAttempt.count({ where: { questionId: question.id } })
+    );
 
     res.json({ status: "success", data: { ...question, attemptCount } });
   } catch (error) {

@@ -8,6 +8,21 @@ import {
 
 type BillingCycle = "monthly" | "quarterly" | "yearly";
 type CheckoutPlanKey = "rise" | "ascent";
+type TestSeriesCheckoutRow = {
+  id: string;
+  title: string;
+  price_inr: number | null;
+  price: number | null;
+  published: boolean | null;
+  listing_status: string | null;
+  total_tests: number | null;
+  compare_at_price_inr: number | null;
+};
+type TestSeriesPaymentMetadata = {
+  itemType?: string;
+  itemId?: string;
+  itemName?: string;
+};
 
 const CHECKOUT_PLAN_CATALOG: Record<CheckoutPlanKey, Record<BillingCycle, { amount: number; durationDays: number; duration: string }>> = {
   rise: {
@@ -94,6 +109,41 @@ function getRazorpayErrorMessage(error: unknown, fallback: string) {
   return razorpayError.error?.description || razorpayError.message || fallback;
 }
 
+function getTestSeriesPaymentMetadata(payment: { metadata?: unknown | null }): TestSeriesPaymentMetadata | null {
+  const metadata = payment.metadata;
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const parsed = metadata as TestSeriesPaymentMetadata;
+  return parsed.itemType === "test_series" && parsed.itemId ? parsed : null;
+}
+
+async function getTestSeriesForCheckout(seriesId: string): Promise<TestSeriesCheckoutRow | null> {
+  const rows = await prisma.$queryRaw<TestSeriesCheckoutRow[]>`
+    SELECT id, title, price_inr, price, published, listing_status, total_tests, compare_at_price_inr
+    FROM public.test_series
+    WHERE id = ${seriesId}
+    LIMIT 1
+  `;
+  return rows[0] ?? null;
+}
+
+async function ensureTestSeriesEnrollment(userSupabaseId: string, seriesId: string, tx: { $executeRaw: typeof prisma.$executeRaw } = prisma) {
+  await tx.$executeRaw`
+    INSERT INTO public.test_series_enrollments (user_id, series_id)
+    VALUES (${userSupabaseId}, ${seriesId})
+    ON CONFLICT (user_id, series_id) DO NOTHING
+  `;
+}
+
+async function hasTestSeriesEnrollment(userSupabaseId: string, seriesId: string) {
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+    SELECT id
+    FROM public.test_series_enrollments
+    WHERE user_id = ${userSupabaseId} AND series_id = ${seriesId}
+    LIMIT 1
+  `;
+  return rows.length > 0;
+}
+
 // ==================== USER BILLING APIs ====================
 
 /**
@@ -144,7 +194,7 @@ export const getBillingHistory = async (req: Request, res: Response, next: NextF
     const history = payments.map((p) => ({
       id: p.id,
       date: p.paidAt || p.createdAt,
-      plan: p.order?.plan?.name || p.subscription?.plan?.name || "Unknown",
+      plan: p.order?.plan?.name || p.subscription?.plan?.name || getTestSeriesPaymentMetadata(p)?.itemName || "Unknown",
       amount: `₹${p.amount.toLocaleString()}`,
       status: p.status,
       receiptUrl: p.receiptUrl,
@@ -212,7 +262,147 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
 export const initiatePayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { orderId, planId, planKey: rawPlanKey, cycle: rawCycle } = req.body;
+    const { orderId, planId, planKey: rawPlanKey, cycle: rawCycle, itemType, itemId } = req.body;
+
+    if (itemType === "test_series") {
+      if (!itemId || typeof itemId !== "string") {
+        return res.status(400).json({ status: "error", message: "itemId is required for test series checkout" });
+      }
+
+      const series = await getTestSeriesForCheckout(itemId);
+      if (!series || !series.published || series.listing_status !== "open") {
+        return res.status(404).json({ status: "error", message: "Test series not found or not available for purchase" });
+      }
+
+      const amount = Number(series.price_inr ?? series.price ?? 0);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({ status: "error", message: "This test series does not require payment" });
+      }
+
+      if (await hasTestSeriesEnrollment(req.user!.supabaseId, itemId)) {
+        return res.json({
+          status: "success",
+          data: {
+            alreadyPurchased: true,
+            seriesId: itemId,
+            itemName: series.title,
+          },
+          message: "You already have access to this test series.",
+        });
+      }
+
+      const successfulPayments = await prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT id
+        FROM public.payments
+        WHERE user_id = ${userId}
+          AND provider = 'razorpay'
+          AND status = 'success'
+          AND metadata->>'itemType' = 'test_series'
+          AND metadata->>'itemId' = ${itemId}
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+
+      if (successfulPayments.length > 0) {
+        await ensureTestSeriesEnrollment(req.user!.supabaseId, itemId);
+        return res.json({
+          status: "success",
+          data: {
+            alreadyPurchased: true,
+            seriesId: itemId,
+            itemName: series.title,
+          },
+          message: "You already have access to this test series.",
+        });
+      }
+
+      const reusablePayments = await prisma.$queryRaw<Array<{
+        id: string;
+        amount: number;
+        currency: string;
+        provider_order_id: string;
+      }>>`
+        SELECT id, amount, currency, provider_order_id
+        FROM public.payments
+        WHERE user_id = ${userId}
+          AND provider = 'razorpay'
+          AND status = 'pending'
+          AND amount = ${amount}
+          AND metadata->>'itemType' = 'test_series'
+          AND metadata->>'itemId' = ${itemId}
+          AND provider_order_id IS NOT NULL
+          AND created_at > now() - interval '30 minutes'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+
+      const reusablePayment = reusablePayments[0];
+      if (reusablePayment) {
+        return res.json({
+          status: "success",
+          data: {
+            paymentId: reusablePayment.id,
+            amount: reusablePayment.amount * 100,
+            currency: reusablePayment.currency,
+            provider: "razorpay",
+            key: process.env.RAZORPAY_KEY_ID,
+            providerOrderId: reusablePayment.provider_order_id,
+            order_id: reusablePayment.provider_order_id,
+            itemType: "test_series",
+            itemId,
+            itemName: series.title,
+          },
+        });
+      }
+
+      const payment = await prisma.payment.create({
+        data: {
+          userId,
+          amount,
+          currency: "INR",
+          status: "pending",
+          provider: "razorpay",
+          metadata: {
+            itemType: "test_series",
+            itemId,
+            itemName: series.title,
+          },
+        },
+      });
+
+      const razorpayOrder = await createRazorpayOrder({
+        amount: amount * 100,
+        currency: "INR",
+        receipt: payment.id,
+        notes: {
+          localPaymentId: payment.id,
+          itemType: "test_series",
+          itemId,
+          userId,
+        },
+      });
+
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { providerOrderId: razorpayOrder.id },
+      });
+
+      return res.json({
+        status: "success",
+        data: {
+          paymentId: payment.id,
+          amount: razorpayOrder.amount,
+          currency: razorpayOrder.currency,
+          provider: "razorpay",
+          key: process.env.RAZORPAY_KEY_ID,
+          providerOrderId: razorpayOrder.id,
+          order_id: razorpayOrder.id,
+          itemType: "test_series",
+          itemId,
+          itemName: series.title,
+        },
+      });
+    }
 
     let order = orderId
       ? await prisma.order.findFirst({
@@ -289,6 +479,11 @@ export const initiatePayment = async (req: Request, res: Response, next: NextFun
       },
     });
 
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: { providerOrderId: razorpayOrder.id },
+    });
+
     res.json({
       status: "success",
       data: {
@@ -349,6 +544,14 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
     }
 
     if (status === "failed") {
+      if (payment.status === "success") {
+        return res.json({
+          status: "success",
+          data: { payment },
+          message: "Payment was already verified.",
+        });
+      }
+
       await prisma.payment.update({
         where: { id: paymentId },
         data: {
@@ -375,14 +578,19 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
       });
     }
 
-    if (!payment.order) {
-      return res.status(400).json({ status: "error", message: "Payment is not linked to a billing order" });
-    }
-
     if (payment.status === "success") {
+      const testSeriesMetadata = getTestSeriesPaymentMetadata(payment);
+      if (testSeriesMetadata) {
+        await ensureTestSeriesEnrollment(req.user!.supabaseId, testSeriesMetadata.itemId!);
+      }
       return res.json({
         status: "success",
-        data: { payment },
+        data: {
+          payment,
+          itemType: testSeriesMetadata?.itemType,
+          itemId: testSeriesMetadata?.itemId,
+          itemName: testSeriesMetadata?.itemName,
+        },
         message: "Payment was already verified.",
       });
     }
@@ -401,9 +609,45 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
     if (
       razorpayOrder.receipt !== payment.id ||
       Number(razorpayOrder.amount) !== payment.amount * 100 ||
-      razorpayOrder.currency !== payment.currency
+      razorpayOrder.currency !== payment.currency ||
+      (payment.providerOrderId && razorpayOrder.id !== payment.providerOrderId)
     ) {
       return res.status(400).json({ status: "error", message: "Payment order details do not match" });
+    }
+
+    const testSeriesMetadata = getTestSeriesPaymentMetadata(payment);
+    if (testSeriesMetadata) {
+      const now = new Date();
+      const result = await prisma.$transaction(async (tx) => {
+        const updatedPayment = await tx.payment.update({
+          where: { id: paymentId },
+          data: {
+            status: "success",
+            providerPaymentId: providerPaymentId || razorpay_payment_id,
+            providerOrderId: razorpay_order_id,
+            paidAt: now,
+          },
+        });
+
+        await ensureTestSeriesEnrollment(req.user!.supabaseId, testSeriesMetadata.itemId!, tx);
+
+        return {
+          payment: updatedPayment,
+          itemType: "test_series",
+          itemId: testSeriesMetadata.itemId,
+          itemName: testSeriesMetadata.itemName,
+        };
+      });
+
+      return res.json({
+        status: "success",
+        data: result,
+        message: "Payment successful! Your test series is now unlocked.",
+      });
+    }
+
+    if (!payment.order) {
+      return res.status(400).json({ status: "error", message: "Payment is not linked to a billing order" });
     }
 
     const now = new Date();
