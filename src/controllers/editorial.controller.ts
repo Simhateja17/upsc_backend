@@ -3,7 +3,27 @@ import { editorialRepo } from "../repositories/prisma-editorial.repository";
 import { summarizeEditorial } from "../services/editorialSummarizer";
 import { getNewsArticlesBySource, syncNewsToEditorials } from "../services/newsApi";
 import { runRssFetch } from "../services/rssFetcher";
-import { categorize, extractTags, relevanceScore, isValidCategory } from "../services/categorizer";
+import { categorize, extractTags, relevanceScore, isValidCategory, isDailyEditorialWorthy } from "../services/categorizer";
+
+function parseMonthWindow(month: unknown): { since: Date; until: Date; monthPrefix: string } | null {
+  if (typeof month !== "string" || !/^\d{4}-\d{2}$/.test(month)) {
+    return null;
+  }
+
+  const [yearRaw, monthRaw] = month.split("-");
+  const year = Number(yearRaw);
+  const monthIndex = Number(monthRaw) - 1;
+  if (monthIndex < 0 || monthIndex > 11) return null;
+
+  const since = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0, 0));
+  const until = new Date(Date.UTC(year, monthIndex + 1, 0, 23, 59, 59, 999));
+  return { since, until, monthPrefix: month };
+}
+
+function displayCategoryForEditorial(editorial: { title: string; summary?: string | null; content?: string | null; category: string }) {
+  const computed = categorize(editorial.title, editorial.summary, editorial.content);
+  return isValidCategory(computed) ? computed : editorial.category;
+}
 
 /**
  * GET /api/editorials/today
@@ -33,6 +53,13 @@ export const getTodayEditorials = async (req: Request, res: Response, next: Next
 
     // Filter to only canonical subjects, then rank by UPSC relevance
     const editorials = rawEditorials
+      .filter((e) => isDailyEditorialWorthy(e.title, e.summary, e.content))
+      .map((e) => {
+        const category = displayCategoryForEditorial(e);
+        const tags = [category, ...extractTags(e.title, e.summary, e.content)]
+          .filter((tag, index, all) => all.indexOf(tag) === index);
+        return { ...e, category, tags };
+      })
       .filter((e) => isValidCategory(e.category))
       .map((e) => ({
         e,
@@ -64,6 +91,48 @@ export const getTodayEditorials = async (req: Request, res: Response, next: Next
     }));
 
     res.json({ status: "success", data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/editorials/availability?source=The%20Hindu&month=2026-03
+ * Source-specific dates with at least one visible UPSC-relevant editorial.
+ */
+export const getEditorialAvailability = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { source, month } = req.query;
+    const window = parseMonthWindow(month);
+    if (!window) {
+      return res.status(400).json({
+        status: "error",
+        message: "month must be in YYYY-MM format",
+      });
+    }
+
+    const rows = await editorialRepo.getAvailabilityRows(
+      window.since,
+      window.until,
+      source as string | undefined
+    );
+
+    const dates = new Set<string>();
+    rows
+      .filter((row) => isValidCategory(row.category) && isDailyEditorialWorthy(row.title, row.summary, row.content))
+      .forEach((row) => {
+        const date = row.publishedAt.toISOString().slice(0, 10);
+        if (date.startsWith(window.monthPrefix)) dates.add(date);
+      });
+
+    res.json({
+      status: "success",
+      data: {
+        month: window.monthPrefix,
+        source: typeof source === "string" ? source : "all",
+        availableDates: Array.from(dates).sort(),
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -194,7 +263,7 @@ export const getLiveNews = async (req: Request, res: Response, next: NextFunctio
         isRead: false,
         isSaved: false,
       }))
-      .filter((a) => isValidCategory(a.category));
+      .filter((a) => isValidCategory(a.category) && isDailyEditorialWorthy(a.title, a.summary, a.content));
 
     res.json({ status: "success", data: transformedArticles });
   } catch (error: any) {

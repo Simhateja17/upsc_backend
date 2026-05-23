@@ -111,6 +111,21 @@ export function createPrismaEditorialRepository(): EditorialRepository {
       };
     },
 
+    async getAvailabilityRows(since, until, source) {
+      const where: any = {
+        publishedAt: { gte: since, lte: until },
+      };
+      if (source && source !== "all") {
+        where.source = source;
+      }
+
+      return prisma.editorial.findMany({
+        where,
+        select: { title: true, summary: true, content: true, publishedAt: true, category: true },
+        orderBy: { publishedAt: "asc" },
+      });
+    },
+
     async findBySourceUrl(url) {
       return prisma.editorial.findFirst({
         where: { sourceUrl: url },

@@ -19,6 +19,7 @@ describe('EditorialRepository mock adapter', () => {
         totalRead: 0, totalSaved: 0, weeklyRead: 0, streak: 0,
         todayCounts: { hindu: 0, express: 0, aiSummarized: 0, userRead: 0 },
       }),
+      getAvailabilityRows: vi.fn().mockResolvedValue([]),
       findBySourceUrl: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue({
         id: 'test-1',
@@ -42,6 +43,9 @@ describe('EditorialRepository mock adapter', () => {
 
     expect(() => mockRepo.toggleSave('user1', 'editorial1')).not.toThrow();
     expect(mockRepo.toggleSave).toHaveBeenCalledWith('user1', 'editorial1');
+
+    expect(() => mockRepo.getAvailabilityRows(new Date('2026-03-01'), new Date('2026-03-31'), 'The Hindu')).not.toThrow();
+    expect(mockRepo.getAvailabilityRows).toHaveBeenCalledWith(new Date('2026-03-01'), new Date('2026-03-31'), 'The Hindu');
   });
 
   it('create returns an EditorialRow with all expected fields', async () => {
@@ -53,6 +57,7 @@ describe('EditorialRepository mock adapter', () => {
       markRead: vi.fn(),
       toggleSave: vi.fn(),
       getStats: vi.fn(),
+      getAvailabilityRows: vi.fn(),
       findBySourceUrl: vi.fn(),
       create: vi.fn().mockResolvedValue({
         id: 'test-1', title: 'Test', source: 'Src', sourceUrl: 'url',

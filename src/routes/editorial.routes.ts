@@ -10,12 +10,14 @@ import {
   getStats,
   getLiveNews,
   syncNews,
+  getEditorialAvailability,
 } from "../controllers/editorial.controller";
 
 const router = Router();
 
 router.get("/today", authenticate, getTodayEditorials);
 router.get("/live-news", authenticate, getLiveNews);
+router.get("/availability", authenticate, getEditorialAvailability);
 router.get("/stats", authenticate, getStats);
 router.post("/sync-news", authenticate, syncNews);
 router.get("/:id", authenticate, getEditorial);

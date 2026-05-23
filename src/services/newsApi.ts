@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { editorialRepo } from '../repositories/prisma-editorial.repository';
-import { categorize, extractTags } from './categorizer';
+import { categorize, extractTags, isDailyEditorialWorthy } from './categorizer';
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const NEWS_API_BASE_URL = 'https://newsapi.org/v2';
@@ -158,6 +158,8 @@ export async function syncNewsToEditorials(): Promise<number> {
 
         const existing = await editorialRepo.findBySourceUrl(article.url);
         if (existing) continue;
+
+        if (!isDailyEditorialWorthy(article.title, article.description, article.content)) continue;
 
         const category = categorize(article.title, article.description, article.content);
         const tags = extractTags(article.title, article.description, article.content);

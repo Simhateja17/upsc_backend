@@ -13,7 +13,7 @@ export async function summarizeEditorial(editorialId: string): Promise<string> {
 
   const content = editorial.content || editorial.summary || editorial.title;
 
-  const system = `You are a UPSC preparation expert who summarizes newspaper editorials for IAS aspirants. Be concise, factual, and highlight UPSC exam relevance.`;
+  const system = `You are a UPSC preparation expert who analyzes newspaper editorials for IAS aspirants. Stay factual, non-partisan, exam-oriented, and concise. Focus on policy issues over isolated events. Apply a PYQ lens and highlight precise Prelims facts only when they are present in the source.`;
 
   const prompt = `Summarize this editorial for UPSC preparation:
 
@@ -30,6 +30,13 @@ Provide a structured summary with:
 3. **Key Terms & Concepts** to remember
 4. **Potential Exam Questions** — 2-3 questions that could be framed from this editorial
 5. **Critical Analysis** — balanced perspective for answer writing
+
+Analysis rules:
+- Prefer the underlying governance, constitutional, economic, social, environmental, ethical, technological, or international issue over the day-to-day event.
+- Keep the analysis multidimensional where the article supports it.
+- Reject partisan framing; discuss institutions, policy choices, rights, duties, and trade-offs.
+- If the article is mostly rhetoric or has weak UPSC value, say so briefly and keep the output conservative.
+- Do not invent schemes, statistics, committee names, article numbers, or PYQ links not present in the content.
 
 Keep the summary concise (300-400 words).`;
 

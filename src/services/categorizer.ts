@@ -26,11 +26,11 @@ export interface CategorizationResult {
 const TAXONOMY: { category: string; regex: RegExp }[] = [
   {
     category: "Polity",
-    regex: /parliament|constitution|supreme court|high court|government|policy|election|judiciary|cabinet|ministry|legislation|bill passed|governor|president|prime minister|lok sabha|rajya sabha|pib|democracy|governance|federal|civil service|bureaucracy|cag|eci|upa|lokpal|bilateral|diplomacy|foreign|treaty|un\b|nato|brics|g20|china|pakistan|usa|russia|india-|summit|foreign policy|geopolitic|multilateral/i,
+    regex: /parliament|constitution|supreme court|high court|\bcourt\b|bail|petition|petitioner|justice|judge|government|policy|election|judiciary|cabinet|ministry|minister|legislation|bill passed|governor|president|prime minister|\bpm\b|chief minister|\bcm\b|lok sabha|rajya sabha|\bmp\b|\bmla\b|political|party|leader|bjp|congress|pib|democracy|governance|federal|civil service|bureaucracy|cag|eci|upa|lokpal|bilateral|diplomacy|foreign|treaty|un\b|nato|brics|g20|china|pakistan|usa|russia|india-|summit|foreign policy|geopolitic|multilateral/i,
   },
   {
     category: "Economy",
-    regex: /gdp|inflation|rbi|reserve bank|budget|fiscal|monetary|trade|export|import|economy|tax|gst|investment|economic|stock market|sebi|disinvestment|subsidy|education|health|poverty|agriculture|farmer|rural|welfare|scheme|initiative|programme?|women|child|minority|caste|inequality|social justice|society|nutrition|sanitation|housing|msp|minimum support price|farming|horticulture|fertilizer|pesticide|organic farming/i,
+    regex: /gdp|inflation|rbi|reserve bank|budget|fiscal|monetary|trade|export|import|economy|tax|gst|investment|economic|stock market|sebi|disinvestment|subsidy|poverty|agriculture|farmer|rural|msp|minimum support price|farming|horticulture|fertilizer|pesticide|organic farming/i,
   },
   {
     category: "Environment & Ecology",
@@ -73,6 +73,27 @@ const NOISE_KEYWORDS = [
   "cricket", "football", "ipl", "bollywood", "box office",
   "celebrity", "entertainment", "gossip", "lifestyle",
 ];
+
+const EXCLUDED_DAILY_EDITORIAL_PATTERNS = [
+  /\b(cricket|football|kabaddi|ipl|match score|live score|scorecard)\b/i,
+  /\b(bollywood|hollywood|celebrity|box office|gossip|movie review|film review)\b/i,
+  /\b(sensex|nifty|stock market live|share price|quarterly earnings|q[1-4] results)\b/i,
+  /\b(iphone|smartphone|gadget|consumer app|product launch|review)\b/i,
+  /\b(horoscope|lifestyle tips|diet tips|fitness tips)\b/i,
+  /\b(sponsored|advertorial|advertisement|promotional)\b/i,
+  /\b(weather forecast|weather report)\b/i,
+  /\b(obituary|passes away)\b/i,
+  /\b(viral video|viral social media|social media viral|it cell)\b/i,
+];
+
+const POLICY_SIGNAL_PATTERN =
+  /\b(constitution|constitutional|supreme court|high court|parliament|bill|act|law|policy|scheme|governance|federal|rights|judicial review|welfare|regulation|regulatory|committee|commission|mou|treaty|strategic|climate|disaster management|national security|public administration)\b/i;
+
+const LOW_VALUE_POLITICS_PATTERN =
+  /\b(bjp|congress|party|campaign|rally|speech|remark|remarks|spar|slams|hits out|accuses|alleged remark|poll narrative|election rally|internal feud)\b/i;
+
+const INDIVIDUAL_CRIME_OR_LEGAL_PATTERN =
+  /\b(murder|robbery|accident|arrested|bail|anticipatory bail|custody|derogatory remarks|defamation)\b/i;
 
 // ── Tag extraction ────────────────────────────────────────────────────────────
 
@@ -142,6 +163,25 @@ export function relevanceScore(title: string, summary?: string | null, content?:
 export function isRelevant(title: string, summary?: string | null, content?: string | null): boolean {
   const text = buildText([title, summary, content]);
   return RELEVANCE_KEYWORDS.some((kw) => text.includes(kw));
+}
+
+/**
+ * Gate for the Daily Editorial surface.
+ * This is stricter than generic relevance: a story can mention politics, AI,
+ * courts, or markets and still be too episodic for UPSC editorial analysis.
+ */
+export function isDailyEditorialWorthy(title: string, summary?: string | null, content?: string | null): boolean {
+  const text = buildText([title, summary, content]);
+
+  if (!isRelevant(title, summary, content)) return false;
+  if (EXCLUDED_DAILY_EDITORIAL_PATTERNS.some((pattern) => pattern.test(text))) return false;
+
+  const hasPolicySignal = POLICY_SIGNAL_PATTERN.test(text);
+
+  if (LOW_VALUE_POLITICS_PATTERN.test(text) && !hasPolicySignal) return false;
+  if (INDIVIDUAL_CRIME_OR_LEGAL_PATTERN.test(text) && !hasPolicySignal) return false;
+
+  return true;
 }
 
 /**

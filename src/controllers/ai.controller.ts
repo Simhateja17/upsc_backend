@@ -4,82 +4,20 @@ import { invokeModel, BedrockMessage } from "../config/llm";
 import { supabaseAdmin } from "../config/supabase";
 import { embedText } from "../services/embedding.service";
 
-const JEET_AI_SYSTEM_PROMPT = `You are Jeet AI, an intelligent UPSC preparation assistant for the "Rise With Jeet" platform. You help Indian civil services aspirants with their exam preparation.
+const JEET_AI_SYSTEM_PROMPT = `You are Jeet AI, the UPSC preparation assistant for "Rise With Jeet". Never use any other platform name.
 
-IMPORTANT: The platform name is "Rise With Jeet" — never call it "Rise with Jeet IAS" or any other variation. Always refer to it as "Rise With Jeet".
+Answer like a direct mentor: accurate, exam-focused, natural, and concise. Default to 120-180 words unless the user asks for depth, an essay, a mains answer, ethics case study, or a study plan.
 
-Your personality:
-- Knowledgeable, encouraging, and exam-focused
-- Write like a real mentor speaking to a student: natural, direct, and warm
-- You understand UPSC exam pattern (Prelims, Mains GS Paper I-IV, Essay, Optional, Interview)
-- You frame answers with multiple dimensions: historical, constitutional, social, economic, and contemporary
-- You proactively mention if a topic is a high-probability exam question
-- You structure responses with clear headings and bullet points for easy revision
+Use headings and bullets only when they improve revision. For UPSC topics, include exam relevance when useful. For ethics, cover stakeholders and ethical dimensions. For study plans, use weekly/monthly milestones.
 
-Your capabilities:
-- Explain UPSC topics across all GS papers
-- Help with essay writing, mains answer framing, ethics case studies
-- Suggest study strategies and create study plans
-- Discuss current affairs and their UPSC relevance
-- Analyze PYQs and predict important topics
-- Answer general knowledge questions as well
+Use only hyphens, never em dashes or en dashes. You may use sparse tokens such as {ALERT: ...}, {PRIO: ...}, and {CITE: ...}. Use styled blocks like > [!ALERT], > [!TIP], > [!DIMENSIONS], or > [!TAGS] only when they add clear UPSC value.`;
 
-Response format:
-- For topic explanations: use structured headings (Historical Context, Constitutional/Administrative Angle, Contemporary Relevance, Way Forward)
-- For ethics: include stakeholders, ethical dimensions, and answer structure
-- For study plans: break into weekly/monthly milestones
-- Keep responses thorough but scannable — use bullets and sub-headings
-- Always end topic explanations with "Related PYQs or Exam Relevance" if applicable
-
-Typography rules:
-- Use a simple hyphen (-) for breaks between words. Do NOT use em dashes (—) or en dashes (–).
-- Example: "Mughal Empire - its decline and consequences" not "Mughal Empire — its decline".
-- Never output the characters "—" or "–" anywhere in the final response.
-
-Color tokens and styled blocks (use these to highlight what matters most for UPSC):
-
-INLINE TOKENS (for short highlights within text):
-- {ALERT: ...} — wrap a high-priority warning, e.g. {ALERT: 4 times in Prelims (2017-2024)}.
-- {PRIO: ...} — wrap a high-importance fact for exams, e.g. {PRIO: High probability for 2025 too}.
-- {CITE: ...} — wrap an inline citation/source, e.g. {CITE: NCERT Themes in History 2 - UPSC 2023 GS-1}.
-
-STYLED BLOCKS (use these at the START of a response or section for rich formatting):
-
-1. HIGH-PRIORITY ALERT BOX — use when a topic has appeared frequently in exams:
-\`\`\`
-> [!ALERT]
-> **UPSC HIGH-PRIORITY ALERT**
-> This topic has appeared X times in Prelims (YEAR-YEAR) and in Mains GS Paper Y. High-probability for 2025 too.
-\`\`\`
-
-2. EXAMINER'S TIP BOX — use to give strategic advice:
-\`\`\`
-> [!TIP]
-> **EXAMINER'S TIP**
-> Always write with a multi-dimensional lens. Most aspirants cover only 1-2 dimensions. Covering 4 dimensions in a structured way signals a prepared, thinking candidate.
-\`\`\`
-
-3. KEY DIMENSIONS SECTION — use to show what angles to cover:
-\`\`\`
-> [!DIMENSIONS]
-> **Key Dimensions to Cover**
-> - **Historical context:** Origins and evolution
-> - **Constitutional/Administrative angle:** How policy frameworks engage with this topic
-> - **Contemporary relevance:** Links to current affairs
-> - **Critical perspective:** Challenges, gaps, and the way forward
-\`\`\`
-
-4. RELATED TOPICS / TAGS — use at the end for source references:
-\`\`\`
-> [!TAGS]
-> NCERT Themes in History | UPSC 2023 GS-I | Jan 2025 Current Affairs
-\`\`\`
-
-The frontend renders these blocks as styled cards with colored borders and backgrounds. Use them sparingly — only when they add real value for UPSC preparation.
-
-You can answer general questions too, but always try to relate them back to UPSC preparation when possible.`;
-
-const SIMILARITY_THRESHOLD = 0.60;
+const SIMILARITY_THRESHOLD = 0.68;
+const RAG_SOURCE_LIMIT = 2;
+const RAG_CHUNK_CHAR_LIMIT = 1500;
+const RECENT_HISTORY_LIMIT = 6;
+const SUMMARY_TARGET_WORDS = 130;
+const JEET_AI_MAX_TOKENS = 900;
 
 function normalizeAssistantReply(reply: string): string {
   return reply
@@ -88,13 +26,26 @@ function normalizeAssistantReply(reply: string): string {
     .trim();
 }
 
+function truncateForPrompt(text: string, maxChars: number): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= maxChars) return clean;
+  return `${clean.slice(0, maxChars).replace(/\s+\S*$/, "")}...`;
+}
+
+function countMessageChars(messages: BedrockMessage[]): number {
+  return messages.reduce((sum, msg) => {
+    if (typeof msg.content === "string") return sum + msg.content.length;
+    return sum + msg.content.reduce((inner, block) => inner + (block.text?.length || 0), 0);
+  }, 0);
+}
+
 /**
  * Retrieve relevant study material chunks for a given query via vector similarity search.
  * Returns a formatted context string, or empty string if nothing relevant found.
  */
-async function retrieveRelevantContext(query: string): Promise<string> {
+async function retrieveRelevantContext(query: string): Promise<{ context: string; sourceCount: number; contextChars: number }> {
   try {
-    if (!supabaseAdmin) return "";
+    if (!supabaseAdmin) return { context: "", sourceCount: 0, contextChars: 0 };
 
     const queryEmbedding = await embedText(query, "RETRIEVAL_QUERY");
 
@@ -120,28 +71,80 @@ async function retrieveRelevantContext(query: string): Promise<string> {
 
     if (chunks.length === 0) {
       console.log(`[Jeet AI RAG] No chunks above threshold ${SIMILARITY_THRESHOLD} for query: "${query.slice(0, 80)}"`);
-      return "";
+      return { context: "", sourceCount: 0, contextChars: 0 };
     }
 
     chunks.sort((a, b) => b.similarity - a.similarity);
+    const selected = chunks.slice(0, RAG_SOURCE_LIMIT);
 
     console.log(
       `[Jeet AI RAG] Found ${chunks.length} relevant chunks (threshold: ${SIMILARITY_THRESHOLD}). ` +
-      `Top similarities: [${chunks.slice(0, 3).map(c => c.similarity.toFixed(3)).join(', ')}]. ` +
-      `Sources: [${chunks.slice(0, 6).map(c => c.metadata?.subject || 'unknown').join(', ')}]`
+      `Using ${selected.length}. ` +
+      `Top similarities: [${selected.map(c => c.similarity.toFixed(3)).join(', ')}]. ` +
+      `Sources: [${selected.map(c => c.metadata?.subject || 'unknown').join(', ')}]`
     );
 
-    return chunks
-      .slice(0, 6)
+    const context = selected
       .map(
         (c, i) =>
-          `[Source ${i + 1}${c.metadata?.subject ? ` — ${c.metadata.subject}` : ""}${c.metadata?.topic ? ` / ${c.metadata.topic}` : ""}]\n${c.chunk_text}`
+          `[Source ${i + 1}${c.metadata?.subject ? ` - ${c.metadata.subject}` : ""}${c.metadata?.topic ? ` / ${c.metadata.topic}` : ""}]\n${truncateForPrompt(c.chunk_text, RAG_CHUNK_CHAR_LIMIT)}`
       )
       .join("\n\n");
+
+    return { context, sourceCount: selected.length, contextChars: context.length };
   } catch (err) {
     console.warn("[Jeet AI] RAG context retrieval failed (non-fatal):", err);
-    return "";
+    return { context: "", sourceCount: 0, contextChars: 0 };
   }
+}
+
+async function buildConversationMemory(
+  conversation: { id: string; summary: string | null; summarizedMessageCount: number },
+  priorMessages: Array<{ role: string; content: string }>
+): Promise<{ summary: string | null; recentMessages: BedrockMessage[]; summarizedMessageCount: number }> {
+  const nextSummarizedCount = Math.max(0, priorMessages.length - RECENT_HISTORY_LIMIT);
+  let summary = conversation.summary;
+  let summarizedMessageCount = conversation.summarizedMessageCount || 0;
+
+  if (nextSummarizedCount > summarizedMessageCount) {
+    const messagesToSummarize = priorMessages.slice(summarizedMessageCount, nextSummarizedCount);
+    const transcript = messagesToSummarize
+      .map((m) => `${m.role}: ${truncateForPrompt(m.content, 1000)}`)
+      .join("\n");
+
+    try {
+      summary = await invokeModel(
+        [
+          {
+            role: "user",
+            content: `Existing summary:\n${summary || "None"}\n\nNew chat turns:\n${transcript}\n\nUpdate the conversation memory in ${SUMMARY_TARGET_WORDS} words or fewer. Preserve only stable user goals, preferences, unresolved tasks, and facts needed for future answers. Do not include greetings or generic advice.`,
+          },
+        ],
+        {
+          system: "You compress chat history for a UPSC tutoring assistant. Return only the updated concise memory.",
+          maxTokens: 220,
+          temperature: 0.1,
+          serviceName: "jeetAiHistorySummarizer",
+        }
+      );
+      summary = truncateForPrompt(normalizeAssistantReply(summary), 900);
+      summarizedMessageCount = nextSummarizedCount;
+
+      await prisma.chatConversation.update({
+        where: { id: conversation.id },
+        data: { summary, summarizedMessageCount },
+      });
+    } catch (err) {
+      console.warn("[AI Chat] Conversation summarization failed (non-fatal):", err);
+    }
+  }
+
+  const recentMessages = priorMessages.slice(-RECENT_HISTORY_LIMIT).map((m) => ({
+    role: m.role as "user" | "assistant",
+    content: m.content,
+  }));
+
+  return { summary, recentMessages, summarizedMessageCount };
 }
 
 /**
@@ -186,34 +189,52 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
-    // Load prior messages for context (last 20 to keep token usage reasonable)
+    // Load prior messages once; older turns are compressed before model input.
     const priorMessages = await prisma.chatMessage.findMany({
       where: { conversationId: conversation.id },
       orderBy: { createdAt: "asc" },
-      take: 20,
+      select: { role: true, content: true },
     });
 
-    // Build messages array for Claude
+    const memory = await buildConversationMemory(conversation, priorMessages);
+
+    // Build messages array for Claude: summary in system prompt + last 3 turns verbatim.
     const claudeMessages: BedrockMessage[] = [
-      ...priorMessages.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
+      ...memory.recentMessages,
       { role: "user" as const, content: trimmedMessage },
     ];
 
     // Retrieve relevant study material context via RAG
-    const ragContext = await retrieveRelevantContext(trimmedMessage);
-    const systemPrompt = ragContext
-      ? `${JEET_AI_SYSTEM_PROMPT}\n\n---\nRelevant Study Material from Rise with Jeet:\n${ragContext}\n---\nIMPORTANT INSTRUCTIONS FOR USING THE ABOVE MATERIAL:\n1. Prioritize the study material above when answering — treat it as your primary source of truth for factual claims.\n2. When you use information from a source, cite it inline using {CITE: Source 1} or {CITE: NCERT Class XI — Polity}.\n3. If the study material directly answers the question, base your response on it rather than relying solely on your general training.\n4. If the study material is only partially relevant, use what applies and supplement with your own knowledge — but clearly distinguish between the two.\n5. If the study material is not relevant to the query, you may ignore it and answer from your general knowledge.`
-      : JEET_AI_SYSTEM_PROMPT;
+    const rag = await retrieveRelevantContext(trimmedMessage);
+    const memorySection = memory.summary
+      ? `\n\nConversation memory:\n${memory.summary}`
+      : "";
+    const ragSection = rag.context
+      ? `\n\nRelevant Rise With Jeet study material:\n${rag.context}\nUse this as primary grounding when relevant. Cite used sources with {CITE: Source 1}. Ignore irrelevant excerpts.`
+      : "";
+    const systemPrompt = `${JEET_AI_SYSTEM_PROMPT}${memorySection}${ragSection}`;
+
+    console.log(
+      `[AI Chat Telemetry] policy=jeet-ai-token-reduction-v1 ` +
+        `systemPromptChars=${systemPrompt.length} ` +
+        `historyMessages=${memory.recentMessages.length} ` +
+        `historyChars=${countMessageChars(memory.recentMessages)} ` +
+        `priorMessages=${priorMessages.length} ` +
+        `summarizedMessageCount=${memory.summarizedMessageCount} ` +
+        `summaryChars=${memory.summary?.length || 0} ` +
+        `ragSources=${rag.sourceCount} ` +
+        `ragChars=${rag.contextChars} ` +
+        `userMessageChars=${trimmedMessage.length} ` +
+        `maxTokens=${JEET_AI_MAX_TOKENS}`
+    );
 
     // Call Claude
-    console.log(`[AI Chat] Sending ${claudeMessages.length} messages to Claude, RAG context: ${ragContext ? "yes" : "none"}`);
+    console.log(`[AI Chat] Sending ${claudeMessages.length} messages to Claude, RAG context: ${rag.context ? "yes" : "none"}`);
     const aiReplyRaw = await invokeModel(claudeMessages, {
-      maxTokens: 2048,
+      maxTokens: JEET_AI_MAX_TOKENS,
       temperature: 0.5,
       system: systemPrompt,
+      serviceName: "jeetAiChat",
     });
     const aiReply = normalizeAssistantReply(aiReplyRaw);
 

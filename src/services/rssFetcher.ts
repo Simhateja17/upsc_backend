@@ -1,6 +1,6 @@
 import Parser from "rss-parser";
 import { editorialRepo } from "../repositories/prisma-editorial.repository";
-import { categorize, extractTags, isRelevant } from "./categorizer";
+import { categorize, extractTags, isDailyEditorialWorthy } from "./categorizer";
 
 const parser = new Parser({ timeout: 10000 });
 
@@ -45,7 +45,7 @@ export async function fetchRssArticles(): Promise<FetchedArticle[]> {
             .trim()
             .substring(0, 500);
 
-          if (!isRelevant(title, summary)) continue;
+          if (!isDailyEditorialWorthy(title, summary)) continue;
 
           results.push({
             title,

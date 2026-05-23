@@ -41,6 +41,14 @@ export interface EditorialStats {
   };
 }
 
+export interface EditorialAvailabilityRow {
+  title: string;
+  summary: string | null;
+  content: string | null;
+  publishedAt: Date;
+  category: string;
+}
+
 export interface EditorialRepository {
   /** Fetch recent editorials within a time window, ranked by recency. */
   getRecent(since: Date, until?: Date, source?: string, limit?: number): Promise<EditorialRow[]>;
@@ -62,6 +70,9 @@ export interface EditorialRepository {
 
   /** Aggregate reading stats for a user. */
   getStats(userId: string, recentSince: Date): Promise<EditorialStats>;
+
+  /** Fetch dated editorial rows for calendar availability in a fixed date range. */
+  getAvailabilityRows(since: Date, until: Date, source?: string): Promise<EditorialAvailabilityRow[]>;
 
   /** Check if an editorial already exists by source URL (de-duplication). */
   findBySourceUrl(url: string): Promise<{ id: string } | null>;
