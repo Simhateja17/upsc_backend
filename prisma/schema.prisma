@@ -66,6 +66,7 @@ model User {
   moodCheckIns      MoodCheckIn[]
   wellnessStreak    WellnessStreak?
   mindToolSessions  MindToolSession[]
+  journalEntries    JournalEntry[]
   bookmarks         Bookmark[]
   supportTickets    SupportTicket[]
 
@@ -398,12 +399,12 @@ model TestSeriesTest {
   seriesId         String   @map("series_id")
   title            String
   description      String?
-  testNumber       Int      @map("test_number")
-  examMode         String   @map("exam_mode")     // "prelims" | "mains"
+  testNumber       Int      @default(1) @map("test_number")
+  examMode         String   @default("prelims") @map("exam_mode")     // "prelims" | "mains"
   subject          String?
-  questionCount    Int      @map("question_count")
+  questionCount    Int      @default(0) @map("question_count")
   duration         Int      @default(120)         // minutes
-  totalMarks       Int      @map("total_marks")
+  totalMarks       Int      @default(0) @map("total_marks")
   isPublished      Boolean  @default(false) @map("is_published")
   createdAt        DateTime @default(now()) @map("created_at")
 
@@ -419,13 +420,13 @@ model TestSeriesTest {
 model TestSeriesQuestion {
   id           String   @id @default(uuid())
   testId       String   @map("test_id")
-  questionNum  Int      @map("question_num")
-  questionText String   @map("question_text")
-  subject      String
-  category     String
-  difficulty   String
+  questionNum  Int      @default(0) @map("question_num")
+  questionText String   @default("") @map("question_text")
+  subject      String   @default("")
+  category     String   @default("")
+  difficulty   String   @default("medium")
   options      Json     // [{id: 'A', text: '...'}, ...]
-  correctOption String  @map("correct_option")
+  correctOption String  @default("A") @map("correct_option")
   explanation  String?
   createdAt    DateTime @default(now()) @map("created_at")
 
@@ -442,7 +443,7 @@ model TestSeriesAttempt {
   testId        String    @map("test_id")
   answers       Json?     // {questionId: selectedOption, ...}
   score         Int       @default(0)
-  totalMarks    Int       @map("total_marks")
+  totalMarks    Int       @default(0) @map("total_marks")
   correctCount  Int       @default(0) @map("correct_count")
   wrongCount    Int       @default(0) @map("wrong_count")
   skippedCount  Int       @default(0) @map("skipped_count")
@@ -1537,6 +1538,21 @@ model MindToolSession {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("mind_tool_sessions")
+}
+
+model JournalEntry {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String   @default("Free write") // Gratitude, Anxiety, Reflection, Win, Self-talk, Free write
+  text      String
+  moodEmoji String?  @map("mood_emoji")
+  date      DateTime @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("journal_entries")
 }
 
 // ==================== BOOKMARKS ====================

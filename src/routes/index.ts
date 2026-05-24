@@ -190,6 +190,6 @@ router.post("/verify-payment", authenticate, verifyPayment);
 router.use("/ai", aiRoutes);
 
 // Mental Health Buddy routes
-// router.use("/mental-health", mentalHealthRoutes);
+router.use("/mental-health", mentalHealthRoutes);
 
 export default router;

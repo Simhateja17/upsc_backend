@@ -295,6 +295,80 @@ export const getDailyContent = async (req: Request, res: Response, next: NextFun
 };
 
 /**
+ * POST /api/mental-health/journal
+ */
+export const saveJournalEntry = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const { type, text, moodEmoji } = req.body;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ status: "error", message: "text is required" });
+    }
+
+    const today = getToday();
+
+    const entry = await prisma.journalEntry.create({
+      data: {
+        userId,
+        type: type || "Free write",
+        text: text.trim(),
+        moodEmoji: moodEmoji ?? null,
+        date: today,
+      },
+    });
+
+    res.status(201).json({ status: "success", data: entry });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/mental-health/journal
+ */
+export const getJournalEntries = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const days = parseInt(req.query.days as string) || 30;
+
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    since.setHours(0, 0, 0, 0);
+
+    const entries = await prisma.journalEntry.findMany({
+      where: { userId, date: { gte: since } },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({ status: "success", data: entries });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/mental-health/journal/:id
+ */
+export const deleteJournalEntry = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const id = req.params.id as string;
+
+    const entry = await prisma.journalEntry.findFirst({ where: { id, userId } });
+    if (!entry) {
+      return res.status(404).json({ status: "error", message: "Journal entry not found" });
+    }
+
+    await prisma.journalEntry.delete({ where: { id } });
+
+    res.json({ status: "success", message: "Deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/mental-health/stress-index
  */
 export const getStressIndex = async (req: Request, res: Response, next: NextFunction) => {
