@@ -7,6 +7,10 @@ function param(req: Request, key: string): string {
   return Array.isArray(v) ? v[0] : (v ?? "");
 }
 
+function isVisibleFlashcardSubject(subject: string | null | undefined): boolean {
+  return subject === "Current Affairs" || isValidSubject(subject);
+}
+
 /**
  * GET /api/flashcards/subjects
  */
@@ -24,7 +28,7 @@ export const getSubjects = async (
 
     const deckData = await Promise.all(
       decks
-        .filter((deck) => isValidSubject(deck.subject))
+        .filter((deck) => isVisibleFlashcardSubject(deck.subject))
         .map(async (deck) => {
           const totalCards = deck.cards.length;
           let masteredCards = 0;
