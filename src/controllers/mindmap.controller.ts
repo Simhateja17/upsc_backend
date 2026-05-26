@@ -24,7 +24,6 @@ export const getSubjects = async (
 
     const data = await Promise.all(
       subjects
-        .filter((s) => isValidSubject(s.name))
         .map(async (s) => {
           const total = s.maps.length;
           let explored = 0;
