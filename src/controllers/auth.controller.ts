@@ -3,6 +3,18 @@ import { randomUUID } from "crypto";
 import { supabase, supabaseAdmin } from "../config/supabase";
 import { sendWelcomeEmail } from "../services/emailService";
 
+type PublicUser = {
+  id: string;
+  supabase_id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone?: string | null;
+  avatar_url?: string | null;
+  role: string;
+  email_verified: boolean;
+};
+
 interface SignupBody {
   email: string;
   password: string;
@@ -16,6 +28,181 @@ interface LoginBody {
   password: string;
 }
 
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function mapAuthError(error: any): { statusCode: number; message: string; code?: string } {
+  const code = error?.code;
+  const status = error?.status;
+  const rawMessage = String(error?.message || "");
+  const message = rawMessage.toLowerCase();
+
+  if (message.includes("email rate limit exceeded")) {
+    return {
+      statusCode: 429,
+      code: "email_rate_limit_exceeded",
+      message: "Signup emails are temporarily rate-limited. Please try again later, or contact support if this continues.",
+    };
+  }
+
+  if (
+    status === 429 ||
+    code === "over_email_send_rate_limit" ||
+    message.includes("rate limit") ||
+    message.includes("security purposes") ||
+    message.includes("only request this after")
+  ) {
+    return {
+      statusCode: 429,
+      code: "over_email_send_rate_limit",
+      message: "A confirmation email was just sent. Please check your inbox, or wait a minute before trying again.",
+    };
+  }
+
+  if (code === "user_already_exists" || message.includes("already registered") || message.includes("already exists")) {
+    return {
+      statusCode: 409,
+      code: "user_already_exists",
+      message: "An account already exists for this email. Please sign in instead.",
+    };
+  }
+
+  if (code === "email_not_confirmed" || message.includes("email not confirmed")) {
+    return {
+      statusCode: 403,
+      code: "email_not_confirmed",
+      message: "Please verify your email before signing in.",
+    };
+  }
+
+  if (code === "invalid_credentials" || message.includes("invalid login credentials")) {
+    return {
+      statusCode: 401,
+      code: "invalid_credentials",
+      message: "Invalid email or password.",
+    };
+  }
+
+  return {
+    statusCode: status && status >= 400 && status < 500 ? status : 400,
+    code,
+    message: rawMessage || "Authentication failed",
+  };
+}
+
+async function findPublicUserBySupabaseId(supabaseId: string): Promise<PublicUser | null> {
+  const { data, error } = await supabaseAdmin
+    .from("users")
+    .select("*")
+    .eq("supabase_id", supabaseId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[Auth] Public user lookup by Supabase id failed:", error.message, error.code);
+  }
+
+  return (data as PublicUser | null) || null;
+}
+
+async function findPublicUserByEmail(email: string): Promise<PublicUser | null> {
+  const { data, error } = await supabaseAdmin
+    .from("users")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[Auth] Public user lookup by email failed:", error.message, error.code);
+  }
+
+  return (data as PublicUser | null) || null;
+}
+
+async function ensurePublicUser(params: {
+  supabaseId: string;
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  emailVerified: boolean;
+}): Promise<PublicUser | null> {
+  const email = normalizeEmail(params.email);
+
+  const existingBySupabaseId = await findPublicUserBySupabaseId(params.supabaseId);
+  if (existingBySupabaseId) {
+    const updates: Record<string, unknown> = {
+      email,
+      email_verified: params.emailVerified || existingBySupabaseId.email_verified,
+    };
+    if (!existingBySupabaseId.first_name && params.firstName) updates.first_name = params.firstName;
+    if (!existingBySupabaseId.last_name && params.lastName) updates.last_name = params.lastName;
+    if (!existingBySupabaseId.phone && params.phone) updates.phone = params.phone;
+    if (!existingBySupabaseId.avatar_url && params.avatarUrl) updates.avatar_url = params.avatarUrl;
+
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .update(updates)
+      .eq("id", existingBySupabaseId.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("[Auth] Public user update failed:", error.message, error.code);
+      return existingBySupabaseId;
+    }
+
+    return data as PublicUser;
+  }
+
+  const existingByEmail = await findPublicUserByEmail(email);
+  if (existingByEmail) {
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .update({
+        supabase_id: params.supabaseId,
+        email_verified: params.emailVerified || existingByEmail.email_verified,
+        first_name: existingByEmail.first_name || params.firstName,
+        last_name: existingByEmail.last_name || params.lastName,
+        phone: existingByEmail.phone || params.phone,
+        avatar_url: existingByEmail.avatar_url || params.avatarUrl,
+      })
+      .eq("id", existingByEmail.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("[Auth] Public user relink failed:", error.message, error.code);
+      return existingByEmail;
+    }
+
+    return data as PublicUser;
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("users")
+    .insert({
+      id: randomUUID(),
+      supabase_id: params.supabaseId,
+      email,
+      first_name: params.firstName,
+      last_name: params.lastName,
+      phone: params.phone,
+      avatar_url: params.avatarUrl,
+      email_verified: params.emailVerified,
+    })
+    .select("*")
+    .single();
+
+  if (!error && data) {
+    return data as PublicUser;
+  }
+
+  console.error("[Auth] Public user insert failed:", error?.message, error?.code);
+  return (await findPublicUserBySupabaseId(params.supabaseId)) || (await findPublicUserByEmail(email));
+}
+
 /**
  * Sign up a new user
  * POST /api/auth/signup
@@ -27,48 +214,65 @@ export const signup = async (
 ) => {
   try {
     const { email, password, firstName, lastName, phone } = req.body;
-    console.log(`[Signup] Attempt for email: ${email}`);
+    const normalizedEmail = normalizeEmail(email);
+    console.log(`[Signup] Attempt for email: ${normalizedEmail}`);
 
     // Zod validation middleware guarantees email + password are present and valid.
     // Direct to Supabase — avoids user enumeration via timing discrimination.
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password,
       options: { data: { first_name: firstName, last_name: lastName } },
     });
 
     if (authError) {
       console.error("Supabase auth error:", authError);
-      return res.status(400).json({ status: "error", message: authError.message });
+      const mapped = mapAuthError(authError);
+      return res.status(mapped.statusCode).json({
+        status: "error",
+        message: mapped.message,
+        code: mapped.code,
+      });
     }
 
     if (!authData.user) {
       return res.status(500).json({ status: "error", message: "Failed to create user account" });
     }
 
-    // Create user in our database via REST
-    const { data: user, error: createErr } = await supabaseAdmin
-      .from("users")
-      .insert({
-        id: randomUUID(),
-        supabase_id: authData.user.id,
-        email: email.toLowerCase(),
-        first_name: firstName,
-        last_name: lastName,
-        phone,
-        email_verified: !!authData.user.email_confirmed_at,
-      })
-      .select("id, email, first_name, last_name, role")
-      .single();
+    const user = await ensurePublicUser({
+      supabaseId: authData.user.id,
+      email: normalizedEmail,
+      firstName,
+      lastName,
+      phone,
+      emailVerified: !!authData.user.email_confirmed_at,
+    });
 
-    if (createErr || !user) {
-      console.error("Failed to create user record:", createErr);
-      return res.status(500).json({ status: "error", message: "Failed to create user record" });
+    if (!user) {
+      console.error("Failed to create or recover user record for:", normalizedEmail);
+      if (!authData.session) {
+        return res.status(201).json({
+          status: "success",
+          message: "Account created successfully. Please check your email to verify your account.",
+          data: {
+            user: {
+              id: authData.user.id,
+              email: normalizedEmail,
+              firstName: firstName || null,
+              lastName: lastName || null,
+            },
+            session: null,
+            requiresEmailVerification: true,
+          },
+        });
+      }
+
+      return res.status(500).json({ status: "error", message: "Unable to sync user profile" });
     }
 
     console.log(`[Signup] User created successfully: ${user.email} (${user.id})`);
 
-    sendWelcomeEmail(email, firstName || "").catch((err) =>
+    sendWelcomeEmail(normalizedEmail, firstName || "").catch((err) =>
       console.error("Welcome email failed:", err)
     );
 
@@ -112,65 +316,54 @@ export const login = async (
 ) => {
   try {
     const { email, password } = req.body;
-    console.log(`[Login] Attempt for email: ${email}`);
+    const normalizedEmail = normalizeEmail(email);
+    console.log(`[Login] Attempt for email: ${normalizedEmail}`);
 
     // Zod validation middleware guarantees email + password are present.
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password,
     });
 
     if (authError) {
       console.error("Login error:", authError);
-      return res.status(401).json({ status: "error", message: "Invalid email or password" });
+      const mapped = mapAuthError(authError);
+      return res.status(mapped.statusCode).json({
+        status: "error",
+        message: mapped.message,
+        code: mapped.code,
+      });
     }
 
     if (!authData.user || !authData.session) {
       return res.status(401).json({ status: "error", message: "Invalid email or password" });
     }
 
-    // Get user from our database via REST
-    let { data: user } = await supabaseAdmin
-      .from("users")
-      .select("*")
-      .eq("supabase_id", authData.user.id)
-      .single();
+    const user = await ensurePublicUser({
+      supabaseId: authData.user.id,
+      email: authData.user.email || normalizedEmail,
+      firstName: authData.user.user_metadata?.first_name,
+      lastName: authData.user.user_metadata?.last_name,
+      avatarUrl: authData.user.user_metadata?.avatar_url || authData.user.user_metadata?.picture,
+      emailVerified: !!authData.user.email_confirmed_at,
+    });
 
     if (!user) {
-      const { data: newUser } = await supabaseAdmin
-        .from("users")
-        .insert({
-          id: randomUUID(),
-          supabase_id: authData.user.id,
-          email: authData.user.email!.toLowerCase(),
-          first_name: authData.user.user_metadata?.first_name,
-          last_name: authData.user.user_metadata?.last_name,
-          email_verified: !!authData.user.email_confirmed_at,
-        })
-        .select("*")
-        .single();
-      user = newUser;
+      return res.status(500).json({ status: "error", message: "Unable to sync user profile" });
     }
 
-    if (authData.user.email_confirmed_at && !user?.email_verified) {
-      await supabaseAdmin
-        .from("users")
-        .update({ email_verified: true })
-        .eq("id", user!.id);
-    }
-
-    console.log(`[Login] Successful for: ${user!.email} (${user!.id})`);
+    console.log(`[Login] Successful for: ${user.email} (${user.id})`);
     res.json({
       status: "success",
       message: "Login successful",
       data: {
         user: {
-          id: user!.id,
-          email: user!.email,
-          firstName: user!.first_name,
-          lastName: user!.last_name,
-          avatarUrl: user!.avatar_url,
-          role: user!.role,
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          avatarUrl: user.avatar_url,
+          role: user.role,
         },
         session: {
           accessToken: authData.session.access_token,

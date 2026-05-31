@@ -23,13 +23,14 @@ export function validate(schema: {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
+        const errors = error.issues.map((e: any) => ({
+          field: e.path.join("."),
+          message: e.message,
+        }));
         return res.status(400).json({
           status: "error",
-          message: "Validation failed",
-          errors: error.issues.map((e: any) => ({
-            field: e.path.join("."),
-            message: e.message,
-          })),
+          message: errors[0]?.message || "Validation failed",
+          errors,
         });
       }
       next(error);
