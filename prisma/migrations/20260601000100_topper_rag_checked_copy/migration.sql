@@ -156,6 +156,7 @@ AS $$
   JOIN "topper_answers" a ON a.id = e.answer_id
   WHERE
     e.embedding IS NOT NULL
+    AND e.chunk_type IN ('question', 'answer')
     AND a.usable_for_rag = TRUE
     AND a.quality_status IN ('gold', 'silver')
     AND (paper_group_filter IS NULL OR a.paper_group = paper_group_filter)

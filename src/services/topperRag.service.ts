@@ -81,6 +81,7 @@ export function buildTopperContext(matches: TopperMatch[]): string {
   }
 
   return matches
+    .filter((m) => m.chunk_type === "answer" || m.chunk_type === "question")
     .map((m, index) => {
       const score = m.awarded_marks != null && m.max_marks ? `${m.awarded_marks}/${m.max_marks}` : "marks unknown";
       return `[Comparable ${index + 1} | ${m.paper_group} | ${score} | ${m.score_band || m.quality_status} | similarity ${Number(m.similarity || 0).toFixed(2)}]

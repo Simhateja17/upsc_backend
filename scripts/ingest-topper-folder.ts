@@ -40,13 +40,20 @@ async function main() {
   if (!folderArg) usage();
 
   const root = path.resolve(folderArg);
+  const rootStat = await fs.stat(root).catch(() => null);
+  if (!rootStat?.isDirectory()) {
+    throw new Error(`Topper folder not found: ${root}`);
+  }
+
   const maxPdfs = maxPdfsRaw ? Number(maxPdfsRaw) : Infinity;
   const maxPages = maxPagesRaw ? Number(maxPagesRaw) : undefined;
   let processed = 0;
   let failed = 0;
+  let discovered = 0;
 
   for (const paperGroup of PAPER_GROUPS) {
     const pdfs = await collectPdfs(root, paperGroup);
+    discovered += pdfs.length;
     for (const pdfPath of pdfs) {
       if (processed >= maxPdfs) break;
       try {
@@ -58,6 +65,12 @@ async function main() {
       }
     }
     if (processed >= maxPdfs) break;
+  }
+
+  if (discovered === 0) {
+    throw new Error(
+      `No PDFs found under ${root}. Expected subfolders: ${PAPER_GROUPS.join(", ")}`
+    );
   }
 
   console.log(JSON.stringify({ processed, failed }, null, 2));

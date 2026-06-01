@@ -48,8 +48,6 @@ async function vectorizeAnswer(answer: {
   const chunks = [
     { type: "question", text: answer.questionText || "" },
     { type: "answer", text: answer.studentAnswerText },
-    { type: "feedback", text: Array.isArray(answer.evaluatorNotesJson) ? answer.evaluatorNotesJson.join("\n") : "" },
-    { type: "structure", text: JSON.stringify(answer.answerStructureJson || {}) },
   ].filter((chunk) => chunk.text.trim().length >= 20);
 
   for (const chunk of chunks) {
