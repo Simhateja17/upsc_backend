@@ -5,6 +5,13 @@ vi.mock('../src/config/llm', () => ({ invokeModelJSON: vi.fn() }));
 vi.mock('../src/config/gemini', () => ({ extractTextFromFile: vi.fn() }));
 vi.mock('../src/config/storage', () => ({ downloadFile: vi.fn(), STORAGE_BUCKETS: {} }));
 vi.mock('../src/config/database', () => ({ default: {} }));
+vi.mock('../src/services/topperRag.service', () => ({
+  buildTopperContext: vi.fn(() => 'No comparable topper answers were retrieved.'),
+  retrieveTopperMatches: vi.fn(async () => []),
+}));
+vi.mock('../src/services/checkedCopyGenerator', () => ({
+  generateCheckedCopy: vi.fn(async () => ({ status: 'failed', reason: 'mocked' })),
+}));
 
 import { triviallyBadAnswer } from '../src/services/answerEvaluator';
 

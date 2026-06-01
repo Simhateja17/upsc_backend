@@ -4,11 +4,16 @@ import {
   evaluateAnswerGeneric,
   EvaluationDbOps,
 } from "../services/answerEvaluator";
-import { uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
 
 // PYQMainsQuestion has no `marks` column, so use the UPSC Mains convention:
 // 15-mark answers ≈ 250 words, 10-mark answers ≈ 150 words. Default to 15.
 const DEFAULT_MARKS = 15;
+
+async function signedCheckedCopyUrl(path: string | null | undefined): Promise<string | null> {
+  if (!path) return null;
+  return getSignedUrl(STORAGE_BUCKETS.CHECKED_COPIES, path, 3600);
+}
 
 function buildDbOps(attemptId: string): EvaluationDbOps {
   return {
@@ -68,6 +73,7 @@ async function kickoffEvaluation(
       marks: DEFAULT_MARKS,
     },
     dbOps: buildDbOps(attemptId),
+    evaluationMode: "pyq",
   });
 }
 
@@ -183,6 +189,7 @@ export const getPyqMainsEvaluationStatus = async (
     }
 
     const status = attempt.evaluation?.status || "pending";
+
     res.json({
       status: "success",
       data: {
@@ -228,6 +235,8 @@ export const getPyqMainsResults = async (
         .json({ status: "error", message: "No evaluation results found" });
     }
 
+    const checkedCopyUrl = await signedCheckedCopyUrl(attempt.evaluation.checkedCopyUrl);
+
     res.json({
       status: "success",
       data: {
@@ -237,6 +246,13 @@ export const getPyqMainsResults = async (
         improvements: attempt.evaluation.improvements,
         suggestions: attempt.evaluation.suggestions,
         detailedFeedback: attempt.evaluation.detailedFeedback,
+        demandCoverage: attempt.evaluation.demandCoverage,
+        sectionFeedback: attempt.evaluation.sectionFeedback,
+        annotationPlan: attempt.evaluation.annotationPlan,
+        checkedCopyUrl,
+        checkedCopyPath: attempt.evaluation.checkedCopyUrl,
+        checkedCopyStatus: attempt.evaluation.checkedCopyStatus,
+        modelAnswer: attempt.evaluation.modelAnswer,
         wordCount: attempt.wordCount,
         submittedAt: attempt.submittedAt,
         answerText: attempt.answerText,

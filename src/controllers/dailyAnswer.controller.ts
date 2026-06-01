@@ -2,13 +2,18 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import { evaluateAnswer } from "../services/answerEvaluator";
 import { sendEvaluationComplete } from "../services/emailService";
-import { uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
 import { getSyntheticDailyAnswerAttemptCount } from "../services/communityMetrics.service";
 
 function getToday(): Date {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+async function signedCheckedCopyUrl(path: string | null | undefined): Promise<string | null> {
+  if (!path) return null;
+  return getSignedUrl(STORAGE_BUCKETS.CHECKED_COPIES, path, 3600);
 }
 
 /**
@@ -198,6 +203,7 @@ export const getEvaluationStatus = async (req: Request, res: Response, next: Nex
     }
 
     const evalStatus = attempt.evaluation?.status || "pending";
+
     res.json({
       status: "success",
       data: {
@@ -235,6 +241,8 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
       return res.status(404).json({ status: "error", message: "No evaluation results found" });
     }
 
+    const checkedCopyUrl = await signedCheckedCopyUrl(attempt.evaluation.checkedCopyUrl);
+
     res.json({
       status: "success",
       data: {
@@ -244,7 +252,15 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
         improvements: attempt.evaluation.improvements,
         suggestions: attempt.evaluation.suggestions,
         detailedFeedback: attempt.evaluation.detailedFeedback,
+        demandCoverage: attempt.evaluation.demandCoverage,
+        sectionFeedback: attempt.evaluation.sectionFeedback,
+        annotationPlan: attempt.evaluation.annotationPlan,
+        checkedCopyUrl,
+        checkedCopyPath: attempt.evaluation.checkedCopyUrl,
+        checkedCopyStatus: attempt.evaluation.checkedCopyStatus,
+        modelAnswer: attempt.evaluation.modelAnswer,
         wordCount: attempt.wordCount,
+        answerText: attempt.answerText,
         submittedAt: attempt.submittedAt,
       },
     });

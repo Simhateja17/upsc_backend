@@ -235,6 +235,13 @@ model MainsEvaluation {
   suggestions     String[] // value-add ideas
   detailedFeedback String? @map("detailed_feedback")
   metrics         Json?    // AI-generated per-dimension metrics
+  demandCoverage  Json?    @map("demand_coverage")
+  sectionFeedback Json?    @map("section_feedback")
+  modelAnswer     String?  @map("model_answer")
+  annotationPlan  Json?    @map("annotation_plan")
+  checkedCopyUrl  String?  @map("checked_copy_url")
+  checkedCopyStatus String? @map("checked_copy_status")
+  evaluationMode  String?  @map("evaluation_mode")
   evaluatedAt     DateTime? @map("evaluated_at")
   createdAt       DateTime @default(now()) @map("created_at")
 
@@ -850,6 +857,97 @@ model StudyMaterialChunk {
   @@map("study_material_chunks")
 }
 
+// ==================== TOPPER ANSWER RAG CORPUS ====================
+
+model TopperDocument {
+  id             String   @id @default(uuid())
+  fileName       String   @map("file_name")
+  storagePath    String   @map("storage_path")
+  paperGroup     String   @map("paper_group")
+  sourceName     String?  @map("source_name")
+  examContext    String   @default("coaching_test_series") @map("exam_context")
+  candidateName  String?  @map("candidate_name")
+  testCode       String?  @map("test_code")
+  totalPages     Int      @default(0) @map("total_pages")
+  status         String   @default("uploaded")
+  errorMessage   String?  @map("error_message")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  pages    TopperDocumentPage[]
+  answers  TopperAnswer[]
+
+  @@index([paperGroup])
+  @@index([status])
+  @@map("topper_documents")
+}
+
+model TopperDocumentPage {
+  id              String   @id @default(uuid())
+  documentId      String   @map("document_id")
+  pageNo          Int      @map("page_no")
+  imagePath       String   @map("image_path")
+  rawOcrText      String   @map("raw_ocr_text")
+  structuredJson  Json?    @map("structured_json")
+  pageType        String?  @map("page_type")
+  confidenceJson  Json?    @map("confidence_json")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  document TopperDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, pageNo])
+  @@index([documentId])
+  @@map("topper_document_pages")
+}
+
+model TopperAnswer {
+  id                  String   @id @default(uuid())
+  documentId          String   @map("document_id")
+  questionNo          Int?     @map("question_no")
+  questionText        String?  @map("question_text")
+  paperGroup          String   @map("paper_group")
+  subject             String?
+  topic               String?
+  directive           String?
+  maxMarks            Int?     @map("max_marks")
+  awardedMarks        Float?   @map("awarded_marks")
+  scoreBand           String?  @map("score_band")
+  studentAnswerText   String   @map("student_answer_text")
+  evaluatorNotesJson  Json?    @map("evaluator_notes_json")
+  answerStructureJson Json?    @map("answer_structure_json")
+  pageStart           Int      @map("page_start")
+  pageEnd             Int      @map("page_end")
+  sourcePageIds       Json     @map("source_page_ids")
+  qualityStatus       String   @default("bronze") @map("quality_status")
+  confidenceJson      Json?    @map("confidence_json")
+  usableForRag        Boolean  @default(false) @map("usable_for_rag")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  document   TopperDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  embeddings TopperAnswerEmbedding[]
+
+  @@index([paperGroup])
+  @@index([topic])
+  @@index([directive])
+  @@index([maxMarks])
+  @@index([usableForRag])
+  @@map("topper_answers")
+}
+
+model TopperAnswerEmbedding {
+  id        String   @id @default(uuid())
+  answerId  String   @map("answer_id")
+  chunkType String   @map("chunk_type")
+  chunkText String   @map("chunk_text")
+  metadata  Json     @default("{}")
+  embedding Unsupported("vector(1536)")?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  answer TopperAnswer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@index([answerId])
+  @@map("topper_answer_embeddings")
+}
+
 // ==================== JEET AI CHAT ====================
 
 model ChatConversation {
@@ -1230,6 +1328,13 @@ model PyqMainsEvaluation {
   suggestions      String[]
   detailedFeedback String?   @map("detailed_feedback")
   metrics          Json?     // AI-generated per-dimension metrics
+  demandCoverage   Json?     @map("demand_coverage")
+  sectionFeedback  Json?     @map("section_feedback")
+  modelAnswer      String?   @map("model_answer")
+  annotationPlan   Json?     @map("annotation_plan")
+  checkedCopyUrl   String?   @map("checked_copy_url")
+  checkedCopyStatus String?  @map("checked_copy_status")
+  evaluationMode   String?   @map("evaluation_mode")
   evaluatedAt      DateTime? @map("evaluated_at")
   createdAt        DateTime  @default(now()) @map("created_at")
 
@@ -1271,6 +1376,13 @@ model MockTestMainsEvaluation {
   suggestions      String[]
   detailedFeedback String?   @map("detailed_feedback")
   metrics          Json?     // AI-generated per-dimension metrics
+  demandCoverage   Json?     @map("demand_coverage")
+  sectionFeedback  Json?     @map("section_feedback")
+  modelAnswer      String?   @map("model_answer")
+  annotationPlan   Json?     @map("annotation_plan")
+  checkedCopyUrl   String?   @map("checked_copy_url")
+  checkedCopyStatus String?  @map("checked_copy_status")
+  evaluationMode   String?   @map("evaluation_mode")
   evaluatedAt      DateTime? @map("evaluated_at")
   createdAt        DateTime  @default(now()) @map("created_at")
 

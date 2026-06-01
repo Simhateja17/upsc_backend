@@ -4,6 +4,9 @@ import { supabaseAdminStorage } from "./supabase";
 export const STORAGE_BUCKETS = {
   PYQ_PDFS: "pyq-pdfs",
   ANSWER_UPLOADS: "answer-uploads",
+  TOPPER_PDFS: "topper-pdfs",
+  TOPPER_ANSWER_PAGES: "topper-answer-pages",
+  CHECKED_COPIES: "checked-copies",
   STUDY_MATERIALS: "study-materials",
   EDITORIAL_IMAGES: "editorial-images",
   CMS_MEDIA: "cms-media",

@@ -2,12 +2,22 @@ import { invokeModelJSON, BedrockMessage } from "../config/llm";
 import { extractTextFromFile } from "../config/gemini";
 import { downloadFile, STORAGE_BUCKETS } from "../config/storage";
 import prisma from "../config/database";
+import { buildTopperContext, retrieveTopperMatches } from "./topperRag.service";
+import { planCheckedCopyAnnotations } from "./checkedCopyPlanner";
+import { generateCheckedCopy } from "./checkedCopyGenerator";
 
 interface EvaluationResult {
   score: number;
+  maxScore?: number;
+  wordCount?: number;
+  demandCoverage?: Array<{ demand: string; status: "covered" | "partial" | "missing" }>;
+  sectionFeedback?: Record<string, unknown>;
   strengths: string[];
+  weaknesses?: string[];
   improvements: string[];
   suggestions: string[];
+  overallFeedback?: string;
+  modelAnswer?: string;
   detailedFeedback: string;
   metrics?: Array<{ label: string; value: number; maxValue: number }>;
 }
@@ -28,6 +38,13 @@ export interface EvaluationUpdate {
   suggestions: string[];
   detailedFeedback: string;
   metrics?: any; // AI-generated per-dimension metrics
+  demandCoverage?: any;
+  sectionFeedback?: any;
+  modelAnswer?: string | null;
+  annotationPlan?: any;
+  checkedCopyUrl?: string | null;
+  checkedCopyStatus?: string | null;
+  evaluationMode?: "daily" | "pyq" | "mock";
   evaluatedAt: Date | null;
 }
 
@@ -51,7 +68,8 @@ export interface EvaluationDbOps {
 async function runAzureEvaluation(
   answerText: string,
   question: QuestionContext,
-  ocrNote: boolean
+  ocrNote: boolean,
+  topperContext: string
 ): Promise<EvaluationResult> {
   const wordCount = answerText.trim().split(/\s+/).filter(Boolean).length;
   const expectedWords = question.marks >= 15 ? 250 : question.marks >= 10 ? 150 : 100;
@@ -68,6 +86,9 @@ STUDENT'S ANSWER (${wordCount} words):
 ---
 ${answerText}
 ---
+
+RAG-CALIBRATION FROM CHECKED TOPPER COPIES:
+${topperContext}
 
 ${ocrNote ? "NOTE: This text was OCR-extracted from a handwritten sheet. Grade content rigorously but forgive minor spelling/OCR artifacts.\n\n" : ""}GRADING RULES — follow precisely:
 - Empty / single-line / gibberish / off-topic answers → score 0-1. Do not reward effort.
@@ -91,9 +112,22 @@ Rubric weights (for your internal reasoning; surface in metrics):
 Return ONLY a JSON object (no prose, no markdown fences):
 {
   "score": <integer 0-${question.marks}>,
+  "maxScore": ${question.marks},
+  "wordCount": ${wordCount},
+  "demandCoverage": [
+    {"demand": "specific demand from the question", "status": "covered|partial|missing"}
+  ],
+  "sectionFeedback": {
+    "introduction": {"status": "good|weak|missing", "feedback": "specific feedback"},
+    "body": {"status": "good|weak|missing", "feedback": "specific feedback"},
+    "conclusion": {"status": "good|weak|missing", "feedback": "specific feedback"}
+  },
   "strengths": ["specific strength tied to the answer — no generic praise"],
+  "weaknesses": ["specific weakness or missing demand"],
   "improvements": ["concrete, actionable — name the missing dimension/fact/structure"],
   "suggestions": ["specific source/report/scheme the student should read to improve"],
+  "overallFeedback": "short examiner-style overall comment",
+  "modelAnswer": "concise model answer calibrated to the marks and word limit",
   "detailedFeedback": "2-3 paragraph examiner-style feedback: what the answer did, where it falls on the rubric, and exactly what to fix. Be blunt, not encouraging.",
   "metrics": [
     {"label": "Relevance", "value": <0-10>, "maxValue": 10},
@@ -186,6 +220,7 @@ export async function evaluateAnswerGeneric(params: {
   fileUrl: string | null;
   question: QuestionContext;
   dbOps: EvaluationDbOps;
+  evaluationMode?: "daily" | "pyq" | "mock";
 }): Promise<void> {
   const { attemptId, answerText, fileUrl, question, dbOps } = params;
 
@@ -194,15 +229,16 @@ export async function evaluateAnswerGeneric(params: {
 
     let textToGrade = answerText?.trim() || "";
     let viaOcr = false;
+    let originalUpload: { buffer: Buffer; contentType: string } | null = null;
 
     // Handwritten path: OCR the file into text, then reuse the text path.
     if (!textToGrade && fileUrl) {
-      const { buffer, contentType } = await downloadFile(
+      originalUpload = await downloadFile(
         STORAGE_BUCKETS.ANSWER_UPLOADS,
         fileUrl
       );
 
-      const ocrText = await extractTextFromFile(buffer, contentType);
+      const ocrText = await extractTextFromFile(originalUpload.buffer, originalUpload.contentType);
 
       if (ocrText.length < 20) {
         await dbOps.saveEvaluation({
@@ -245,13 +281,52 @@ export async function evaluateAnswerGeneric(params: {
     if (trivial) {
       result = trivial;
     } else {
-      result = await runAzureEvaluation(textToGrade, question, viaOcr);
+      let topperContext = "No comparable topper answers were retrieved. Grade from the rubric only.";
+      try {
+        const matches = await retrieveTopperMatches({
+          questionText: question.questionText,
+          answerText: textToGrade,
+          paper: question.paper,
+          subject: question.subject,
+          maxMarks: question.marks,
+        });
+        topperContext = buildTopperContext(matches);
+      } catch (error) {
+        console.warn("[eval] Topper RAG unavailable:", error instanceof Error ? error.message : error);
+      }
+      result = await runAzureEvaluation(textToGrade, question, viaOcr, topperContext);
     }
 
     const clampedScore = Math.max(
       0,
       Math.min(Math.round(Number(result.score) || 0), question.marks)
     );
+
+    const annotationPlan = planCheckedCopyAnnotations({
+      score: clampedScore,
+      maxScore: question.marks,
+      strengths: result.strengths || [],
+      weaknesses: result.weaknesses || result.improvements || [],
+      suggestions: result.suggestions || [],
+      overallFeedback: result.overallFeedback || result.detailedFeedback || "",
+    });
+
+    let checkedCopyUrl: string | null = null;
+    let checkedCopyStatus: string | null = originalUpload ? "skipped" : null;
+    if (originalUpload && originalUpload.contentType.startsWith("image/")) {
+      const checked = await generateCheckedCopy({
+        attemptId,
+        originalBuffer: originalUpload.buffer,
+        mimeType: originalUpload.contentType,
+        annotationPlan,
+      });
+      checkedCopyStatus = checked.status;
+      checkedCopyUrl = checked.status === "completed" ? checked.storagePath : null;
+      if (checked.status === "failed") {
+        console.warn("[eval] checked-copy generation failed:", checked.reason);
+      }
+    }
+
     await dbOps.saveEvaluation({
       score: clampedScore,
       maxScore: question.marks,
@@ -261,6 +336,13 @@ export async function evaluateAnswerGeneric(params: {
       suggestions: result.suggestions || [],
       detailedFeedback: result.detailedFeedback || "",
       metrics: result.metrics || null,
+      demandCoverage: result.demandCoverage || [],
+      sectionFeedback: result.sectionFeedback || null,
+      modelAnswer: result.modelAnswer || null,
+      annotationPlan,
+      checkedCopyUrl,
+      checkedCopyStatus,
+      evaluationMode: params.evaluationMode || "daily",
       evaluatedAt: new Date(),
     });
   } catch (error) {
