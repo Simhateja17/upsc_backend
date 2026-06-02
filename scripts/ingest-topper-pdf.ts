@@ -24,13 +24,29 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function withTimeout<T>(label: string, operation: () => Promise<T>, timeoutMs: number): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([operation(), timeoutPromise]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 async function withRetry<T>(
   label: string,
   operation: () => Promise<T>,
-  options: { attempts?: number; baseDelayMs?: number; meta?: Record<string, unknown> } = {}
+  options: { attempts?: number; baseDelayMs?: number; timeoutMs?: number; meta?: Record<string, unknown> } = {}
 ): Promise<T> {
   const attempts = options.attempts ?? 3;
   const baseDelayMs = options.baseDelayMs ?? 1500;
+  const timeoutMs = options.timeoutMs ?? 120000;
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
@@ -38,13 +54,14 @@ async function withRetry<T>(
       if (attempt > 1) {
         log("retry", `Retrying ${label}`, { attempt, attempts, ...(options.meta || {}) });
       }
-      return await operation();
+      return await withTimeout(label, operation, timeoutMs);
     } catch (error) {
       lastError = error;
       const finalAttempt = attempt === attempts;
       log(finalAttempt ? "retry:failed" : "retry:wait", `${label} failed`, {
         attempt,
         attempts,
+        timeoutMs,
         error: errorMessage(error),
         ...(options.meta || {}),
       });
@@ -139,7 +156,7 @@ async function vectorizeAnswer(answer: {
     const embedding = await withRetry(
       `Azure embedding ${chunk.type}`,
       () => embedText(chunk.text, "RETRIEVAL_DOCUMENT"),
-      { meta: { answerId: answer.id, chunkType: chunk.type } }
+      { timeoutMs: 60000, meta: { answerId: answer.id, chunkType: chunk.type } }
     );
     await withRetry(
       `Supabase embedding insert ${chunk.type}`,
@@ -162,7 +179,7 @@ async function vectorizeAnswer(answer: {
         });
         if (error) throw new Error(`Embedding insert failed: ${error.message}`);
       },
-      { meta: { answerId: answer.id, chunkType: chunk.type } }
+      { timeoutMs: 30000, meta: { answerId: answer.id, chunkType: chunk.type } }
     );
   }
 }
@@ -220,7 +237,7 @@ export async function ingestTopperPdf(params: {
   await withRetry(
     "Supabase source PDF upload",
     () => uploadFile(STORAGE_BUCKETS.TOPPER_PDFS, storagePath, pdfBuffer, "application/pdf"),
-    { meta: { fileName, storagePath } }
+    { attempts: 4, timeoutMs: 180000, meta: { fileName, storagePath } }
   );
 
   const document = await prisma.topperDocument.create({
@@ -263,7 +280,7 @@ export async function ingestTopperPdf(params: {
       await withRetry(
         `Supabase page upload ${processedPages}`,
         () => uploadFile(STORAGE_BUCKETS.TOPPER_ANSWER_PAGES, imagePath, imageBuffer, "image/png"),
-        { meta: { documentId: document.id, page: processedPages, imagePath } }
+        { attempts: 4, timeoutMs: 90000, meta: { documentId: document.id, page: processedPages, imagePath } }
       );
 
       currentStage = "ocr";
@@ -271,7 +288,12 @@ export async function ingestTopperPdf(params: {
       const rawOcrText = await withRetry(
         `Google Vision OCR page ${processedPages}`,
         () => extractDocumentTextWithGoogleVision(imageBuffer),
-        { attempts: 4, baseDelayMs: 2000, meta: { documentId: document.id, page: processedPages } }
+        {
+          attempts: 4,
+          baseDelayMs: 2000,
+          timeoutMs: 90000,
+          meta: { documentId: document.id, page: processedPages },
+        }
       );
       log("page:ocr-done", `OCR complete for page ${processedPages}`, {
         documentId: document.id,
@@ -285,7 +307,12 @@ export async function ingestTopperPdf(params: {
       const structured = await withRetry(
         `Gemini structuring page ${processedPages}`,
         () => structureTopperPage({ pageNo: processedPages, imageBuffer, ocrText: rawOcrText }),
-        { attempts: 4, baseDelayMs: 2000, meta: { documentId: document.id, page: processedPages } }
+        {
+          attempts: 4,
+          baseDelayMs: 2000,
+          timeoutMs: 120000,
+          meta: { documentId: document.id, page: processedPages },
+        }
       );
       log("page:structure-done", `Structuring complete for page ${processedPages}`, {
         documentId: document.id,
