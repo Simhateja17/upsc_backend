@@ -5,9 +5,89 @@ import { ingestTopperPdf } from "./ingest-topper-pdf";
 
 const PAPER_GROUPS = ["Essay", "GS Paper 1", "GS Paper 2", "GS Paper 3", "GS Paper 4"];
 
+type ProgressState = {
+  paperGroup?: string;
+  pdfPath?: string;
+  index?: number;
+  total?: number;
+  processed: number;
+  skipped: number;
+  failed: number;
+};
+
+const progress: ProgressState = {
+  processed: 0,
+  skipped: 0,
+  failed: 0,
+};
+
 function log(stage: string, message: string, meta?: Record<string, unknown>) {
   const suffix = meta ? ` ${JSON.stringify(meta)}` : "";
   console.log(`[topper-folder:${stage}] ${new Date().toISOString()} ${message}${suffix}`);
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? `${error.message}\n${error.stack || ""}` : String(error);
+}
+
+function memorySnapshot() {
+  const memory = process.memoryUsage();
+  return {
+    rssMb: Math.round(memory.rss / 1024 / 1024),
+    heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
+    heapTotalMb: Math.round(memory.heapTotal / 1024 / 1024),
+    externalMb: Math.round(memory.external / 1024 / 1024),
+  };
+}
+
+function progressSnapshot() {
+  return {
+    ...progress,
+    memory: memorySnapshot(),
+  };
+}
+
+function installProcessDiagnostics() {
+  const heartbeat = setInterval(() => {
+    log("heartbeat", "Ingestion process is alive", progressSnapshot());
+  }, Number(process.env.TOPPER_HEARTBEAT_MS || 60000));
+  heartbeat.unref();
+
+  process.on("beforeExit", (code) => {
+    log("before-exit", "Node event loop is empty", { code, ...progressSnapshot() });
+  });
+
+  process.on("exit", (code) => {
+    console.error(
+      `[topper-folder:process-exit] ${new Date().toISOString()} code=${code} progress=${JSON.stringify(
+        progressSnapshot()
+      )}`
+    );
+  });
+
+  process.on("SIGINT", () => {
+    console.error(
+      `[topper-folder:signal] ${new Date().toISOString()} signal=SIGINT progress=${JSON.stringify(progressSnapshot())}`
+    );
+    process.exit(130);
+  });
+
+  process.on("SIGTERM", () => {
+    console.error(
+      `[topper-folder:signal] ${new Date().toISOString()} signal=SIGTERM progress=${JSON.stringify(progressSnapshot())}`
+    );
+    process.exit(143);
+  });
+
+  process.on("uncaughtException", (error) => {
+    console.error(`[topper-folder:uncaught-exception] ${new Date().toISOString()} ${errorMessage(error)}`);
+    process.exit(1);
+  });
+
+  process.on("unhandledRejection", (reason) => {
+    console.error(`[topper-folder:unhandled-rejection] ${new Date().toISOString()} ${errorMessage(reason)}`);
+    process.exit(1);
+  });
 }
 
 function usage(): never {
@@ -41,6 +121,8 @@ async function collectPdfs(root: string, paperGroup: string): Promise<string[]> 
 }
 
 async function main() {
+  installProcessDiagnostics();
+
   const [, , folderArg, maxPdfsRaw, maxPagesRaw] = process.argv;
   if (!folderArg) usage();
 
@@ -71,6 +153,13 @@ async function main() {
     for (const [index, pdfPath] of pdfs.entries()) {
       if (processed >= maxPdfs) break;
       try {
+        progress.paperGroup = paperGroup;
+        progress.pdfPath = pdfPath;
+        progress.index = index + 1;
+        progress.total = pdfs.length;
+        progress.processed = processed;
+        progress.skipped = skipped;
+        progress.failed = failed;
         log("pdf", `Processing ${path.basename(pdfPath)}`, {
           paperGroup,
           index: index + 1,
@@ -85,6 +174,9 @@ async function main() {
         } else {
           processed += 1;
         }
+        progress.processed = processed;
+        progress.skipped = skipped;
+        progress.failed = failed;
         log("pdf-done", `Finished ${path.basename(pdfPath)}`, {
           paperGroup,
           result,
@@ -94,6 +186,7 @@ async function main() {
         });
       } catch (error) {
         failed += 1;
+        progress.failed = failed;
         console.error(
           `[topper-folder:pdf-failed] ${new Date().toISOString()} failed ${pdfPath}:`,
           error instanceof Error ? error.message : error

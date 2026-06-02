@@ -16,6 +16,16 @@ function log(stage: string, message: string, meta?: Record<string, unknown>) {
   console.log(`[topper:${stage}] ${new Date().toISOString()} ${message}${suffix}`);
 }
 
+function memorySnapshot() {
+  const memory = process.memoryUsage();
+  return {
+    rssMb: Math.round(memory.rss / 1024 / 1024),
+    heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
+    heapTotalMb: Math.round(memory.heapTotal / 1024 / 1024),
+    externalMb: Math.round(memory.external / 1024 / 1024),
+  };
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -257,7 +267,8 @@ export async function ingestTopperPdf(params: {
     currentStage = "render:init";
     log("render", `Opening PDF renderer ${fileName}`, { documentId: document.id });
     const { pdf } = await import("pdf-to-img");
-    const rendered = await pdf(pdfBuffer, { scale: 2 });
+    const renderScale = Number(process.env.TOPPER_RENDER_SCALE || 2);
+    const rendered = await pdf(pdfBuffer, { scale: Number.isFinite(renderScale) ? renderScale : 2 });
     const pageInputs = [];
     let processedPages = 0;
 
@@ -273,6 +284,7 @@ export async function ingestTopperPdf(params: {
       log("page:rendered", `Rendered page ${processedPages}`, {
         documentId: document.id,
         bytes: imageBuffer.length,
+        memory: memorySnapshot(),
       });
 
       currentStage = "storage:page-upload";
@@ -334,6 +346,13 @@ export async function ingestTopperPdf(params: {
       });
       pageInputs.push({ ...structured, pageId: page.id });
       log("page:saved", `Saved page ${processedPages}`, { documentId: document.id, pageId: page.id });
+      if (global.gc) {
+        global.gc();
+        log("memory:gc", `Forced GC after page ${processedPages}`, {
+          documentId: document.id,
+          memory: memorySnapshot(),
+        });
+      }
     }
 
     currentStage = "assemble";
