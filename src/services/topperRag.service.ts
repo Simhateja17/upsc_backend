@@ -80,8 +80,16 @@ export function buildTopperContext(matches: TopperMatch[]): string {
     return "No comparable topper answers were retrieved. Grade from the rubric only.";
   }
 
-  return matches
-    .filter((m) => m.chunk_type === "answer" || m.chunk_type === "question")
+  const byAnswer = new Map<string, TopperMatch>();
+  for (const match of matches) {
+    const existing = byAnswer.get(match.answer_id);
+    if (!existing || match.chunk_type === "full" || match.similarity > existing.similarity) {
+      byAnswer.set(match.answer_id, match);
+    }
+  }
+
+  return Array.from(byAnswer.values())
+    .filter((m) => m.chunk_type === "full" || m.chunk_type === "answer" || m.chunk_type === "question")
     .map((m, index) => {
       const score = m.awarded_marks != null && m.max_marks ? `${m.awarded_marks}/${m.max_marks}` : "marks unknown";
       return `[Comparable ${index + 1} | ${m.paper_group} | ${score} | ${m.score_band || m.quality_status} | similarity ${Number(m.similarity || 0).toFixed(2)}]

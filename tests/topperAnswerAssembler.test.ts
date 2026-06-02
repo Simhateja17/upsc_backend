@@ -12,6 +12,7 @@ describe("assembleTopperAnswers", () => {
         pageNo: 3,
         pageType: "answer_page",
         pageConfidence: {},
+        questionIndex: [],
         answerBlocks: [
           {
             questionNo: 1,
@@ -32,6 +33,7 @@ describe("assembleTopperAnswers", () => {
         pageNo: 4,
         pageType: "answer_page",
         pageConfidence: {},
+        questionIndex: [],
         answerBlocks: [
           {
             questionNo: 1,
@@ -65,6 +67,7 @@ describe("assembleTopperAnswers", () => {
         pageNo: 1,
         pageType: "answer_page",
         pageConfidence: {},
+        questionIndex: [],
         answerBlocks: [
           {
             questionNo: null,
@@ -82,6 +85,114 @@ describe("assembleTopperAnswers", () => {
       },
     ]);
 
+    expect(answers[0].qualityStatus).toBe("bronze");
+    expect(answers[0].usableForRag).toBe(false);
+  });
+
+  it("repairs answer question text from cover/index question map", () => {
+    const textA = "Soil erosion removes top soil through wind, water, gravity, and human-induced degradation. ".repeat(3);
+    const textB = "Preventive measures include afforestation, contour bunding, terracing, controlled grazing, and watershed management. ".repeat(3);
+
+    const answers = assembleTopperAnswers(
+      [
+        {
+          pageId: "page-1",
+          pageNo: 1,
+          pageType: "cover_index",
+          pageConfidence: {},
+          questionIndex: [
+            {
+              questionNo: 1,
+              questionText: "Describe various forms of soil erosion. What measures can be taken to prevent it?",
+              maxMarks: 10,
+              wordLimit: 150,
+            },
+          ],
+          answerBlocks: [],
+        },
+        {
+          pageId: "page-3",
+          pageNo: 3,
+          pageType: "answer_page",
+          pageConfidence: {},
+          questionIndex: [],
+          answerBlocks: [
+            {
+              questionNo: 1,
+              printedQuestionText: null,
+              printedMaxMarks: null,
+              studentAnswerText: textA,
+              evaluatorNotes: [],
+              awardedMarksCandidates: [],
+              startsAnswer: true,
+              continuesPreviousAnswer: false,
+              endsAnswer: false,
+              confidence: { segmentation: 0.86, studentAnswerText: 0.9, awardedMarks: 0.5 },
+            },
+          ],
+        },
+        {
+          pageId: "page-4",
+          pageNo: 4,
+          pageType: "answer_page",
+          pageConfidence: {},
+          questionIndex: [],
+          answerBlocks: [
+            {
+              questionNo: null,
+              printedQuestionText: null,
+              printedMaxMarks: null,
+              studentAnswerText: textB,
+              evaluatorNotes: ["3.75"],
+              awardedMarksCandidates: [3.75],
+              startsAnswer: false,
+              continuesPreviousAnswer: true,
+              endsAnswer: true,
+              confidence: { segmentation: 0.82, studentAnswerText: 0.88, awardedMarks: 0.8 },
+            },
+          ],
+        },
+      ],
+      { paperGroup: "GS Paper 1" }
+    );
+
+    expect(answers).toHaveLength(1);
+    expect(answers[0].questionText).toContain("soil erosion");
+    expect(answers[0].maxMarks).toBe(10);
+    expect(answers[0].awardedMarks).toBe(3.75);
+    expect(answers[0].qualityStatus).toBe("gold");
+    expect(answers[0].usableForRag).toBe(true);
+  });
+
+  it("does not mark GS answer usable when question text cannot be repaired", () => {
+    const answers = assembleTopperAnswers(
+      [
+        {
+          pageId: "page-3",
+          pageNo: 3,
+          pageType: "answer_page",
+          pageConfidence: {},
+          questionIndex: [],
+          answerBlocks: [
+            {
+              questionNo: 1,
+              printedQuestionText: null,
+              printedMaxMarks: null,
+              studentAnswerText: "A long but unlinked answer. ".repeat(10),
+              evaluatorNotes: ["4"],
+              awardedMarksCandidates: [4],
+              startsAnswer: true,
+              continuesPreviousAnswer: false,
+              endsAnswer: true,
+              confidence: { segmentation: 0.86, studentAnswerText: 0.9, awardedMarks: 0.8 },
+            },
+          ],
+        },
+      ],
+      { paperGroup: "GS Paper 1" }
+    );
+
+    expect(answers).toHaveLength(1);
     expect(answers[0].qualityStatus).toBe("bronze");
     expect(answers[0].usableForRag).toBe(false);
   });

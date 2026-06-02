@@ -152,11 +152,35 @@ async function vectorizeAnswer(answer: {
 }) {
   if (!supabaseAdmin) throw new Error("Supabase admin client not configured");
   if (answer.qualityStatus === "bronze") return;
+  if (!answer.questionText?.trim()) return;
 
-  const chunks = [
-    { type: "question", text: answer.questionText || "" },
-    { type: "answer", text: answer.studentAnswerText },
-  ].filter((chunk) => chunk.text.trim().length >= 20);
+  const evaluatorNotes = Array.isArray(answer.evaluatorNotesJson)
+    ? answer.evaluatorNotesJson.filter(Boolean).join("\n- ")
+    : "";
+  const structure =
+    answer.answerStructureJson && typeof answer.answerStructureJson === "object"
+      ? JSON.stringify(answer.answerStructureJson)
+      : "";
+  const score =
+    answer.awardedMarks != null && answer.maxMarks
+      ? `${answer.awardedMarks}/${answer.maxMarks}`
+      : "marks unknown";
+  const chunkText = [
+    `Question:\n${answer.questionText}`,
+    `Paper:\n${answer.paperGroup}`,
+    answer.subject || answer.topic ? `Subject/topic:\n${answer.subject || "unknown"} / ${answer.topic || "unknown"}` : "",
+    answer.directive ? `Directive:\n${answer.directive}` : "",
+    `Marks:\n${score}`,
+    answer.scoreBand ? `Score band:\n${answer.scoreBand}` : "",
+    `Topper answer:\n${answer.studentAnswerText}`,
+    evaluatorNotes ? `Evaluator notes:\n- ${evaluatorNotes}` : "",
+    structure ? `Structure metadata:\n${structure}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n")
+    .trim();
+
+  const chunks = [{ type: "full", text: chunkText }].filter((chunk) => chunk.text.trim().length >= 120);
 
   for (const chunk of chunks) {
     log("embed", `Embedding ${chunk.type} chunk`, {
@@ -184,6 +208,7 @@ async function vectorizeAnswer(answer: {
             awardedMarks: answer.awardedMarks,
             scoreBand: answer.scoreBand,
             qualityStatus: answer.qualityStatus,
+            chunkSchemaVersion: 2,
           },
           embedding: JSON.stringify(embedding),
         });
@@ -360,7 +385,7 @@ export async function ingestTopperPdf(params: {
       documentId: document.id,
       pages: pageInputs.length,
     });
-    const assembled = assembleTopperAnswers(pageInputs);
+    const assembled = assembleTopperAnswers(pageInputs, { paperGroup: params.paperGroup });
     log("assemble-done", `Assembled answers for ${fileName}`, {
       documentId: document.id,
       answers: assembled.length,
