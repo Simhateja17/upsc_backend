@@ -24,7 +24,19 @@ export async function initStorageBuckets() {
     return;
   }
 
+  const { data: existingBuckets, error: listError } =
+    await supabaseAdminStorage.storage.listBuckets();
+
+  if (listError) {
+    console.error("Failed to list storage buckets:", listError.message);
+    return;
+  }
+
+  const existingBucketIds = new Set((existingBuckets || []).map((bucket) => bucket.id));
+
   for (const bucket of Object.values(STORAGE_BUCKETS)) {
+    if (existingBucketIds.has(bucket)) continue;
+
     const { error } = await supabaseAdminStorage.storage.createBucket(bucket, {
       public: PUBLIC_BUCKETS.has(bucket),
       fileSizeLimit: 50 * 1024 * 1024, // 50MB
