@@ -15,7 +15,7 @@ const MAGIC_BYTES: Record<string, number[][]> = {
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [[0x50, 0x4b, 0x03, 0x04]],
 };
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = Number(process.env.ANSWER_UPLOAD_MAX_MB || 25) * 1024 * 1024;
 
 const storage = multer.memoryStorage();
 

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import multer from "multer";
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -11,7 +12,9 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  const statusCode = err.statusCode || 500;
+  const isPayloadTooLarge =
+    err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE";
+  const statusCode = isPayloadTooLarge ? 413 : err.statusCode || 500;
   const status = err.status || "error";
 
   console.error(`[Error] ${err.message}`, {
@@ -20,7 +23,11 @@ export const errorHandler = (
   });
 
   // Never expose stack traces in API responses — log them server-side only
-  const message = statusCode === 500 ? "Internal server error" : err.message;
+  const message = isPayloadTooLarge
+    ? "Uploaded file is too large. Please upload an image below 25MB."
+    : statusCode === 500
+      ? "Internal server error"
+      : err.message;
 
   res.status(statusCode).json({ status, message });
 };
