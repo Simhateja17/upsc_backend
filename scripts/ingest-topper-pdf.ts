@@ -338,11 +338,11 @@ export async function ingestTopperPdf(params: {
       });
 
       currentStage = "structure";
-      log("page:structure", `Running Gemini structuring for page ${processedPages}`, {
+      log("page:structure", `Running AI structuring for page ${processedPages}`, {
         documentId: document.id,
       });
       const structured = await withRetry(
-        `Gemini structuring page ${processedPages}`,
+        `AI structuring page ${processedPages}`,
         () => structureTopperPage({ pageNo: processedPages, imageBuffer, ocrText: rawOcrText }),
         {
           attempts: 4,

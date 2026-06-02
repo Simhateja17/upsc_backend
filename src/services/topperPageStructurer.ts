@@ -114,6 +114,10 @@ async function structureWithAzure(params: {
 
   const prompt = buildPrompt(params.pageNo, params.ocrText);
   const model = process.env.AZURE_OPENAI_STRUCTURING_DEPLOYMENT || chatDeployment;
+  console.log("[topper-structurer] Azure primary structuring start", {
+    pageNo: params.pageNo,
+    model,
+  });
   const messages: any[] = [
     {
       role: "system",
@@ -162,7 +166,15 @@ async function structureWithAzure(params: {
   }
 
   const text = response.choices[0]?.message?.content || "{}";
-  return normalizeStructuredPage(JSON.parse(stripJsonFence(text)), params.pageNo);
+  const structured = normalizeStructuredPage(JSON.parse(stripJsonFence(text)), params.pageNo);
+  console.log("[topper-structurer] Azure primary structuring done", {
+    pageNo: params.pageNo,
+    model,
+    pageType: structured.pageType,
+    answerBlocks: structured.answerBlocks.length,
+    questionIndex: structured.questionIndex.length,
+  });
+  return structured;
 }
 
 async function structureWithGemini(params: {
@@ -175,8 +187,13 @@ async function structureWithGemini(params: {
 
   const prompt = buildPrompt(params.pageNo, params.ocrText);
   const ai = new GoogleGenAI({ apiKey });
+  const model = process.env.GEMINI_STRUCTURING_FALLBACK_MODEL || process.env.GEMINI_STRUCTURING_MODEL || "gemini-3.5-flash";
+  console.log("[topper-structurer] Gemini fallback structuring start", {
+    pageNo: params.pageNo,
+    model,
+  });
   const response = await ai.models.generateContent({
-    model: process.env.GEMINI_STRUCTURING_FALLBACK_MODEL || process.env.GEMINI_STRUCTURING_MODEL || "gemini-3.5-flash",
+    model,
     contents: [
       {
         role: "user",
@@ -189,7 +206,15 @@ async function structureWithGemini(params: {
     config: { temperature: 0, responseMimeType: "application/json" },
   });
 
-  return normalizeStructuredPage(JSON.parse(stripJsonFence(response.text || "{}")), params.pageNo);
+  const structured = normalizeStructuredPage(JSON.parse(stripJsonFence(response.text || "{}")), params.pageNo);
+  console.log("[topper-structurer] Gemini fallback structuring done", {
+    pageNo: params.pageNo,
+    model,
+    pageType: structured.pageType,
+    answerBlocks: structured.answerBlocks.length,
+    questionIndex: structured.questionIndex.length,
+  });
+  return structured;
 }
 
 export async function structureTopperPage(params: {
