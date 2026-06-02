@@ -1,5 +1,5 @@
+import { NextFunction, Request, Response } from "express";
 import multer from "multer";
-import path from "path";
 
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
@@ -15,7 +15,8 @@ const MAGIC_BYTES: Record<string, number[][]> = {
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [[0x50, 0x4b, 0x03, 0x04]],
 };
 
-const MAX_FILE_SIZE = Number(process.env.ANSWER_UPLOAD_MAX_MB || 25) * 1024 * 1024;
+const MAX_FILE_SIZE_MB = Number(process.env.ANSWER_UPLOAD_MAX_MB || 50);
+const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 const storage = multer.memoryStorage();
 
@@ -48,12 +49,56 @@ function fileFilter(
 /**
  * Multer middleware for single file upload
  */
-export const uploadSingle = (fieldName: string = "file") =>
-  multer({
+export const uploadSingle = (fieldName: string = "file") => {
+  const middleware = multer({
     storage,
     fileFilter,
     limits: { fileSize: MAX_FILE_SIZE },
   }).single(fieldName);
+
+  return (req: Request, res: Response, next: NextFunction) => {
+    const isPyqSubmit =
+      req.method === "POST" && /^\/api\/pyq\/mains\/[^/]+\/submit$/.test(req.originalUrl);
+
+    if (isPyqSubmit) {
+      console.log("[Upload] Parsing answer upload", {
+        requestId: req.id,
+        fieldName,
+        maxFileSizeMb: MAX_FILE_SIZE_MB,
+        contentType: req.headers["content-type"] || null,
+        contentLength: req.headers["content-length"] || null,
+      });
+    }
+
+    middleware(req, res, (error) => {
+      if (error) {
+        console.error("[Upload] Answer upload rejected", {
+          requestId: req.id,
+          fieldName,
+          maxFileSizeMb: MAX_FILE_SIZE_MB,
+          contentType: req.headers["content-type"] || null,
+          contentLength: req.headers["content-length"] || null,
+          errorName: error instanceof Error ? error.name : typeof error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          multerCode: error instanceof multer.MulterError ? error.code : null,
+        });
+        return next(error);
+      }
+
+      if (isPyqSubmit) {
+        console.log("[Upload] Parsed answer upload", {
+          requestId: req.id,
+          hasFile: Boolean(req.file),
+          fileName: req.file?.originalname || null,
+          mimeType: req.file?.mimetype || null,
+          size: req.file?.size || null,
+        });
+      }
+
+      return next();
+    });
+  };
+};
 
 /**
  * Multer middleware for PDF upload (admin PYQ uploads - 50MB limit)

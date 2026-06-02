@@ -53,6 +53,20 @@ app.use(cors({
   credentials: true,
 }));
 app.use(helmet());
+
+app.use((req, _res, next) => {
+  if (req.method === "POST" && /^\/api\/pyq\/mains\/[^/]+\/submit$/.test(req.path)) {
+    console.log("[PYQ Upload] Incoming submit request", {
+      requestId: req.id,
+      origin: req.headers.origin || null,
+      contentType: req.headers["content-type"] || null,
+      contentLength: req.headers["content-length"] || null,
+      userAgent: req.headers["user-agent"] || null,
+    });
+  }
+  next();
+});
+
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "25mb" }));
 app.use(express.urlencoded({ extended: false, limit: process.env.URLENCODED_BODY_LIMIT || "5mb" }));
 

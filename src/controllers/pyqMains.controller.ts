@@ -90,6 +90,17 @@ export const submitPyqMainsAnswer = async (
     const userId = req.user!.id;
     const questionId = req.params.questionId as string;
 
+    console.log("[PYQ Submit] Handling mains answer submission", {
+      requestId: req.id,
+      userId,
+      questionId,
+      hasFile: Boolean(req.file),
+      fileName: req.file?.originalname || null,
+      mimeType: req.file?.mimetype || null,
+      fileSize: req.file?.size || null,
+      answerTextChars: typeof req.body?.answerText === "string" ? req.body.answerText.length : 0,
+    });
+
     const question = await prisma.pYQMainsQuestion.findUnique({
       where: { id: questionId },
     });
@@ -106,6 +117,13 @@ export const submitPyqMainsAnswer = async (
 
     if (req.file) {
       const fileName = `${userId}/pyq/${Date.now()}_${req.file.originalname}`;
+      console.log("[PYQ Submit] Uploading answer file to storage", {
+        requestId: req.id,
+        questionId,
+        fileName,
+        mimeType: req.file.mimetype,
+        fileSize: req.file.size,
+      });
       await uploadFile(
         STORAGE_BUCKETS.ANSWER_UPLOADS,
         fileName,
@@ -113,6 +131,11 @@ export const submitPyqMainsAnswer = async (
         req.file.mimetype
       );
       fileUrl = fileName;
+      console.log("[PYQ Submit] Stored answer file", {
+        requestId: req.id,
+        questionId,
+        fileUrl,
+      });
     }
 
     if (!fileUrl && (!answerText || answerText.trim().length === 0)) {
@@ -136,6 +159,13 @@ export const submitPyqMainsAnswer = async (
         submittedAt: new Date(),
       },
     });
+    console.log("[PYQ Submit] Created PYQ mains attempt", {
+      requestId: req.id,
+      attemptId: attempt.id,
+      questionId,
+      hasFile: Boolean(fileUrl),
+      wordCount,
+    });
 
     // Fire-and-forget
     kickoffEvaluation(attempt.id, answerText || null, fileUrl, {
@@ -158,6 +188,11 @@ export const submitPyqMainsAnswer = async (
       data: { attemptId: attempt.id, status: "evaluating" },
     });
   } catch (error) {
+    console.error("[PYQ Submit] Failed to submit mains answer", {
+      requestId: req.id,
+      questionId: req.params.questionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     next(error);
   }
 };
