@@ -11,12 +11,93 @@ import { extractDirective } from "../src/services/topperRag.service";
 
 const PAPER_GROUPS = new Set(["Essay", "GS Paper 1", "GS Paper 2", "GS Paper 3", "GS Paper 4"]);
 
+function log(stage: string, message: string, meta?: Record<string, unknown>) {
+  const suffix = meta ? ` ${JSON.stringify(meta)}` : "";
+  console.log(`[topper:${stage}] ${new Date().toISOString()} ${message}${suffix}`);
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withRetry<T>(
+  label: string,
+  operation: () => Promise<T>,
+  options: { attempts?: number; baseDelayMs?: number; meta?: Record<string, unknown> } = {}
+): Promise<T> {
+  const attempts = options.attempts ?? 3;
+  const baseDelayMs = options.baseDelayMs ?? 1500;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      if (attempt > 1) {
+        log("retry", `Retrying ${label}`, { attempt, attempts, ...(options.meta || {}) });
+      }
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      const finalAttempt = attempt === attempts;
+      log(finalAttempt ? "retry:failed" : "retry:wait", `${label} failed`, {
+        attempt,
+        attempts,
+        error: errorMessage(error),
+        ...(options.meta || {}),
+      });
+      if (!finalAttempt) {
+        await sleep(baseDelayMs * 2 ** (attempt - 1));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 function usage(): never {
   console.error(
     "Usage: npx tsx scripts/ingest-topper-pdf.ts <pdf-path> <paper-group> [max-pages]\n" +
       'Example: npx tsx scripts/ingest-topper-pdf.ts "../Mains Answer Writing - Teja/GS Paper 1/file.pdf" "GS Paper 1" 5'
   );
   process.exit(1);
+}
+
+async function removeStorageObjects(bucket: string, paths: string[]) {
+  if (!paths.length) return;
+  if (!supabaseAdmin) throw new Error("Supabase admin client not configured");
+  const { error } = await supabaseAdmin.storage.from(bucket).remove(paths);
+  if (error) throw new Error(`Storage cleanup failed for ${bucket}: ${error.message}`);
+}
+
+async function cleanupStaleAttempt(document: {
+  id: string;
+  fileName: string;
+  storagePath: string;
+  status: string;
+}) {
+  if (!supabaseAdmin) throw new Error("Supabase admin client not configured");
+
+  log("cleanup", `Removing stale ${document.status} attempt for ${document.fileName}`, {
+    documentId: document.id,
+  });
+
+  const { data: pageObjects, error: listError } = await supabaseAdmin.storage
+    .from(STORAGE_BUCKETS.TOPPER_ANSWER_PAGES)
+    .list(document.id, { limit: 1000 });
+  if (listError) {
+    throw new Error(`Storage list failed for ${document.id}: ${listError.message}`);
+  }
+
+  await removeStorageObjects(
+    STORAGE_BUCKETS.TOPPER_ANSWER_PAGES,
+    (pageObjects || []).map((object) => `${document.id}/${object.name}`)
+  );
+  await removeStorageObjects(STORAGE_BUCKETS.TOPPER_PDFS, [document.storagePath]);
+
+  await prisma.topperDocument.delete({ where: { id: document.id } });
 }
 
 function scoreBand(awarded: number | null, maxMarks: number | null): string | null {
@@ -51,24 +132,38 @@ async function vectorizeAnswer(answer: {
   ].filter((chunk) => chunk.text.trim().length >= 20);
 
   for (const chunk of chunks) {
-    const embedding = await embedText(chunk.text, "RETRIEVAL_DOCUMENT");
-    const { error } = await supabaseAdmin.from("topper_answer_embeddings").insert({
-      answer_id: answer.id,
-      chunk_type: chunk.type,
-      chunk_text: chunk.text,
-      metadata: {
-        paperGroup: answer.paperGroup,
-        subject: answer.subject,
-        topic: answer.topic,
-        directive: answer.directive,
-        maxMarks: answer.maxMarks,
-        awardedMarks: answer.awardedMarks,
-        scoreBand: answer.scoreBand,
-        qualityStatus: answer.qualityStatus,
-      },
-      embedding: JSON.stringify(embedding),
+    log("embed", `Embedding ${chunk.type} chunk`, {
+      answerId: answer.id,
+      chars: chunk.text.length,
     });
-    if (error) throw new Error(`Embedding insert failed: ${error.message}`);
+    const embedding = await withRetry(
+      `Azure embedding ${chunk.type}`,
+      () => embedText(chunk.text, "RETRIEVAL_DOCUMENT"),
+      { meta: { answerId: answer.id, chunkType: chunk.type } }
+    );
+    await withRetry(
+      `Supabase embedding insert ${chunk.type}`,
+      async () => {
+        const { error } = await supabaseAdmin.from("topper_answer_embeddings").insert({
+          answer_id: answer.id,
+          chunk_type: chunk.type,
+          chunk_text: chunk.text,
+          metadata: {
+            paperGroup: answer.paperGroup,
+            subject: answer.subject,
+            topic: answer.topic,
+            directive: answer.directive,
+            maxMarks: answer.maxMarks,
+            awardedMarks: answer.awardedMarks,
+            scoreBand: answer.scoreBand,
+            qualityStatus: answer.qualityStatus,
+          },
+          embedding: JSON.stringify(embedding),
+        });
+        if (error) throw new Error(`Embedding insert failed: ${error.message}`);
+      },
+      { meta: { answerId: answer.id, chunkType: chunk.type } }
+    );
   }
 }
 
@@ -86,6 +181,12 @@ export async function ingestTopperPdf(params: {
   const pdfBuffer = await fs.readFile(pdfPath);
   const fileName = path.basename(pdfPath);
 
+  log("pdf:start", `Starting ${fileName}`, {
+    paperGroup: params.paperGroup,
+    bytes: pdfBuffer.length,
+    maxPages: params.maxPages ?? null,
+  });
+
   if (params.skipExisting) {
     const existing = await prisma.topperDocument.findFirst({
       where: {
@@ -96,14 +197,31 @@ export async function ingestTopperPdf(params: {
       select: { id: true, totalPages: true },
     });
     if (existing) {
-      console.log(`[topper] skip existing ${fileName}: ${existing.id}`);
+      log("pdf:skip", `Skipping vectorized ${fileName}`, { documentId: existing.id });
       return { documentId: existing.id, pages: existing.totalPages, answers: 0, skipped: true };
+    }
+
+    const staleAttempts = await prisma.topperDocument.findMany({
+      where: {
+        fileName,
+        paperGroup: params.paperGroup,
+        status: { not: "vectorized" },
+      },
+      select: { id: true, fileName: true, storagePath: true, status: true },
+    });
+    for (const stale of staleAttempts) {
+      await cleanupStaleAttempt(stale);
     }
   }
 
   const storagePath = `${params.paperGroup}/${Date.now()}_${fileName}`.replace(/\s+/g, "_");
 
-  await uploadFile(STORAGE_BUCKETS.TOPPER_PDFS, storagePath, pdfBuffer, "application/pdf");
+  log("pdf:upload", `Uploading source PDF ${fileName}`, { storagePath });
+  await withRetry(
+    "Supabase source PDF upload",
+    () => uploadFile(STORAGE_BUCKETS.TOPPER_PDFS, storagePath, pdfBuffer, "application/pdf"),
+    { meta: { fileName, storagePath } }
+  );
 
   const document = await prisma.topperDocument.create({
     data: {
@@ -114,8 +232,13 @@ export async function ingestTopperPdf(params: {
       status: "processing",
     },
   });
+  log("pdf:document", `Created topper document ${fileName}`, { documentId: document.id });
 
+  let currentPageNo = 0;
+  let currentStage = "init";
   try {
+    currentStage = "render:init";
+    log("render", `Opening PDF renderer ${fileName}`, { documentId: document.id });
     const { pdf } = await import("pdf-to-img");
     const rendered = await pdf(pdfBuffer, { scale: 2 });
     const pageInputs = [];
@@ -125,13 +248,52 @@ export async function ingestTopperPdf(params: {
       const nextPageNo = processedPages + 1;
       if (params.maxPages && nextPageNo > params.maxPages) break;
       processedPages = nextPageNo;
+      currentPageNo = processedPages;
 
+      currentStage = "render:page";
       const imageBuffer = Buffer.isBuffer(image) ? image : Buffer.from(image);
       const imagePath = `${document.id}/page-${String(processedPages).padStart(3, "0")}.png`;
-      await uploadFile(STORAGE_BUCKETS.TOPPER_ANSWER_PAGES, imagePath, imageBuffer, "image/png");
+      log("page:rendered", `Rendered page ${processedPages}`, {
+        documentId: document.id,
+        bytes: imageBuffer.length,
+      });
 
-      const rawOcrText = await extractDocumentTextWithGoogleVision(imageBuffer);
-      const structured = await structureTopperPage({ pageNo: processedPages, imageBuffer, ocrText: rawOcrText });
+      currentStage = "storage:page-upload";
+      log("page:upload", `Uploading page ${processedPages}`, { documentId: document.id, imagePath });
+      await withRetry(
+        `Supabase page upload ${processedPages}`,
+        () => uploadFile(STORAGE_BUCKETS.TOPPER_ANSWER_PAGES, imagePath, imageBuffer, "image/png"),
+        { meta: { documentId: document.id, page: processedPages, imagePath } }
+      );
+
+      currentStage = "ocr";
+      log("page:ocr", `Running Google Vision OCR for page ${processedPages}`, { documentId: document.id });
+      const rawOcrText = await withRetry(
+        `Google Vision OCR page ${processedPages}`,
+        () => extractDocumentTextWithGoogleVision(imageBuffer),
+        { attempts: 4, baseDelayMs: 2000, meta: { documentId: document.id, page: processedPages } }
+      );
+      log("page:ocr-done", `OCR complete for page ${processedPages}`, {
+        documentId: document.id,
+        chars: rawOcrText.length,
+      });
+
+      currentStage = "structure";
+      log("page:structure", `Running Gemini structuring for page ${processedPages}`, {
+        documentId: document.id,
+      });
+      const structured = await withRetry(
+        `Gemini structuring page ${processedPages}`,
+        () => structureTopperPage({ pageNo: processedPages, imageBuffer, ocrText: rawOcrText }),
+        { attempts: 4, baseDelayMs: 2000, meta: { documentId: document.id, page: processedPages } }
+      );
+      log("page:structure-done", `Structuring complete for page ${processedPages}`, {
+        documentId: document.id,
+        pageType: structured.pageType,
+        answerBlocks: structured.answerBlocks.length,
+      });
+
+      currentStage = "db:page";
       const page = await prisma.topperDocumentPage.create({
         data: {
           documentId: document.id,
@@ -144,11 +306,30 @@ export async function ingestTopperPdf(params: {
         },
       });
       pageInputs.push({ ...structured, pageId: page.id });
-      console.log(`[topper] ${fileName}: page ${processedPages} structured (${structured.answerBlocks.length} blocks)`);
+      log("page:saved", `Saved page ${processedPages}`, { documentId: document.id, pageId: page.id });
     }
 
+    currentStage = "assemble";
+    log("assemble", `Assembling answers for ${fileName}`, {
+      documentId: document.id,
+      pages: pageInputs.length,
+    });
     const assembled = assembleTopperAnswers(pageInputs);
+    log("assemble-done", `Assembled answers for ${fileName}`, {
+      documentId: document.id,
+      answers: assembled.length,
+      usableForRag: assembled.filter((answer) => answer.usableForRag).length,
+    });
+
     for (const answer of assembled) {
+      currentStage = "db:answer";
+      log("answer:save", `Saving assembled answer`, {
+        documentId: document.id,
+        questionNo: answer.questionNo,
+        qualityStatus: answer.qualityStatus,
+        usableForRag: answer.usableForRag,
+        pages: `${answer.pageStart}-${answer.pageEnd}`,
+      });
       const created = await prisma.topperAnswer.create({
         data: {
           documentId: document.id,
@@ -170,20 +351,36 @@ export async function ingestTopperPdf(params: {
           usableForRag: answer.usableForRag,
         },
       });
+      currentStage = "embed";
       await vectorizeAnswer(created as any);
     }
 
+    currentStage = "db:document-complete";
     await prisma.topperDocument.update({
       where: { id: document.id },
       data: { status: "vectorized", totalPages: processedPages },
     });
 
-    console.log(`[topper] done ${fileName}: ${assembled.length} answers`);
+    log("pdf:done", `Completed ${fileName}`, {
+      documentId: document.id,
+      pages: processedPages,
+      answers: assembled.length,
+    });
     return { documentId: document.id, pages: processedPages, answers: assembled.length };
   } catch (error) {
+    const message = errorMessage(error);
     await prisma.topperDocument.update({
       where: { id: document.id },
-      data: { status: "failed", errorMessage: error instanceof Error ? error.message : String(error) },
+      data: {
+        status: "failed",
+        errorMessage: `stage=${currentStage}; page=${currentPageNo || "n/a"}; ${message}`,
+      },
+    });
+    log("pdf:failed", `Failed ${fileName}`, {
+      documentId: document.id,
+      stage: currentStage,
+      page: currentPageNo || null,
+      error: message,
     });
     throw error;
   }

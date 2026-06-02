@@ -5,6 +5,11 @@ import { ingestTopperPdf } from "./ingest-topper-pdf";
 
 const PAPER_GROUPS = ["Essay", "GS Paper 1", "GS Paper 2", "GS Paper 3", "GS Paper 4"];
 
+function log(stage: string, message: string, meta?: Record<string, unknown>) {
+  const suffix = meta ? ` ${JSON.stringify(meta)}` : "";
+  console.log(`[topper-folder:${stage}] ${new Date().toISOString()} ${message}${suffix}`);
+}
+
 function usage(): never {
   console.error(
     "Usage: npx tsx scripts/ingest-topper-folder.ts <folder-path> [max-pdfs] [max-pages-per-pdf]\n" +
@@ -48,20 +53,51 @@ async function main() {
   const maxPdfs = maxPdfsRaw ? Number(maxPdfsRaw) : Infinity;
   const maxPages = maxPagesRaw ? Number(maxPagesRaw) : undefined;
   let processed = 0;
+  let skipped = 0;
   let failed = 0;
   let discovered = 0;
+
+  log("start", "Starting topper folder ingestion", {
+    root,
+    maxPdfs: Number.isFinite(maxPdfs) ? maxPdfs : null,
+    maxPages: maxPages ?? null,
+  });
 
   for (const paperGroup of PAPER_GROUPS) {
     const pdfs = await collectPdfs(root, paperGroup);
     discovered += pdfs.length;
-    for (const pdfPath of pdfs) {
+    log("paper", `Discovered PDFs for ${paperGroup}`, { count: pdfs.length });
+
+    for (const [index, pdfPath] of pdfs.entries()) {
       if (processed >= maxPdfs) break;
       try {
-        await ingestTopperPdf({ pdfPath, paperGroup, maxPages, skipExisting: true });
-        processed += 1;
+        log("pdf", `Processing ${path.basename(pdfPath)}`, {
+          paperGroup,
+          index: index + 1,
+          total: pdfs.length,
+          processed,
+          skipped,
+          failed,
+        });
+        const result = await ingestTopperPdf({ pdfPath, paperGroup, maxPages, skipExisting: true });
+        if (result.skipped) {
+          skipped += 1;
+        } else {
+          processed += 1;
+        }
+        log("pdf-done", `Finished ${path.basename(pdfPath)}`, {
+          paperGroup,
+          result,
+          processed,
+          skipped,
+          failed,
+        });
       } catch (error) {
         failed += 1;
-        console.error(`[topper-folder] failed ${pdfPath}:`, error instanceof Error ? error.message : error);
+        console.error(
+          `[topper-folder:pdf-failed] ${new Date().toISOString()} failed ${pdfPath}:`,
+          error instanceof Error ? error.message : error
+        );
       }
     }
     if (processed >= maxPdfs) break;
@@ -73,7 +109,8 @@ async function main() {
     );
   }
 
-  console.log(JSON.stringify({ processed, failed }, null, 2));
+  log("done", "Topper folder ingestion complete", { discovered, processed, skipped, failed });
+  console.log(JSON.stringify({ discovered, processed, skipped, failed }, null, 2));
 }
 
 main()
