@@ -120,4 +120,23 @@ describe('normalizeOcrAnswerText', () => {
     );
     expect(normalized).toContain('Before the war, Britain, France and Russia were');
   });
+
+  it('removes generic footer and header noise from scanned notes', () => {
+    const normalized = normalizeOcrAnswerText([
+      'Simla Agreement (1972) brought',
+      'peace to Indo-Pak until the',
+      'Kargil War 2 decades later.',
+      'Cooperation in various field Call us : 8468022022, 9019066066 Visit us : www.visionias.in',
+      'Page 7 of 50',
+      '1417 SAMPLE ACADEMY™',
+      'Lahore Declaration - Vajpayee wanted to make borders irrelevant',
+      'through increased trade, common',
+      'currency in South Asia and bus-travel & connectivity b/w the 2 countries.',
+      'student@example.com',
+    ].join('\n'));
+
+    expect(normalized).not.toMatch(/call us|visit us|sample academy|page 7 of 50|student@example/i);
+    expect(normalized).toContain('Simla Agreement (1972) brought peace to Indo-Pak until the Kargil War 2 decades later.');
+    expect(normalized).toContain('Lahore Declaration - Vajpayee wanted to make borders irrelevant');
+  });
 });

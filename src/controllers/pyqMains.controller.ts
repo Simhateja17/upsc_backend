@@ -4,7 +4,7 @@ import {
   evaluateAnswerGeneric,
   EvaluationDbOps,
 } from "../services/answerEvaluator";
-import { getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
 
 // PYQMainsQuestion has no `marks` column, so use the UPSC Mains convention:
 // 15-mark answers ≈ 250 words, 10-mark answers ≈ 150 words. Default to 15.
@@ -116,11 +116,12 @@ export const submitPyqMainsAnswer = async (
     let fileUrl: string | null = null;
 
     if (req.file) {
-      const fileName = `${userId}/pyq/${Date.now()}_${req.file.originalname}`;
+      const fileName = buildStoragePath(userId, "pyq", `${Date.now()}_${req.file.originalname}`);
       console.log("[PYQ Submit] Uploading answer file to storage", {
         requestId: req.id,
         questionId,
         fileName,
+        originalFileName: req.file.originalname,
         mimeType: req.file.mimetype,
         fileSize: req.file.size,
       });

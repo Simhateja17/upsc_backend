@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import { evaluateAnswer } from "../services/answerEvaluator";
 import { sendEvaluationComplete } from "../services/emailService";
-import { getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
 import { getSyntheticDailyAnswerAttemptCount } from "../services/communityMetrics.service";
 
 function getToday(): Date {
@@ -145,7 +145,7 @@ export const uploadAnswer = async (req: Request, res: Response, next: NextFuncti
 
     // Handle file upload via multer
     if (req.file) {
-      const fileName = `${userId}/${Date.now()}_${req.file.originalname}`;
+      const fileName = buildStoragePath(userId, `${Date.now()}_${req.file.originalname}`);
       await uploadFile(
         STORAGE_BUCKETS.ANSWER_UPLOADS,
         fileName,
@@ -271,7 +271,7 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
 };
 
 // Real AI evaluation: typed answers go straight to the evaluator; uploads use
-// Google Vision OCR first, then the same evaluator path.
+// Uploaded files are transcribed by the generic evaluator, then graded through the same path.
 async function startEvaluation(
   attemptId: string,
   answerText: string | null,

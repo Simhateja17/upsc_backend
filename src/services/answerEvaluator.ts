@@ -1,10 +1,11 @@
 import { invokeModelJSON, BedrockMessage } from "../config/llm";
-import { extractTextFromFile } from "../config/gemini";
+import { renderPdfPagesToImages } from "../config/gemini";
 import { downloadFile, STORAGE_BUCKETS } from "../config/storage";
 import prisma from "../config/database";
 import { buildTopperContext, retrieveTopperMatches } from "./topperRag.service";
 import { EvaluatorCheckedCopyPlan, planCheckedCopyAnnotations } from "./checkedCopyPlanner";
 import { generateCheckedCopy } from "./checkedCopyGenerator";
+import { transcribeStudentAnswerFromUpload } from "./studentAnswerTranscriber";
 
 function evalElapsed(startedAt: number) {
   return `${Date.now() - startedAt}ms`;
@@ -68,13 +69,13 @@ export interface EvaluationDbOps {
 
 /**
  * Run the Azure OpenAI evaluator on a piece of answer text. Shared by both
- * the typed-answer path and the handwritten OCR path so the rubric, prompt
+ * the typed-answer path and the handwritten upload path so the rubric, prompt
  * and fallback behavior stay in one place.
  */
 async function runAzureEvaluation(
   answerText: string,
   question: QuestionContext,
-  ocrNote: boolean,
+  uploadTranscriptionNote: boolean,
   topperContext: string
 ): Promise<EvaluationResult> {
   const wordCount = answerText.trim().split(/\s+/).filter(Boolean).length;
@@ -96,7 +97,7 @@ ${answerText}
 RAG-CALIBRATION FROM CHECKED TOPPER COPIES:
 ${topperContext}
 
-${ocrNote ? "NOTE: This text was OCR-extracted from a handwritten sheet. Grade content rigorously but forgive minor spelling/OCR artifacts.\n\n" : ""}GRADING RULES — follow precisely:
+${uploadTranscriptionNote ? "NOTE: This text was transcribed from uploaded handwritten page image(s). Grade content rigorously but forgive minor transcription artifacts.\n\n" : ""}GRADING RULES — follow precisely:
 - Empty / single-line / gibberish / off-topic answers → score 0-1. Do not reward effort.
 - Answer that rephrases the question without substance → 2-4 out of ${question.marks}.
 - Answer with some valid points but missing core demand, no examples, no structure → 5-7 out of ${question.marks}.
@@ -141,7 +142,7 @@ Return ONLY a JSON object (no prose, no markdown fences):
   "annotationPlan": [
     {
       "type": "positive_tick|underline|circle|bracket|margin_comment|missing_demand|overall_comment|score",
-      "targetText": "exact short phrase from the student's OCR text when available; omit only for bottom/score comments",
+      "targetText": "exact short phrase from the student's transcribed answer text when available; omit only for bottom/score comments",
       "comment": "short red-ink examiner note, max 18 words",
       "placement": "left_margin|right_margin|bottom|near_target|top"
     }
@@ -177,11 +178,28 @@ function hasEvaluatorAnnotationPlan(plan: unknown): plan is EvaluatorCheckedCopy
   });
 }
 
+function stripOcrChrome(line: string): string {
+  let cleaned = line;
+
+  cleaned = cleaned.replace(/\b(call|contact|phone|tel|mobile)\s*(?:us)?\s*[:.]?\s*[\d,\s()+-]{7,}/gi, " ");
+  cleaned = cleaned.replace(/\bvisit\s+us\s*[:.]?\s*(?:https?:\/\/)?(?:www\.)?[a-z0-9.-]+\.[a-z]{2,}\b/gi, " ");
+  cleaned = cleaned.replace(/\b(?:https?:\/\/)?(?:www\.)?[a-z0-9.-]+\.[a-z]{2,}(?:\/\S*)?\b/gi, " ");
+  cleaned = cleaned.replace(/\bpage\s+\d+\s+of\s+\d+\b/gi, " ");
+  cleaned = cleaned.replace(/\b\d{3,6}\s+[A-Z][A-Z\s]{3,}(?:™|tm)?\b/g, " ");
+  cleaned = cleaned.replace(/\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/gi, " ");
+  cleaned = cleaned.replace(/\b[\w.+-]+@\b/g, " ");
+  cleaned = cleaned.replace(/[™®©]/g, " ");
+  cleaned = cleaned.replace(/\bdo\s+not\s+write\s+anything\s+in\s+this\s+margin\b/gi, " ");
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
+
+  return cleaned;
+}
+
 export function normalizeOcrAnswerText(ocrText: string): string {
   const rawLines = ocrText
     .replace(/\r/g, "\n")
     .split("\n")
-    .map((line) => line.replace(/\s+/g, " ").trim())
+    .map((line) => stripOcrChrome(line.replace(/\s+/g, " ").trim()))
     .filter(Boolean);
 
   const lines: string[] = [];
@@ -198,7 +216,11 @@ export function normalizeOcrAnswerText(ocrText: string): string {
       continue;
     }
     if (/^page\s*no\.?\s*\d*$/i.test(line)) continue;
+    if (/^page\s+\d+\s+of\s+\d+$/i.test(line)) continue;
     if (/^do not write anything/i.test(lower)) continue;
+    if (/^(call|contact|phone|tel|mobile|visit us|www\.|https?:\/\/)/i.test(lower)) continue;
+    if (/^[A-Z][A-Z\s]{3,}(?:™|tm)?$/.test(line)) continue;
+    if (/^\d{3,6}$/.test(line)) continue;
     if (/^answer writing practice$/i.test(line)) continue;
     if (/^upsc$/i.test(line)) continue;
     if (skipNextNumeric && /^\d+\.?$/.test(line)) {
@@ -326,7 +348,7 @@ export function triviallyBadAnswer(
 }
 
 /**
- * Schema-agnostic mains evaluator. Handles the OCR-if-needed → Azure grade →
+ * Schema-agnostic mains evaluator. Handles the upload transcription → RAG → Azure grade →
  * persist flow, calling into `dbOps` so the caller decides which Prisma
  * tables get written. Used by Daily Answer, PYQ Mains and Mock Test Mains.
  */
@@ -359,10 +381,10 @@ export async function evaluateAnswerGeneric(params: {
     });
 
     let textToGrade = answerText?.trim() || "";
-    let viaOcr = false;
+    let viaUploadTranscription = false;
     let originalUpload: { buffer: Buffer; contentType: string } | null = null;
 
-    // Handwritten path: OCR the file into text, then reuse the text path.
+    // Handwritten/upload path: transcribe the file with Azure vision, then reuse the text path.
     if (!textToGrade && fileUrl) {
       const downloadStartedAt = Date.now();
       console.log("[eval] uploaded-answer path: downloading original file", {
@@ -381,27 +403,38 @@ export async function evaluateAnswerGeneric(params: {
         contentType: originalUpload.contentType,
       });
 
-      const ocrStartedAt = Date.now();
-      console.log("[eval] OCR/extraction start", {
+      const transcriptionStartedAt = Date.now();
+      console.log("[eval] upload transcription start", {
         attemptId,
         contentType: originalUpload.contentType,
         bytes: originalUpload.buffer.length,
       });
-      const ocrText = await extractTextFromFile(originalUpload.buffer, originalUpload.contentType);
-      const normalizedOcrText = normalizeOcrAnswerText(ocrText);
-      console.log("[eval] OCR/extraction completed", {
+      const transcription = await transcribeStudentAnswerFromUpload({
+        fileBuffer: originalUpload.buffer,
+        mimeType: originalUpload.contentType,
+        questionText: question.questionText,
+        paper: question.paper,
+        subject: question.subject,
+        marks: question.marks,
         attemptId,
-        elapsed: evalElapsed(ocrStartedAt),
-        chars: ocrText.length,
-        normalizedChars: normalizedOcrText.length,
-        preview: ocrText.slice(0, 220),
-        normalizedPreview: normalizedOcrText.slice(0, 220),
+      });
+      const transcribedAnswer = transcription.transcribedAnswer.trim();
+      console.log("[eval] upload transcription completed", {
+        attemptId,
+        elapsed: evalElapsed(transcriptionStartedAt),
+        chars: transcribedAnswer.length,
+        pages: transcription.pages.length,
+        confidence: transcription.confidence,
+        warnings: transcription.warnings,
+        preview: transcribedAnswer.slice(0, 240),
       });
 
-      if (normalizedOcrText.length < 20) {
-        console.warn("[eval] OCR text too short; completing as unreadable", {
+      if (transcribedAnswer.length < 20) {
+        console.warn("[eval] upload transcription too short; completing as unreadable", {
           attemptId,
-          chars: normalizedOcrText.length,
+          chars: transcribedAnswer.length,
+          confidence: transcription.confidence,
+          warnings: transcription.warnings,
         });
         await dbOps.saveEvaluation({
           score: 0,
@@ -418,21 +451,22 @@ export async function evaluateAnswerGeneric(params: {
             "Alternatively, type your answer directly for an instant evaluation.",
           ],
           detailedFeedback:
-            "Your uploaded file was received, but our OCR could not extract a readable answer from it. This usually happens with blurry photos, low light, or very faint pencil marks. Please retake the photo with good lighting and clear handwriting, then resubmit — or type the answer directly.",
+            "Your uploaded file was received, but the answer transcription could not extract a readable response from it. This usually happens with blurry photos, low light, very faint pencil marks, or pages where the answer is not visible. Please retake the photo with good lighting and clear handwriting, then resubmit — or type the answer directly.",
           evaluatedAt: new Date(),
         });
         return;
       }
 
-      textToGrade = normalizedOcrText;
-      viaOcr = true;
+      textToGrade = transcribedAnswer;
+      viaUploadTranscription = true;
 
       const wordCount = textToGrade.split(/\s+/).filter(Boolean).length;
       await dbOps.saveAttemptText(textToGrade, wordCount);
-      console.log("[eval] OCR text saved to attempt", {
+      console.log("[eval] transcribed answer saved to attempt", {
         attemptId,
         wordCount,
         chars: textToGrade.length,
+        confidence: transcription.confidence,
       });
     }
 
@@ -523,9 +557,9 @@ export async function evaluateAnswerGeneric(params: {
         attemptId,
         answerChars: textToGrade.length,
         topperContextChars: topperContext.length,
-        viaOcr,
+        viaUploadTranscription,
       });
-      result = await runAzureEvaluation(textToGrade, question, viaOcr, topperContext);
+      result = await runAzureEvaluation(textToGrade, question, viaUploadTranscription, topperContext);
       console.log("[eval] Azure evaluator completed", {
         attemptId,
         elapsed: evalElapsed(gradingStartedAt),
@@ -597,18 +631,48 @@ export async function evaluateAnswerGeneric(params: {
 
     let checkedCopyUrl: string | null = null;
     let checkedCopyStatus: string | null = originalUpload ? "skipped" : null;
-    if (originalUpload && originalUpload.contentType.startsWith("image/")) {
+    let checkedCopyInput: { buffer: Buffer; contentType: string; source: "image" | "pdf-page-1" } | null = null;
+    if (originalUpload?.contentType.startsWith("image/")) {
+      checkedCopyInput = {
+        buffer: originalUpload.buffer,
+        contentType: originalUpload.contentType,
+        source: "image",
+      };
+    } else if (originalUpload?.contentType === "application/pdf") {
+      const renderStartedAt = Date.now();
+      console.log("[eval] checked-copy PDF render start", {
+        attemptId,
+        bytes: originalUpload.buffer.length,
+      });
+      const pages = await renderPdfPagesToImages(originalUpload.buffer, 1);
+      if (pages[0]) {
+        checkedCopyInput = {
+          buffer: pages[0],
+          contentType: "image/png",
+          source: "pdf-page-1",
+        };
+      }
+      console.log("[eval] checked-copy PDF render completed", {
+        attemptId,
+        elapsed: evalElapsed(renderStartedAt),
+        renderedPages: pages.length,
+        firstPageBytes: pages[0]?.length || 0,
+      });
+    }
+
+    if (checkedCopyInput) {
       const checkedCopyStartedAt = Date.now();
       console.log("[eval] checked-copy generation start", {
         attemptId,
         model: process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image",
-        inputBytes: originalUpload.buffer.length,
-        mimeType: originalUpload.contentType,
+        source: checkedCopyInput.source,
+        inputBytes: checkedCopyInput.buffer.length,
+        mimeType: checkedCopyInput.contentType,
       });
       const checked = await generateCheckedCopy({
         attemptId,
-        originalBuffer: originalUpload.buffer,
-        mimeType: originalUpload.contentType,
+        originalBuffer: checkedCopyInput.buffer,
+        mimeType: checkedCopyInput.contentType,
         annotationPlan,
       });
       checkedCopyStatus = checked.status;

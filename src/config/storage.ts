@@ -24,6 +24,25 @@ const RETRYABLE_UPLOAD_ERROR_CODES = new Set([
   "EAI_AGAIN",
 ]);
 
+export function sanitizeStorageFileName(fileName: string): string {
+  const normalized = fileName
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\x7E]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return normalized || "upload";
+}
+
+export function buildStoragePath(...parts: string[]): string {
+  return parts
+    .map((part) => sanitizeStorageFileName(part))
+    .filter(Boolean)
+    .join("/");
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

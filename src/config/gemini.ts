@@ -10,6 +10,22 @@ export async function generateJSON<T>(
   return azureGenerateJSON<T>(prompt, system, temperature);
 }
 
+export async function renderPdfPagesToImages(
+  fileBuffer: Buffer,
+  maxPages = Number(process.env.OCR_PDF_MAX_PAGES || 6)
+): Promise<Buffer[]> {
+  const { pdf } = await import("pdf-to-img");
+  const document = await pdf(fileBuffer, { scale: 2 });
+  const pages: Buffer[] = [];
+
+  for await (const image of document) {
+    pages.push(image);
+    if (pages.length >= maxPages) break;
+  }
+
+  return pages;
+}
+
 /**
  * OCR extraction for handwritten answer sheets.
  * Uses Google Vision DOCUMENT_TEXT_DETECTION, matching the topper-ingestion
@@ -21,22 +37,27 @@ export async function extractTextFromFile(
 ): Promise<string> {
   if (mimeType === "application/pdf") {
     // Convert PDF to image and OCR — handles both text-based and scanned PDFs.
-    console.log("[OCR] Converting PDF page 1 to image for Google Vision OCR...");
+    console.log("[OCR] Converting PDF pages to images for Google Vision OCR...");
     try {
-      const { pdf } = await import("pdf-to-img");
-      const document = await pdf(fileBuffer, { scale: 2 });
-      let firstPageBuffer: Buffer | null = null;
-      for await (const image of document) {
-        firstPageBuffer = image;
-        break; // Only need the first page
-      }
-      if (!firstPageBuffer) {
+      const pageBuffers = await renderPdfPagesToImages(fileBuffer);
+      if (pageBuffers.length === 0) {
         throw new Error("Could not render any pages from the PDF.");
       }
-      console.log(`[OCR] PDF page 1 rendered (${firstPageBuffer.length} bytes)`);
-      const text = await extractDocumentTextWithGoogleVision(firstPageBuffer);
-      console.log(`[OCR] Google Vision on PDF page 1 OK (${text.length} chars)`);
-      return text;
+      console.log("[OCR] PDF pages rendered", {
+        pages: pageBuffers.length,
+        bytes: pageBuffers.map((page) => page.length),
+      });
+
+      const pageTexts: string[] = [];
+      for (let index = 0; index < pageBuffers.length; index += 1) {
+        const pageNumber = index + 1;
+        console.log(`[OCR] Google Vision on PDF page ${pageNumber} start`);
+        const text = await extractDocumentTextWithGoogleVision(pageBuffers[index]);
+        console.log(`[OCR] Google Vision on PDF page ${pageNumber} OK (${text.length} chars)`);
+        pageTexts.push(text);
+      }
+
+      return pageTexts.join("\n\n");
     } catch (err: any) {
       console.error("[OCR] PDF-to-image conversion failed:", err.message);
       throw new Error(

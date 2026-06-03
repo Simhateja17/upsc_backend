@@ -4,7 +4,7 @@ import {
   evaluateAnswerGeneric,
   EvaluationDbOps,
 } from "../services/answerEvaluator";
-import { getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
 
 async function signedCheckedCopyUrl(path: string | null | undefined): Promise<string | null> {
   if (!path) return null;
@@ -118,7 +118,7 @@ export const submitMockTestMainsAnswer = async (
     let fileUrl: string | null = null;
 
     if (req.file) {
-      const fileName = `${userId}/mock-test/${Date.now()}_${req.file.originalname}`;
+      const fileName = buildStoragePath(userId, "mock-test", `${Date.now()}_${req.file.originalname}`);
       await uploadFile(
         STORAGE_BUCKETS.ANSWER_UPLOADS,
         fileName,
