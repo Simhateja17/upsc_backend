@@ -287,6 +287,7 @@ export const getPyqMainsResults = async (
         checkedCopyUrl,
         checkedCopyPath: attempt.evaluation.checkedCopyUrl,
         checkedCopyStatus: attempt.evaluation.checkedCopyStatus,
+        ragDiagnostics: attempt.evaluation.ragDiagnostics,
         modelAnswer: attempt.evaluation.modelAnswer,
         wordCount: attempt.wordCount,
         submittedAt: attempt.submittedAt,

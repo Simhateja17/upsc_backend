@@ -13,7 +13,7 @@ vi.mock('../src/services/checkedCopyGenerator', () => ({
   generateCheckedCopy: vi.fn(async () => ({ status: 'failed', reason: 'mocked' })),
 }));
 
-import { triviallyBadAnswer } from '../src/services/answerEvaluator';
+import { normalizeOcrAnswerText, triviallyBadAnswer } from '../src/services/answerEvaluator';
 
 const q15 = {
   questionText: 'Discuss the impact of climate change on Indian agriculture and suggest adaptation measures.',
@@ -88,5 +88,36 @@ describe('triviallyBadAnswer', () => {
       expect(r!.suggestions.length).toBeGreaterThanOrEqual(1);
       expect(r!.detailedFeedback.length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe('normalizeOcrAnswerText', () => {
+  it('removes answer-sheet chrome and rejoins fragmented OCR lines', () => {
+    const normalized = normalizeOcrAnswerText([
+      'Q. No.',
+      'How far is it correct to say that the First World War',
+      'Marks',
+      '6.',
+      'was fought essentially for the preservation of balance of power?',
+      '15',
+      'First World War was',
+      'big',
+      'war in which',
+      'fought in 1914-18. It was a',
+      'countries took part. It was',
+      'many',
+      'very',
+      'Germany',
+      'mainly fought for balance of power in Europe.',
+      'Before the war,',
+      'Britain, France and Russia were',
+    ].join('\n'));
+
+    expect(normalized).not.toContain('Q. No.');
+    expect(normalized).not.toContain('\nMarks\n');
+    expect(normalized).toContain(
+      'First World War was big war in which fought in 1914-18. It was a countries took part. It was many very Germany mainly fought for balance of power in Europe.'
+    );
+    expect(normalized).toContain('Before the war, Britain, France and Russia were');
   });
 });

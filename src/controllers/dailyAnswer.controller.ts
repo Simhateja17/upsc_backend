@@ -258,6 +258,7 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
         checkedCopyUrl,
         checkedCopyPath: attempt.evaluation.checkedCopyUrl,
         checkedCopyStatus: attempt.evaluation.checkedCopyStatus,
+        ragDiagnostics: attempt.evaluation.ragDiagnostics,
         modelAnswer: attempt.evaluation.modelAnswer,
         wordCount: attempt.wordCount,
         answerText: attempt.answerText,
@@ -269,7 +270,8 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
   }
 };
 
-// Real AI evaluation using Azure OpenAI (typed) or Gemini OCR → Azure OpenAI (uploads)
+// Real AI evaluation: typed answers go straight to the evaluator; uploads use
+// Google Vision OCR first, then the same evaluator path.
 async function startEvaluation(
   attemptId: string,
   answerText: string | null,

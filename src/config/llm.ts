@@ -21,6 +21,10 @@ function computeCost(inputTokens: number, outputTokens: number) {
   return { costUsd, costInr };
 }
 
+function elapsed(startedAt: number) {
+  return `${Date.now() - startedAt}ms`;
+}
+
 async function logUsage(
   service: string,
   inputTokens: number,
@@ -84,6 +88,17 @@ export async function invokeModel(
     openaiMessages.push({ role: msg.role, content });
   }
 
+  const timeoutMs = Number(process.env.AZURE_EVALUATOR_TIMEOUT_MS || 120000);
+  const startedAt = Date.now();
+  console.log("[LLM] Azure chat request start", {
+    serviceName,
+    deployment: chatDeployment,
+    maxTokens,
+    temperature,
+    messageCount: openaiMessages.length,
+    timeoutMs,
+  });
+
   let response;
   try {
     response = await azureClient.chat.completions.create(
@@ -93,12 +108,24 @@ export async function invokeModel(
         max_completion_tokens: maxTokens,
         temperature,
       },
-      { signal: AbortSignal.timeout(45000) }
+      { signal: AbortSignal.timeout(timeoutMs) }
     );
   } catch (err: any) {
     const msg = String(err?.message || err || "");
+    console.error("[LLM] Azure chat request error", {
+      serviceName,
+      deployment: chatDeployment,
+      elapsed: elapsed(startedAt),
+      message: msg,
+      code: err?.code,
+      name: err?.name,
+    });
     // Some Azure deployments/API versions still expect max_tokens instead.
     if (msg.includes("max_completion_tokens")) {
+      console.log("[LLM] Retrying Azure chat with max_tokens", {
+        serviceName,
+        deployment: chatDeployment,
+      });
       response = await azureClient.chat.completions.create(
         {
           model: chatDeployment,
@@ -106,17 +133,21 @@ export async function invokeModel(
           max_tokens: maxTokens,
           temperature,
         },
-        { signal: AbortSignal.timeout(45000) }
+        { signal: AbortSignal.timeout(timeoutMs) }
       );
     } else if (msg.includes("temperature")) {
       // Some models (e.g. gpt-5.3-chat) do not support temperature values other than the default.
+      console.log("[LLM] Retrying Azure chat without temperature", {
+        serviceName,
+        deployment: chatDeployment,
+      });
       response = await azureClient.chat.completions.create(
         {
           model: chatDeployment,
           messages: openaiMessages,
           max_completion_tokens: maxTokens,
         },
-        { signal: AbortSignal.timeout(45000) }
+        { signal: AbortSignal.timeout(timeoutMs) }
       );
     } else {
       throw err;
@@ -126,6 +157,14 @@ export async function invokeModel(
   // Log token usage asynchronously
   const inputTokens = response.usage?.prompt_tokens ?? 0;
   const outputTokens = response.usage?.completion_tokens ?? 0;
+  console.log("[LLM] Azure chat request completed", {
+    serviceName,
+    deployment: chatDeployment,
+    elapsed: elapsed(startedAt),
+    inputTokens,
+    outputTokens,
+    responseChars: (response.choices[0]?.message?.content ?? "").length,
+  });
   logUsage(serviceName, inputTokens, outputTokens);
 
   return response.choices[0]?.message?.content ?? "";

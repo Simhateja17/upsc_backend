@@ -15,6 +15,19 @@ export const STORAGE_BUCKETS = {
 // Buckets that should be publicly accessible (no signed URL needed)
 const PUBLIC_BUCKETS: Set<string> = new Set([STORAGE_BUCKETS.CMS_MEDIA]);
 
+const RETRYABLE_UPLOAD_ERROR_CODES = new Set([
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "EPIPE",
+  "ECONNABORTED",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+]);
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * Initialize storage buckets (call once on startup or via admin endpoint)
  */
@@ -66,21 +79,73 @@ export async function uploadFile(
 
   const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${path}`;
   const parsed = new URL(uploadUrl);
-  console.log(`[STORAGE] https.request upload → ${uploadUrl} (${file.length} bytes)`);
+  const maxAttempts = Number(process.env.SUPABASE_STORAGE_UPLOAD_ATTEMPTS || 3);
+  const timeoutMs = Number(process.env.SUPABASE_STORAGE_UPLOAD_TIMEOUT_MS || 120000);
+
+  let lastError: Error | null = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await uploadFileOnce({
+        bucket,
+        path,
+        file,
+        contentType,
+        parsed,
+        serviceKey,
+        uploadUrl,
+        attempt,
+        maxAttempts,
+        timeoutMs,
+      });
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const code = (lastError as NodeJS.ErrnoException).code;
+      const retryableStatus = /Upload failed \[(5\d\d|429)\]/.test(lastError.message);
+      const retryable = (code && RETRYABLE_UPLOAD_ERROR_CODES.has(code)) || retryableStatus;
+
+      if (!retryable || attempt >= maxAttempts) break;
+
+      const delayMs = Math.min(5000, 500 * 2 ** (attempt - 1));
+      console.warn(
+        `[STORAGE] upload retry ${attempt + 1}/${maxAttempts} in ${delayMs}ms after ${code || lastError.message}`
+      );
+      await sleep(delayMs);
+    }
+  }
+
+  throw lastError || new Error("Upload failed");
+}
+
+async function uploadFileOnce(params: {
+  bucket: string;
+  path: string;
+  file: Buffer;
+  contentType: string;
+  parsed: URL;
+  serviceKey: string;
+  uploadUrl: string;
+  attempt: number;
+  maxAttempts: number;
+  timeoutMs: number;
+}): Promise<string> {
+  console.log(
+    `[STORAGE] https.request upload ${params.attempt}/${params.maxAttempts} → ${params.uploadUrl} (${params.file.length} bytes)`
+  );
 
   return new Promise<string>((resolve, reject) => {
     const req = https.request(
       {
-        hostname: parsed.hostname,
+        hostname: params.parsed.hostname,
         port: 443,
-        path: parsed.pathname,
+        path: params.parsed.pathname,
         method: "POST",
         family: 4, // Force IPv4 at socket level
         headers: {
-          Authorization: `Bearer ${serviceKey}`,
-          "Content-Type": contentType,
+          Authorization: `Bearer ${params.serviceKey}`,
+          "Content-Type": params.contentType,
+          Connection: "close",
           "x-upsert": "true",
-          "Content-Length": file.length,
+          "Content-Length": params.file.length,
         },
       },
       (res) => {
@@ -88,7 +153,7 @@ export async function uploadFile(
         res.on("data", (chunk) => (body += chunk));
         res.on("end", () => {
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-            resolve(path);
+            resolve(params.path);
           } else {
             reject(new Error(`Upload failed [${res.statusCode}]: ${body}`));
           }
@@ -96,12 +161,20 @@ export async function uploadFile(
       }
     );
 
-    req.on("error", (err: any) => {
-      console.error("[STORAGE] https.request error:", err.message, "code:", err.code);
-      reject(new Error(`Upload failed: ${err.message}`));
+    req.setTimeout(params.timeoutMs, () => {
+      const err = new Error(`Upload timed out after ${params.timeoutMs}ms`) as NodeJS.ErrnoException;
+      err.code = "ETIMEDOUT";
+      req.destroy(err);
     });
 
-    req.write(file);
+    req.on("error", (err: any) => {
+      console.error("[STORAGE] https.request error:", err.message, "code:", err.code);
+      const wrapped = new Error(`Upload failed: ${err.message}`) as NodeJS.ErrnoException;
+      wrapped.code = err.code;
+      reject(wrapped);
+    });
+
+    req.write(params.file);
     req.end();
   });
 }

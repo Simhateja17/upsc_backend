@@ -105,6 +105,9 @@ async function createUser(authUser: {
 
   if (error) {
     console.error("[Auth] createUser error:", error.message, error.code);
+    if (error.code === "23505") {
+      return findUserBySupabaseId(authUser.id);
+    }
     return null;
   }
   if (!data) return null;

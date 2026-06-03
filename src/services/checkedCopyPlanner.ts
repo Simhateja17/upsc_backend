@@ -4,6 +4,23 @@ export interface CheckedCopyAnnotationPlan {
   scoreText: string;
 }
 
+export interface EvaluatorCheckedCopyAnnotation {
+  type:
+    | "positive_tick"
+    | "underline"
+    | "circle"
+    | "bracket"
+    | "margin_comment"
+    | "missing_demand"
+    | "overall_comment"
+    | "score";
+  targetText?: string;
+  comment: string;
+  placement: "left_margin" | "right_margin" | "bottom" | "near_target" | "top";
+}
+
+export type EvaluatorCheckedCopyPlan = EvaluatorCheckedCopyAnnotation[];
+
 export function planCheckedCopyAnnotations(params: {
   score: number;
   maxScore: number;
