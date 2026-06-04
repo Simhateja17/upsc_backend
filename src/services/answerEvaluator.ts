@@ -685,6 +685,7 @@ export async function evaluateAnswerGeneric(params: {
         const checked = await generateCheckedCopy({
           attemptId,
           pageNumber: input.pageNumber,
+          totalPages: checkedCopyInputs.length,
           originalBuffer: input.buffer,
           mimeType: input.contentType,
           annotationPlan,

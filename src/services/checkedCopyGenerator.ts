@@ -7,9 +7,26 @@ type CheckedCopyResult =
   | { status: "completed"; storagePath: string }
   | { status: "failed"; reason: string };
 
+function planForPage(
+  plan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan,
+  pageNumber: number
+): CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan {
+  if (pageNumber === 1) return plan;
+
+  if (Array.isArray(plan)) {
+    return plan.filter((item) => item.type !== "score");
+  }
+
+  return {
+    ...plan,
+    scoreText: "",
+  };
+}
+
 export async function generateCheckedCopy(params: {
   attemptId: string;
   pageNumber?: number;
+  totalPages?: number;
   originalBuffer: Buffer;
   mimeType: string;
   annotationPlan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan;
@@ -31,11 +48,14 @@ export async function generateCheckedCopy(params: {
         : params.annotationPlan.comments.length,
     });
     const ai = new GoogleGenAI({ apiKey });
+    const pageNumber = params.pageNumber || 1;
+    const totalPages = params.totalPages || 1;
+    const annotationPlan = planForPage(params.annotationPlan, pageNumber);
     const prompt = `Create a teacher-checked UPSC answer copy image from the uploaded answer-sheet image.
 
 Strict rules:
 - Preserve the original answer image unchanged.
-- Only add red teacher-style handwriting annotations, ticks, underlines, brackets, arrows, score, and bottom comment.
+- Only add red teacher-style handwriting annotations, ticks, underlines, brackets, arrows, and concise comments.
 - Do not rewrite, crop, blur, distort, erase, or improve existing handwriting/text.
 - Keep annotations sparse and realistic.
 - Follow the annotation plan exactly. Do not invent extra feedback.
@@ -43,10 +63,12 @@ Strict rules:
 - Use short red handwritten-style comments like a real UPSC evaluator.
 - If targetText is present, visually anchor the mark near that phrase/section with a tick, underline, bracket, or arrow.
 - If a demand is missing, write the missing-demand comment in the margin or bottom and point to the closest relevant section.
-- This is page ${params.pageNumber || 1} of the uploaded answer. Only mark what is visible on this page. If a targetText is not present on this page, skip that anchor and use only applicable overall/score annotations.
+- This is page ${pageNumber} of ${totalPages}. Only mark what is visible on this page. If a targetText is not present on this page, skip that anchor.
+- The answer has ONE overall score for the whole submission. Write the score only on page 1. Do not write any score, percentage, total marks, or final grade on pages 2-${totalPages}.
+- Do not make page-level marks. Never imply that this page was evaluated separately.
 
 Annotation plan JSON:
-${JSON.stringify(params.annotationPlan, null, 2)}`;
+${JSON.stringify(annotationPlan, null, 2)}`;
 
     const response = await ai.models.generateContent({
       model,
