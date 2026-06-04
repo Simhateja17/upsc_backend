@@ -49,6 +49,7 @@ export interface EvaluationUpdate {
   modelAnswer?: string | null;
   annotationPlan?: any;
   checkedCopyUrl?: string | null;
+  checkedCopyPages?: any;
   checkedCopyStatus?: string | null;
   ragDiagnostics?: any;
   evaluationMode?: "daily" | "pyq" | "mock";
@@ -383,6 +384,7 @@ export async function evaluateAnswerGeneric(params: {
     let textToGrade = answerText?.trim() || "";
     let viaUploadTranscription = false;
     let originalUpload: { buffer: Buffer; contentType: string } | null = null;
+    let transcriptionDiagnostics: Record<string, unknown> | null = null;
 
     // Handwritten/upload path: transcribe the file with Azure vision, then reuse the text path.
     if (!textToGrade && fileUrl) {
@@ -428,6 +430,11 @@ export async function evaluateAnswerGeneric(params: {
         warnings: transcription.warnings,
         preview: transcribedAnswer.slice(0, 240),
       });
+      transcriptionDiagnostics = {
+        ...(transcription.diagnostics || { pages: transcription.pages.length }),
+        warnings: transcription.warnings,
+        confidence: transcription.confidence,
+      };
 
       if (transcribedAnswer.length < 20) {
         console.warn("[eval] upload transcription too short; completing as unreadable", {
@@ -485,6 +492,7 @@ export async function evaluateAnswerGeneric(params: {
       attempted: false,
       matchCount: 0,
       error: null,
+      transcription: transcriptionDiagnostics,
     };
     if (trivial) {
       console.warn("[eval] deterministic trivial-answer result", {
@@ -530,6 +538,7 @@ export async function evaluateAnswerGeneric(params: {
             questionPreview: m.question_text?.slice(0, 180) || null,
           })),
           error: null,
+          transcription: transcriptionDiagnostics,
         };
         console.log("[eval] Topper RAG retrieval completed", {
           attemptId,
@@ -550,6 +559,7 @@ export async function evaluateAnswerGeneric(params: {
           attempted: true,
           matchCount: 0,
           error: error instanceof Error ? error.message : String(error),
+          transcription: transcriptionDiagnostics,
         };
       }
       const gradingStartedAt = Date.now();
@@ -630,63 +640,82 @@ export async function evaluateAnswerGeneric(params: {
     });
 
     let checkedCopyUrl: string | null = null;
+    let checkedCopyPages: Array<{ pageNumber: number; storagePath: string | null; status: string; reason?: string }> = [];
     let checkedCopyStatus: string | null = originalUpload ? "skipped" : null;
-    let checkedCopyInput: { buffer: Buffer; contentType: string; source: "image" | "pdf-page-1" } | null = null;
+    let checkedCopyInputs: Array<{ pageNumber: number; buffer: Buffer; contentType: string; source: "image" | "pdf-page" }> = [];
     if (originalUpload?.contentType.startsWith("image/")) {
-      checkedCopyInput = {
+      checkedCopyInputs = [{
+        pageNumber: 1,
         buffer: originalUpload.buffer,
         contentType: originalUpload.contentType,
         source: "image",
-      };
+      }];
     } else if (originalUpload?.contentType === "application/pdf") {
       const renderStartedAt = Date.now();
+      const maxPages = Number(process.env.AZURE_OPENAI_OCR_MAX_PAGES || process.env.OCR_PDF_MAX_PAGES || 6);
       console.log("[eval] checked-copy PDF render start", {
         attemptId,
         bytes: originalUpload.buffer.length,
+        maxPages,
       });
-      const pages = await renderPdfPagesToImages(originalUpload.buffer, 1);
-      if (pages[0]) {
-        checkedCopyInput = {
-          buffer: pages[0],
+      const pages = await renderPdfPagesToImages(originalUpload.buffer, maxPages);
+      checkedCopyInputs = pages.map((buffer, index) => ({
+          pageNumber: index + 1,
+          buffer,
           contentType: "image/png",
-          source: "pdf-page-1",
-        };
-      }
+          source: "pdf-page" as const,
+      }));
       console.log("[eval] checked-copy PDF render completed", {
         attemptId,
         elapsed: evalElapsed(renderStartedAt),
         renderedPages: pages.length,
-        firstPageBytes: pages[0]?.length || 0,
+        pageBytes: pages.map((page) => page.length),
       });
     }
 
-    if (checkedCopyInput) {
+    if (checkedCopyInputs.length > 0) {
       const checkedCopyStartedAt = Date.now();
       console.log("[eval] checked-copy generation start", {
         attemptId,
         model: process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image",
-        source: checkedCopyInput.source,
-        inputBytes: checkedCopyInput.buffer.length,
-        mimeType: checkedCopyInput.contentType,
+        pages: checkedCopyInputs.length,
+        inputBytes: checkedCopyInputs.map((input) => input.buffer.length),
       });
-      const checked = await generateCheckedCopy({
-        attemptId,
-        originalBuffer: checkedCopyInput.buffer,
-        mimeType: checkedCopyInput.contentType,
-        annotationPlan,
-      });
-      checkedCopyStatus = checked.status;
-      checkedCopyUrl = checked.status === "completed" ? checked.storagePath : null;
+      for (const input of checkedCopyInputs) {
+        const checked = await generateCheckedCopy({
+          attemptId,
+          pageNumber: input.pageNumber,
+          originalBuffer: input.buffer,
+          mimeType: input.contentType,
+          annotationPlan,
+        });
+        if (checked.status === "completed") {
+          checkedCopyPages.push({
+            pageNumber: input.pageNumber,
+            storagePath: checked.storagePath,
+            status: checked.status,
+          });
+          if (!checkedCopyUrl) checkedCopyUrl = checked.storagePath;
+        } else {
+          checkedCopyPages.push({
+            pageNumber: input.pageNumber,
+            storagePath: null,
+            status: checked.status,
+            reason: checked.reason,
+          });
+        }
+      }
+      checkedCopyStatus = checkedCopyPages.some((page) => page.status === "completed")
+        ? checkedCopyPages.every((page) => page.status === "completed")
+          ? "completed"
+          : "partial"
+        : "failed";
       console.log("[eval] checked-copy generation completed", {
         attemptId,
         elapsed: evalElapsed(checkedCopyStartedAt),
-        status: checked.status,
-        storagePath: checked.status === "completed" ? checked.storagePath : null,
-        reason: checked.status === "failed" ? checked.reason : null,
+        status: checkedCopyStatus,
+        pages: checkedCopyPages,
       });
-      if (checked.status === "failed") {
-        console.warn("[eval] checked-copy generation failed:", checked.reason);
-      }
     }
 
     await dbOps.saveEvaluation({
@@ -703,6 +732,7 @@ export async function evaluateAnswerGeneric(params: {
       modelAnswer: result.modelAnswer || null,
       annotationPlan,
       checkedCopyUrl,
+      checkedCopyPages,
       checkedCopyStatus,
       ragDiagnostics,
       evaluationMode: params.evaluationMode || "daily",

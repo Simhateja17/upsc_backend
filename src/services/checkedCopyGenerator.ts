@@ -9,6 +9,7 @@ type CheckedCopyResult =
 
 export async function generateCheckedCopy(params: {
   attemptId: string;
+  pageNumber?: number;
   originalBuffer: Buffer;
   mimeType: string;
   annotationPlan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan;
@@ -21,6 +22,7 @@ export async function generateCheckedCopy(params: {
   try {
     console.log("[checked-copy] Gemini image request start", {
       attemptId: params.attemptId,
+      pageNumber: params.pageNumber || 1,
       model,
       mimeType: params.mimeType,
       inputBytes: params.originalBuffer.length,
@@ -41,6 +43,7 @@ Strict rules:
 - Use short red handwritten-style comments like a real UPSC evaluator.
 - If targetText is present, visually anchor the mark near that phrase/section with a tick, underline, bracket, or arrow.
 - If a demand is missing, write the missing-demand comment in the margin or bottom and point to the closest relevant section.
+- This is page ${params.pageNumber || 1} of the uploaded answer. Only mark what is visible on this page. If a targetText is not present on this page, skip that anchor and use only applicable overall/score annotations.
 
 Annotation plan JSON:
 ${JSON.stringify(params.annotationPlan, null, 2)}`;
@@ -90,7 +93,7 @@ ${JSON.stringify(params.annotationPlan, null, 2)}`;
     }
 
     const ext = outputMime.includes("jpeg") ? "jpg" : "png";
-    const storagePath = `${params.attemptId}/${Date.now()}_checked.${ext}`;
+    const storagePath = `${params.attemptId}/page_${params.pageNumber || 1}_${Date.now()}_checked.${ext}`;
     await uploadFile(STORAGE_BUCKETS.CHECKED_COPIES, storagePath, generated, outputMime);
     console.log("[checked-copy] completed", {
       attemptId: params.attemptId,

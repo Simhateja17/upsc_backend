@@ -13,6 +13,13 @@ export interface TranscribedAnswer {
   pages: TranscribedAnswerPage[];
   confidence: "high" | "medium" | "low";
   warnings: string[];
+  diagnostics?: {
+    attemptedPages: number;
+    readablePages: number;
+    failedPages: number[];
+    maxPages: number;
+    truncated: boolean;
+  };
 }
 
 function stripJsonFence(text: string): string {
@@ -55,19 +62,29 @@ function normalizeTranscription(raw: unknown): TranscribedAnswer {
   };
 }
 
-async function fileToPageImages(fileBuffer: Buffer, mimeType: string): Promise<Array<{ pageNumber: number; buffer: Buffer; mimeType: string }>> {
+async function fileToPageImages(fileBuffer: Buffer, mimeType: string): Promise<{
+  pages: Array<{ pageNumber: number; buffer: Buffer; mimeType: string }>;
+  maxPages: number;
+  truncated: boolean;
+}> {
   if (mimeType === "application/pdf") {
     const maxPages = Number(process.env.AZURE_OPENAI_OCR_MAX_PAGES || process.env.OCR_PDF_MAX_PAGES || 6);
-    const pages = await renderPdfPagesToImages(fileBuffer, maxPages);
-    return pages.map((buffer, index) => ({
+    const rendered = await renderPdfPagesToImages(fileBuffer, maxPages + 1);
+    const truncated = rendered.length > maxPages;
+    const pages = rendered.slice(0, maxPages).map((buffer, index) => ({
       pageNumber: index + 1,
       buffer,
       mimeType: "image/png",
     }));
+    return { pages, maxPages, truncated };
   }
 
   if (mimeType.startsWith("image/")) {
-    return [{ pageNumber: 1, buffer: fileBuffer, mimeType }];
+    return {
+      pages: [{ pageNumber: 1, buffer: fileBuffer, mimeType }],
+      maxPages: 1,
+      truncated: false,
+    };
   }
 
   throw new Error(`Unsupported answer upload type for vision transcription: ${mimeType}`);
@@ -85,6 +102,7 @@ export async function transcribeStudentAnswerFromUpload(params: {
   if (!azureClient) {
     throw new Error("Azure OpenAI is not configured for answer transcription");
   }
+  const client = azureClient;
 
   const deployment =
     process.env.AZURE_OPENAI_OCR_DEPLOYMENT ||
@@ -100,12 +118,13 @@ export async function transcribeStudentAnswerFromUpload(params: {
     bytes: params.fileBuffer.length,
   });
 
-  const pageImages = await fileToPageImages(params.fileBuffer, params.mimeType);
+  const pageInput = await fileToPageImages(params.fileBuffer, params.mimeType);
+  const pageImages = pageInput.pages;
   if (pageImages.length === 0) {
     throw new Error("No readable pages found in uploaded answer file");
   }
 
-  const prompt = `Transcribe the student's handwritten UPSC Mains answer from the uploaded page image(s).
+  const basePrompt = `Transcribe the student's handwritten UPSC Mains answer from the uploaded page image.
 
 Known question (${params.paper} · ${params.subject} · ${params.marks} marks):
 "${params.questionText}"
@@ -117,14 +136,13 @@ Rules:
 - Ignore red-ink annotations if present. Do not include examiner comments in the transcription.
 - Do not correct the student's facts or grammar. Expand obvious abbreviations only when the handwriting clearly implies them.
 - If a word is unreadable, write [unclear] sparingly.
-- If the answer continues across pages, join it in page order.
 
 Return ONLY valid JSON:
 {
-  "transcribedAnswer": "full cleaned student answer only",
+  "transcribedAnswer": "cleaned student answer text from this page only",
   "pages": [
     {
-      "pageNumber": 1,
+      "pageNumber": <page number>,
       "studentAnswerText": "student answer found on this page only",
       "ignoredPrintedText": ["brief labels of ignored non-answer text"],
       "confidence": "high|medium|low"
@@ -134,25 +152,77 @@ Return ONLY valid JSON:
   "warnings": ["only serious transcription caveats"]
 }`;
 
-  const content: any[] = [{ type: "text", text: prompt }];
-  for (const page of pageImages) {
-    content.push({ type: "text", text: `Page ${page.pageNumber}:` });
-    content.push({
+  async function transcribePage(page: { pageNumber: number; buffer: Buffer; mimeType: string }) {
+    const content: any[] = [
+      { type: "text", text: `${basePrompt}\n\nPage number: ${page.pageNumber}` },
+      {
       type: "image_url",
       image_url: {
         url: `data:${page.mimeType};base64,${page.buffer.toString("base64")}`,
       },
-    });
-  }
+      },
+    ];
 
-  const messages: any[] = [
-    {
-      role: "system",
-      content:
-        "You are a strict transcription engine for handwritten UPSC answer sheets. You return valid JSON only and exclude all non-answer page chrome.",
-    },
-    { role: "user", content },
-  ];
+    const messages: any[] = [
+      {
+        role: "system",
+        content:
+          "You are a strict transcription engine for handwritten UPSC answer sheets. You return valid JSON only and exclude all non-answer page chrome.",
+      },
+      { role: "user", content },
+    ];
+
+    let response;
+    try {
+      response = await client.chat.completions.create(
+        {
+          model: deployment,
+          messages,
+          max_completion_tokens: Number(process.env.AZURE_OPENAI_OCR_MAX_TOKENS || 4096),
+          response_format: { type: "json_object" },
+        } as any,
+        { signal: AbortSignal.timeout(timeoutMs) }
+      );
+    } catch (error: any) {
+      const msg = String(error?.message || error || "");
+      if (msg.includes("max_completion_tokens") || msg.includes("response_format")) {
+        response = await client.chat.completions.create(
+          {
+            model: deployment,
+            messages,
+            max_tokens: Number(process.env.AZURE_OPENAI_OCR_MAX_TOKENS || 4096),
+          } as any,
+          { signal: AbortSignal.timeout(timeoutMs) }
+        );
+      } else if (deployment !== chatDeployment && /deployment|model|not found|404/i.test(msg)) {
+        console.warn("[transcribe] OCR deployment unavailable; retrying chat deployment", {
+          attemptId: params.attemptId,
+          deployment,
+          fallback: chatDeployment,
+          pageNumber: page.pageNumber,
+          message: msg,
+        });
+        response = await client.chat.completions.create(
+          {
+            model: chatDeployment,
+            messages,
+            max_completion_tokens: Number(process.env.AZURE_OPENAI_OCR_MAX_TOKENS || 4096),
+            response_format: { type: "json_object" },
+          } as any,
+          { signal: AbortSignal.timeout(timeoutMs) }
+        );
+      } else {
+        throw error;
+      }
+    }
+
+    const text = response.choices[0]?.message?.content || "{}";
+    const parsed = normalizeTranscription(JSON.parse(stripJsonFence(text)));
+    return {
+      parsed,
+      usage: response.usage,
+    };
+  }
 
   console.log("[transcribe] Azure vision transcription start", {
     attemptId: params.attemptId,
@@ -160,53 +230,82 @@ Return ONLY valid JSON:
     pages: pageImages.length,
     pageBytes: pageImages.map((page) => page.buffer.length),
     timeoutMs,
+    maxPages: pageInput.maxPages,
+    truncated: pageInput.truncated,
   });
 
-  let response;
-  try {
-    response = await azureClient.chat.completions.create(
-      {
-        model: deployment,
-        messages,
-        max_completion_tokens: Number(process.env.AZURE_OPENAI_OCR_MAX_TOKENS || 4096),
-        response_format: { type: "json_object" },
-      } as any,
-      { signal: AbortSignal.timeout(timeoutMs) }
-    );
-  } catch (error: any) {
-    const msg = String(error?.message || error || "");
-    if (msg.includes("max_completion_tokens") || msg.includes("response_format")) {
-      response = await azureClient.chat.completions.create(
-        {
-          model: deployment,
-          messages,
-          max_tokens: Number(process.env.AZURE_OPENAI_OCR_MAX_TOKENS || 4096),
-        } as any,
-        { signal: AbortSignal.timeout(timeoutMs) }
-      );
-    } else if (deployment !== chatDeployment && /deployment|model|not found|404/i.test(msg)) {
-      console.warn("[transcribe] OCR deployment unavailable; retrying chat deployment", {
-        attemptId: params.attemptId,
-        deployment,
-        fallback: chatDeployment,
-        message: msg,
-      });
-      response = await azureClient.chat.completions.create(
-        {
-          model: chatDeployment,
-          messages,
-          max_completion_tokens: Number(process.env.AZURE_OPENAI_OCR_MAX_TOKENS || 4096),
-          response_format: { type: "json_object" },
-        } as any,
-        { signal: AbortSignal.timeout(timeoutMs) }
-      );
-    } else {
-      throw error;
+  const concurrency = Math.max(1, Math.min(Number(process.env.AZURE_OPENAI_OCR_CONCURRENCY || 2), 4));
+  const pageResults: Array<{ pageNumber: number; result?: TranscribedAnswer; error?: string; usage?: any }> = [];
+  let nextIndex = 0;
+  async function worker() {
+    while (nextIndex < pageImages.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const page = pageImages[index];
+      try {
+        console.log("[transcribe] page start", { attemptId: params.attemptId, pageNumber: page.pageNumber });
+        const { parsed, usage } = await transcribePage(page);
+        pageResults[index] = { pageNumber: page.pageNumber, result: parsed, usage };
+        console.log("[transcribe] page completed", {
+          attemptId: params.attemptId,
+          pageNumber: page.pageNumber,
+          chars: parsed.transcribedAnswer.length,
+          confidence: parsed.confidence,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        pageResults[index] = { pageNumber: page.pageNumber, error: message };
+        console.warn("[transcribe] page failed", {
+          attemptId: params.attemptId,
+          pageNumber: page.pageNumber,
+          message,
+        });
+      }
     }
   }
+  await Promise.all(Array.from({ length: Math.min(concurrency, pageImages.length) }, () => worker()));
 
-  const text = response.choices[0]?.message?.content || "{}";
-  const parsed = normalizeTranscription(JSON.parse(stripJsonFence(text)));
+  const failedPages = pageResults.filter((item) => item.error).map((item) => item.pageNumber);
+  const pages = pageResults
+    .filter((item) => item.result)
+    .flatMap((item) => item.result!.pages.length > 0
+      ? item.result!.pages.map((page) => ({ ...page, pageNumber: item.pageNumber }))
+      : [{
+          pageNumber: item.pageNumber,
+          studentAnswerText: item.result!.transcribedAnswer,
+          ignoredPrintedText: [],
+          confidence: item.result!.confidence,
+        }]);
+  const readablePages = pages.filter((page) => page.studentAnswerText.trim().length > 0);
+  const warnings = [
+    ...pageResults.flatMap((item) => item.result?.warnings || []),
+    ...failedPages.map((pageNumber) => `Page ${pageNumber} could not be transcribed.`),
+    ...(pageInput.truncated ? [`Only the first ${pageInput.maxPages} pages were processed.`] : []),
+  ];
+  const transcribedAnswer = readablePages
+    .map((page) => `[Page ${page.pageNumber}]\n${page.studentAnswerText.trim()}`)
+    .join("\n\n")
+    .trim();
+  const confidence = failedPages.length > 0
+    ? "low"
+    : readablePages.some((page) => page.confidence === "low")
+      ? "low"
+      : readablePages.some((page) => page.confidence === "medium")
+        ? "medium"
+        : "high";
+  const parsed: TranscribedAnswer = {
+    transcribedAnswer,
+    pages,
+    confidence,
+    warnings,
+    diagnostics: {
+      attemptedPages: pageImages.length,
+      readablePages: readablePages.length,
+      failedPages,
+      maxPages: pageInput.maxPages,
+      truncated: pageInput.truncated,
+    },
+  };
   console.log("[transcribe] Azure vision transcription completed", {
     attemptId: params.attemptId,
     deployment,
@@ -215,8 +314,7 @@ Return ONLY valid JSON:
     chars: parsed.transcribedAnswer.length,
     confidence: parsed.confidence,
     warnings: parsed.warnings,
-    inputTokens: response.usage?.prompt_tokens || 0,
-    outputTokens: response.usage?.completion_tokens || 0,
+    diagnostics: parsed.diagnostics,
     preview: parsed.transcribedAnswer.slice(0, 240),
   });
 

@@ -15,6 +15,18 @@ async function signedCheckedCopyUrl(path: string | null | undefined): Promise<st
   return getSignedUrl(STORAGE_BUCKETS.CHECKED_COPIES, path, 3600);
 }
 
+async function signedCheckedCopyPages(pages: unknown): Promise<any[]> {
+  if (!Array.isArray(pages)) return [];
+  return Promise.all(
+    pages.map(async (page: any) => ({
+      ...page,
+      checkedCopyUrl: page?.storagePath
+        ? await signedCheckedCopyUrl(String(page.storagePath))
+        : null,
+    }))
+  );
+}
+
 function buildDbOps(attemptId: string): EvaluationDbOps {
   return {
     markEvaluating: async (maxScore) => {
@@ -272,6 +284,7 @@ export const getPyqMainsResults = async (
     }
 
     const checkedCopyUrl = await signedCheckedCopyUrl(attempt.evaluation.checkedCopyUrl);
+    const checkedCopyPages = await signedCheckedCopyPages(attempt.evaluation.checkedCopyPages);
 
     res.json({
       status: "success",
@@ -286,6 +299,7 @@ export const getPyqMainsResults = async (
         sectionFeedback: attempt.evaluation.sectionFeedback,
         annotationPlan: attempt.evaluation.annotationPlan,
         checkedCopyUrl,
+        checkedCopyPages,
         checkedCopyPath: attempt.evaluation.checkedCopyUrl,
         checkedCopyStatus: attempt.evaluation.checkedCopyStatus,
         ragDiagnostics: attempt.evaluation.ragDiagnostics,
