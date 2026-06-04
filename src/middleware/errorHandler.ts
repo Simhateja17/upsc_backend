@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import multer from "multer";
-import config from "../config";
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -23,7 +22,7 @@ export const errorHandler = (
   const status = err.status || "error";
   const origin = req.headers.origin;
 
-  if (origin && config.cors.origins.includes(origin)) {
+  if (origin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Credentials", "true");

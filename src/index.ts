@@ -38,18 +38,7 @@ app.use(pinoHttp({
 
 // Middleware
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
-    if (!origin) return callback(null, true);
-    // Allow only the exact Next.js dev port
-    if (config.nodeEnv === "development" && /^http:\/\/localhost(:\d+)?$/.test(origin)) {
-      return callback(null, true);
-    }
-    if (config.cors.origins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error(`CORS: origin ${origin} not allowed`));
-  },
+  origin: true,
   credentials: true,
 }));
 app.use(helmet());
