@@ -216,7 +216,7 @@ export const getMe = async (
       data: {
         user: {
           id: user.id,
-          email: user.email,
+          email: user.email || "",
           firstName: user.first_name,
           lastName: user.last_name,
           phone: user.phone,

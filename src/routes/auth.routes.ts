@@ -2,7 +2,7 @@ import { Router } from "express";
 import { authLimiter } from "../middleware/rateLimit";
 import { authenticate } from "../middleware/auth.middleware";
 import { validate } from "../middleware/validate";
-import { signupBody, loginBody } from "../validators/auth.validators";
+import { signupBody, loginBody, phoneOtpSendBody, phoneOtpVerifyBody } from "../validators/auth.validators";
 import {
   signup,
   login,
@@ -12,6 +12,13 @@ import {
   googleAuth,
   authCallback,
 } from "../controllers/auth.controller";
+import {
+  sendPhoneLoginOtp,
+  sendPhoneSignupOtp,
+  sendPhoneLinkOtp,
+  verifyPhoneOtp,
+  sendSmsHook,
+} from "../controllers/phoneAuth.controller";
 
 const router = Router();
 
@@ -21,6 +28,11 @@ router.post("/login", authLimiter, validate({ body: loginBody }), login);
 router.post("/refresh", authLimiter, refreshToken);
 router.get("/google", googleAuth);
 router.post("/callback", authLimiter, authCallback);
+router.post("/phone/send-login-otp", authLimiter, validate({ body: phoneOtpSendBody }), sendPhoneLoginOtp);
+router.post("/phone/send-signup-otp", authLimiter, validate({ body: phoneOtpSendBody }), sendPhoneSignupOtp);
+router.post("/phone/send-link-otp", authLimiter, authenticate, validate({ body: phoneOtpSendBody }), sendPhoneLinkOtp);
+router.post("/phone/verify", authLimiter, validate({ body: phoneOtpVerifyBody }), verifyPhoneOtp);
+router.post("/hooks/send-sms", sendSmsHook);
 
 // Protected routes
 router.get("/me", authenticate, getMe);

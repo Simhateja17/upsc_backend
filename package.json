@@ -60,6 +60,7 @@
     "razorpay": "^2.9.6",
     "resend": "^6.9.3",
     "rss-parser": "^3.13.0",
+    "standardwebhooks": "^1.0.0",
     "string-similarity": "^4.0.4",
     "undici": "^7.24.4",
     "zod": "^4.3.6"

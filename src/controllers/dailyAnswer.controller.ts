@@ -306,7 +306,7 @@ async function startEvaluation(
           where: { id: attemptId },
           include: { evaluation: true, user: true },
         });
-        if (attempt?.evaluation && attempt.user) {
+        if (attempt?.evaluation && attempt.user?.email) {
           await sendEvaluationComplete(
             attempt.user.email,
             attempt.user.firstName || "Aspirant",

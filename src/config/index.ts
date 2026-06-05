@@ -15,6 +15,11 @@ export const config = {
     anonKey: process.env.SUPABASE_ANON_KEY || "",
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   },
+  phoneAuth: {
+    enabled: process.env.PHONE_AUTH_ENABLED === "true",
+    twoFactorApiKey: process.env.TWOFACTOR_API_KEY || "",
+    sendSmsHookSecrets: process.env.SEND_SMS_HOOK_SECRETS || "",
+  },
   resend: {
     apiKey: process.env.RESEND_API_KEY || "",
     fromEmail: process.env.RESEND_FROM_EMAIL || "noreply@example.com",

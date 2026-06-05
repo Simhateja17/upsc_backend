@@ -34,7 +34,8 @@ declare global {
 
 interface SupabaseJwtPayload {
   sub: string;
-  email: string;
+  email?: string;
+  phone?: string;
   user_metadata?: {
     first_name?: string;
     last_name?: string;
@@ -63,7 +64,7 @@ async function findUserBySupabaseId(supabaseId: string) {
   return {
     id: data.id,
     supabaseId: data.supabase_id,
-    email: data.email,
+    email: data.email || "",
     firstName: data.first_name,
     lastName: data.last_name,
     role: data.role,
@@ -75,7 +76,8 @@ async function findUserBySupabaseId(supabaseId: string) {
  */
 async function createUser(authUser: {
   id: string;
-  email: string;
+  email?: string | null;
+  phone?: string | null;
   user_metadata?: SupabaseJwtPayload["user_metadata"];
   email_confirmed_at?: string;
 }) {
@@ -86,7 +88,8 @@ async function createUser(authUser: {
     .insert({
       id: randomUUID(),
       supabase_id: authUser.id,
-      email: authUser.email.toLowerCase(),
+      email: authUser.email?.toLowerCase() || null,
+      phone: authUser.phone || null,
       first_name:
         metadata.first_name ||
         metadata.full_name?.split(" ")[0] ||
@@ -114,7 +117,7 @@ async function createUser(authUser: {
   return {
     id: data.id,
     supabaseId: data.supabase_id,
-    email: data.email,
+    email: data.email || "",
     firstName: data.first_name,
     lastName: data.last_name,
     role: data.role,
@@ -162,7 +165,8 @@ export const authenticate = async (
 
     const authUser = {
       id: payload.sub,
-      email: payload.email,
+      email: payload.email || null,
+      phone: payload.phone || null,
       user_metadata: payload.user_metadata,
       email_confirmed_at: payload.email_confirmed_at,
     };
@@ -221,21 +225,20 @@ export const optionalAuth = async (
 
     const authUser = {
       id: payload.sub,
-      email: payload.email,
+      email: payload.email || null,
+      phone: payload.phone || null,
       user_metadata: payload.user_metadata,
       email_confirmed_at: payload.email_confirmed_at,
     };
 
-    if (authUser.email) {
-      let user = await findUserBySupabaseId(authUser.id);
+    let user = await findUserBySupabaseId(authUser.id);
 
-      if (!user) {
-        user = await createUser(authUser);
-      }
+    if (!user) {
+      user = await createUser(authUser);
+    }
 
-      if (user) {
-        req.user = user;
-      }
+    if (user) {
+      req.user = user;
     }
 
     next();

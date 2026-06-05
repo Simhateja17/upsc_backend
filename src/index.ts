@@ -56,7 +56,12 @@ app.use((req, _res, next) => {
   next();
 });
 
-app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "25mb" }));
+app.use(express.json({
+  limit: process.env.JSON_BODY_LIMIT || "25mb",
+  verify: (req, _res, buf) => {
+    (req as any).rawBody = buf.toString("utf8");
+  },
+}));
 app.use(express.urlencoded({ extended: false, limit: process.env.URLENCODED_BODY_LIMIT || "5mb" }));
 
 // Apply general rate limiter to all API routes
