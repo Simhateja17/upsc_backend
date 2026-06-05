@@ -19,6 +19,7 @@ import pinoHttp from "pino-http";
 import { initStorageBuckets } from "./config/storage";
 import { initScheduler } from "./jobs/scheduler";
 import { runLatestNewsJob } from "./jobs/latestNewsJob";
+import { sendSmsHook } from "./controllers/phoneAuth.controller";
 
 const app: Application = express();
 
@@ -69,6 +70,7 @@ app.use("/api", generalLimiter);
 console.log("[Server] Rate limiter applied");
 
 // Routes
+app.post("/auth/hooks/send-sms", generalLimiter, sendSmsHook);
 app.use("/api", routes);
 console.log("[Server] API routes mounted");
 
