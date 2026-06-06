@@ -36,29 +36,35 @@ export const getPublicPYQQuestions = async (
     const page = parseInt(qs(req.query.page as string) || "1");
     const limit = parseInt(qs(req.query.limit as string) || "20");
     const skip = (page - 1) * limit;
-
-    console.log(
-      `[PYQ] Query params: mode=${mode}, subject=${subject}, subSubject=${subSubject}, topics=${topics.join("|")}, year=${year}, paper=${paper}, page=${page}, limit=${limit}`
-    );
+    const effectiveTopics = [...topics];
 
     const where: any = { status: "approved" };
 
     if (subject && subject !== "All Papers") {
       where.subject = { equals: subject, mode: "insensitive" };
     }
-    if (subSubject) {
+    if (mode === "mains" && subSubject && effectiveTopics.length === 0) {
+      // Backward compatibility: older mains clients send the hierarchy label as `subSubject`.
+      // Mains questions only have `topic`, so translate it before building the Prisma filter.
+      effectiveTopics.push(subSubject);
+    } else if (subSubject) {
       where.subSubject = { equals: subSubject, mode: "insensitive" };
     }
-    if (topics.length === 1) {
+    if (effectiveTopics.length === 1) {
       // Topic strings in dataset can be a comma-separated list; use contains so
       // selecting one topic still matches those rows.
-      where.topic = { contains: topics[0], mode: "insensitive" };
-    } else if (topics.length > 1) {
+      where.topic = { contains: effectiveTopics[0], mode: "insensitive" };
+    } else if (effectiveTopics.length > 1) {
       // Multi-topic selection should return questions matching ANY selected topic.
-      where.OR = topics.map((topic) => ({
+      where.OR = effectiveTopics.map((topic) => ({
         topic: { contains: topic, mode: "insensitive" },
       }));
     }
+    
+    console.log(
+      `[PYQ] Query params: mode=${mode}, subject=${subject}, subSubject=${subSubject}, topics=${effectiveTopics.join("|")}, year=${year}, paper=${paper}, page=${page}, limit=${limit}`
+    );
+
     if (year) where.year = parseInt(year);
     if (!year && (yearFrom || yearTo)) {
       where.year = {};
@@ -183,7 +189,14 @@ export const getPublicPYQCounts = async (
           mode,
           total,
           bySubject: bySubject.map((s: any) => ({ subject: s.subject, count: s._count.id })),
-          bySubSubject: [],
+          // Mains has no stored `subSubject`, but the UI uses the same hierarchy slot
+          // for mains child labels. Expose `topic` values through `bySubSubject` so the
+          // existing tree/count UI keeps working.
+          bySubSubject: byTopic.map((t: any) => ({
+            subject: t.subject,
+            subSubject: t.topic,
+            count: t._count.id,
+          })),
           byTopic: byTopic.map((t: any) => ({
             subject: t.subject,
             subSubject: null,
