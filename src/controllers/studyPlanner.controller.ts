@@ -206,12 +206,6 @@ export const getWeeklyGoals = async (req: Request, res: Response, next: NextFunc
     const userId = req.user!.id;
     const weekStart = getWeekStart();
 
-    // One-time cleanup: wipe ALL existing weekly goals for this user
-    const existingCount = await prisma.weeklyGoal.count({ where: { userId } });
-    if (existingCount > 0) {
-      await prisma.weeklyGoal.deleteMany({ where: { userId } });
-    }
-
     const goals = await prisma.weeklyGoal.findMany({
       where: { userId, weekStart },
       orderBy: { createdAt: "asc" },

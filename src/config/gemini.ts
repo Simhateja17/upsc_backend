@@ -1,4 +1,4 @@
-import { generateJSON as azureGenerateJSON } from "./azure";
+import { generateJSON as azureGenerateJSON, azureClient, chatDeployment } from "./azure";
 import { extractDocumentTextWithGoogleVision } from "../services/googleVisionOcr.service";
 
 export async function generateJSON<T>(
@@ -26,18 +26,74 @@ export async function renderPdfPagesToImages(
   return pages;
 }
 
+async function ocrSingleImageWithAzure(
+  pageBuffer: Buffer,
+  mimeType: string
+): Promise<string> {
+  if (!azureClient) {
+    throw new Error("Azure OpenAI is not configured for OCR");
+  }
+
+  const deployment =
+    process.env.AZURE_OPENAI_OCR_DEPLOYMENT ||
+    process.env.AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT ||
+    chatDeployment;
+
+  const response = await azureClient.chat.completions.create(
+    {
+      model: deployment,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a strict OCR engine. Transcribe all handwritten and printed text from this image. Return only the raw text, preserving paragraph structure, bullet points, and numbering. Do not add any commentary or formatting.",
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mimeType};base64,${pageBuffer.toString("base64")}`,
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 4096,
+    } as any
+  );
+
+  return response.choices[0]?.message?.content || "";
+}
+
+async function ocrSingleImage(
+  pageBuffer: Buffer,
+  mimeType: string
+): Promise<string> {
+  const googleKey = process.env.GOOGLE_VISION_API_KEY;
+  if (googleKey) {
+    try {
+      return await extractDocumentTextWithGoogleVision(pageBuffer);
+    } catch (err: any) {
+      console.warn("[OCR] Google Vision failed, falling back to Azure:", err.message);
+    }
+  }
+
+  return ocrSingleImageWithAzure(pageBuffer, mimeType);
+}
+
 /**
  * OCR extraction for handwritten answer sheets.
- * Uses Google Vision DOCUMENT_TEXT_DETECTION, matching the topper-ingestion
- * milestone pipeline, so student OCR and corpus OCR behave consistently.
+ * Uses Google Vision DOCUMENT_TEXT_DETECTION if configured,
+ * falls back to Azure OpenAI Vision.
  */
 export async function extractTextFromFile(
   fileBuffer: Buffer,
   mimeType: string
 ): Promise<string> {
   if (mimeType === "application/pdf") {
-    // Convert PDF to image and OCR — handles both text-based and scanned PDFs.
-    console.log("[OCR] Converting PDF pages to images for Google Vision OCR...");
+    console.log("[OCR] Converting PDF pages to images for OCR...");
     try {
       const pageBuffers = await renderPdfPagesToImages(fileBuffer);
       if (pageBuffers.length === 0) {
@@ -51,9 +107,9 @@ export async function extractTextFromFile(
       const pageTexts: string[] = [];
       for (let index = 0; index < pageBuffers.length; index += 1) {
         const pageNumber = index + 1;
-        console.log(`[OCR] Google Vision on PDF page ${pageNumber} start`);
-        const text = await extractDocumentTextWithGoogleVision(pageBuffers[index]);
-        console.log(`[OCR] Google Vision on PDF page ${pageNumber} OK (${text.length} chars)`);
+        console.log(`[OCR] Processing PDF page ${pageNumber} start`);
+        const text = await ocrSingleImage(pageBuffers[index], "image/png");
+        console.log(`[OCR] PDF page ${pageNumber} OK (${text.length} chars)`);
         pageTexts.push(text);
       }
 
@@ -66,11 +122,11 @@ export async function extractTextFromFile(
     }
   }
 
-  console.log("[OCR] Trying Google Vision OCR...", {
+  console.log("[OCR] Processing image...", {
     mimeType,
     bytes: fileBuffer.length,
   });
-  const text = await extractDocumentTextWithGoogleVision(fileBuffer);
-  console.log(`[OCR] Google Vision OK (${text.length} chars)`);
+  const text = await ocrSingleImage(fileBuffer, mimeType);
+  console.log(`[OCR] Image OCR OK (${text.length} chars)`);
   return text;
 }
