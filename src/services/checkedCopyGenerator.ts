@@ -87,19 +87,29 @@ ${JSON.stringify(annotationPlan, null, 2)}`;
       prompt,
       n: 1,
       size: "1024x1792",
-      response_format: "b64_json",
     } as any);
 
-    const b64 = response.data?.[0]?.b64_json;
-    if (!b64) {
+    const item = response.data?.[0] as any;
+    let generated: Buffer | null = null;
+
+    if (item?.b64_json) {
+      generated = Buffer.from(item.b64_json, "base64");
+    } else if (item?.url) {
+      const fetched = await fetch(item.url);
+      if (!fetched.ok) {
+        return { status: "failed", reason: `Failed to fetch generated image from URL: ${fetched.status}` };
+      }
+      generated = Buffer.from(await fetched.arrayBuffer());
+    }
+
+    if (!generated) {
       console.warn("[checked-copy] Azure returned no image data", {
         attemptId: params.attemptId,
         elapsed: `${Date.now() - startedAt}ms`,
+        item,
       });
       return { status: "failed", reason: "Azure image model returned no image data" };
     }
-
-    const generated = Buffer.from(b64, "base64");
     const validation = validateCheckedCopy(params.originalBuffer, generated);
     if (!validation.ok) {
       console.warn("[checked-copy] generated image failed validation", {
