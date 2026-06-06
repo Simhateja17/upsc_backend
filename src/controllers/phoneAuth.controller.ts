@@ -375,8 +375,9 @@ async function sendTwoFactorOtp(phone: string, otp: string) {
     throw new Error("2Factor API key is not configured");
   }
 
-  const url = `https://2factor.in/API/V1/${encodeURIComponent(config.phoneAuth.twoFactorApiKey)}/SMS/${encodeURIComponent(phoneForTwoFactor(phone))}/${encodeURIComponent(otp)}`;
-  const response = await fetch(url, { method: "POST" });
+  const templateName = config.phoneAuth.twoFactorOtpTemplateName || "OTP";
+  const url = `https://2factor.in/API/V1/${encodeURIComponent(config.phoneAuth.twoFactorApiKey)}/SMS/${encodeURIComponent(phoneForTwoFactor(phone))}/${encodeURIComponent(otp)}/${encodeURIComponent(templateName)}`;
+  const response = await fetch(url, { method: "GET" });
   const text = await response.text();
   let payload: any = null;
   try {

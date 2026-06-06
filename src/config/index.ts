@@ -18,6 +18,7 @@ export const config = {
   phoneAuth: {
     enabled: process.env.PHONE_AUTH_ENABLED === "true",
     twoFactorApiKey: process.env.TWOFACTOR_API_KEY || "",
+    twoFactorOtpTemplateName: process.env.TWOFACTOR_OTP_TEMPLATE_NAME || "OTP",
     sendSmsHookSecrets: process.env.SEND_SMS_HOOK_SECRETS || "",
   },
   resend: {
