@@ -3,7 +3,7 @@ import { renderPdfPagesToImages } from "../config/gemini";
 import { downloadFile, STORAGE_BUCKETS } from "../config/storage";
 import prisma from "../config/database";
 import { buildTopperContext, retrieveTopperMatches } from "./topperRag.service";
-import { EvaluatorCheckedCopyPlan, planCheckedCopyAnnotations } from "./checkedCopyPlanner";
+import { CheckedCopyAnnotationPlan, EvaluatorCheckedCopyPlan, planCheckedCopyAnnotations } from "./checkedCopyPlanner";
 import { generateCheckedCopy } from "./checkedCopyGenerator";
 import { transcribeStudentAnswerFromUpload } from "./studentAnswerTranscriber";
 import { analyzeDocumentPageLayout, DocumentPageLayout } from "./documentLayout.service";
@@ -110,8 +110,12 @@ ${uploadTranscriptionNote ? "NOTE: This text was transcribed from uploaded handw
 - Penalize factual errors heavily. If a claim is wrong, call it out in "improvements".
 - NEVER give pity marks. A blank or one-sentence answer should not get more than 1/${question.marks}.
 - RAG calibration is binding: treat retrieved checked topper/evaluator copies as scoring anchors, not as automatic marks. If a retrieved answer scored 7/15, award 7/15 only when the student's answer is genuinely at that same standard. If the student's answer is weaker than the retrieved 7/15 answer in demand coverage, specificity, evidence, structure, or balance, award less. Do not award more than the best relevant retrieved example unless the student's answer is clearly and specifically superior, and explain that exact superiority in detailedFeedback. Generic polish is not enough.
-- Build annotationPlan for the checked-copy image. Use 4-8 sparse red-ink annotations: ticks for good answer points, one margin note for the introduction if useful, margin/bottom comments for missing question demands, and a score annotation. Keep comments short enough to fit in page margins.
-- For annotationPlan.targetText, use exact OCR phrases from the student's answer such as a heading or key phrase. If the student omits an entire demand, target the closest existing section and explain what is missing.
+- Build annotationPlan as semantic examiner intent, not exact coordinates. The SVG renderer will decide final placement.
+- Use annotationPlan version 2. Split lightweight visual marks from detailed margin comments.
+- visualMarks should be ticks, underlines, circles, or brackets on exact phrases from the student's answer. Do not target the printed question/header.
+- marginComments should be detailed teacher-style comments, 18-45 words each, naming the exact missing content/factual issue/value addition. Prefer 2-4 major comments per answer page.
+- If the student omits an entire demand, attach the marginComment to the closest existing answer section and explain the missing demand.
+- Include a final bottomComment that summarizes the scoring reason and the highest-priority fixes.
 
 Rubric weights (for your internal reasoning; surface in metrics):
 1. Relevance to directive & question demand (30%)
@@ -141,14 +145,30 @@ Return ONLY a JSON object (no prose, no markdown fences):
   "overallFeedback": "short examiner-style overall comment",
   "modelAnswer": "concise model answer calibrated to the marks and word limit",
   "detailedFeedback": "2-3 paragraph examiner-style feedback: what the answer did, where it falls on the rubric, and exactly what to fix. Be blunt, not encouraging.",
-  "annotationPlan": [
-    {
-      "type": "positive_tick|underline|circle|bracket|margin_comment|missing_demand|overall_comment|score",
-      "targetText": "exact short phrase from the student's transcribed answer text when available; omit only for bottom/score comments",
-      "comment": "short red-ink examiner note, max 18 words",
-      "placement": "left_margin|right_margin|bottom|near_target|top"
-    }
-  ],
+  "annotationPlan": {
+    "version": 2,
+    "scoreText": "same integer score/maxScore, e.g. \"4/${question.marks}\"",
+    "pagePlans": [
+      {
+        "visualMarks": [
+          {
+            "type": "positive_tick|underline|circle|bracket",
+            "targetText": "exact phrase from the student's answer only, never the printed question",
+            "intent": "why this mark is placed"
+          }
+        ],
+        "marginComments": [
+          {
+            "targetText": "exact phrase from the student's answer near the issue",
+            "severity": "major|minor",
+            "comment": "teacher-style comment, 18-45 words, specific and content-rich",
+            "placementIntent": "left_margin|right_margin|near_target"
+          }
+        ],
+        "bottomComment": "final examiner summary with missing demands and concrete additions"
+      }
+    ]
+  },
   "metrics": [
     {"label": "Relevance", "value": <0-10>, "maxValue": 10},
     {"label": "Content", "value": <0-10>, "maxValue": 10},
@@ -161,7 +181,7 @@ Return ONLY a JSON object (no prose, no markdown fences):
   ];
 
   const system =
-    "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, think like a teacher marking the physical answer sheet in red ink: target actual phrases or sections in the student's answer, tick genuinely good points, and mark missing demands clearly in the margin or bottom. Do not invent targetText that is not present in the answer.";
+    "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, return semantic marking intent for an SVG checked-copy renderer: use exact targetText from the student's answer, never target printed question/header text, use detailed teacher-style margin comments, and separate visual marks from comments. Do not invent targetText that is not present in the answer.";
 
   return invokeModelJSON<EvaluationResult>(messages, {
     system,
@@ -172,12 +192,28 @@ Return ONLY a JSON object (no prose, no markdown fences):
 }
 
 function hasEvaluatorAnnotationPlan(plan: unknown): plan is EvaluatorCheckedCopyPlan {
+  if (plan && typeof plan === "object" && !Array.isArray(plan)) {
+    const entry = plan as Record<string, unknown>;
+    if (entry.version !== 2 || !Array.isArray(entry.pagePlans)) return false;
+    return entry.pagePlans.length > 0;
+  }
   if (!Array.isArray(plan) || plan.length === 0) return false;
   return plan.every((item) => {
     if (!item || typeof item !== "object") return false;
     const entry = item as Record<string, unknown>;
     return typeof entry.comment === "string" && typeof entry.placement === "string";
   });
+}
+
+function annotationPlanItemCount(plan: EvaluatorCheckedCopyPlan | CheckedCopyAnnotationPlan): number {
+  if (Array.isArray(plan)) return plan.length;
+  if ("version" in plan && plan.version === 2) {
+    return plan.pagePlans.reduce(
+      (sum, page) => sum + (page.visualMarks?.length || 0) + (page.marginComments?.length || 0) + (page.bottomComment ? 1 : 0),
+      0
+    );
+  }
+  return (plan as CheckedCopyAnnotationPlan).comments?.length || 0;
 }
 
 function stripOcrChrome(line: string): string {
@@ -635,7 +671,7 @@ export async function evaluateAnswerGeneric(params: {
     console.log("[eval] annotation plan selected", {
       attemptId,
       source: hasEvaluatorAnnotationPlan(result.annotationPlan) ? "evaluator" : "fallback",
-      items: Array.isArray(annotationPlan) ? annotationPlan.length : annotationPlan.comments?.length || 0,
+      items: annotationPlanItemCount(annotationPlan),
       score: clampedScore,
       maxScore: question.marks,
     });

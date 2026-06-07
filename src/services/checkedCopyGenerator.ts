@@ -11,9 +11,32 @@ type OverlayAnnotation = {
   targetText?: string;
   comment: string;
   placement: "left_margin" | "right_margin" | "bottom" | "near_target" | "top";
+  severity?: "minor" | "major";
+  intent?: string;
 };
 
 type ImageSize = { width: number; height: number };
+type PixelBox = { x1: number; y1: number; x2: number; y2: number };
+type PageZones = {
+  headerBottom: number;
+  answerTop: number;
+  answerBottom: number;
+  contentLeft: number;
+  contentRight: number;
+  leftMargin: PixelBox;
+  rightMargin: PixelBox;
+  bottom: PixelBox;
+};
+type PageRenderPlan = {
+  visualMarks: OverlayAnnotation[];
+  marginComments: OverlayAnnotation[];
+  scoreText: string;
+  bottomComment: string;
+};
+
+function isV2Plan(plan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan): plan is Extract<EvaluatorCheckedCopyPlan, { version: 2 }> {
+  return Boolean(plan && typeof plan === "object" && !Array.isArray(plan) && "version" in plan && plan.version === 2);
+}
 
 function getPngSize(buffer: Buffer): ImageSize | null {
   if (buffer.length < 24) return null;
@@ -78,14 +101,14 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function shorten(value: string, max = 72): string {
+function shorten(value: string, max = 120): string {
   const text = value.replace(/\s+/g, " ").trim();
   if (text.length <= max) return text;
-  return `${text.slice(0, max - 1).trim()}…`;
+  return `${text.slice(0, max - 1).trim()}...`;
 }
 
-function wrapText(text: string, maxChars: number): string[] {
-  const words = shorten(text, maxChars * 4).split(/\s+/).filter(Boolean);
+function wrapText(text: string, maxChars: number, maxLines = 5): string[] {
+  const words = shorten(text, maxChars * maxLines).split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let current = "";
 
@@ -99,26 +122,66 @@ function wrapText(text: string, maxChars: number): string[] {
     }
   }
   if (current) lines.push(current);
-  return lines.slice(0, 4);
+  return lines.slice(0, maxLines);
 }
 
 function normalizePlan(
   plan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan,
   pageNumber: number,
   totalPages: number
-): { annotations: OverlayAnnotation[]; scoreText: string; bottomComment: string } {
+): PageRenderPlan {
+  if (isV2Plan(plan)) {
+    const explicitPage = plan.pagePlans.find((page) => page.pageNumber === pageNumber);
+    const sharedPage = plan.pagePlans.find((page) => page.pageNumber == null);
+    const page = explicitPage || sharedPage || { visualMarks: [], marginComments: [] };
+    return {
+      visualMarks: (page.visualMarks || []).map((mark) => ({
+        type: mark.type,
+        targetText: mark.targetText,
+        comment: mark.intent || "",
+        intent: mark.intent,
+        placement: "near_target",
+      })),
+      marginComments: (page.marginComments || []).map((comment) => ({
+        type: "margin_comment",
+        targetText: comment.targetText,
+        comment: comment.comment,
+        placement: comment.placementIntent || "right_margin",
+        severity: comment.severity || "major",
+      })),
+      scoreText: pageNumber === 1 ? plan.scoreText || "" : "",
+      bottomComment: pageNumber === totalPages ? page.bottomComment || "" : "",
+    };
+  }
+
   if (Array.isArray(plan)) {
-    const annotations = plan
-      .filter((item) => pageNumber === 1 || item.type !== "score")
+    const pageItems = plan
+      .filter((item) => item.pageNumber == null || item.pageNumber === pageNumber)
+      .filter((item) => pageNumber === 1 || item.type !== "score");
+    const visualMarks = pageItems
+      .filter((item) => ["positive_tick", "underline", "circle", "bracket"].includes(item.type))
       .map((item) => ({
         type: item.type,
         targetText: item.targetText,
         comment: item.comment,
         placement: item.placement,
+        severity: item.severity,
+        intent: item.intent,
+      }));
+    const marginComments = pageItems
+      .filter((item) => ["margin_comment", "missing_demand"].includes(item.type))
+      .map((item) => ({
+        type: item.type,
+        targetText: item.targetText,
+        comment: item.comment,
+        placement: item.placement,
+        severity: item.severity || "major",
+        intent: item.intent,
       }));
 
     return {
-      annotations,
+      visualMarks,
+      marginComments,
       scoreText:
         pageNumber === 1
           ? plan.find((item) => item.type === "score")?.comment.match(/\d+\s*\/\s*\d+/)?.[0] || ""
@@ -130,14 +193,23 @@ function normalizePlan(
     };
   }
 
+  const legacyPlan = plan as CheckedCopyAnnotationPlan;
   return {
-    annotations: plan.comments.map((comment) => ({
+    visualMarks: legacyPlan.comments
+      .filter((comment) => comment.style !== "margin_comment")
+      .map((comment) => ({
+        type: comment.style,
+        comment: comment.text,
+        placement: "near_target",
+      })),
+    marginComments: legacyPlan.comments.filter((comment) => comment.style === "margin_comment").map((comment) => ({
       type: comment.style,
       comment: comment.text,
-      placement: comment.style === "margin_comment" ? "right_margin" : "near_target",
+      placement: "right_margin",
+      severity: "major",
     })),
-    scoreText: pageNumber === 1 ? plan.scoreText : "",
-    bottomComment: pageNumber === totalPages ? plan.bottomComment : "",
+    scoreText: pageNumber === 1 ? legacyPlan.scoreText : "",
+    bottomComment: pageNumber === totalPages ? legacyPlan.bottomComment : "",
   };
 }
 
@@ -149,8 +221,9 @@ function textBlock(params: {
   fontSize: number;
   rotate?: number;
   anchor?: "start" | "middle" | "end";
+  maxLines?: number;
 }): string {
-  const lines = wrapText(params.text, params.maxChars);
+  const lines = wrapText(params.text, params.maxChars, params.maxLines || 5);
   const transform = params.rotate ? ` transform="rotate(${params.rotate} ${params.x} ${params.y})"` : "";
   const anchor = params.anchor || "start";
 
@@ -165,6 +238,13 @@ function tickPath(x: number, y: number, scale: number): string {
 
 function underlinePath(x: number, y: number, width: number): string {
   return `<path d="M ${x} ${y} C ${x + width * 0.25} ${y + 5}, ${x + width * 0.75} ${y - 5}, ${x + width} ${y}" />`;
+}
+
+function bracketPath(x: number, y1: number, y2: number, direction: "left" | "right"): string {
+  const arm = direction === "left" ? -18 : 18;
+  return `<path d="M ${x} ${y1} L ${x} ${y2}" />
+  <path d="M ${x} ${y1} L ${x + arm} ${y1}" />
+  <path d="M ${x} ${y2} L ${x + arm} ${y2}" />`;
 }
 
 function arrowPath(x1: number, y1: number, x2: number, y2: number): string {
@@ -205,7 +285,58 @@ function boxToPixels(box: NormalizedBox, width: number, height: number) {
   };
 }
 
-function findTargetBox(annotation: OverlayAnnotation, layout: DocumentPageLayout | null | undefined): NormalizedBox | null {
+function inferZones(width: number, height: number, layout: DocumentPageLayout | null | undefined): PageZones {
+  const lineBoxes = (layout?.lines || []).map((line) => boxToPixels(line.box, width, height));
+  const xs = lineBoxes.flatMap((box) => [box.x1, box.x2]).filter((value) => Number.isFinite(value));
+  const contentLeft = xs.length ? Math.max(width * 0.1, Math.min(...xs)) : width * 0.16;
+  const contentRight = xs.length ? Math.min(width * 0.86, Math.max(...xs)) : width * 0.78;
+  const configuredTop = Number(process.env.CHECKED_COPY_ANSWER_TOP_RATIO || 0.28) * height;
+  const answerTop = Math.max(configuredTop, height * 0.22);
+  const answerBottom = height * Number(process.env.CHECKED_COPY_ANSWER_BOTTOM_RATIO || 0.86);
+
+  return {
+    headerBottom: height * 0.18,
+    answerTop,
+    answerBottom,
+    contentLeft,
+    contentRight,
+    leftMargin: {
+      x1: Math.max(8, width * 0.018),
+      y1: answerTop,
+      x2: Math.max(width * 0.14, contentLeft - width * 0.03),
+      y2: answerBottom,
+    },
+    rightMargin: {
+      x1: Math.min(width * 0.82, contentRight + width * 0.025),
+      y1: answerTop,
+      x2: width * 0.985,
+      y2: answerBottom,
+    },
+    bottom: {
+      x1: Math.max(width * 0.08, contentLeft - width * 0.05),
+      y1: height * 0.875,
+      x2: Math.min(width * 0.94, contentRight + width * 0.1),
+      y2: height * 0.98,
+    },
+  };
+}
+
+function intersects(a: PixelBox, b: PixelBox): boolean {
+  return a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1;
+}
+
+function reserveRect(used: PixelBox[], rect: PixelBox): boolean {
+  if (used.some((item) => intersects(item, rect))) return false;
+  used.push(rect);
+  return true;
+}
+
+function isInsideAnswerZone(box: NormalizedBox, zones: PageZones, width: number, height: number): boolean {
+  const px = boxToPixels(box, width, height);
+  return px.y1 >= zones.answerTop && px.y2 <= zones.answerBottom && px.x1 >= zones.contentLeft - width * 0.08 && px.x2 <= zones.contentRight + width * 0.08;
+}
+
+function findTargetBox(annotation: OverlayAnnotation, layout: DocumentPageLayout | null | undefined, zones: PageZones, width: number, height: number): NormalizedBox | null {
   if (!layout?.lines.length || !annotation.targetText?.trim()) return null;
 
   const target = normalizeForMatch(annotation.targetText);
@@ -213,6 +344,7 @@ function findTargetBox(annotation: OverlayAnnotation, layout: DocumentPageLayout
 
   let best: { score: number; box: NormalizedBox } | null = null;
   for (const line of layout.lines) {
+    if (!isInsideAnswerZone(line.box, zones, width, height)) continue;
     const lineText = normalizeForMatch(line.text);
     const containsScore = lineText.includes(target) || target.includes(lineText);
     const score = containsScore ? 1 : similarity(target, lineText);
@@ -223,6 +355,41 @@ function findTargetBox(annotation: OverlayAnnotation, layout: DocumentPageLayout
 
   const threshold = Number(process.env.CHECKED_COPY_TARGET_MATCH_THRESHOLD || 0.34);
   return best && best.score >= threshold ? best.box : null;
+}
+
+function placeInLane(params: {
+  lane: PixelBox;
+  preferredY: number;
+  width: number;
+  height: number;
+  used: PixelBox[];
+}): PixelBox | null {
+  const top = Math.max(params.lane.y1, params.preferredY - params.height * 0.25);
+  const candidates = [top];
+  const step = Math.max(22, params.height * 0.45);
+  for (let offset = step; offset < params.lane.y2 - params.lane.y1; offset += step) {
+    candidates.push(top + offset, top - offset);
+  }
+
+  for (const y of candidates) {
+    const clampedY = Math.max(params.lane.y1, Math.min(y, params.lane.y2 - params.height));
+    const rect = {
+      x1: params.lane.x1,
+      y1: clampedY,
+      x2: Math.min(params.lane.x2, params.lane.x1 + params.width),
+      y2: clampedY + params.height,
+    };
+    if (rect.x2 <= rect.x1 || rect.y2 > params.lane.y2) continue;
+    if (reserveRect(params.used, rect)) return rect;
+  }
+
+  return null;
+}
+
+function commentLane(annotation: OverlayAnnotation, index: number, zones: PageZones): "left" | "right" {
+  if (annotation.placement === "left_margin") return "left";
+  if (annotation.placement === "right_margin") return "right";
+  return index % 3 === 0 && zones.leftMargin.x2 - zones.leftMargin.x1 > 90 ? "left" : "right";
 }
 
 function renderOverlaySvg(params: {
@@ -238,28 +405,25 @@ function renderOverlaySvg(params: {
   const imageHref = `data:${params.mimeType};base64,${params.originalBuffer.toString("base64")}`;
 
   const red = "#A12418";
-  const fontSize = Math.max(18, Math.round(width * 0.022));
+  const zones = inferZones(width, height, params.layout);
+  const fontSize = Math.max(17, Math.round(width * 0.02));
+  const smallFontSize = Math.max(15, Math.round(width * 0.017));
   const scoreSize = Math.max(32, Math.round(width * 0.052));
   const strokeWidth = Math.max(3, Math.round(width * 0.004));
-  const leftX = Math.max(18, width * 0.03);
-  const rightX = width * 0.82;
-  const contentLeft = width * 0.18;
-  const contentRight = width * 0.78;
-  const contentTop = height * 0.2;
-  const contentStep = height * 0.105;
 
   const hasLayoutLines = Boolean(params.layout?.lines.length);
-  const annotations = plan.annotations
-    .filter((item) => item.comment && item.type !== "score" && item.type !== "overall_comment")
-    .slice(0, 8);
+  const visualMarks = plan.visualMarks.filter((item) => item.type !== "score").slice(0, 10);
+  const marginComments = plan.marginComments.filter((item) => item.comment).slice(0, 5);
 
   const marks: string[] = [];
+  const usedCommentRects: PixelBox[] = [];
+  const usedMarkRects: PixelBox[] = [];
 
   if (plan.scoreText) {
     marks.push(
       textBlock({
-        x: width * 0.78,
-        y: height * 0.08,
+        x: Math.min(width * 0.84, zones.contentRight + width * 0.02),
+        y: height * 0.075,
         text: plan.scoreText,
         maxChars: 10,
         fontSize: scoreSize,
@@ -268,71 +432,104 @@ function renderOverlaySvg(params: {
     );
   }
 
-  annotations.forEach((annotation, index) => {
-    const targetBox = findTargetBox(annotation, params.layout);
+  visualMarks.forEach((annotation, index) => {
+    const targetBox = findTargetBox(annotation, params.layout, zones, width, height);
     if (hasLayoutLines && !targetBox) return;
     const targetPx = targetBox ? boxToPixels(targetBox, width, height) : null;
-    const row = targetPx ? Math.max(contentTop, Math.min(targetPx.y1, height * 0.8)) : contentTop + index * contentStep;
-    const isLeft = annotation.placement === "left_margin" || (annotation.placement !== "right_margin" && index % 3 === 0);
-    const noteX = isLeft ? leftX : rightX;
-    const noteY = Math.min(row, height * 0.78);
-    const anchorX = targetPx ? (isLeft ? targetPx.x1 : targetPx.x2) : isLeft ? contentLeft : contentRight;
-    const anchorY = targetPx ? targetPx.y2 + fontSize * 0.2 : noteY + fontSize * 0.4;
-    const comment = shorten(annotation.comment, annotation.placement === "bottom" ? 120 : 76);
+    const row = targetPx ? targetPx.y2 + smallFontSize * 0.25 : zones.answerTop + index * height * 0.075;
+    const x1 = targetPx ? targetPx.x1 : zones.contentLeft + (index % 4) * width * 0.1;
+    const x2 = targetPx ? targetPx.x2 : Math.min(zones.contentRight, x1 + width * 0.18);
+    const markRect = { x1: x1 - 8, y1: row - smallFontSize * 1.4, x2: x2 + smallFontSize * 1.8, y2: row + smallFontSize * 1.2 };
+    if (!reserveRect(usedMarkRects, markRect)) return;
 
     if (annotation.type === "positive_tick") {
-      marks.push(tickPath(anchorX, anchorY - fontSize, fontSize * 1.4));
-      if (comment) {
-        marks.push(
-          textBlock({
-            x: noteX,
-            y: noteY,
-            text: comment,
-            maxChars: 15,
-            fontSize,
-            rotate: isLeft ? -2 : 1.5,
-          })
-        );
-      }
+      marks.push(tickPath(x2 + 8, row - smallFontSize * 1.2, smallFontSize * 1.25));
+      return;
+    }
+    if (annotation.type === "circle") {
+      const cx = (x1 + x2) / 2;
+      const cy = row - smallFontSize * 0.55;
+      marks.push(`<ellipse cx="${cx}" cy="${cy}" rx="${Math.max(28, (x2 - x1) / 2 + 10)}" ry="${smallFontSize * 1.15}" transform="rotate(-2 ${cx} ${cy})" />`);
+      return;
+    }
+    if (annotation.type === "bracket") {
+      marks.push(bracketPath(x2 + 12, Math.max(zones.answerTop, row - smallFontSize * 2), row + smallFontSize * 0.4, "right"));
+      return;
+    }
+    marks.push(underlinePath(x1, row, Math.max(60, x2 - x1)));
+  });
+
+  const deferredComments: string[] = [];
+  marginComments.forEach((annotation, index) => {
+    const targetBox = findTargetBox(annotation, params.layout, zones, width, height);
+    const targetPx = targetBox ? boxToPixels(targetBox, width, height) : null;
+    if (hasLayoutLines && !targetBox && annotation.targetText) {
+      deferredComments.push(annotation.comment);
       return;
     }
 
-    if (annotation.type === "underline") {
-      marks.push(underlinePath(targetPx ? targetPx.x1 : contentLeft, anchorY, targetPx ? Math.max(60, targetPx.x2 - targetPx.x1) : width * 0.28));
-    } else if (annotation.type === "bracket" || annotation.type === "missing_demand") {
-      const bracketX = targetPx ? (isLeft ? targetPx.x1 - 18 : targetPx.x2 + 18) : isLeft ? contentLeft - 20 : contentRight + 10;
-      const bracketTop = targetPx ? targetPx.y1 - 4 : anchorY - fontSize * 1.4;
-      const bracketBottom = targetPx ? targetPx.y2 + 8 : anchorY + fontSize * 1.2;
-      marks.push(`<path d="M ${bracketX} ${bracketTop} L ${bracketX} ${bracketBottom}" />`);
-      marks.push(`<path d="M ${bracketX} ${bracketTop} L ${bracketX + (isLeft ? 18 : -18)} ${bracketTop}" />`);
-      marks.push(`<path d="M ${bracketX} ${bracketBottom} L ${bracketX + (isLeft ? 18 : -18)} ${bracketBottom}" />`);
-    } else {
-      marks.push(underlinePath(targetPx ? targetPx.x1 : contentLeft + (index % 4) * width * 0.08, anchorY, targetPx ? Math.max(60, targetPx.x2 - targetPx.x1) : width * 0.18));
+    const side = commentLane(annotation, index, zones);
+    const lane = side === "left" ? zones.leftMargin : zones.rightMargin;
+    const laneWidth = lane.x2 - lane.x1;
+    const maxChars = Math.max(10, Math.floor(laneWidth / (smallFontSize * 0.56)));
+    const lines = wrapText(annotation.comment, maxChars, annotation.severity === "minor" ? 4 : 6);
+    const blockHeight = lines.length * smallFontSize * 1.12 + smallFontSize * 0.3;
+    const preferredY = targetPx ? Math.max(zones.answerTop, targetPx.y1 - smallFontSize * 0.5) : zones.answerTop + index * height * 0.12;
+    const rect = placeInLane({
+      lane,
+      preferredY,
+      width: laneWidth,
+      height: blockHeight,
+      used: usedCommentRects,
+    });
+
+    if (!rect) {
+      deferredComments.push(annotation.comment);
+      return;
     }
 
-    marks.push(arrowPath(isLeft ? noteX + width * 0.1 : noteX - 10, noteY + fontSize * 0.3, anchorX, anchorY));
+    const textX = side === "left" ? rect.x1 : rect.x1 + 2;
+    const textY = rect.y1 + smallFontSize;
+    const anchorX = targetPx ? (side === "left" ? targetPx.x1 : targetPx.x2) : side === "left" ? zones.contentLeft : zones.contentRight;
+    const anchorY = targetPx ? targetPx.y1 + (targetPx.y2 - targetPx.y1) * 0.55 : rect.y1 + blockHeight * 0.5;
+    const fromX = side === "left" ? rect.x2 - 4 : rect.x1 + 2;
+    const fromY = rect.y1 + Math.min(blockHeight * 0.5, smallFontSize * 2.2);
+
+    if (targetPx) {
+      marks.push(arrowPath(fromX, fromY, anchorX, anchorY));
+      if (annotation.type === "missing_demand") {
+        marks.push(bracketPath(side === "left" ? targetPx.x1 - 12 : targetPx.x2 + 12, targetPx.y1 - 5, targetPx.y2 + 8, side === "left" ? "right" : "left"));
+      }
+    }
     marks.push(
       textBlock({
-        x: noteX,
-        y: noteY,
-        text: comment,
-        maxChars: isLeft ? 12 : 15,
-        fontSize,
-        rotate: isLeft ? -2 : 1.5,
+        x: textX,
+        y: textY,
+        text: annotation.comment,
+        maxChars,
+        maxLines: annotation.severity === "minor" ? 4 : 6,
+        fontSize: smallFontSize,
+        rotate: side === "left" ? -1.8 : 1.2,
       })
     );
   });
 
   if (plan.bottomComment) {
-    const bottomY = height * 0.9;
-    marks.push(`<path d="M ${width * 0.16} ${bottomY - fontSize * 1.4} C ${width * 0.35} ${bottomY - fontSize * 2.1}, ${width * 0.62} ${bottomY - fontSize * 1.2}, ${width * 0.82} ${bottomY - fontSize * 1.7}" />`);
+    deferredComments.unshift(plan.bottomComment);
+  }
+
+  if (deferredComments.length > 0) {
+    const bottomText = shorten(deferredComments.join(" "), 260);
+    const bottomY = Math.min(zones.bottom.y2 - smallFontSize * 2.2, zones.bottom.y1 + smallFontSize * 1.4);
+    marks.push(`<path d="M ${zones.bottom.x1} ${bottomY - smallFontSize * 1.1} C ${width * 0.35} ${bottomY - smallFontSize * 1.8}, ${width * 0.62} ${bottomY - smallFontSize * 0.9}, ${zones.bottom.x2} ${bottomY - smallFontSize * 1.3}" />`);
     marks.push(
       textBlock({
-        x: width * 0.18,
+        x: zones.bottom.x1,
         y: bottomY,
-        text: plan.bottomComment,
-        maxChars: 54,
-        fontSize,
+        text: bottomText,
+        maxChars: Math.max(42, Math.floor((zones.bottom.x2 - zones.bottom.x1) / (smallFontSize * 0.54))),
+        maxLines: 4,
+        fontSize: smallFontSize,
         rotate: -1,
       })
     );
