@@ -6,6 +6,7 @@ import { buildTopperContext, retrieveTopperMatches } from "./topperRag.service";
 import { EvaluatorCheckedCopyPlan, planCheckedCopyAnnotations } from "./checkedCopyPlanner";
 import { generateCheckedCopy } from "./checkedCopyGenerator";
 import { transcribeStudentAnswerFromUpload } from "./studentAnswerTranscriber";
+import { analyzeDocumentPageLayout, DocumentPageLayout } from "./documentLayout.service";
 
 function evalElapsed(startedAt: number) {
   return `${Date.now() - startedAt}ms`;
@@ -642,7 +643,7 @@ export async function evaluateAnswerGeneric(params: {
     let checkedCopyUrl: string | null = null;
     let checkedCopyPages: Array<{ pageNumber: number; storagePath: string | null; status: string; reason?: string }> = [];
     let checkedCopyStatus: string | null = originalUpload ? "skipped" : null;
-    let checkedCopyInputs: Array<{ pageNumber: number; buffer: Buffer; contentType: string; source: "image" | "pdf-page" }> = [];
+    let checkedCopyInputs: Array<{ pageNumber: number; buffer: Buffer; contentType: string; source: "image" | "pdf-page"; layout?: DocumentPageLayout | null }> = [];
     if (originalUpload?.contentType.startsWith("image/")) {
       checkedCopyInputs = [{
         pageNumber: 1,
@@ -674,10 +675,46 @@ export async function evaluateAnswerGeneric(params: {
     }
 
     if (checkedCopyInputs.length > 0) {
+      if (process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT && process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY) {
+        const layoutStartedAt = Date.now();
+        console.log("[eval] checked-copy layout analysis start", {
+          attemptId,
+          pages: checkedCopyInputs.length,
+        });
+        checkedCopyInputs = await Promise.all(
+          checkedCopyInputs.map(async (input) => {
+            try {
+              const layout = await analyzeDocumentPageLayout({
+                imageBuffer: input.buffer,
+                mimeType: input.contentType,
+                pageNumber: input.pageNumber,
+                attemptId,
+              });
+              return { ...input, layout };
+            } catch (error) {
+              console.warn("[eval] checked-copy layout analysis failed for page", {
+                attemptId,
+                pageNumber: input.pageNumber,
+                message: error instanceof Error ? error.message : String(error),
+              });
+              return { ...input, layout: null };
+            }
+          })
+        );
+        console.log("[eval] checked-copy layout analysis completed", {
+          attemptId,
+          elapsed: evalElapsed(layoutStartedAt),
+          pages: checkedCopyInputs.map((input) => ({
+            pageNumber: input.pageNumber,
+            lines: input.layout?.lines.length || 0,
+          })),
+        });
+      }
+
       const checkedCopyStartedAt = Date.now();
       console.log("[eval] checked-copy generation start", {
         attemptId,
-        model: process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image",
+        renderer: "deterministic-svg",
         pages: checkedCopyInputs.length,
         inputBytes: checkedCopyInputs.map((input) => input.buffer.length),
       });
@@ -689,6 +726,7 @@ export async function evaluateAnswerGeneric(params: {
           originalBuffer: input.buffer,
           mimeType: input.contentType,
           annotationPlan,
+          layout: input.layout,
         });
         if (checked.status === "completed") {
           checkedCopyPages.push({

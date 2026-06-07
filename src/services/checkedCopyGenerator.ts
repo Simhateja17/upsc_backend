@@ -1,5 +1,6 @@
 import { STORAGE_BUCKETS, uploadFile } from "../config/storage";
 import type { CheckedCopyAnnotationPlan, EvaluatorCheckedCopyPlan } from "./checkedCopyPlanner";
+import type { DocumentPageLayout, NormalizedBox } from "./documentLayout.service";
 
 type CheckedCopyResult =
   | { status: "completed"; storagePath: string }
@@ -7,6 +8,7 @@ type CheckedCopyResult =
 
 type OverlayAnnotation = {
   type: string;
+  targetText?: string;
   comment: string;
   placement: "left_margin" | "right_margin" | "bottom" | "near_target" | "top";
 };
@@ -110,6 +112,7 @@ function normalizePlan(
       .filter((item) => pageNumber === 1 || item.type !== "score")
       .map((item) => ({
         type: item.type,
+        targetText: item.targetText,
         comment: item.comment,
         placement: item.placement,
       }));
@@ -170,12 +173,65 @@ function arrowPath(x1: number, y1: number, x2: number, y2: number): string {
   <path d="M ${x2 - head} ${y2 - head / 2} L ${x2} ${y2} L ${x2 - head} ${y2 + head / 2}" />`;
 }
 
+function normalizeForMatch(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function tokenSet(text: string): Set<string> {
+  return new Set(normalizeForMatch(text).split(/\s+/).filter((token) => token.length > 2));
+}
+
+function similarity(a: string, b: string): number {
+  const aTokens = tokenSet(a);
+  const bTokens = tokenSet(b);
+  if (aTokens.size === 0 || bTokens.size === 0) return 0;
+
+  let overlap = 0;
+  for (const token of aTokens) {
+    if (bTokens.has(token)) overlap += 1;
+  }
+  return overlap / Math.max(aTokens.size, bTokens.size);
+}
+
+function boxToPixels(box: NormalizedBox, width: number, height: number) {
+  return {
+    x1: box.x1 * width,
+    y1: box.y1 * height,
+    x2: box.x2 * width,
+    y2: box.y2 * height,
+  };
+}
+
+function findTargetBox(annotation: OverlayAnnotation, layout: DocumentPageLayout | null | undefined): NormalizedBox | null {
+  if (!layout?.lines.length || !annotation.targetText?.trim()) return null;
+
+  const target = normalizeForMatch(annotation.targetText);
+  if (!target) return null;
+
+  let best: { score: number; box: NormalizedBox } | null = null;
+  for (const line of layout.lines) {
+    const lineText = normalizeForMatch(line.text);
+    const containsScore = lineText.includes(target) || target.includes(lineText);
+    const score = containsScore ? 1 : similarity(target, lineText);
+    if (!best || score > best.score) {
+      best = { score, box: line.box };
+    }
+  }
+
+  const threshold = Number(process.env.CHECKED_COPY_TARGET_MATCH_THRESHOLD || 0.34);
+  return best && best.score >= threshold ? best.box : null;
+}
+
 function renderOverlaySvg(params: {
   originalBuffer: Buffer;
   mimeType: string;
   annotationPlan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan;
   pageNumber: number;
   totalPages: number;
+  layout?: DocumentPageLayout | null;
 }): Buffer {
   const { width, height } = getImageSize(params.originalBuffer, params.mimeType);
   const plan = normalizePlan(params.annotationPlan, params.pageNumber, params.totalPages);
@@ -192,6 +248,7 @@ function renderOverlaySvg(params: {
   const contentTop = height * 0.2;
   const contentStep = height * 0.105;
 
+  const hasLayoutLines = Boolean(params.layout?.lines.length);
   const annotations = plan.annotations
     .filter((item) => item.comment && item.type !== "score" && item.type !== "overall_comment")
     .slice(0, 8);
@@ -212,12 +269,15 @@ function renderOverlaySvg(params: {
   }
 
   annotations.forEach((annotation, index) => {
-    const row = contentTop + index * contentStep;
+    const targetBox = findTargetBox(annotation, params.layout);
+    if (hasLayoutLines && !targetBox) return;
+    const targetPx = targetBox ? boxToPixels(targetBox, width, height) : null;
+    const row = targetPx ? Math.max(contentTop, Math.min(targetPx.y1, height * 0.8)) : contentTop + index * contentStep;
     const isLeft = annotation.placement === "left_margin" || (annotation.placement !== "right_margin" && index % 3 === 0);
     const noteX = isLeft ? leftX : rightX;
     const noteY = Math.min(row, height * 0.78);
-    const anchorX = isLeft ? contentLeft : contentRight;
-    const anchorY = noteY + fontSize * 0.4;
+    const anchorX = targetPx ? (isLeft ? targetPx.x1 : targetPx.x2) : isLeft ? contentLeft : contentRight;
+    const anchorY = targetPx ? targetPx.y2 + fontSize * 0.2 : noteY + fontSize * 0.4;
     const comment = shorten(annotation.comment, annotation.placement === "bottom" ? 120 : 76);
 
     if (annotation.type === "positive_tick") {
@@ -238,14 +298,16 @@ function renderOverlaySvg(params: {
     }
 
     if (annotation.type === "underline") {
-      marks.push(underlinePath(contentLeft, anchorY, width * 0.28));
+      marks.push(underlinePath(targetPx ? targetPx.x1 : contentLeft, anchorY, targetPx ? Math.max(60, targetPx.x2 - targetPx.x1) : width * 0.28));
     } else if (annotation.type === "bracket" || annotation.type === "missing_demand") {
-      const bracketX = isLeft ? contentLeft - 20 : contentRight + 10;
-      marks.push(`<path d="M ${bracketX} ${anchorY - fontSize * 1.4} L ${bracketX} ${anchorY + fontSize * 1.2}" />`);
-      marks.push(`<path d="M ${bracketX} ${anchorY - fontSize * 1.4} L ${bracketX + (isLeft ? 18 : -18)} ${anchorY - fontSize * 1.4}" />`);
-      marks.push(`<path d="M ${bracketX} ${anchorY + fontSize * 1.2} L ${bracketX + (isLeft ? 18 : -18)} ${anchorY + fontSize * 1.2}" />`);
+      const bracketX = targetPx ? (isLeft ? targetPx.x1 - 18 : targetPx.x2 + 18) : isLeft ? contentLeft - 20 : contentRight + 10;
+      const bracketTop = targetPx ? targetPx.y1 - 4 : anchorY - fontSize * 1.4;
+      const bracketBottom = targetPx ? targetPx.y2 + 8 : anchorY + fontSize * 1.2;
+      marks.push(`<path d="M ${bracketX} ${bracketTop} L ${bracketX} ${bracketBottom}" />`);
+      marks.push(`<path d="M ${bracketX} ${bracketTop} L ${bracketX + (isLeft ? 18 : -18)} ${bracketTop}" />`);
+      marks.push(`<path d="M ${bracketX} ${bracketBottom} L ${bracketX + (isLeft ? 18 : -18)} ${bracketBottom}" />`);
     } else {
-      marks.push(underlinePath(contentLeft + (index % 4) * width * 0.08, anchorY, width * 0.18));
+      marks.push(underlinePath(targetPx ? targetPx.x1 : contentLeft + (index % 4) * width * 0.08, anchorY, targetPx ? Math.max(60, targetPx.x2 - targetPx.x1) : width * 0.18));
     }
 
     marks.push(arrowPath(isLeft ? noteX + width * 0.1 : noteX - 10, noteY + fontSize * 0.3, anchorX, anchorY));
@@ -297,6 +359,7 @@ export async function generateCheckedCopy(params: {
   originalBuffer: Buffer;
   mimeType: string;
   annotationPlan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan;
+  layout?: DocumentPageLayout | null;
 }): Promise<CheckedCopyResult> {
   const startedAt = Date.now();
   const pageNumber = params.pageNumber || 1;
@@ -313,6 +376,7 @@ export async function generateCheckedCopy(params: {
       annotationPlan: params.annotationPlan,
       pageNumber,
       totalPages,
+      layout: params.layout,
     });
 
     const storagePath = `${params.attemptId}/page_${pageNumber}_${Date.now()}_checked.svg`;
