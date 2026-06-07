@@ -463,10 +463,6 @@ function renderOverlaySvg(params: {
   marginComments.forEach((annotation, index) => {
     const targetBox = findTargetBox(annotation, params.layout, zones, width, height);
     const targetPx = targetBox ? boxToPixels(targetBox, width, height) : null;
-    if (hasLayoutLines && !targetBox && annotation.targetText) {
-      deferredComments.push(annotation.comment);
-      return;
-    }
 
     const side = commentLane(annotation, index, zones);
     const lane = side === "left" ? zones.leftMargin : zones.rightMargin;
