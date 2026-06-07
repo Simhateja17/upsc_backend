@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { dailyMcqRepo } from "../repositories/prisma-daily-mcq.repository";
 import { isValidSubject, normalizeSubject } from "../constants/subjects";
+import { getSyntheticDailyMcqAttemptCount } from "../services/communityMetrics.service";
 
 const DAILY_MCQ_QUESTION_COUNT = 10;
 
@@ -46,8 +47,9 @@ export const getTodayMCQ = async (req: Request, res: Response, next: NextFunctio
     const attempt = await dailyMcqRepo.checkUserAttempt(req.user!.id, mcq.id);
     const attempted = !!attempt?.completedAt;
     const { id, title, topic, tags, questionCount, timeLimit, totalMarks } = mcq;
+    const attemptedCount = getSyntheticDailyMcqAttemptCount(await dailyMcqRepo.countTotalAttempts(mcq.id));
 
-    res.json({ status: "success", data: { id, title, topic, tags, questionCount, timeLimit, totalMarks, attempted } });
+    res.json({ status: "success", data: { id, title, topic, tags, questionCount, timeLimit, totalMarks, attempted, attemptedCount } });
   } catch (error) {
     next(error);
   }
@@ -222,6 +224,30 @@ export const getTodayRecommendations = async (req: Request, res: Response, next:
     }
 
     res.json({ status: "success", data: { recommendations } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getHistory = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 30);
+
+    const attempts = await dailyMcqRepo.findUserHistory(userId, limit);
+    const history = attempts.map((attempt: any) => ({
+      attemptId: attempt.id,
+      date: attempt.dailyMcq.date,
+      title: attempt.dailyMcq.title,
+      topic: attempt.dailyMcq.topic,
+      score: attempt.score,
+      totalMarks: attempt.totalMarks,
+      correctCount: attempt.correctCount,
+      questionCount: attempt.dailyMcq.questionCount,
+      accuracy: attempt.accuracy,
+    }));
+
+    res.json({ status: "success", data: { attempts: history } });
   } catch (error) {
     next(error);
   }

@@ -7,33 +7,168 @@ function param(req: Request, key: string): string {
   return Array.isArray(v) ? v[0] : (v ?? "");
 }
 
+function mapItem(item: {
+  id: string;
+  questionText: string;
+  answer: string;
+  subject: string;
+  topic: string | null;
+  nextReviewAt: Date;
+  interval: number;
+  easeFactor: number;
+  repetitions: number;
+  status: string;
+}) {
+  return {
+    id: item.id,
+    question: item.questionText,
+    answer: item.answer,
+    subject: item.subject,
+    topic: item.topic ?? null,
+    dueDate: item.nextReviewAt.toISOString(),
+    interval: item.interval,
+    easeFactor: item.easeFactor,
+    repetitions: item.repetitions,
+    status: item.status,
+  };
+}
+
+function applySM2(
+  repetitions: number,
+  easeFactor: number,
+  interval: number,
+  rating: string
+): { repetitions: number; easeFactor: number; interval: number } {
+  const qualityMap: Record<string, number> = { forgot: 0, hard: 1, good: 2, easy: 3 };
+  const quality = qualityMap[rating] ?? 2;
+
+  let newRepetitions: number;
+  let newInterval: number;
+
+  if (quality < 2) {
+    newRepetitions = 0;
+    newInterval = 1;
+  } else {
+    if (repetitions === 0) {
+      newInterval = 1;
+    } else if (repetitions === 1) {
+      newInterval = 6;
+    } else {
+      newInterval = Math.round(interval * easeFactor);
+    }
+    newRepetitions = repetitions + 1;
+  }
+
+  let newEaseFactor = easeFactor + 0.1 - (3 - quality) * (0.08 + (3 - quality) * 0.02);
+  newEaseFactor = Math.max(1.3, newEaseFactor);
+
+  return { repetitions: newRepetitions, easeFactor: newEaseFactor, interval: newInterval };
+}
+
+/**
+ * GET /api/spaced-repetition/seeds
+ * Returns user's own items grouped as overdue / dueToday / scheduled + streak
+ */
+export const getSeeds = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    const allItems = await prisma.spacedRepItem.findMany({
+      where: { userId },
+      orderBy: { nextReviewAt: "asc" },
+    });
+
+    const overdue = allItems.filter((i) => i.nextReviewAt < todayStart).map(mapItem);
+    const dueToday = allItems
+      .filter((i) => i.nextReviewAt >= todayStart && i.nextReviewAt < tomorrowStart)
+      .map(mapItem);
+    const scheduled = allItems.filter((i) => i.nextReviewAt >= tomorrowStart).map(mapItem);
+
+    // Streak: consecutive days with at least one review ending at today or yesterday
+    const reviewedItems = allItems.filter((i) => i.lastReviewedAt != null);
+    const reviewDateKeys = new Set(
+      reviewedItems.map((i) => {
+        const d = i.lastReviewedAt!;
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      })
+    );
+
+    let streak = 0;
+    let checkDate = new Date(todayStart);
+    const todayKey = `${todayStart.getFullYear()}-${todayStart.getMonth()}-${todayStart.getDate()}`;
+    if (!reviewDateKeys.has(todayKey)) {
+      // Start from yesterday if not reviewed today
+      checkDate = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+    }
+    for (let i = 0; i < 365; i++) {
+      const key = `${checkDate.getFullYear()}-${checkDate.getMonth()}-${checkDate.getDate()}`;
+      if (!reviewDateKeys.has(key)) break;
+      streak++;
+      checkDate = new Date(checkDate.getTime() - 24 * 60 * 60 * 1000);
+    }
+
+    res.json({ status: "success", data: { overdue, dueToday, scheduled, streak } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/spaced-repetition/subjects
+ * Returns per-subject card counts and due counts for the current user
+ */
+export const getSubjectSummaries = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const now = new Date();
+    const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+    const items = await prisma.spacedRepItem.findMany({
+      where: { userId },
+      select: { subject: true, nextReviewAt: true },
+    });
+
+    const subjectMap: Record<string, { total: number; due: number }> = {};
+    for (const item of items) {
+      if (!subjectMap[item.subject]) subjectMap[item.subject] = { total: 0, due: 0 };
+      subjectMap[item.subject].total++;
+      if (item.nextReviewAt < tomorrowStart) subjectMap[item.subject].due++;
+    }
+
+    const data = Object.entries(subjectMap).map(([subject, { total, due }]) => ({
+      subject,
+      totalCards: total,
+      dueCount: due,
+    }));
+
+    res.json({ status: "success", data });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * GET /api/spaced-repetition
  */
-export const getItems = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const getItems = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const rawSourceType = req.query.sourceType;
-    const sourceType =
-      Array.isArray(rawSourceType)
-        ? String(rawSourceType[0])
-        : typeof rawSourceType === "string"
-        ? rawSourceType
-        : undefined;
+    const rawSubject = req.query.subject;
+    const subject =
+      Array.isArray(rawSubject) ? String(rawSubject[0]) : typeof rawSubject === "string" ? rawSubject : undefined;
 
-    const where: { userId: string; sourceType?: string } = { userId };
-    if (sourceType) where.sourceType = sourceType;
+    const where: { userId: string; subject?: string } = { userId };
+    if (subject) where.subject = subject;
 
-    const items = (await prisma.spacedRepItem.findMany({
+    const items = await prisma.spacedRepItem.findMany({
       where,
       orderBy: { nextReviewAt: "asc" },
-    })).filter((item) => isValidSubject(item.subject));
+    });
 
-    res.json({ status: "success", data: items });
+    res.json({ status: "success", data: items.map(mapItem) });
   } catch (error) {
     next(error);
   }
@@ -42,44 +177,43 @@ export const getItems = async (
 /**
  * POST /api/spaced-repetition
  */
-export const addItem = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const addItem = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { questionText, source, sourceType, subject, scheduleDay, remindEnabled } = req.body;
+    const { question, answer, subject, topic, scheduleDay } = req.body;
 
-    if (!questionText || !subject) {
-      res.status(400).json({ status: "error", message: "questionText and subject are required" });
+    if (!question || !subject) {
+      res.status(400).json({ status: "error", message: "question and subject are required" });
       return;
     }
 
     const normalizedSubject = normalizeSubject(subject);
     if (!isValidSubject(normalizedSubject)) {
-      res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+      res.status(400).json({
+        status: "error",
+        message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology`,
+      });
       return;
     }
 
-    const days = typeof scheduleDay === "number" ? scheduleDay : 3;
+    const days = typeof scheduleDay === "number" ? scheduleDay : 1;
     const nextReviewAt = new Date();
     nextReviewAt.setDate(nextReviewAt.getDate() + days);
 
     const item = await prisma.spacedRepItem.create({
       data: {
         userId,
-        questionText,
-        source: source || "Custom",
-        sourceType: sourceType || "custom",
+        questionText: question,
+        answer: answer || "",
         subject: normalizedSubject,
-        scheduleDay: days,
-        remindEnabled: Boolean(remindEnabled),
+        topic: topic || null,
+        interval: days,
         nextReviewAt,
+        status: "new",
       },
     });
 
-    res.status(201).json({ status: "success", data: item });
+    res.status(201).json({ status: "success", data: mapItem(item) });
   } catch (error) {
     next(error);
   }
@@ -87,16 +221,13 @@ export const addItem = async (
 
 /**
  * PATCH /api/spaced-repetition/:id
+ * Accepts { rating } for SM-2 update, or { scheduleDay, remindEnabled, addedToFlashcard } for legacy update
  */
-export const updateItem = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const updateItem = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
     const id = param(req, "id");
-    const { scheduleDay, remindEnabled, addedToFlashcard } = req.body;
+    const { rating, scheduleDay, remindEnabled, addedToFlashcard } = req.body;
 
     const existing = await prisma.spacedRepItem.findFirst({ where: { id, userId } });
     if (!existing) {
@@ -104,25 +235,70 @@ export const updateItem = async (
       return;
     }
 
-    const updateData: {
-      scheduleDay?: number;
-      nextReviewAt?: Date;
-      remindEnabled?: boolean;
-      addedToFlashcard?: boolean;
-    } = {};
+    if (rating) {
+      const { repetitions, easeFactor, interval } = applySM2(
+        existing.repetitions,
+        existing.easeFactor,
+        existing.interval,
+        rating
+      );
 
-    if (typeof scheduleDay === "number") {
-      updateData.scheduleDay = scheduleDay;
       const nextReviewAt = new Date();
-      nextReviewAt.setDate(nextReviewAt.getDate() + scheduleDay);
-      updateData.nextReviewAt = nextReviewAt;
+      nextReviewAt.setDate(nextReviewAt.getDate() + interval);
+
+      const qualityMap: Record<string, number> = { forgot: 0, hard: 1, good: 2, easy: 3 };
+      const quality = qualityMap[rating] ?? 2;
+      const status = quality < 2 ? "review" : repetitions >= 2 ? "review" : "learning";
+
+      const updated = await prisma.spacedRepItem.update({
+        where: { id },
+        data: { repetitions, easeFactor, interval, nextReviewAt, status, lastReviewedAt: new Date() },
+      });
+
+      res.json({ status: "success", data: mapItem(updated) });
+    } else {
+      const updateData: {
+        scheduleDay?: number;
+        interval?: number;
+        nextReviewAt?: Date;
+        remindEnabled?: boolean;
+        addedToFlashcard?: boolean;
+      } = {};
+
+      if (typeof scheduleDay === "number") {
+        updateData.scheduleDay = scheduleDay;
+        updateData.interval = scheduleDay;
+        const nextReviewAt = new Date();
+        nextReviewAt.setDate(nextReviewAt.getDate() + scheduleDay);
+        updateData.nextReviewAt = nextReviewAt;
+      }
+      if (remindEnabled !== undefined) updateData.remindEnabled = Boolean(remindEnabled);
+      if (addedToFlashcard !== undefined) updateData.addedToFlashcard = Boolean(addedToFlashcard);
+
+      const updated = await prisma.spacedRepItem.update({ where: { id }, data: updateData });
+      res.json({ status: "success", data: mapItem(updated) });
     }
-    if (remindEnabled !== undefined) updateData.remindEnabled = Boolean(remindEnabled);
-    if (addedToFlashcard !== undefined) updateData.addedToFlashcard = Boolean(addedToFlashcard);
+  } catch (error) {
+    next(error);
+  }
+};
 
-    const updated = await prisma.spacedRepItem.update({ where: { id }, data: updateData });
+/**
+ * DELETE /api/spaced-repetition/:id
+ */
+export const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const id = param(req, "id");
 
-    res.json({ status: "success", data: updated });
+    const existing = await prisma.spacedRepItem.findFirst({ where: { id, userId } });
+    if (!existing) {
+      res.status(404).json({ status: "error", message: "Item not found" });
+      return;
+    }
+
+    await prisma.spacedRepItem.delete({ where: { id } });
+    res.json({ status: "success", message: "Item deleted" });
   } catch (error) {
     next(error);
   }
@@ -136,10 +312,12 @@ export const updateItem = async (
 export const adminGetSeeds = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const subject = req.query.subject as string | undefined;
-    const seeds = (await prisma.spacedRepSeed.findMany({
-      where: subject ? { subject } : {},
-      orderBy: { createdAt: "asc" },
-    })).filter((s) => isValidSubject(s.subject));
+    const seeds = (
+      await prisma.spacedRepSeed.findMany({
+        where: subject ? { subject } : {},
+        orderBy: { createdAt: "asc" },
+      })
+    ).filter((s) => isValidSubject(s.subject));
     res.json({ status: "success", data: seeds });
   } catch (error) {
     next(error);
@@ -158,7 +336,10 @@ export const adminCreateSeed = async (req: Request, res: Response, next: NextFun
     }
     const normalized = normalizeSubject(subject);
     if (!isValidSubject(normalized)) {
-      res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+      res.status(400).json({
+        status: "error",
+        message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology`,
+      });
       return;
     }
     const seed = await prisma.spacedRepSeed.create({
@@ -177,19 +358,23 @@ export const adminUpdateSeed = async (req: Request, res: Response, next: NextFun
   try {
     const id = param(req, "id");
     const { subject, topic, questionText, difficulty } = req.body;
-    const data: any = { topic, questionText, difficulty };
+    const data: { topic?: string; questionText?: string; difficulty?: string; subject?: string } = {
+      topic,
+      questionText,
+      difficulty,
+    };
     if (subject !== undefined) {
       const normalized = normalizeSubject(subject);
       if (!isValidSubject(normalized)) {
-        res.status(400).json({ status: "error", message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology` });
+        res.status(400).json({
+          status: "error",
+          message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology`,
+        });
         return;
       }
       data.subject = normalized;
     }
-    const seed = await prisma.spacedRepSeed.update({
-      where: { id },
-      data,
-    });
+    const seed = await prisma.spacedRepSeed.update({ where: { id }, data });
     res.json({ status: "success", data: seed });
   } catch (error) {
     next(error);
@@ -204,48 +389,6 @@ export const adminDeleteSeed = async (req: Request, res: Response, next: NextFun
     const id = param(req, "id");
     await prisma.spacedRepSeed.delete({ where: { id } });
     res.json({ status: "success", message: "Seed deleted" });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/spaced-repetition/seeds  (user-facing)
- */
-export const getSeeds = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const subject = req.query.subject as string | undefined;
-    const seeds = (await prisma.spacedRepSeed.findMany({
-      where: subject ? { subject } : {},
-      orderBy: { createdAt: "asc" },
-    })).filter((s) => isValidSubject(s.subject));
-    res.json({ status: "success", data: seeds });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * DELETE /api/spaced-repetition/:id
- */
-export const deleteItem = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const userId = req.user!.id;
-    const id = param(req, "id");
-
-    const existing = await prisma.spacedRepItem.findFirst({ where: { id, userId } });
-    if (!existing) {
-      res.status(404).json({ status: "error", message: "Item not found" });
-      return;
-    }
-
-    await prisma.spacedRepItem.delete({ where: { id } });
-
-    res.json({ status: "success", message: "Item deleted" });
   } catch (error) {
     next(error);
   }
