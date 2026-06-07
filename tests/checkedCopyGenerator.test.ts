@@ -122,4 +122,121 @@ describe("generateCheckedCopy", () => {
     expect(uploadedSvg).toContain("Too short");
     expect(uploadedSvg).toMatch(/x="7\d\d/);
   });
+
+  it("does not duplicate a single unnumbered v2 page plan across multiple rendered pages", async () => {
+    await generateCheckedCopy({
+      attemptId: "attempt-3",
+      pageNumber: 2,
+      totalPages: 2,
+      originalBuffer: pngBuffer(1000, 1400),
+      mimeType: "image/png",
+      annotationPlan: {
+        version: 2,
+        scoreText: "4/15",
+        pagePlans: [
+          {
+            marginComments: [
+              {
+                targetText: "Simla Agreement",
+                severity: "major",
+                comment: "This page-one comment must not be repeated on page two.",
+                placementIntent: "right_margin",
+              },
+            ],
+            bottomComment: "Final summary belongs to the last page only.",
+          },
+        ],
+      },
+      layout: {
+        pageNumber: 2,
+        width: 1000,
+        height: 1400,
+        lines: [
+          { text: "Lahore Declaration - Vajpayee wanted to make borders irrelevant", box: { x1: 0.18, y1: 0.16, x2: 0.72, y2: 0.19 } },
+        ],
+      },
+    });
+
+    expect(uploadedSvg).not.toContain("page-one comment");
+    expect(uploadedSvg).not.toContain("Final summary");
+  });
+
+  it("keeps dense examiner markup including light comments and circles", async () => {
+    const lines = Array.from({ length: 18 }, (_, index) => ({
+      text: `answer line ${index + 1} with relevant content`,
+      box: { x1: 0.18, y1: 0.3 + index * 0.025, x2: 0.72, y2: 0.315 + index * 0.025 },
+    }));
+    await generateCheckedCopy({
+      attemptId: "attempt-4",
+      pageNumber: 1,
+      totalPages: 1,
+      originalBuffer: pngBuffer(1000, 1400),
+      mimeType: "image/png",
+      annotationPlan: {
+        version: 2,
+        scoreText: "6/15",
+        pagePlans: [
+          {
+            pageNumber: 1,
+            visualMarks: [
+              ...lines.slice(0, 12).map((line) => ({
+                type: "positive_tick" as const,
+                targetText: line.text,
+                intent: "correct/relevant line",
+              })),
+              { type: "circle", targetText: "answer line 13", intent: "weak phrase" },
+            ],
+            marginComments: [
+              {
+                targetText: "answer line 2",
+                severity: "major",
+                comment: "Detailed markup one explains the missing demand and names the exact evidence the student should add.",
+                placementIntent: "right_margin",
+              },
+              {
+                targetText: "answer line 6",
+                severity: "major",
+                comment: "Detailed markup two explains why the point is incomplete and how to connect it to the directive.",
+                placementIntent: "right_margin",
+              },
+              {
+                targetText: "answer line 10",
+                severity: "major",
+                comment: "Detailed markup three gives a concrete value addition and prevents the answer from staying generic.",
+                placementIntent: "left_margin",
+              },
+              {
+                targetText: "answer line 13",
+                severity: "minor",
+                comment: "Factually incorrect.",
+                placementIntent: "right_margin",
+              },
+              {
+                targetText: "answer line 15",
+                severity: "minor",
+                comment: "Needs example.",
+                placementIntent: "left_margin",
+              },
+              {
+                targetText: "answer line 17",
+                severity: "major",
+                comment: "Detailed markup four should still render on dense pages instead of being cut by a low cap.",
+                placementIntent: "right_margin",
+              },
+            ],
+          },
+        ],
+      },
+      layout: {
+        pageNumber: 1,
+        width: 1000,
+        height: 1400,
+        lines,
+      },
+    });
+
+    expect(uploadedSvg).toContain("Detailed markup four");
+    expect(uploadedSvg).toContain("Factually incorrect.");
+    expect(uploadedSvg).toContain("<ellipse");
+  });
 });

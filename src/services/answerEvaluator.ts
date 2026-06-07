@@ -5,7 +5,7 @@ import prisma from "../config/database";
 import { buildTopperContext, retrieveTopperMatches } from "./topperRag.service";
 import { CheckedCopyAnnotationPlan, EvaluatorCheckedCopyPlan, planCheckedCopyAnnotations } from "./checkedCopyPlanner";
 import { generateCheckedCopy } from "./checkedCopyGenerator";
-import { transcribeStudentAnswerFromUpload } from "./studentAnswerTranscriber";
+import { transcribeStudentAnswerFromUpload, TranscribedAnswerPage } from "./studentAnswerTranscriber";
 import { analyzeDocumentPageLayout, DocumentPageLayout } from "./documentLayout.service";
 
 function evalElapsed(startedAt: number) {
@@ -78,10 +78,22 @@ async function runAzureEvaluation(
   answerText: string,
   question: QuestionContext,
   uploadTranscriptionNote: boolean,
-  topperContext: string
+  topperContext: string,
+  answerPages?: TranscribedAnswerPage[]
 ): Promise<EvaluationResult> {
   const wordCount = answerText.trim().split(/\s+/).filter(Boolean).length;
   const expectedWords = question.marks >= 15 ? 250 : question.marks >= 10 ? 150 : 100;
+  const readablePages = (answerPages || [])
+    .filter((page) => page.studentAnswerText.trim().length > 0)
+    .sort((a, b) => a.pageNumber - b.pageNumber);
+  const pageSeparatedAnswer = readablePages.length > 0
+    ? readablePages
+        .map((page) => `[Page ${page.pageNumber}]\n${page.studentAnswerText.trim()}`)
+        .join("\n\n")
+    : `[Page 1]\n${answerText.trim()}`;
+  const pagePlanRule = readablePages.length > 1
+    ? `- The answer has ${readablePages.length} uploaded pages. Return one annotationPlan.pagePlans entry per page, with the exact "pageNumber" field. Page 1 comments must target Page 1 answer text only; Page 2 comments must target Page 2 answer text only. Never repeat the same margin comment across pages.`
+    : "- Return one annotationPlan.pagePlans entry for pageNumber 1.";
 
   const messages: BedrockMessage[] = [
     {
@@ -94,6 +106,11 @@ QUESTION (${question.paper} · ${question.subject} · ${question.marks} marks ·
 STUDENT'S ANSWER (${wordCount} words):
 ---
 ${answerText}
+---
+
+PAGE-SEPARATED ANSWER TEXT FOR CHECKED-COPY ANNOTATION:
+---
+${pageSeparatedAnswer}
 ---
 
 RAG-CALIBRATION FROM CHECKED TOPPER COPIES:
@@ -111,11 +128,16 @@ ${uploadTranscriptionNote ? "NOTE: This text was transcribed from uploaded handw
 - NEVER give pity marks. A blank or one-sentence answer should not get more than 1/${question.marks}.
 - RAG calibration is binding: treat retrieved checked topper/evaluator copies as scoring anchors, not as automatic marks. If a retrieved answer scored 7/15, award 7/15 only when the student's answer is genuinely at that same standard. If the student's answer is weaker than the retrieved 7/15 answer in demand coverage, specificity, evidence, structure, or balance, award less. Do not award more than the best relevant retrieved example unless the student's answer is clearly and specifically superior, and explain that exact superiority in detailedFeedback. Generic polish is not enough.
 - Build annotationPlan as semantic examiner intent, not exact coordinates. The SVG renderer will decide final placement.
-- Use annotationPlan version 2. Split lightweight visual marks from detailed margin comments.
-- visualMarks should be ticks, underlines, circles, or brackets on exact phrases from the student's answer. Do not target the printed question/header.
-- marginComments should be detailed teacher-style comments, 18-45 words each, naming the exact missing content/factual issue/value addition. Prefer 2-4 major comments per answer page.
+- Use annotationPlan version 2. Split detailed markups, light markups, and correctness ticks.
+- Density target: for roughly every 10 handwritten answer lines, create about 2 detailed markups, 1 light markup, and ticks/underlines for correctly written lines. For a normal full page, this usually means 3-5 marginComments and 6-14 visualMarks.
+- Detailed markups are marginComments with severity "major": 18-45 words each, specific like a teacher, naming the missing demand, factual problem, example/data to add, or why a claim is weak.
+- Light markups are marginComments with severity "minor": 2-10 words each, e.g. "Wrong name: Nawaz Sharif.", "Factually incorrect.", "Needs example.", "Vague drafting." Use these near factual mistakes or imprecise phrases.
+- visualMarks should be positive ticks, underlines, circles, or brackets on exact phrases from the student's answer. Add positive_tick for correct/relevant lines, underline/circle weak or wrong phrases, and bracket missed/incomplete sections. Do not target the printed question/header.
+- marginComments should name the exact missing content/factual issue/value addition. Do not repeat the same comment across pages.
 - If the student omits an entire demand, attach the marginComment to the closest existing answer section and explain the missing demand.
 - Include a final bottomComment that summarizes the scoring reason and the highest-priority fixes.
+${pagePlanRule}
+- Every visualMarks[].targetText and marginComments[].targetText must be copied from the same page's student answer text. Do not use targetText from another page.
 
 Rubric weights (for your internal reasoning; surface in metrics):
 1. Relevance to directive & question demand (30%)
@@ -150,6 +172,7 @@ Return ONLY a JSON object (no prose, no markdown fences):
     "scoreText": "same integer score/maxScore, e.g. \"4/${question.marks}\"",
     "pagePlans": [
       {
+        "pageNumber": 1,
         "visualMarks": [
           {
             "type": "positive_tick|underline|circle|bracket",
@@ -422,6 +445,7 @@ export async function evaluateAnswerGeneric(params: {
     let viaUploadTranscription = false;
     let originalUpload: { buffer: Buffer; contentType: string } | null = null;
     let transcriptionDiagnostics: Record<string, unknown> | null = null;
+    let transcriptionPages: TranscribedAnswerPage[] | undefined;
 
     // Handwritten/upload path: transcribe the file with Azure vision, then reuse the text path.
     if (!textToGrade && fileUrl) {
@@ -472,6 +496,7 @@ export async function evaluateAnswerGeneric(params: {
         warnings: transcription.warnings,
         confidence: transcription.confidence,
       };
+      transcriptionPages = transcription.pages;
 
       if (transcribedAnswer.length < 20) {
         console.warn("[eval] upload transcription too short; completing as unreadable", {
@@ -606,7 +631,7 @@ export async function evaluateAnswerGeneric(params: {
         topperContextChars: topperContext.length,
         viaUploadTranscription,
       });
-      result = await runAzureEvaluation(textToGrade, question, viaUploadTranscription, topperContext);
+      result = await runAzureEvaluation(textToGrade, question, viaUploadTranscription, topperContext, transcriptionPages);
       console.log("[eval] Azure evaluator completed", {
         attemptId,
         elapsed: evalElapsed(gradingStartedAt),
@@ -616,7 +641,7 @@ export async function evaluateAnswerGeneric(params: {
         weaknesses: result.weaknesses?.length || 0,
         improvements: result.improvements?.length || 0,
         suggestions: result.suggestions?.length || 0,
-        annotationPlanItems: Array.isArray(result.annotationPlan) ? result.annotationPlan.length : 0,
+        annotationPlanItems: result.annotationPlan ? annotationPlanItemCount(result.annotationPlan) : 0,
       });
     }
 

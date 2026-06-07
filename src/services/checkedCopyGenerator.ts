@@ -132,8 +132,10 @@ function normalizePlan(
 ): PageRenderPlan {
   if (isV2Plan(plan)) {
     const explicitPage = plan.pagePlans.find((page) => page.pageNumber === pageNumber);
-    const sharedPage = plan.pagePlans.find((page) => page.pageNumber == null);
-    const page = explicitPage || sharedPage || { visualMarks: [], marginComments: [] };
+    const unnumberedPages = plan.pagePlans.filter((page) => page.pageNumber == null);
+    const orderedPage = unnumberedPages[pageNumber - 1];
+    const sharedSinglePage = totalPages === 1 ? unnumberedPages[0] : undefined;
+    const page = explicitPage || orderedPage || sharedSinglePage || { visualMarks: [], marginComments: [] };
     return {
       visualMarks: (page.visualMarks || []).map((mark) => ({
         type: mark.type,
@@ -412,8 +414,11 @@ function renderOverlaySvg(params: {
   const strokeWidth = Math.max(3, Math.round(width * 0.004));
 
   const hasLayoutLines = Boolean(params.layout?.lines.length);
-  const visualMarks = plan.visualMarks.filter((item) => item.type !== "score").slice(0, 10);
-  const marginComments = plan.marginComments.filter((item) => item.comment).slice(0, 5);
+  const answerLineCount = Math.max(1, (params.layout?.lines || []).filter((line) => isInsideAnswerZone(line.box, zones, width, height)).length || 10);
+  const visualLimit = Math.min(24, Math.max(10, Math.ceil(answerLineCount * 0.7)));
+  const commentLimit = Math.min(10, Math.max(5, Math.ceil(answerLineCount / 3.4)));
+  const visualMarks = plan.visualMarks.filter((item) => item.type !== "score").slice(0, visualLimit);
+  const marginComments = plan.marginComments.filter((item) => item.comment).slice(0, commentLimit);
 
   const marks: string[] = [];
   const usedCommentRects: PixelBox[] = [];
@@ -468,8 +473,9 @@ function renderOverlaySvg(params: {
     const lane = side === "left" ? zones.leftMargin : zones.rightMargin;
     const laneWidth = lane.x2 - lane.x1;
     const maxChars = Math.max(10, Math.floor(laneWidth / (smallFontSize * 0.56)));
-    const lines = wrapText(annotation.comment, maxChars, annotation.severity === "minor" ? 4 : 6);
-    const blockHeight = lines.length * smallFontSize * 1.12 + smallFontSize * 0.3;
+    const commentFontSize = annotation.severity === "minor" ? Math.max(13, Math.round(smallFontSize * 0.88)) : smallFontSize;
+    const lines = wrapText(annotation.comment, maxChars, annotation.severity === "minor" ? 2 : 6);
+    const blockHeight = lines.length * commentFontSize * 1.12 + commentFontSize * 0.3;
     const preferredY = targetPx ? Math.max(zones.answerTop, targetPx.y1 - smallFontSize * 0.5) : zones.answerTop + index * height * 0.12;
     const rect = placeInLane({
       lane,
@@ -485,7 +491,7 @@ function renderOverlaySvg(params: {
     }
 
     const textX = side === "left" ? rect.x1 : rect.x1 + 2;
-    const textY = rect.y1 + smallFontSize;
+    const textY = rect.y1 + commentFontSize;
     const anchorX = targetPx ? (side === "left" ? targetPx.x1 : targetPx.x2) : side === "left" ? zones.contentLeft : zones.contentRight;
     const anchorY = targetPx ? targetPx.y1 + (targetPx.y2 - targetPx.y1) * 0.55 : rect.y1 + blockHeight * 0.5;
     const fromX = side === "left" ? rect.x2 - 4 : rect.x1 + 2;
@@ -503,8 +509,8 @@ function renderOverlaySvg(params: {
         y: textY,
         text: annotation.comment,
         maxChars,
-        maxLines: annotation.severity === "minor" ? 4 : 6,
-        fontSize: smallFontSize,
+        maxLines: annotation.severity === "minor" ? 2 : 6,
+        fontSize: commentFontSize,
         rotate: side === "left" ? -1.8 : 1.2,
       })
     );
@@ -535,7 +541,7 @@ function renderOverlaySvg(params: {
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <image href="${imageHref}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none" />
   <g fill="none" stroke="${red}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" opacity="0.96">
-    ${marks.filter((mark) => mark.startsWith("<path")).join("\n    ")}
+    ${marks.filter((mark) => mark.startsWith("<path") || mark.startsWith("<ellipse")).join("\n    ")}
   </g>
   <g fill="${red}" stroke="none" font-family="'Comic Sans MS', 'Bradley Hand', 'Segoe Print', cursive" font-size="${fontSize}" font-weight="700" opacity="0.98">
     ${marks.filter((mark) => mark.startsWith("<text")).join("\n    ")}
