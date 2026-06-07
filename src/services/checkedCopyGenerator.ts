@@ -7,6 +7,54 @@ type CheckedCopyResult =
   | { status: "completed"; storagePath: string }
   | { status: "failed"; reason: string };
 
+function isFlux2Deployment(deployment: string): boolean {
+  return /^flux\.?2/i.test(deployment) || /flux-2/i.test(deployment);
+}
+
+function normalizeFluxModel(deployment: string): { model: string; path: string } {
+  const normalized = deployment.toLowerCase();
+  if (normalized.includes("flex")) return { model: "FLUX.2-flex", path: "flux-2-flex" };
+  return { model: "FLUX.2-pro", path: "flux-2-pro" };
+}
+
+function buildFluxProviderUrl(endpoint: string, modelPath: string): string {
+  const trimmed = endpoint.replace(/\/+$/, "");
+  if (/\/providers\/blackforestlabs\/v1\//.test(trimmed)) {
+    return trimmed.includes("?") ? trimmed : `${trimmed}?api-version=preview`;
+  }
+  return `${trimmed}/providers/blackforestlabs/v1/${modelPath}?api-version=preview`;
+}
+
+async function bufferFromImageResponse(payload: any): Promise<Buffer | null> {
+  const candidates = [
+    payload?.b64_json,
+    payload?.image,
+    payload?.image_base64,
+    payload?.data?.[0]?.b64_json,
+    payload?.data?.[0]?.image,
+    payload?.data?.[0]?.image_base64,
+    payload?.images?.[0]?.b64_json,
+    payload?.images?.[0]?.image,
+    payload?.images?.[0]?.image_base64,
+  ].filter(Boolean);
+
+  const base64 = candidates.find((value) => typeof value === "string" && !/^https?:\/\//i.test(value));
+  if (base64) return Buffer.from(String(base64).replace(/^data:image\/\w+;base64,/, ""), "base64");
+
+  const url = [
+    payload?.url,
+    payload?.data?.[0]?.url,
+    payload?.images?.[0]?.url,
+  ].find((value) => typeof value === "string" && /^https?:\/\//i.test(value));
+  if (!url) return null;
+
+  const fetched = await fetch(url);
+  if (!fetched.ok) {
+    throw new Error(`Failed to fetch generated image from URL: ${fetched.status}`);
+  }
+  return Buffer.from(await fetched.arrayBuffer());
+}
+
 function planForPage(
   plan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan,
   pageNumber: number
@@ -37,8 +85,14 @@ export async function generateCheckedCopy(params: {
   // gpt-image-2 requires a newer API version than the chat models
   const apiVersion = process.env.AZURE_OPENAI_IMAGE_API_VERSION || "2025-04-01-preview";
 
-  if (!endpoint || !apiKey) {
+  const fluxEndpoint = process.env.AZURE_FLUX_ENDPOINT || process.env.AZURE_OPENAI_IMAGE_ENDPOINT || endpoint;
+  const fluxApiKey = process.env.AZURE_FLUX_API_KEY || process.env.AZURE_OPENAI_IMAGE_API_KEY || apiKey;
+
+  if ((!endpoint || !apiKey) && !isFlux2Deployment(deployment)) {
     return { status: "failed", reason: "Azure OpenAI is not configured (AZURE_OPENAI_ENDPOINT / AZURE_OPENAI_API_KEY missing)" };
+  }
+  if (isFlux2Deployment(deployment) && (!fluxEndpoint || !fluxApiKey)) {
+    return { status: "failed", reason: "Azure FLUX is not configured (AZURE_FLUX_ENDPOINT / AZURE_FLUX_API_KEY missing)" };
   }
 
   const startedAt = Date.now();
@@ -76,37 +130,54 @@ Strict rules:
 Annotation plan JSON:
 ${JSON.stringify(annotationPlan, null, 2)}`;
 
-    const ai = new AzureOpenAI({ endpoint, apiKey, apiVersion, deployment });
-
-    const ext = params.mimeType.includes("jpeg") ? "jpg" : "png";
-    const imageFile = await toFile(params.originalBuffer, `page_${pageNumber}.${ext}`, { type: params.mimeType });
-
-    const response = await ai.images.edit({
-      model: deployment,
-      image: imageFile,
-      prompt,
-      n: 1,
-      size: "1024x1792",
-    } as any);
-
-    const item = response.data?.[0] as any;
     let generated: Buffer | null = null;
 
-    if (item?.b64_json) {
-      generated = Buffer.from(item.b64_json, "base64");
-    } else if (item?.url) {
-      const fetched = await fetch(item.url);
-      if (!fetched.ok) {
-        return { status: "failed", reason: `Failed to fetch generated image from URL: ${fetched.status}` };
+    if (isFlux2Deployment(deployment)) {
+      const flux = normalizeFluxModel(deployment);
+      const url = buildFluxProviderUrl(fluxEndpoint!, flux.path);
+      console.log("[checked-copy] Azure BFL FLUX request", {
+        attemptId: params.attemptId,
+        pageNumber,
+        url: url.replace(/\?.*$/, "?api-version=preview"),
+        model: flux.model,
+      });
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${fluxApiKey}`,
+        },
+        body: JSON.stringify({
+          model: flux.model,
+          prompt,
+          output_format: "png",
+          num_images: 1,
+          input_image: params.originalBuffer.toString("base64"),
+        }),
+      });
+      const text = await response.text();
+      if (!response.ok) {
+        throw new Error(`Azure FLUX provider request failed [${response.status}]: ${text.slice(0, 500)}`);
       }
-      generated = Buffer.from(await fetched.arrayBuffer());
+      generated = await bufferFromImageResponse(JSON.parse(text));
+    } else {
+      const ai = new AzureOpenAI({ endpoint: endpoint!, apiKey: apiKey!, apiVersion, deployment });
+      const ext = params.mimeType.includes("jpeg") ? "jpg" : "png";
+      const imageFile = await toFile(params.originalBuffer, `page_${pageNumber}.${ext}`, { type: params.mimeType });
+      const response = await ai.images.edit({
+        model: deployment,
+        image: imageFile,
+        prompt,
+        n: 1,
+        size: "1024x1792",
+      } as any);
+      generated = await bufferFromImageResponse(response);
     }
 
     if (!generated) {
       console.warn("[checked-copy] Azure returned no image data", {
         attemptId: params.attemptId,
         elapsed: `${Date.now() - startedAt}ms`,
-        item,
       });
       return { status: "failed", reason: "Azure image model returned no image data" };
     }
