@@ -129,7 +129,9 @@ function offsetBox(box: PixelBox, canvas: CanvasMetrics): PixelBox {
 }
 
 function wrapText(text: string, maxChars: number, maxLines = 5): string[] {
-  const words = shorten(text, maxChars * maxLines).split(/\s+/).filter(Boolean);
+  const normalized = text.replace(/\s+/g, " ").trim();
+  const source = Number.isFinite(maxLines) ? shorten(normalized, maxChars * maxLines) : normalized;
+  const words = source.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let current = "";
 
@@ -143,7 +145,7 @@ function wrapText(text: string, maxChars: number, maxLines = 5): string[] {
     }
   }
   if (current) lines.push(current);
-  return lines.slice(0, maxLines);
+  return Number.isFinite(maxLines) ? lines.slice(0, maxLines) : lines;
 }
 
 function normalizePlan(
@@ -504,18 +506,13 @@ function safeConnector(params: {
   maxLength: number;
 }): string {
   const pageEdge = params.side === "left" ? params.pageX : params.pageX + params.pageWidth;
-  const targetX = params.side === "left"
-    ? Math.max(params.anchorX, pageEdge + params.maxLength * 0.4)
-    : Math.min(params.anchorX, pageEdge - params.maxLength * 0.4);
-  const distance = Math.abs(params.fromX - targetX);
+  const distance = Math.abs(params.fromX - params.anchorX);
 
   if (distance <= params.maxLength) {
-    return leaderPath(params.fromX, params.fromY, targetX, params.anchorY);
+    return leaderPath(params.fromX, params.fromY, params.anchorX, params.anchorY);
   }
 
-  const shortEndX = params.side === "left"
-    ? params.fromX + params.maxLength * 0.55
-    : params.fromX - params.maxLength * 0.55;
+  const shortEndX = params.side === "left" ? pageEdge + 8 : pageEdge - 8;
   return leaderPath(params.fromX, params.fromY, shortEndX, params.anchorY);
 }
 
@@ -620,7 +617,7 @@ function renderOverlaySvg(params: {
     const laneWidth = lane.x2 - lane.x1;
     const maxChars = Math.max(10, Math.floor(laneWidth / (smallFontSize * 0.56)));
     const commentFontSize = annotation.severity === "minor" ? Math.max(13, Math.round(smallFontSize * 0.88)) : smallFontSize;
-    const maxLines = annotation.severity === "minor" ? 2 : 4;
+    const maxLines = Number.POSITIVE_INFINITY;
     const lines = wrapText(annotation.comment, maxChars, maxLines);
     const blockHeight = lines.length * commentFontSize * 1.12 + commentFontSize * 0.3;
     const preferredY = targetPx ? Math.max(zones.answerTop, targetPx.y1 - smallFontSize * 0.5) : zones.answerTop + index * height * 0.12;
@@ -653,7 +650,7 @@ function renderOverlaySvg(params: {
         side,
         pageX: canvas.pageX,
         pageWidth: canvas.pageWidth,
-        maxLength: Math.max(220, canvas.pageWidth * 0.28),
+        maxLength: Math.max(520, canvas.pageWidth * 0.72),
       }));
       if (annotation.type === "missing_demand") {
         marks.push(bracketPath(side === "left" ? targetPx.x1 - 12 : targetPx.x2 + 12, targetPx.y1 - 5, targetPx.y2 + 8, side === "left" ? "right" : "left"));
@@ -677,16 +674,19 @@ function renderOverlaySvg(params: {
   }
 
   if (deferredComments.length > 0) {
-    const bottomText = shorten(deferredComments.join(" "), 220);
+    const bottomText = deferredComments.join(" ").replace(/\s+/g, " ").trim();
+    const bottomMaxChars = Math.max(42, Math.floor((zones.bottom.x2 - zones.bottom.x1) / (smallFontSize * 0.54)));
+    const bottomLines = wrapText(bottomText, bottomMaxChars, Number.POSITIVE_INFINITY);
+    const bottomFontSize = bottomLines.length > 4 ? Math.max(13, Math.round(smallFontSize * 0.84)) : smallFontSize;
     const bottomY = Math.min(zones.bottom.y2 - smallFontSize * 2.2, zones.bottom.y1 + smallFontSize * 1.35);
     marks.push(
       textBlock({
         x: zones.bottom.x1,
         y: bottomY,
         text: bottomText,
-        maxChars: Math.max(42, Math.floor((zones.bottom.x2 - zones.bottom.x1) / (smallFontSize * 0.54))),
-        maxLines: 3,
-        fontSize: smallFontSize,
+        maxChars: bottomMaxChars,
+        maxLines: Number.POSITIVE_INFINITY,
+        fontSize: bottomFontSize,
         rotate: -1,
       })
     );

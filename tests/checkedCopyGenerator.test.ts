@@ -282,7 +282,7 @@ describe("generateCheckedCopy", () => {
     const connector = [...uploadedSvg.matchAll(/<path d="M ([\d.]+) ([\d.]+) C ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+)" \/>/g)]
       .find((match) => Number(match[1]) > 1220);
     expect(connector).toBeTruthy();
-    expect(Number(connector![7])).toBeGreaterThan(1050);
+    expect(Number(connector![7])).toBeLessThan(1000);
   });
 
   it("renders one non-overlapping tick per semantic point in the left tick column", async () => {
@@ -323,5 +323,51 @@ describe("generateCheckedCopy", () => {
     const yValues = paths.map((match) => Number(match[2]));
     const uniqueRoundedY = new Set(yValues.map((y) => Math.round(y)));
     expect(uniqueRoundedY.size).toBe(3);
+  });
+
+  it("does not truncate long margin or bottom comments", async () => {
+    await generateCheckedCopy({
+      attemptId: "attempt-7",
+      originalBuffer: pngBuffer(1000, 1400),
+      mimeType: "image/png",
+      annotationPlan: {
+        version: 2,
+        pagePlans: [
+          {
+            pageNumber: 1,
+            marginComments: [
+              {
+                targetText: "Simla Agreement",
+                severity: "major",
+                comment: "This is too sweeping. You needed historical context after the 1971 war and the key milestone value: bilateralism, normalization, and especially the durability of the framework.",
+                placementIntent: "right_margin",
+              },
+              {
+                targetText: "Lahore Declaration",
+                severity: "minor",
+                comment: "Point is underdeveloped. Write the precise provision on nuclear confidence building measures.",
+                placementIntent: "left_margin",
+              },
+            ],
+            bottomComment: "Relevant but incomplete. Add historical context, legal precision, current relevance, and a sharper judgement separating diplomatic continuity from political symbolism.",
+          },
+        ],
+      },
+      layout: {
+        pageNumber: 1,
+        width: 1000,
+        height: 1400,
+        lines: [
+          { text: "Simla Agreement created a framework for bilateral dispute resolution", box: { x1: 0.18, y1: 0.34, x2: 0.72, y2: 0.37 } },
+          { text: "Lahore Declaration added confidence building", box: { x1: 0.18, y1: 0.56, x2: 0.72, y2: 0.59 } },
+        ],
+      },
+    });
+
+    expect(uploadedSvg).toContain("durability of the");
+    expect(uploadedSvg).toContain("framework.");
+    expect(uploadedSvg).toContain("nuclear confidence");
+    expect(uploadedSvg).toContain("building measures.");
+    expect(uploadedSvg).toContain("political symbolism");
   });
 });
