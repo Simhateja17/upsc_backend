@@ -276,6 +276,10 @@ function arrowPath(x1: number, y1: number, x2: number, y2: number): string {
   <path d="M ${x2 - head} ${y2 - head / 2} L ${x2} ${y2} L ${x2 - head} ${y2 + head / 2}" />`;
 }
 
+function leaderPath(x1: number, y1: number, x2: number, y2: number): string {
+  return `<path d="M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}" />`;
+}
+
 function normalizeForMatch(text: string): string {
   return text
     .toLowerCase()
@@ -506,13 +510,13 @@ function safeConnector(params: {
   const distance = Math.abs(params.fromX - targetX);
 
   if (distance <= params.maxLength) {
-    return arrowPath(params.fromX, params.fromY, targetX, params.anchorY);
+    return leaderPath(params.fromX, params.fromY, targetX, params.anchorY);
   }
 
   const shortEndX = params.side === "left"
     ? params.fromX + params.maxLength * 0.55
     : params.fromX - params.maxLength * 0.55;
-  return `<path d="M ${params.fromX} ${params.fromY} C ${(params.fromX + shortEndX) / 2} ${params.fromY}, ${(params.fromX + shortEndX) / 2} ${params.anchorY}, ${shortEndX} ${params.anchorY}" />`;
+  return leaderPath(params.fromX, params.fromY, shortEndX, params.anchorY);
 }
 
 function renderOverlaySvg(params: {
@@ -602,10 +606,7 @@ function renderOverlaySvg(params: {
       marks.push(`<ellipse cx="${cx}" cy="${cy}" rx="${Math.max(28, (x2 - x1) / 2 + 10)}" ry="${smallFontSize * 1.15}" transform="rotate(-2 ${cx} ${cy})" />`);
       return;
     }
-    if (annotation.type === "bracket") {
-      marks.push(bracketPath(x2 + 12, Math.max(zones.answerTop, row - smallFontSize * 2), row + smallFontSize * 0.4, "right"));
-      return;
-    }
+    if (annotation.type === "bracket") return;
     marks.push(underlinePath(x1, row, Math.max(60, x2 - x1)));
   });
 
@@ -652,7 +653,7 @@ function renderOverlaySvg(params: {
         side,
         pageX: canvas.pageX,
         pageWidth: canvas.pageWidth,
-        maxLength: Math.max(110, canvas.pageWidth * 0.16),
+        maxLength: Math.max(220, canvas.pageWidth * 0.28),
       }));
       if (annotation.type === "missing_demand") {
         marks.push(bracketPath(side === "left" ? targetPx.x1 - 12 : targetPx.x2 + 12, targetPx.y1 - 5, targetPx.y2 + 8, side === "left" ? "right" : "left"));
@@ -678,7 +679,6 @@ function renderOverlaySvg(params: {
   if (deferredComments.length > 0) {
     const bottomText = shorten(deferredComments.join(" "), 220);
     const bottomY = Math.min(zones.bottom.y2 - smallFontSize * 2.2, zones.bottom.y1 + smallFontSize * 1.35);
-    marks.push(`<path d="M ${zones.bottom.x1} ${bottomY - smallFontSize * 1.1} C ${zones.bottom.x1 + (zones.bottom.x2 - zones.bottom.x1) * 0.26} ${bottomY - smallFontSize * 1.8}, ${zones.bottom.x1 + (zones.bottom.x2 - zones.bottom.x1) * 0.62} ${bottomY - smallFontSize * 0.9}, ${zones.bottom.x2} ${bottomY - smallFontSize * 1.3}" />`);
     marks.push(
       textBlock({
         x: zones.bottom.x1,
