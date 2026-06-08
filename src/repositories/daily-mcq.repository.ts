@@ -15,4 +15,5 @@ export interface DailyMCQRepository {
   findAttemptWithResponses(userId: string, mcqId: string): Promise<any>;
   findLatestAttempt(userId: string): Promise<any>;
   findQuestionsByTopics(topics: string[], cutoff: Date, limit: number): Promise<any[]>;
+  findUserHistory(userId: string, limit: number): Promise<any[]>;
 }

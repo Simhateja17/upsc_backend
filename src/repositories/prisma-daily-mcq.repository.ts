@@ -134,6 +134,15 @@ export function createPrismaDailyMCQRepository(): DailyMCQRepository {
       });
     },
 
+    async findUserHistory(userId, limit) {
+      return prisma.mCQAttempt.findMany({
+        where: { userId, completedAt: { not: null } },
+        orderBy: { completedAt: "desc" },
+        take: limit,
+        include: { dailyMcq: { select: { title: true, topic: true, date: true, questionCount: true } } },
+      });
+    },
+
     async findQuestionsByTopics(topics, cutoff, limit) {
       return prisma.mCQQuestion.findMany({
         where: { category: { in: topics }, dailyMcq: { date: { gte: cutoff } } },

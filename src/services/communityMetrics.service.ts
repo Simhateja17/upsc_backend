@@ -223,3 +223,8 @@ export function getSyntheticDailyAnswerAttemptCount(realAttemptCount: number, no
   const rnd = seededRand(hashSeed(`${todayKey(now)}:${currentBucket(now)}:daily-answer-attempts`));
   return realAttemptCount + 18 + Math.floor(rnd() * 28);
 }
+
+export function getSyntheticDailyMcqAttemptCount(realAttemptCount: number, now = new Date()) {
+  const rnd = seededRand(hashSeed(`${todayKey(now)}:${currentBucket(now)}:daily-mcq-attempts`));
+  return realAttemptCount + 720 + Math.floor(rnd() * 180);
+}

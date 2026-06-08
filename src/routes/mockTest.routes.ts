@@ -18,6 +18,7 @@ import {
   submitMockTestMainsAnswer,
   getMockTestMainsEvaluationStatus,
   getMockTestMainsResults,
+  getMainsHistory,
 } from "../controllers/mockTestMains.controller";
 
 const router = Router();
@@ -25,6 +26,7 @@ const router = Router();
 router.get("/subjects", getSubjects);
 router.get("/config", getConfig);
 router.get("/platform-stats", getPlatformStats);
+router.get("/mains-history", authenticate, getMainsHistory);
 router.post("/generate", authenticate, aiLimiter, generateTest);
 router.get("/:testId/questions", authenticate, getTestQuestions);
 router.post("/:testId/submit", authenticate, submitTest);

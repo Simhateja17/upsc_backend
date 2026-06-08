@@ -265,6 +265,7 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
         improvements: attempt.evaluation.improvements,
         suggestions: attempt.evaluation.suggestions,
         detailedFeedback: attempt.evaluation.detailedFeedback,
+        metrics: attempt.evaluation.metrics,
         demandCoverage: attempt.evaluation.demandCoverage,
         sectionFeedback: attempt.evaluation.sectionFeedback,
         annotationPlan: attempt.evaluation.annotationPlan,
@@ -279,6 +280,45 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
         submittedAt: attempt.submittedAt,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/daily-answer/history
+ * Past mains attempts with their evaluation scores
+ */
+export const getHistory = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 30);
+
+    const attempts = await prisma.mainsAttempt.findMany({
+      where: { userId, submittedAt: { not: null } },
+      orderBy: { submittedAt: "desc" },
+      take: limit,
+      include: {
+        question: { select: { title: true, subject: true, paper: true, date: true } },
+        evaluation: { select: { score: true, maxScore: true, status: true } },
+      },
+    });
+
+    const history = attempts
+      .filter((attempt) => attempt.evaluation?.status === "completed")
+      .map((attempt) => ({
+        attemptId: attempt.id,
+        date: attempt.question.date,
+        title: attempt.question.title,
+        subject: attempt.question.subject,
+        paper: attempt.question.paper,
+        score: attempt.evaluation!.score,
+        maxScore: attempt.evaluation!.maxScore,
+        wordCount: attempt.wordCount,
+        submittedAt: attempt.submittedAt,
+      }));
+
+    res.json({ status: "success", data: { attempts: history } });
   } catch (error) {
     next(error);
   }

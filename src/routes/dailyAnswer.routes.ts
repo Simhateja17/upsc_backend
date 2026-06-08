@@ -9,6 +9,7 @@ import {
   uploadAnswer,
   getEvaluationStatus,
   getTodayResults,
+  getHistory,
 } from "../controllers/dailyAnswer.controller";
 
 const router = Router();
@@ -19,5 +20,6 @@ router.post("/today/submit-text", authenticate, submissionLimiter, submitTextAns
 router.post("/today/upload", authenticate, submissionLimiter, uploadSingle("file"), uploadAnswer);
 router.get("/today/evaluation-status", authenticate, getEvaluationStatus);
 router.get("/today/results", authenticate, getTodayResults);
+router.get("/history", authenticate, getHistory);
 
 export default router;
