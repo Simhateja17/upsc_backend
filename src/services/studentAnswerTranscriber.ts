@@ -93,6 +93,7 @@ async function fileToPageImages(fileBuffer: Buffer, mimeType: string): Promise<{
 export async function transcribeStudentAnswerFromUpload(params: {
   fileBuffer: Buffer;
   mimeType: string;
+  files?: Array<{ buffer: Buffer; mimeType: string }>;
   questionText: string;
   paper: string;
   subject: string;
@@ -118,7 +119,17 @@ export async function transcribeStudentAnswerFromUpload(params: {
     bytes: params.fileBuffer.length,
   });
 
-  const pageInput = await fileToPageImages(params.fileBuffer, params.mimeType);
+  const pageInput = params.files && params.files.length > 0
+    ? {
+        pages: params.files.map((file, index) => ({
+          pageNumber: index + 1,
+          buffer: file.buffer,
+          mimeType: file.mimeType,
+        })),
+        maxPages: Number(process.env.AZURE_OPENAI_OCR_MAX_PAGES || process.env.OCR_PDF_MAX_PAGES || 6),
+        truncated: false,
+      }
+    : await fileToPageImages(params.fileBuffer, params.mimeType);
   const pageImages = pageInput.pages;
   if (pageImages.length === 0) {
     throw new Error("No readable pages found in uploaded answer file");

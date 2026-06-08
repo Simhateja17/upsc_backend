@@ -126,28 +126,46 @@ export const submitPyqMainsAnswer = async (
     const answerText: string | undefined =
       typeof rawAnswer === "string" ? rawAnswer : undefined;
     let fileUrl: string | null = null;
+    const filesByField = (req.files || {}) as Record<string, Express.Multer.File[]>;
+    const uploadedFiles = [
+      ...(filesByField.file || []),
+      ...(filesByField.files || []),
+    ];
 
-    if (req.file) {
-      const fileName = buildStoragePath(userId, "pyq", `${Date.now()}_${req.file.originalname}`);
+    if (uploadedFiles.length > 0) {
+      if (uploadedFiles.length > 1 && uploadedFiles.some((file) => file.mimetype === "application/pdf")) {
+        return res.status(400).json({
+          status: "error",
+          message: "Upload either one PDF or multiple image pages, not multiple PDFs.",
+        });
+      }
+
+      const storedPaths: string[] = [];
+      for (const [index, file] of uploadedFiles.entries()) {
+        const fileName = buildStoragePath(userId, "pyq", `${Date.now()}_${String(index + 1).padStart(2, "0")}_${file.originalname}`);
       console.log("[PYQ Submit] Uploading answer file to storage", {
         requestId: req.id,
         questionId,
         fileName,
-        originalFileName: req.file.originalname,
-        mimeType: req.file.mimetype,
-        fileSize: req.file.size,
+          originalFileName: file.originalname,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+          pageIndex: index + 1,
       });
       await uploadFile(
         STORAGE_BUCKETS.ANSWER_UPLOADS,
         fileName,
-        req.file.buffer,
-        req.file.mimetype
+          file.buffer,
+          file.mimetype
       );
-      fileUrl = fileName;
+        storedPaths.push(fileName);
+      }
+      fileUrl = storedPaths.length === 1 ? storedPaths[0] : JSON.stringify(storedPaths);
       console.log("[PYQ Submit] Stored answer file", {
         requestId: req.id,
         questionId,
         fileUrl,
+        fileCount: storedPaths.length,
       });
     }
 

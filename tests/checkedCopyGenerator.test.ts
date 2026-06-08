@@ -71,7 +71,7 @@ describe("generateCheckedCopy", () => {
     expect(uploadedSvg).toContain("4/15");
     expect(uploadedSvg).toContain("Core Simla point");
     expect(uploadedSvg).toContain("printed question");
-    expect(uploadedSvg).toContain("area; this should");
+    expect(uploadedSvg).toContain("should fall back");
     expect(uploadedSvg).not.toContain('y="196"');
   });
 
@@ -120,7 +120,7 @@ describe("generateCheckedCopy", () => {
     expect(uploadedSvg).toContain("Add bus diplomacy");
     expect(uploadedSvg).toContain("Incorrect here");
     expect(uploadedSvg).toContain("Too short");
-    expect(uploadedSvg).toMatch(/x="7\d\d/);
+    expect(uploadedSvg).toMatch(/x="8\d\d/);
   });
 
   it("does not duplicate a single unnumbered v2 page plan across multiple rendered pages", async () => {
@@ -238,5 +238,84 @@ describe("generateCheckedCopy", () => {
     expect(uploadedSvg).toContain("Detailed markup four");
     expect(uploadedSvg).toContain("Factually incorrect.");
     expect(uploadedSvg).toContain("<ellipse");
+  });
+
+  it("expands the canvas while preserving the original page scale", async () => {
+    await generateCheckedCopy({
+      attemptId: "attempt-5",
+      originalBuffer: pngBuffer(1000, 1400),
+      mimeType: "image/png",
+      annotationPlan: {
+        version: 2,
+        scoreText: "7/15",
+        pagePlans: [
+          {
+            pageNumber: 1,
+            marginComments: [
+              {
+                targetText: "Enhanced Road Safety",
+                severity: "major",
+                comment: "Good point, but add a concrete India data point to make the significance measurable.",
+                placementIntent: "right_margin",
+              },
+            ],
+            bottomComment: "Covers significance but misses the challenges dimension and needs a crisp conclusion.",
+          },
+        ],
+      },
+      layout: {
+        pageNumber: 1,
+        width: 1000,
+        height: 1400,
+        lines: [
+          { text: "Enhanced Road Safety provides collision warnings", box: { x1: 0.18, y1: 0.45, x2: 0.72, y2: 0.48 } },
+        ],
+      },
+    });
+
+    expect(uploadedSvg).toContain('width="1355" height="1631"');
+    expect(uploadedSvg).toContain('x="55" y="35" width="1000" height="1400"');
+    expect(uploadedSvg).toContain("Good point");
+    expect(uploadedSvg).toContain("misses the challenges");
+  });
+
+  it("renders one non-overlapping tick per semantic point in the left tick column", async () => {
+    await generateCheckedCopy({
+      attemptId: "attempt-6",
+      originalBuffer: pngBuffer(1000, 1400),
+      mimeType: "image/png",
+      annotationPlan: {
+        version: 2,
+        pagePlans: [
+          {
+            pageNumber: 1,
+            visualMarks: [
+              { type: "positive_tick", targetText: "Enhanced Road Safety", intent: "correct point" },
+              { type: "positive_tick", targetText: "Improved Traffic Management", intent: "correct point" },
+              { type: "positive_tick", targetText: "Efficient Urban Mobility", intent: "correct point" },
+              { type: "positive_tick", targetText: "Efficient Urban Mobility", intent: "duplicate target should be ignored" },
+            ],
+          },
+        ],
+      },
+      layout: {
+        pageNumber: 1,
+        width: 1000,
+        height: 1400,
+        lines: [
+          { text: "Enhanced Road Safety provides real-time collision warnings", box: { x1: 0.18, y1: 0.38, x2: 0.72, y2: 0.41 } },
+          { text: "Improved Traffic Management facilitates adaptive traffic signal control", box: { x1: 0.18, y1: 0.47, x2: 0.72, y2: 0.5 } },
+          { text: "Efficient Urban Mobility enables smoother public transport", box: { x1: 0.18, y1: 0.56, x2: 0.72, y2: 0.59 } },
+        ],
+      },
+    });
+
+    const paths = [...uploadedSvg.matchAll(/<path d="M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)" \/>/g)];
+    expect(paths).toHaveLength(3);
+    const xValues = paths.map((match) => Number(match[1]));
+    expect(xValues.every((x) => x < 210)).toBe(true);
+    const yValues = paths.map((match) => Number(match[2]));
+    const uniqueRoundedY = new Set(yValues.map((y) => Math.round(y)));
+    expect(uniqueRoundedY.size).toBe(3);
   });
 });

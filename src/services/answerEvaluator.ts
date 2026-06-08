@@ -36,6 +36,12 @@ interface QuestionContext {
   paper: string;
 }
 
+type OriginalUploadPage = {
+  buffer: Buffer;
+  contentType: string;
+  sourcePath: string;
+};
+
 export interface EvaluationUpdate {
   score: number;
   maxScore: number;
@@ -129,13 +135,13 @@ ${uploadTranscriptionNote ? "NOTE: This text was transcribed from uploaded handw
 - RAG calibration is binding: treat retrieved checked topper/evaluator copies as scoring anchors, not as automatic marks. If a retrieved answer scored 7/15, award 7/15 only when the student's answer is genuinely at that same standard. If the student's answer is weaker than the retrieved 7/15 answer in demand coverage, specificity, evidence, structure, or balance, award less. Do not award more than the best relevant retrieved example unless the student's answer is clearly and specifically superior, and explain that exact superiority in detailedFeedback. Generic polish is not enough.
 - Build annotationPlan as semantic examiner intent, not exact coordinates. The SVG renderer will decide final placement.
 - Use annotationPlan version 2. Split detailed markups, light markups, and correctness ticks.
-- Density target: for roughly every 10 handwritten answer lines, create about 2 detailed markups, 1 light markup, and ticks/underlines for correctly written lines. For a normal full page, this usually means 3-5 marginComments and 6-14 visualMarks.
-- Detailed markups are marginComments with severity "major": 18-45 words each, specific like a teacher, naming the missing demand, factual problem, example/data to add, or why a claim is weak.
-- Light markups are marginComments with severity "minor": 2-10 words each, e.g. "Wrong name: Nawaz Sharif.", "Factually incorrect.", "Needs example.", "Vague drafting." Use these near factual mistakes or imprecise phrases.
-- visualMarks should be positive ticks, underlines, circles, or brackets on exact phrases from the student's answer. Add positive_tick for correct/relevant lines, underline/circle weak or wrong phrases, and bracket missed/incomplete sections. Do not target the printed question/header.
+- Density target: create 3-5 marginComments for a normal full page, plus one positive_tick for each correct/relevant semantic answer point. A point may span multiple OCR lines; tick the point title or first distinctive phrase only, not continuation lines.
+- Detailed markups are marginComments with severity "major": 18-32 words each, max one compact comment block. Be specific like a teacher: name the missing demand, factual problem, example/data to add, or why a claim is weak.
+- Light markups are marginComments with severity "minor": 2-8 words each, e.g. "Wrong name: Nawaz Sharif.", "Factually incorrect.", "Needs example.", "Vague drafting." Use these near factual mistakes or imprecise phrases.
+- visualMarks should be positive ticks, underlines, circles, or brackets on exact phrases from the student's answer. Add exactly one positive_tick for each correct/relevant semantic point, especially numbered/bulleted/subheading points. Do not add multiple ticks for different lines of the same point. Use underline/circle weak or wrong phrases, and bracket missed/incomplete sections. Do not target the printed question/header.
 - marginComments should name the exact missing content/factual issue/value addition. Do not repeat the same comment across pages.
 - If the student omits an entire demand, attach the marginComment to the closest existing answer section and explain the missing demand.
-- Include a final bottomComment that summarizes the scoring reason and the highest-priority fixes.
+- Include a final bottomComment of 18-35 words that summarizes the scoring reason and highest-priority fixes. Do not write a long paragraph.
 ${pagePlanRule}
 - Every visualMarks[].targetText and marginComments[].targetText must be copied from the same page's student answer text. Do not use targetText from another page.
 
@@ -237,6 +243,19 @@ function annotationPlanItemCount(plan: EvaluatorCheckedCopyPlan | CheckedCopyAnn
     );
   }
   return (plan as CheckedCopyAnnotationPlan).comments?.length || 0;
+}
+
+function parseAnswerUploadPaths(fileUrl: string | null): string[] {
+  if (!fileUrl) return [];
+  const trimmed = fileUrl.trim();
+  if (!trimmed.startsWith("[")) return [trimmed];
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (!Array.isArray(parsed)) return [trimmed];
+    return parsed.map((item) => String(item).trim()).filter(Boolean);
+  } catch {
+    return [trimmed];
+  }
 }
 
 function stripOcrChrome(line: string): string {
@@ -443,38 +462,62 @@ export async function evaluateAnswerGeneric(params: {
 
     let textToGrade = answerText?.trim() || "";
     let viaUploadTranscription = false;
-    let originalUpload: { buffer: Buffer; contentType: string } | null = null;
+    let originalUpload: OriginalUploadPage | null = null;
+    let originalUploads: OriginalUploadPage[] = [];
     let transcriptionDiagnostics: Record<string, unknown> | null = null;
     let transcriptionPages: TranscribedAnswerPage[] | undefined;
 
     // Handwritten/upload path: transcribe the file with Azure vision, then reuse the text path.
     if (!textToGrade && fileUrl) {
+      const uploadPaths = parseAnswerUploadPaths(fileUrl);
       const downloadStartedAt = Date.now();
       console.log("[eval] uploaded-answer path: downloading original file", {
         attemptId,
         bucket: STORAGE_BUCKETS.ANSWER_UPLOADS,
         fileUrl,
+        uploadPaths,
       });
-      originalUpload = await downloadFile(
-        STORAGE_BUCKETS.ANSWER_UPLOADS,
-        fileUrl
+      originalUploads = await Promise.all(
+        uploadPaths.map(async (path) => {
+          const downloaded = await downloadFile(
+            STORAGE_BUCKETS.ANSWER_UPLOADS,
+            path
+          );
+          return { ...downloaded, sourcePath: path };
+        })
       );
+      originalUpload = originalUploads[0] || null;
       console.log("[eval] original file downloaded", {
         attemptId,
         elapsed: evalElapsed(downloadStartedAt),
-        bytes: originalUpload.buffer.length,
-        contentType: originalUpload.contentType,
+        files: originalUploads.length,
+        bytes: originalUploads.map((upload) => upload.buffer.length),
+        contentTypes: originalUploads.map((upload) => upload.contentType),
       });
+      if (originalUploads.length === 0 || !originalUpload) {
+        throw new Error("No uploaded answer files could be downloaded");
+      }
 
       const transcriptionStartedAt = Date.now();
       console.log("[eval] upload transcription start", {
         attemptId,
-        contentType: originalUpload.contentType,
-        bytes: originalUpload.buffer.length,
+        files: originalUploads.length,
+        contentTypes: originalUploads.map((upload) => upload.contentType),
+        bytes: originalUploads.map((upload) => upload.buffer.length),
       });
       const transcription = await transcribeStudentAnswerFromUpload({
-        fileBuffer: originalUpload.buffer,
-        mimeType: originalUpload.contentType,
+        fileBuffer: originalUploads.length === 1
+          ? originalUpload.buffer
+          : Buffer.concat(originalUploads.map((upload) => upload.buffer)),
+        mimeType: originalUploads.length === 1
+          ? originalUpload.contentType
+          : "application/x-upsc-multi-image",
+        files: originalUploads.length > 1
+          ? originalUploads.map((upload) => ({
+              buffer: upload.buffer,
+              mimeType: upload.contentType,
+            }))
+          : undefined,
         questionText: question.questionText,
         paper: question.paper,
         subject: question.subject,
@@ -703,9 +746,16 @@ export async function evaluateAnswerGeneric(params: {
 
     let checkedCopyUrl: string | null = null;
     let checkedCopyPages: Array<{ pageNumber: number; storagePath: string | null; status: string; reason?: string }> = [];
-    let checkedCopyStatus: string | null = originalUpload ? "skipped" : null;
+    let checkedCopyStatus: string | null = originalUploads.length > 0 ? "skipped" : null;
     let checkedCopyInputs: Array<{ pageNumber: number; buffer: Buffer; contentType: string; source: "image" | "pdf-page"; layout?: DocumentPageLayout | null }> = [];
-    if (originalUpload?.contentType.startsWith("image/")) {
+    if (originalUploads.length > 1 && originalUploads.every((upload) => upload.contentType.startsWith("image/"))) {
+      checkedCopyInputs = originalUploads.map((upload, index) => ({
+        pageNumber: index + 1,
+        buffer: upload.buffer,
+        contentType: upload.contentType,
+        source: "image",
+      }));
+    } else if (originalUpload?.contentType.startsWith("image/")) {
       checkedCopyInputs = [{
         pageNumber: 1,
         buffer: originalUpload.buffer,

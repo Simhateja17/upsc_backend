@@ -2,7 +2,7 @@ import { Router } from "express";
 import { getPublicPYQCounts, getPublicPYQQuestions, submitPyqPrelimsAnswer } from "../controllers/pyq.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import { submissionLimiter } from "../middleware/rateLimit";
-import { uploadSingle } from "../middleware/upload";
+import { uploadAnswerFiles } from "../middleware/upload";
 import {
   submitPyqMainsAnswer,
   getPyqMainsEvaluationStatus,
@@ -20,7 +20,7 @@ router.post(
   "/mains/:questionId/submit",
   authenticate,
   submissionLimiter,
-  uploadSingle("file"),
+  uploadAnswerFiles(),
   submitPyqMainsAnswer
 );
 router.get(

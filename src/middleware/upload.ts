@@ -101,6 +101,63 @@ export const uploadSingle = (fieldName: string = "file") => {
 };
 
 /**
+ * Multer middleware for answer uploads that may contain either:
+ * - one file under "file" (legacy PDF/image path)
+ * - multiple page images under "files"
+ */
+export const uploadAnswerFiles = () => {
+  const middleware = multer({
+    storage,
+    fileFilter,
+    limits: {
+      fileSize: MAX_FILE_SIZE,
+      files: Number(process.env.ANSWER_UPLOAD_MAX_FILES || 10),
+    },
+  }).fields([
+    { name: "file", maxCount: 1 },
+    { name: "files", maxCount: Number(process.env.ANSWER_UPLOAD_MAX_FILES || 10) },
+  ]);
+
+  return (req: Request, res: Response, next: NextFunction) => {
+    console.log("[Upload] Parsing answer upload", {
+      requestId: req.id,
+      maxFileSizeMb: MAX_FILE_SIZE_MB,
+      maxFiles: Number(process.env.ANSWER_UPLOAD_MAX_FILES || 10),
+      contentType: req.headers["content-type"] || null,
+      contentLength: req.headers["content-length"] || null,
+    });
+
+    middleware(req, res, (error) => {
+      if (error) {
+        console.error("[Upload] Answer upload rejected", {
+          requestId: req.id,
+          maxFileSizeMb: MAX_FILE_SIZE_MB,
+          contentType: req.headers["content-type"] || null,
+          contentLength: req.headers["content-length"] || null,
+          errorName: error instanceof Error ? error.name : typeof error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          multerCode: error instanceof multer.MulterError ? error.code : null,
+        });
+        return next(error);
+      }
+
+      const filesByField = (req.files || {}) as Record<string, Express.Multer.File[]>;
+      console.log("[Upload] Parsed answer upload", {
+        requestId: req.id,
+        fileCount: (filesByField.file?.length || 0) + (filesByField.files?.length || 0),
+        files: [...(filesByField.file || []), ...(filesByField.files || [])].map((file) => ({
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+        })),
+      });
+
+      return next();
+    });
+  };
+};
+
+/**
  * Multer middleware for PDF upload (admin PYQ uploads - 50MB limit)
  */
 export const uploadPDF = multer({

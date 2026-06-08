@@ -27,6 +27,14 @@ type PageZones = {
   rightMargin: PixelBox;
   bottom: PixelBox;
 };
+type CanvasMetrics = {
+  pageWidth: number;
+  pageHeight: number;
+  canvasWidth: number;
+  canvasHeight: number;
+  pageX: number;
+  pageY: number;
+};
 type PageRenderPlan = {
   visualMarks: OverlayAnnotation[];
   marginComments: OverlayAnnotation[];
@@ -105,6 +113,26 @@ function shorten(value: string, max = 120): string {
   const text = value.replace(/\s+/g, " ").trim();
   if (text.length <= max) return text;
   return `${text.slice(0, max - 1).trim()}...`;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(value, max));
+}
+
+function offsetBox(box: PixelBox, canvas: CanvasMetrics): PixelBox {
+  return {
+    x1: box.x1 + canvas.pageX,
+    y1: box.y1 + canvas.pageY,
+    x2: box.x2 + canvas.pageX,
+    y2: box.y2 + canvas.pageY,
+  };
+}
+
+function offsetPoint(point: { x: number; y: number }, canvas: CanvasMetrics): { x: number; y: number } {
+  return {
+    x: point.x + canvas.pageX,
+    y: point.y + canvas.pageY,
+  };
 }
 
 function wrapText(text: string, maxChars: number, maxLines = 5): string[] {
@@ -229,7 +257,7 @@ function textBlock(params: {
   const transform = params.rotate ? ` transform="rotate(${params.rotate} ${params.x} ${params.y})"` : "";
   const anchor = params.anchor || "start";
 
-  return `<text x="${params.x}" y="${params.y}" text-anchor="${anchor}"${transform}>${lines
+  return `<text x="${params.x}" y="${params.y}" text-anchor="${anchor}" font-size="${params.fontSize}"${transform}>${lines
     .map((line, index) => `<tspan x="${params.x}" dy="${index === 0 ? 0 : params.fontSize * 1.12}">${escapeXml(line)}</tspan>`)
     .join("")}</text>`;
 }
@@ -394,6 +422,77 @@ function commentLane(annotation: OverlayAnnotation, index: number, zones: PageZo
   return index % 3 === 0 && zones.leftMargin.x2 - zones.leftMargin.x1 > 90 ? "left" : "right";
 }
 
+function inferCanvas(width: number, height: number): CanvasMetrics {
+  const leftPadding = Math.round(width * Number(process.env.CHECKED_COPY_LEFT_PADDING_RATIO || 0.055));
+  const rightPadding = Math.round(width * Number(process.env.CHECKED_COPY_RIGHT_PADDING_RATIO || 0.3));
+  const topPadding = Math.round(height * Number(process.env.CHECKED_COPY_TOP_PADDING_RATIO || 0.025));
+  const bottomPadding = Math.round(height * Number(process.env.CHECKED_COPY_BOTTOM_PADDING_RATIO || 0.14));
+
+  return {
+    pageWidth: width,
+    pageHeight: height,
+    canvasWidth: width + leftPadding + rightPadding,
+    canvasHeight: height + topPadding + bottomPadding,
+    pageX: leftPadding,
+    pageY: topPadding,
+  };
+}
+
+function expandedZones(zones: PageZones, canvas: CanvasMetrics): PageZones {
+  const pageZones = {
+    headerBottom: zones.headerBottom + canvas.pageY,
+    answerTop: zones.answerTop + canvas.pageY,
+    answerBottom: zones.answerBottom + canvas.pageY,
+    contentLeft: zones.contentLeft + canvas.pageX,
+    contentRight: zones.contentRight + canvas.pageX,
+    leftMargin: offsetBox(zones.leftMargin, canvas),
+    rightMargin: offsetBox(zones.rightMargin, canvas),
+    bottom: offsetBox(zones.bottom, canvas),
+  };
+
+  return {
+    ...pageZones,
+    leftMargin: {
+      x1: Math.max(8, canvas.pageX * 0.2),
+      y1: pageZones.answerTop,
+      x2: Math.max(pageZones.leftMargin.x2, pageZones.contentLeft - canvas.pageWidth * 0.025),
+      y2: pageZones.answerBottom,
+    },
+    rightMargin: {
+      x1: Math.min(canvas.canvasWidth - 90, pageZones.contentRight + canvas.pageWidth * 0.035),
+      y1: pageZones.answerTop,
+      x2: canvas.canvasWidth - Math.max(12, canvas.pageWidth * 0.012),
+      y2: Math.min(canvas.canvasHeight - canvas.pageHeight * 0.08, pageZones.answerBottom + canvas.pageHeight * 0.04),
+    },
+    bottom: {
+      x1: canvas.pageX + Math.max(canvas.pageWidth * 0.06, zones.contentLeft - canvas.pageWidth * 0.07),
+      y1: canvas.pageY + canvas.pageHeight + canvas.pageHeight * 0.025,
+      x2: canvas.canvasWidth - Math.max(18, canvas.pageWidth * 0.02),
+      y2: canvas.canvasHeight - Math.max(12, canvas.pageHeight * 0.01),
+    },
+  };
+}
+
+function placeTickY(preferredY: number, usedTicks: PixelBox[], minGap: number, laneTop: number, laneBottom: number): number {
+  const clamped = clamp(preferredY, laneTop + minGap, laneBottom - minGap);
+  const candidates = [clamped];
+  for (let offset = minGap; offset < Math.max(1, laneBottom - laneTop); offset += minGap * 0.65) {
+    candidates.push(clamped + offset, clamped - offset);
+  }
+
+  for (const y of candidates) {
+    const nextY = clamp(y, laneTop + minGap, laneBottom - minGap);
+    const rect = { x1: 0, y1: nextY - minGap * 0.45, x2: 1, y2: nextY + minGap * 0.45 };
+    if (!usedTicks.some((tick) => intersects(tick, rect))) {
+      usedTicks.push(rect);
+      return nextY;
+    }
+  }
+
+  usedTicks.push({ x1: 0, y1: clamped - minGap * 0.45, x2: 1, y2: clamped + minGap * 0.45 });
+  return clamped;
+}
+
 function renderOverlaySvg(params: {
   originalBuffer: Buffer;
   mimeType: string;
@@ -403,32 +502,37 @@ function renderOverlaySvg(params: {
   layout?: DocumentPageLayout | null;
 }): Buffer {
   const { width, height } = getImageSize(params.originalBuffer, params.mimeType);
+  const canvas = inferCanvas(width, height);
   const plan = normalizePlan(params.annotationPlan, params.pageNumber, params.totalPages);
   const imageHref = `data:${params.mimeType};base64,${params.originalBuffer.toString("base64")}`;
 
   const red = "#A12418";
-  const zones = inferZones(width, height, params.layout);
+  const pageZones = inferZones(width, height, params.layout);
+  const zones = expandedZones(pageZones, canvas);
   const fontSize = Math.max(17, Math.round(width * 0.02));
   const smallFontSize = Math.max(15, Math.round(width * 0.017));
   const scoreSize = Math.max(32, Math.round(width * 0.052));
   const strokeWidth = Math.max(3, Math.round(width * 0.004));
 
   const hasLayoutLines = Boolean(params.layout?.lines.length);
-  const answerLineCount = Math.max(1, (params.layout?.lines || []).filter((line) => isInsideAnswerZone(line.box, zones, width, height)).length || 10);
-  const visualLimit = Math.min(24, Math.max(10, Math.ceil(answerLineCount * 0.7)));
+  const answerLineCount = Math.max(1, (params.layout?.lines || []).filter((line) => isInsideAnswerZone(line.box, pageZones, width, height)).length || 10);
+  const nonTickVisualLimit = Math.min(24, Math.max(10, Math.ceil(answerLineCount * 0.7)));
   const commentLimit = Math.min(10, Math.max(5, Math.ceil(answerLineCount / 3.4)));
-  const visualMarks = plan.visualMarks.filter((item) => item.type !== "score").slice(0, visualLimit);
+  const tickMarks = plan.visualMarks.filter((item) => item.type === "positive_tick").slice(0, 42);
+  const visualMarks = plan.visualMarks.filter((item) => item.type !== "score" && item.type !== "positive_tick").slice(0, nonTickVisualLimit);
   const marginComments = plan.marginComments.filter((item) => item.comment).slice(0, commentLimit);
 
   const marks: string[] = [];
   const usedCommentRects: PixelBox[] = [];
   const usedMarkRects: PixelBox[] = [];
+  const usedTickRects: PixelBox[] = [];
+  const tickKeys = new Set<string>();
 
   if (plan.scoreText) {
     marks.push(
       textBlock({
-        x: Math.min(width * 0.84, zones.contentRight + width * 0.02),
-        y: height * 0.075,
+        x: Math.min(canvas.canvasWidth - width * 0.08, canvas.pageX + width * 0.84),
+        y: canvas.pageY + height * 0.075,
         text: plan.scoreText,
         maxChars: 10,
         fontSize: scoreSize,
@@ -437,10 +541,29 @@ function renderOverlaySvg(params: {
     );
   }
 
+  tickMarks.forEach((annotation, index) => {
+    const targetBox = findTargetBox(annotation, params.layout, pageZones, width, height);
+    const targetPx = targetBox ? offsetBox(boxToPixels(targetBox, width, height), canvas) : null;
+    const normalizedKey = annotation.targetText ? normalizeForMatch(annotation.targetText) : "";
+    const targetKey = targetPx
+      ? `line:${Math.round(targetPx.y1 / 8)}:${Math.round(targetPx.y2 / 8)}`
+      : `seq:${normalizedKey || index}`;
+    if (tickKeys.has(targetKey) || (normalizedKey && tickKeys.has(`text:${normalizedKey}`))) return;
+    tickKeys.add(targetKey);
+    if (normalizedKey) tickKeys.add(`text:${normalizedKey}`);
+
+    const preferredY = targetPx
+      ? targetPx.y1 + (targetPx.y2 - targetPx.y1) * 0.45
+      : zones.answerTop + (index + 0.5) * ((zones.answerBottom - zones.answerTop) / Math.max(tickMarks.length, 1));
+    const tickY = placeTickY(preferredY, usedTickRects, smallFontSize * 1.55, zones.answerTop, zones.answerBottom);
+    const tickX = clamp(zones.contentLeft - width * 0.055, canvas.pageX + 8, zones.contentLeft - smallFontSize * 1.8);
+    marks.push(tickPath(tickX, tickY - smallFontSize * 0.5, smallFontSize * 1.35));
+  });
+
   visualMarks.forEach((annotation, index) => {
-    const targetBox = findTargetBox(annotation, params.layout, zones, width, height);
+    const targetBox = findTargetBox(annotation, params.layout, pageZones, width, height);
     if (hasLayoutLines && !targetBox) return;
-    const targetPx = targetBox ? boxToPixels(targetBox, width, height) : null;
+    const targetPx = targetBox ? offsetBox(boxToPixels(targetBox, width, height), canvas) : null;
     const row = targetPx ? targetPx.y2 + smallFontSize * 0.25 : zones.answerTop + index * height * 0.075;
     const x1 = targetPx ? targetPx.x1 : zones.contentLeft + (index % 4) * width * 0.1;
     const x2 = targetPx ? targetPx.x2 : Math.min(zones.contentRight, x1 + width * 0.18);
@@ -466,15 +589,16 @@ function renderOverlaySvg(params: {
 
   const deferredComments: string[] = [];
   marginComments.forEach((annotation, index) => {
-    const targetBox = findTargetBox(annotation, params.layout, zones, width, height);
-    const targetPx = targetBox ? boxToPixels(targetBox, width, height) : null;
+    const targetBox = findTargetBox(annotation, params.layout, pageZones, width, height);
+    const targetPx = targetBox ? offsetBox(boxToPixels(targetBox, width, height), canvas) : null;
 
     const side = commentLane(annotation, index, zones);
     const lane = side === "left" ? zones.leftMargin : zones.rightMargin;
     const laneWidth = lane.x2 - lane.x1;
     const maxChars = Math.max(10, Math.floor(laneWidth / (smallFontSize * 0.56)));
     const commentFontSize = annotation.severity === "minor" ? Math.max(13, Math.round(smallFontSize * 0.88)) : smallFontSize;
-    const lines = wrapText(annotation.comment, maxChars, annotation.severity === "minor" ? 2 : 6);
+    const maxLines = annotation.severity === "minor" ? 2 : 4;
+    const lines = wrapText(annotation.comment, maxChars, maxLines);
     const blockHeight = lines.length * commentFontSize * 1.12 + commentFontSize * 0.3;
     const preferredY = targetPx ? Math.max(zones.answerTop, targetPx.y1 - smallFontSize * 0.5) : zones.answerTop + index * height * 0.12;
     const rect = placeInLane({
@@ -509,7 +633,7 @@ function renderOverlaySvg(params: {
         y: textY,
         text: annotation.comment,
         maxChars,
-        maxLines: annotation.severity === "minor" ? 2 : 6,
+        maxLines,
         fontSize: commentFontSize,
         rotate: side === "left" ? -1.8 : 1.2,
       })
@@ -521,8 +645,8 @@ function renderOverlaySvg(params: {
   }
 
   if (deferredComments.length > 0) {
-    const bottomText = shorten(deferredComments.join(" "), 260);
-    const bottomY = Math.min(zones.bottom.y2 - smallFontSize * 2.2, zones.bottom.y1 + smallFontSize * 1.4);
+    const bottomText = shorten(deferredComments.join(" "), 220);
+    const bottomY = Math.min(zones.bottom.y2 - smallFontSize * 2.2, zones.bottom.y1 + smallFontSize * 1.35);
     marks.push(`<path d="M ${zones.bottom.x1} ${bottomY - smallFontSize * 1.1} C ${width * 0.35} ${bottomY - smallFontSize * 1.8}, ${width * 0.62} ${bottomY - smallFontSize * 0.9}, ${zones.bottom.x2} ${bottomY - smallFontSize * 1.3}" />`);
     marks.push(
       textBlock({
@@ -530,7 +654,7 @@ function renderOverlaySvg(params: {
         y: bottomY,
         text: bottomText,
         maxChars: Math.max(42, Math.floor((zones.bottom.x2 - zones.bottom.x1) / (smallFontSize * 0.54))),
-        maxLines: 4,
+        maxLines: 3,
         fontSize: smallFontSize,
         rotate: -1,
       })
@@ -538,8 +662,9 @@ function renderOverlaySvg(params: {
   }
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <image href="${imageHref}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none" />
+<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.canvasWidth}" height="${canvas.canvasHeight}" viewBox="0 0 ${canvas.canvasWidth} ${canvas.canvasHeight}">
+  <rect x="0" y="0" width="${canvas.canvasWidth}" height="${canvas.canvasHeight}" fill="#f7f7f5" />
+  <image href="${imageHref}" x="${canvas.pageX}" y="${canvas.pageY}" width="${width}" height="${height}" preserveAspectRatio="none" />
   <g fill="none" stroke="${red}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" opacity="0.96">
     ${marks.filter((mark) => mark.startsWith("<path") || mark.startsWith("<ellipse")).join("\n    ")}
   </g>
