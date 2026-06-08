@@ -279,7 +279,7 @@ describe("generateCheckedCopy", () => {
     expect(uploadedSvg).toContain("Good point");
     expect(uploadedSvg).toContain("misses the challenges");
 
-    const connector = [...uploadedSvg.matchAll(/<path d="M ([\d.]+) ([\d.]+) C ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+)" \/>/g)]
+    const connector = [...uploadedSvg.matchAll(/<path data-role="comment-leader"[^>]+d="M ([\d.]+) ([\d.]+) C ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+)" \/>/g)]
       .find((match) => Number(match[1]) > 1220);
     expect(connector).toBeTruthy();
     expect(Number(connector![7])).toBeLessThan(1000);
@@ -323,6 +323,59 @@ describe("generateCheckedCopy", () => {
     const yValues = paths.map((match) => Number(match[2]));
     const uniqueRoundedY = new Set(yValues.map((y) => Math.round(y)));
     expect(uniqueRoundedY.size).toBe(3);
+  });
+
+  it("connects every matched margin comment to its page target and leaves unmatched comments unconnected", async () => {
+    await generateCheckedCopy({
+      attemptId: "attempt-connectors",
+      originalBuffer: pngBuffer(1000, 1400),
+      mimeType: "image/png",
+      annotationPlan: {
+        version: 2,
+        pagePlans: [
+          {
+            pageNumber: 1,
+            marginComments: [
+              {
+                targetText: "Road safety improves through collision warnings",
+                severity: "major",
+                comment: "Right-side matched comment must end at the road-safety answer line.",
+                placementIntent: "right_margin",
+              },
+              {
+                targetText: "Traffic management uses adaptive signals",
+                severity: "minor",
+                comment: "Left-side matched comment must end at the traffic-management answer line.",
+                placementIntent: "left_margin",
+              },
+              {
+                targetText: "A target that is absent from the answer",
+                severity: "major",
+                comment: "Unmatched comment remains visible without a misleading connector.",
+                placementIntent: "right_margin",
+              },
+            ],
+          },
+        ],
+      },
+      layout: {
+        pageNumber: 1,
+        width: 1000,
+        height: 1400,
+        lines: [
+          { text: "Road safety improves through collision warnings", box: { x1: 0.18, y1: 0.4, x2: 0.72, y2: 0.43 } },
+          { text: "Traffic management uses adaptive signals", box: { x1: 0.18, y1: 0.58, x2: 0.72, y2: 0.61 } },
+        ],
+      },
+    });
+
+    const leaders = [...uploadedSvg.matchAll(/<path data-role="comment-leader" data-side="(left|right)" d="M ([\d.]+) ([\d.]+) C ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+)" \/>/g)];
+    expect(leaders).toHaveLength(2);
+    expect(leaders.map((leader) => leader[1]).sort()).toEqual(["left", "right"]);
+    expect(leaders.every((leader) => Number(leader[8]) >= 220 && Number(leader[8]) <= 1220)).toBe(true);
+    expect(leaders.find((leader) => leader[1] === "right")?.[8]).toBe("940");
+    expect(leaders.find((leader) => leader[1] === "left")?.[8]).toBe("400");
+    expect(uploadedSvg).toContain("misleading connector.");
   });
 
   it("does not truncate long margin or bottom comments", async () => {
@@ -369,5 +422,49 @@ describe("generateCheckedCopy", () => {
     expect(uploadedSvg).toContain("nuclear confidence");
     expect(uploadedSvg).toContain("building measures.");
     expect(uploadedSvg).toContain("political symbolism");
+  });
+
+  it("expands for dense rail comments and keeps bottom feedback below connector lines", async () => {
+    const marginComments = Array.from({ length: 24 }, (_, index) => ({
+      targetText: "Road safety improves through collision warnings",
+      severity: "major" as const,
+      comment: `Dense matched comment ${index + 1} keeps every explanatory word visible through the final token preserved-${index + 1}.`,
+      placementIntent: "right_margin" as const,
+    }));
+
+    await generateCheckedCopy({
+      attemptId: "attempt-overflow",
+      originalBuffer: pngBuffer(1000, 1400),
+      mimeType: "image/png",
+      annotationPlan: {
+        version: 2,
+        pagePlans: [
+          {
+            pageNumber: 1,
+            marginComments,
+            bottomComment: "Bottom summary must remain below every visible connector line.",
+          },
+        ],
+      },
+      layout: {
+        pageNumber: 1,
+        width: 1000,
+        height: 1400,
+        lines: [
+          { text: "Road safety improves through collision warnings", box: { x1: 0.18, y1: 0.4, x2: 0.72, y2: 0.43 } },
+        ],
+      },
+    });
+
+    const leaders = [...uploadedSvg.matchAll(/<path data-role="comment-leader"[^>]+d="M ([\d.]+) ([\d.]+) C ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+)" \/>/g)];
+    expect(leaders).toHaveLength(marginComments.length);
+    expect(uploadedSvg).toContain("preserved-24.");
+
+    const svgHeight = Number(uploadedSvg.match(/<svg[^>]+height="([\d.]+)"/)?.[1]);
+    const bottomY = Number(uploadedSvg.match(/<text x="12" y="([\d.]+)"[^>]*><tspan x="12" dy="0">Bottom summary/)?.[1]);
+    const connectorBottom = Math.max(...leaders.flatMap((leader) => [Number(leader[2]), Number(leader[4]), Number(leader[6]), Number(leader[8])]));
+    expect(svgHeight).toBeGreaterThan(1687);
+    expect(bottomY).toBeGreaterThan(connectorBottom);
+    expect(svgHeight).toBeGreaterThan(bottomY);
   });
 });

@@ -392,7 +392,7 @@ function placeInLane(params: {
   width: number;
   height: number;
   used: PixelBox[];
-}): PixelBox | null {
+}): PixelBox {
   const top = Math.max(params.lane.y1, params.preferredY - params.height * 0.25);
   const candidates = [top];
   const step = Math.max(22, params.height * 0.45);
@@ -412,7 +412,16 @@ function placeInLane(params: {
     if (reserveRect(params.used, rect)) return rect;
   }
 
-  return null;
+  const sameLaneRects = params.used.filter((rect) => rect.x1 < params.lane.x2 && rect.x2 > params.lane.x1);
+  const overflowY = Math.max(params.lane.y1, ...sameLaneRects.map((rect) => rect.y2 + Math.max(12, params.height * 0.12)));
+  const overflowRect = {
+    x1: params.lane.x1,
+    y1: overflowY,
+    x2: Math.min(params.lane.x2, params.lane.x1 + params.width),
+    y2: overflowY + params.height,
+  };
+  params.used.push(overflowRect);
+  return overflowRect;
 }
 
 function commentLane(annotation: OverlayAnnotation, index: number, zones: PageZones): "left" | "right" {
@@ -495,25 +504,17 @@ function placeTickY(preferredY: number, usedTicks: PixelBox[], minGap: number, l
   return clamped;
 }
 
-function safeConnector(params: {
+function commentLeaderPath(params: {
   fromX: number;
   fromY: number;
   anchorX: number;
   anchorY: number;
   side: "left" | "right";
-  pageX: number;
-  pageWidth: number;
-  maxLength: number;
 }): string {
-  const pageEdge = params.side === "left" ? params.pageX : params.pageX + params.pageWidth;
-  const distance = Math.abs(params.fromX - params.anchorX);
-
-  if (distance <= params.maxLength) {
-    return leaderPath(params.fromX, params.fromY, params.anchorX, params.anchorY);
-  }
-
-  const shortEndX = params.side === "left" ? pageEdge + 8 : pageEdge - 8;
-  return leaderPath(params.fromX, params.fromY, shortEndX, params.anchorY);
+  const controlX = params.side === "left"
+    ? params.fromX + (params.anchorX - params.fromX) * 0.58
+    : params.fromX - (params.fromX - params.anchorX) * 0.58;
+  return `<path data-role="comment-leader" data-side="${params.side}" d="M ${params.fromX} ${params.fromY} C ${controlX} ${params.fromY}, ${controlX} ${params.anchorY}, ${params.anchorX} ${params.anchorY}" />`;
 }
 
 function renderOverlaySvg(params: {
@@ -540,10 +541,9 @@ function renderOverlaySvg(params: {
   const hasLayoutLines = Boolean(params.layout?.lines.length);
   const answerLineCount = Math.max(1, (params.layout?.lines || []).filter((line) => isInsideAnswerZone(line.box, pageZones, width, height)).length || 10);
   const nonTickVisualLimit = Math.min(24, Math.max(10, Math.ceil(answerLineCount * 0.7)));
-  const commentLimit = Math.min(10, Math.max(5, Math.ceil(answerLineCount / 3.4)));
   const tickMarks = plan.visualMarks.filter((item) => item.type === "positive_tick").slice(0, 42);
   const visualMarks = plan.visualMarks.filter((item) => item.type !== "score" && item.type !== "positive_tick").slice(0, nonTickVisualLimit);
-  const marginComments = plan.marginComments.filter((item) => item.comment).slice(0, commentLimit);
+  const marginComments = plan.marginComments.filter((item) => item.comment);
 
   const marks: string[] = [];
   const usedCommentRects: PixelBox[] = [];
@@ -629,11 +629,6 @@ function renderOverlaySvg(params: {
       used: usedCommentRects,
     });
 
-    if (!rect) {
-      deferredComments.push(annotation.comment);
-      return;
-    }
-
     const textX = side === "left" ? rect.x1 : rect.x1 + 2;
     const textY = rect.y1 + commentFontSize;
     const anchorX = targetPx ? (side === "left" ? targetPx.x1 : targetPx.x2) : side === "left" ? zones.contentLeft : zones.contentRight;
@@ -642,15 +637,12 @@ function renderOverlaySvg(params: {
     const fromY = rect.y1 + Math.min(blockHeight * 0.5, smallFontSize * 2.2);
 
     if (targetPx) {
-      marks.push(safeConnector({
+      marks.push(commentLeaderPath({
         fromX,
         fromY,
         anchorX,
         anchorY,
         side,
-        pageX: canvas.pageX,
-        pageWidth: canvas.pageWidth,
-        maxLength: Math.max(520, canvas.pageWidth * 0.72),
       }));
       if (annotation.type === "missing_demand") {
         marks.push(bracketPath(side === "left" ? targetPx.x1 - 12 : targetPx.x2 + 12, targetPx.y1 - 5, targetPx.y2 + 8, side === "left" ? "right" : "left"));
@@ -664,10 +656,12 @@ function renderOverlaySvg(params: {
         maxChars,
         maxLines,
         fontSize: commentFontSize,
-        rotate: side === "left" ? -1.8 : 1.2,
       })
     );
   });
+
+  const railBottom = usedCommentRects.reduce((max, rect) => Math.max(max, rect.y2), canvas.pageY + canvas.pageHeight);
+  const bottomStart = Math.max(zones.bottom.y1, railBottom + smallFontSize * 1.5);
 
   if (plan.bottomComment) {
     deferredComments.unshift(plan.bottomComment);
@@ -678,7 +672,9 @@ function renderOverlaySvg(params: {
     const bottomMaxChars = Math.max(42, Math.floor((zones.bottom.x2 - zones.bottom.x1) / (smallFontSize * 0.54)));
     const bottomLines = wrapText(bottomText, bottomMaxChars, Number.POSITIVE_INFINITY);
     const bottomFontSize = bottomLines.length > 4 ? Math.max(13, Math.round(smallFontSize * 0.84)) : smallFontSize;
-    const bottomY = Math.min(zones.bottom.y2 - smallFontSize * 2.2, zones.bottom.y1 + smallFontSize * 1.35);
+    const bottomY = bottomStart + bottomFontSize;
+    const bottomTextEnd = bottomY + Math.max(0, bottomLines.length - 1) * bottomFontSize * 1.12 + bottomFontSize * 0.45;
+    canvas.canvasHeight = Math.max(canvas.canvasHeight, Math.ceil(bottomTextEnd + smallFontSize * 1.5));
     marks.push(
       textBlock({
         x: zones.bottom.x1,
@@ -687,10 +683,11 @@ function renderOverlaySvg(params: {
         maxChars: bottomMaxChars,
         maxLines: Number.POSITIVE_INFINITY,
         fontSize: bottomFontSize,
-        rotate: -1,
       })
     );
   }
+
+  canvas.canvasHeight = Math.max(canvas.canvasHeight, Math.ceil(railBottom + smallFontSize * 1.5));
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${canvas.canvasWidth}" height="${canvas.canvasHeight}" viewBox="0 0 ${canvas.canvasWidth} ${canvas.canvasHeight}">
