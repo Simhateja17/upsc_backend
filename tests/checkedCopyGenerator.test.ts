@@ -120,7 +120,7 @@ describe("generateCheckedCopy", () => {
     expect(uploadedSvg).toContain("Add bus diplomacy");
     expect(uploadedSvg).toContain("Incorrect here");
     expect(uploadedSvg).toContain("Too short");
-    expect(uploadedSvg).toMatch(/x="8\d\d/);
+    expect(uploadedSvg).toMatch(/x="12\d\d/);
   });
 
   it("does not duplicate a single unnumbered v2 page plan across multiple rendered pages", async () => {
@@ -273,10 +273,16 @@ describe("generateCheckedCopy", () => {
       },
     });
 
-    expect(uploadedSvg).toContain('width="1355" height="1631"');
-    expect(uploadedSvg).toContain('x="55" y="35" width="1000" height="1400"');
+    expect(uploadedSvg).toContain('width="1640" height="1687"');
+    expect(uploadedSvg).toContain('x="220" y="35" width="1000" height="1400"');
+    expect(uploadedSvg).toContain('text x="1242"');
     expect(uploadedSvg).toContain("Good point");
     expect(uploadedSvg).toContain("misses the challenges");
+
+    const connector = [...uploadedSvg.matchAll(/<path d="M ([\d.]+) ([\d.]+) C ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+)" \/>/g)]
+      .find((match) => Number(match[1]) > 1220);
+    expect(connector).toBeTruthy();
+    expect(Number(connector![7])).toBeGreaterThan(1050);
   });
 
   it("renders one non-overlapping tick per semantic point in the left tick column", async () => {
@@ -313,7 +319,7 @@ describe("generateCheckedCopy", () => {
     const paths = [...uploadedSvg.matchAll(/<path d="M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)" \/>/g)];
     expect(paths).toHaveLength(3);
     const xValues = paths.map((match) => Number(match[1]));
-    expect(xValues.every((x) => x < 210)).toBe(true);
+    expect(xValues.every((x) => x > 220 && x < 400)).toBe(true);
     const yValues = paths.map((match) => Number(match[2]));
     const uniqueRoundedY = new Set(yValues.map((y) => Math.round(y)));
     expect(uniqueRoundedY.size).toBe(3);

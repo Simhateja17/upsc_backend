@@ -128,13 +128,6 @@ function offsetBox(box: PixelBox, canvas: CanvasMetrics): PixelBox {
   };
 }
 
-function offsetPoint(point: { x: number; y: number }, canvas: CanvasMetrics): { x: number; y: number } {
-  return {
-    x: point.x + canvas.pageX,
-    y: point.y + canvas.pageY,
-  };
-}
-
 function wrapText(text: string, maxChars: number, maxLines = 5): string[] {
   const words = shorten(text, maxChars * maxLines).split(/\s+/).filter(Boolean);
   const lines: string[] = [];
@@ -419,14 +412,15 @@ function placeInLane(params: {
 function commentLane(annotation: OverlayAnnotation, index: number, zones: PageZones): "left" | "right" {
   if (annotation.placement === "left_margin") return "left";
   if (annotation.placement === "right_margin") return "right";
-  return index % 3 === 0 && zones.leftMargin.x2 - zones.leftMargin.x1 > 90 ? "left" : "right";
+  if (annotation.severity === "minor" && index % 4 === 0 && zones.leftMargin.x2 - zones.leftMargin.x1 > 110) return "left";
+  return "right";
 }
 
 function inferCanvas(width: number, height: number): CanvasMetrics {
-  const leftPadding = Math.round(width * Number(process.env.CHECKED_COPY_LEFT_PADDING_RATIO || 0.055));
-  const rightPadding = Math.round(width * Number(process.env.CHECKED_COPY_RIGHT_PADDING_RATIO || 0.3));
+  const leftPadding = Math.round(width * Number(process.env.CHECKED_COPY_LEFT_PADDING_RATIO || 0.22));
+  const rightPadding = Math.round(width * Number(process.env.CHECKED_COPY_RIGHT_PADDING_RATIO || 0.42));
   const topPadding = Math.round(height * Number(process.env.CHECKED_COPY_TOP_PADDING_RATIO || 0.025));
-  const bottomPadding = Math.round(height * Number(process.env.CHECKED_COPY_BOTTOM_PADDING_RATIO || 0.14));
+  const bottomPadding = Math.round(height * Number(process.env.CHECKED_COPY_BOTTOM_PADDING_RATIO || 0.18));
 
   return {
     pageWidth: width,
@@ -439,6 +433,8 @@ function inferCanvas(width: number, height: number): CanvasMetrics {
 }
 
 function expandedZones(zones: PageZones, canvas: CanvasMetrics): PageZones {
+  const gutter = Math.max(18, canvas.pageWidth * 0.02);
+  const innerPad = Math.max(12, canvas.pageWidth * 0.012);
   const pageZones = {
     headerBottom: zones.headerBottom + canvas.pageY,
     answerTop: zones.answerTop + canvas.pageY,
@@ -453,22 +449,22 @@ function expandedZones(zones: PageZones, canvas: CanvasMetrics): PageZones {
   return {
     ...pageZones,
     leftMargin: {
-      x1: Math.max(8, canvas.pageX * 0.2),
+      x1: innerPad,
       y1: pageZones.answerTop,
-      x2: Math.max(pageZones.leftMargin.x2, pageZones.contentLeft - canvas.pageWidth * 0.025),
+      x2: Math.max(innerPad + 96, canvas.pageX - gutter),
       y2: pageZones.answerBottom,
     },
     rightMargin: {
-      x1: Math.min(canvas.canvasWidth - 90, pageZones.contentRight + canvas.pageWidth * 0.035),
+      x1: canvas.pageX + canvas.pageWidth + gutter,
       y1: pageZones.answerTop,
-      x2: canvas.canvasWidth - Math.max(12, canvas.pageWidth * 0.012),
+      x2: canvas.canvasWidth - innerPad,
       y2: Math.min(canvas.canvasHeight - canvas.pageHeight * 0.08, pageZones.answerBottom + canvas.pageHeight * 0.04),
     },
     bottom: {
-      x1: canvas.pageX + Math.max(canvas.pageWidth * 0.06, zones.contentLeft - canvas.pageWidth * 0.07),
+      x1: innerPad,
       y1: canvas.pageY + canvas.pageHeight + canvas.pageHeight * 0.025,
-      x2: canvas.canvasWidth - Math.max(18, canvas.pageWidth * 0.02),
-      y2: canvas.canvasHeight - Math.max(12, canvas.pageHeight * 0.01),
+      x2: canvas.canvasWidth - innerPad,
+      y2: canvas.canvasHeight - innerPad,
     },
   };
 }
@@ -491,6 +487,32 @@ function placeTickY(preferredY: number, usedTicks: PixelBox[], minGap: number, l
 
   usedTicks.push({ x1: 0, y1: clamped - minGap * 0.45, x2: 1, y2: clamped + minGap * 0.45 });
   return clamped;
+}
+
+function safeConnector(params: {
+  fromX: number;
+  fromY: number;
+  anchorX: number;
+  anchorY: number;
+  side: "left" | "right";
+  pageX: number;
+  pageWidth: number;
+  maxLength: number;
+}): string {
+  const pageEdge = params.side === "left" ? params.pageX : params.pageX + params.pageWidth;
+  const targetX = params.side === "left"
+    ? Math.max(params.anchorX, pageEdge + params.maxLength * 0.4)
+    : Math.min(params.anchorX, pageEdge - params.maxLength * 0.4);
+  const distance = Math.abs(params.fromX - targetX);
+
+  if (distance <= params.maxLength) {
+    return arrowPath(params.fromX, params.fromY, targetX, params.anchorY);
+  }
+
+  const shortEndX = params.side === "left"
+    ? params.fromX + params.maxLength * 0.55
+    : params.fromX - params.maxLength * 0.55;
+  return `<path d="M ${params.fromX} ${params.fromY} C ${(params.fromX + shortEndX) / 2} ${params.fromY}, ${(params.fromX + shortEndX) / 2} ${params.anchorY}, ${shortEndX} ${params.anchorY}" />`;
 }
 
 function renderOverlaySvg(params: {
@@ -622,7 +644,16 @@ function renderOverlaySvg(params: {
     const fromY = rect.y1 + Math.min(blockHeight * 0.5, smallFontSize * 2.2);
 
     if (targetPx) {
-      marks.push(arrowPath(fromX, fromY, anchorX, anchorY));
+      marks.push(safeConnector({
+        fromX,
+        fromY,
+        anchorX,
+        anchorY,
+        side,
+        pageX: canvas.pageX,
+        pageWidth: canvas.pageWidth,
+        maxLength: Math.max(110, canvas.pageWidth * 0.16),
+      }));
       if (annotation.type === "missing_demand") {
         marks.push(bracketPath(side === "left" ? targetPx.x1 - 12 : targetPx.x2 + 12, targetPx.y1 - 5, targetPx.y2 + 8, side === "left" ? "right" : "left"));
       }
@@ -647,7 +678,7 @@ function renderOverlaySvg(params: {
   if (deferredComments.length > 0) {
     const bottomText = shorten(deferredComments.join(" "), 220);
     const bottomY = Math.min(zones.bottom.y2 - smallFontSize * 2.2, zones.bottom.y1 + smallFontSize * 1.35);
-    marks.push(`<path d="M ${zones.bottom.x1} ${bottomY - smallFontSize * 1.1} C ${width * 0.35} ${bottomY - smallFontSize * 1.8}, ${width * 0.62} ${bottomY - smallFontSize * 0.9}, ${zones.bottom.x2} ${bottomY - smallFontSize * 1.3}" />`);
+    marks.push(`<path d="M ${zones.bottom.x1} ${bottomY - smallFontSize * 1.1} C ${zones.bottom.x1 + (zones.bottom.x2 - zones.bottom.x1) * 0.26} ${bottomY - smallFontSize * 1.8}, ${zones.bottom.x1 + (zones.bottom.x2 - zones.bottom.x1) * 0.62} ${bottomY - smallFontSize * 0.9}, ${zones.bottom.x2} ${bottomY - smallFontSize * 1.3}" />`);
     marks.push(
       textBlock({
         x: zones.bottom.x1,
