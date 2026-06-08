@@ -274,6 +274,7 @@ export const getMockTestMainsResults = async (
       data: {
         score: attempt.evaluation.score,
         maxScore: attempt.evaluation.maxScore,
+        metrics: attempt.evaluation.metrics,
         strengths: attempt.evaluation.strengths,
         improvements: attempt.evaluation.improvements,
         suggestions: attempt.evaluation.suggestions,
@@ -302,6 +303,44 @@ export const getMockTestMainsResults = async (
         },
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/mock-tests/mains-history?limit=...
+ */
+export const getMainsHistory = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 30);
+
+    const attempts = await prisma.mockTestMainsAttempt.findMany({
+      where: { userId, submittedAt: { not: null } },
+      orderBy: { submittedAt: "desc" },
+      take: limit,
+      include: {
+        question: { select: { questionText: true, subject: true } },
+        mockTest: { select: { title: true, paperType: true } },
+        evaluation: { select: { score: true, maxScore: true, status: true } },
+      },
+    });
+
+    const history = attempts
+      .filter((attempt) => attempt.evaluation?.status === "completed")
+      .map((attempt) => ({
+        attemptId: attempt.id,
+        date: attempt.submittedAt,
+        questionText: attempt.question.questionText,
+        subject: attempt.question.subject,
+        paper: attempt.mockTest.paperType,
+        score: attempt.evaluation!.score,
+        maxScore: attempt.evaluation!.maxScore,
+        wordCount: attempt.wordCount,
+      }));
+
+    res.json({ status: "success", data: { attempts: history } });
   } catch (error) {
     next(error);
   }
