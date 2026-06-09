@@ -98,6 +98,12 @@ function mapRealRows(rows: LeaderboardRawRow[]) {
   });
 }
 
+function getScoreForRanking(item: LeaderboardRow, tab: string): number {
+  if (tab === "mcq") return item.mcqAvg;
+  if (tab === "mains") return item.mainsAvg;
+  return item.totalScore;
+}
+
 function sortLeaderboard(rows: LeaderboardRow[], tab: string) {
   const sorted = [...rows];
   if (tab === "mcq") {
@@ -107,6 +113,15 @@ function sortLeaderboard(rows: LeaderboardRow[], tab: string) {
     return sorted.sort((a, b) => b.mainsAvg - a.mainsAvg || b.totalScore - a.totalScore);
   }
   return sorted.sort((a, b) => b.totalScore - a.totalScore);
+}
+
+function assignRanks(rows: LeaderboardRow[], tab: string) {
+  return rows.map((item, index) => {
+    if (index === 0) return { ...item, rank: 1 };
+    const prev = rows[index - 1];
+    const sameScore = getScoreForRanking(item, tab) === getScoreForRanking(prev, tab);
+    return { ...item, rank: sameScore ? prev.rank : index + 1 };
+  });
 }
 
 function buildLeaderboardQuery(range: string, includeInactiveUsers: boolean) {
@@ -243,7 +258,7 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
     const realRankedCount = realRows.filter((row) => row.isRankUnlocked).length;
     const syntheticRows = buildSyntheticLeaderboardRows(range);
     const merged = realRankedCount < 100 ? [...realRows, ...syntheticRows] : realRows;
-    const withRank = sortLeaderboard(merged, tab).map((item, index) => ({ ...item, rank: index + 1 }));
+    const withRank = assignRanks(sortLeaderboard(merged, tab), tab);
     const communityStats = buildCommunityStats({
       realUserCount,
       rows: merged,
@@ -269,14 +284,17 @@ export const getMyRank = async (req: Request, res: Response, next: NextFunction)
     const myData = realRows.find((item) => item.userId === userId);
     const mapped = realRankedCount < 100 ? [...realRows, ...buildSyntheticLeaderboardRows(range)] : realRows;
 
-    const overallSorted = sortLeaderboard(mapped, "overall");
-    const myOverallIndex = overallSorted.findIndex((item) => item.userId === userId);
+    const overallRanked = assignRanks(sortLeaderboard(mapped, "overall"), "overall");
+    const myOverallIndex = overallRanked.findIndex((item) => item.userId === userId);
+    const myOverallRank = myOverallIndex >= 0 ? overallRanked[myOverallIndex].rank : -1;
 
-    const mcqSorted = sortLeaderboard(mapped, "mcq");
-    const myMcqIndex = mcqSorted.findIndex((item) => item.userId === userId);
+    const mcqRanked = assignRanks(sortLeaderboard(mapped, "mcq"), "mcq");
+    const myMcqIndex = mcqRanked.findIndex((item) => item.userId === userId);
+    const myMcqRank = myMcqIndex >= 0 ? mcqRanked[myMcqIndex].rank : -1;
 
-    const mainsSorted = sortLeaderboard(mapped, "mains");
-    const myMainsIndex = mainsSorted.findIndex((item) => item.userId === userId);
+    const mainsRanked = assignRanks(sortLeaderboard(mapped, "mains"), "mains");
+    const myMainsIndex = mainsRanked.findIndex((item) => item.userId === userId);
+    const myMainsRank = myMainsIndex >= 0 ? mainsRanked[myMainsIndex].rank : -1;
 
     const isRankUnlocked = Boolean(myData?.isRankUnlocked);
     const attemptsToUnlockRank = Math.max(0, 3 - (myData?.attemptCount ?? 0));
@@ -284,9 +302,9 @@ export const getMyRank = async (req: Request, res: Response, next: NextFunction)
     res.json({
       status: "success",
       data: {
-        rank: isRankUnlocked && myOverallIndex >= 0 ? myOverallIndex + 1 : null,
-        mcqRank: isRankUnlocked && myMcqIndex >= 0 ? myMcqIndex + 1 : null,
-        mainsRank: isRankUnlocked && myMainsIndex >= 0 ? myMainsIndex + 1 : null,
+        rank: isRankUnlocked && myOverallRank > 0 ? myOverallRank : null,
+        mcqRank: isRankUnlocked && myMcqRank > 0 ? myMcqRank : null,
+        mainsRank: isRankUnlocked && myMainsRank > 0 ? myMainsRank : null,
         isRankUnlocked,
         attemptsToUnlockRank,
         realRankedCount,
