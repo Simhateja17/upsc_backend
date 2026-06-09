@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { sendContactNotification } from "../services/emailService";
 
 /**
  * POST /api/contact
@@ -24,6 +25,18 @@ export const submitContact = async (req: Request, res: Response, next: NextFunct
     });
 
     console.log(`[Contact] New submission from ${email}: ${subject}`);
+
+    // Send email notification to admin team
+    sendContactNotification(
+      process.env.ADMIN_EMAIL || "together@risewithjeet.com",
+      {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim().toLowerCase(),
+        subject: subject.trim(),
+        message: message.trim(),
+      }
+    ).catch((err) => console.error("[Contact] Email notification failed:", err));
 
     res.status(201).json({
       status: "success",

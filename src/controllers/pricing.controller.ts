@@ -204,3 +204,83 @@ export const getOrders = async (req: Request, res: Response, next: NextFunction)
     next(error);
   }
 };
+
+/**
+ * POST /api/admin/pricing/plans
+ * Admin: Create a new pricing plan
+ */
+export const createPlan = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, price, duration, durationDays, features, isPopular, order } = req.body;
+
+    if (!name || price === undefined || !duration) {
+      return res.status(400).json({ status: "error", message: "name, price, and duration are required" });
+    }
+
+    const plan = await prisma.pricingPlan.create({
+      data: {
+        name,
+        price: Number(price),
+        duration,
+        durationDays: durationDays ? Number(durationDays) : null,
+        features: features || [],
+        isPopular: isPopular || false,
+        order: order || 0,
+        isActive: true,
+      },
+    });
+
+    res.status(201).json({ status: "success", data: plan });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/admin/pricing/plans/:id
+ * Admin: Update a pricing plan
+ */
+export const updatePlan = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { name, price, duration, durationDays, features, isPopular, order, isActive } = req.body;
+
+    const updates: Record<string, any> = {};
+    if (name !== undefined) updates.name = name;
+    if (price !== undefined) updates.price = Number(price);
+    if (duration !== undefined) updates.duration = duration;
+    if (durationDays !== undefined) updates.durationDays = Number(durationDays);
+    if (features !== undefined) updates.features = features;
+    if (isPopular !== undefined) updates.isPopular = isPopular;
+    if (order !== undefined) updates.order = Number(order);
+    if (isActive !== undefined) updates.isActive = isActive;
+
+    const plan = await prisma.pricingPlan.update({
+      where: { id },
+      data: updates,
+    });
+
+    res.json({ status: "success", data: plan });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/admin/pricing/plans/:id
+ * Admin: Delete a pricing plan (soft delete by setting isActive to false)
+ */
+export const deletePlan = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.pricingPlan.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    res.json({ status: "success", message: "Plan deactivated" });
+  } catch (error) {
+    next(error);
+  }
+};

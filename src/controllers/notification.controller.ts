@@ -10,7 +10,15 @@ export const getNotifications = async (req: Request, res: Response, next: NextFu
       .order("created_at", { ascending: false })
       .limit(50);
 
-    res.json({ status: "success", data: notifications || [] });
+    // Filter out any test/mock notifications that might have slipped in
+    const filteredNotifications = (notifications || []).filter((n) => {
+      // Skip notifications that look like test data
+      if (n.title?.includes("test") || n.title?.includes("Test") || n.title?.includes("TEST")) return false;
+      if (n.body?.includes("test") || n.body?.includes("Test") || n.body?.includes("TEST")) return false;
+      return true;
+    });
+
+    res.json({ status: "success", data: filteredNotifications });
   } catch (error) {
     next(error);
   }

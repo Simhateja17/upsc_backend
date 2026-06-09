@@ -189,7 +189,7 @@ export const createCard = async (
     let deck = await prisma.flashcardDeck.findUnique({ where: { subjectId } });
     if (!deck) {
       deck = await prisma.flashcardDeck.create({
-        data: { subjectId, subject: subject || subjectId },
+        data: { subjectId, subject: subject || subjectId, icon: '📚' },
       });
     }
 

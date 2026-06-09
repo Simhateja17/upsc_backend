@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { sendFeedbackNotification } from "../services/emailService";
 
 /**
  * POST /api/feedback
@@ -23,6 +24,18 @@ export const submitFeedback = async (req: Request, res: Response, next: NextFunc
     });
 
     console.log(`[Feedback] New feedback from ${req.user!.email}: ${rating}/5 [${category}]`);
+
+    // Send email notification to admin team
+    sendFeedbackNotification(
+      process.env.ADMIN_EMAIL || "together@risewithjeet.com",
+      {
+        rating,
+        category: category || "General",
+        workingWell: workingWell || "",
+        couldBeBetter: couldBeBetter || "",
+        userEmail: req.user!.email,
+      }
+    ).catch((err) => console.error("[Feedback] Email notification failed:", err));
 
     res.status(201).json({
       status: "success",
