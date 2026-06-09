@@ -28,8 +28,26 @@ interface LoginBody {
   password: string;
 }
 
+interface PhoneOtpSendBody {
+  phone: string;
+}
+
+interface PhoneOtpVerifyBody {
+  purpose: "signup" | "login" | "link";
+  phone: string;
+  token: string;
+  profile?: {
+    firstName?: string;
+    lastName?: string;
+  };
+}
+
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
+}
+
+function phoneEmail(phone: string): string {
+  return `${phone.replace(/\D/g, "")}@phone.risewithjeet.invalid`;
 }
 
 function mapAuthError(error: any): { statusCode: number; message: string; code?: string } {
@@ -364,6 +382,121 @@ export const login = async (
           lastName: user.last_name,
           avatarUrl: user.avatar_url,
           role: user.role,
+        },
+        session: {
+          accessToken: authData.session.access_token,
+          refreshToken: authData.session.refresh_token,
+          expiresAt: authData.session.expires_at,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+async function sendPhoneOtp(
+  req: Request<{}, {}, PhoneOtpSendBody>,
+  res: Response,
+  next: NextFunction,
+  shouldCreateUser: boolean
+) {
+  try {
+    const { phone } = req.body;
+    const { error } = await supabase.auth.signInWithOtp({
+      phone,
+      options: { shouldCreateUser },
+    });
+
+    if (error) {
+      const mapped = mapAuthError(error);
+      return res.status(mapped.statusCode).json({
+        status: "error",
+        message: mapped.message,
+        code: mapped.code,
+      });
+    }
+
+    return res.json({
+      status: "success",
+      message: "OTP sent successfully",
+      data: { phone },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export const sendPhoneSignupOtp = (
+  req: Request<{}, {}, PhoneOtpSendBody>,
+  res: Response,
+  next: NextFunction
+) => sendPhoneOtp(req, res, next, true);
+
+export const sendPhoneLoginOtp = (
+  req: Request<{}, {}, PhoneOtpSendBody>,
+  res: Response,
+  next: NextFunction
+) => sendPhoneOtp(req, res, next, false);
+
+export const sendPhoneLinkOtp = (
+  req: Request<{}, {}, PhoneOtpSendBody>,
+  res: Response,
+  next: NextFunction
+) => sendPhoneOtp(req, res, next, false);
+
+/**
+ * Verify a phone OTP and create/recover the matching public user.
+ * POST /api/auth/phone/verify
+ */
+export const verifyPhoneOtp = async (
+  req: Request<{}, {}, PhoneOtpVerifyBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { phone, token, profile } = req.body;
+    const { data: authData, error: authError } = await supabase.auth.verifyOtp({
+      phone,
+      token,
+      type: "sms",
+    });
+
+    if (authError || !authData.user || !authData.session) {
+      const mapped = mapAuthError(authError || new Error("Invalid or expired OTP"));
+      return res.status(mapped.statusCode).json({
+        status: "error",
+        message: mapped.message,
+        code: mapped.code,
+      });
+    }
+
+    const email = authData.user.email || phoneEmail(phone);
+    const user = await ensurePublicUser({
+      supabaseId: authData.user.id,
+      email,
+      firstName: profile?.firstName || authData.user.user_metadata?.first_name,
+      lastName: profile?.lastName || authData.user.user_metadata?.last_name,
+      phone,
+      emailVerified: !!authData.user.email_confirmed_at,
+    });
+
+    if (!user) {
+      return res.status(500).json({ status: "error", message: "Unable to sync user profile" });
+    }
+
+    return res.json({
+      status: "success",
+      message: "OTP verified successfully",
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          phone: user.phone,
+          role: user.role,
+          phoneVerified: true,
         },
         session: {
           accessToken: authData.session.access_token,
