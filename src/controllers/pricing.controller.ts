@@ -123,36 +123,6 @@ export const getTestimonials = async (_req: Request, res: Response, next: NextFu
       orderBy: { order: "asc" },
     });
 
-    // Return defaults if empty
-    if (testimonials.length === 0) {
-      return res.json({
-        status: "success",
-        data: [
-          {
-            id: "1",
-            name: "Priya Sharma",
-            title: "IAS 2024 - AIR 45",
-            content: "The daily MCQ practice and personalized study planner were game-changers for my preparation. Jeet Sir's mentorship made all the difference.",
-            rating: 5,
-          },
-          {
-            id: "2",
-            name: "Rahul Verma",
-            title: "IAS 2024 - AIR 112",
-            content: "The AI-powered answer evaluation helped me improve my mains writing significantly. I saw a 30% improvement in my scores within 2 months.",
-            rating: 5,
-          },
-          {
-            id: "3",
-            name: "Anita Patel",
-            title: "IPS 2023 - AIR 89",
-            content: "The mock test analytics and subject-wise breakdown helped me identify and fix my weak areas systematically.",
-            rating: 5,
-          },
-        ],
-      });
-    }
-
     res.json({ status: "success", data: testimonials });
   } catch (error) {
     next(error);

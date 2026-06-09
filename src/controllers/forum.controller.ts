@@ -7,6 +7,32 @@ function getUserId(req: Request): string | undefined {
   return req.user?.id;
 }
 
+function displayName(user: any): string {
+  return [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() || "Aspirant";
+}
+
+function mapForumPost(post: any) {
+  const tags = Array.isArray(post.tags) ? post.tags : [];
+  return {
+    ...post,
+    content: post.body ?? post.content ?? "",
+    author: post.author ?? displayName(post.user),
+    tag: post.tag ?? tags[0] ?? post.subject ?? "General",
+    repliesCount: post.repliesCount ?? post.answerCount ?? post._count?.answers ?? 0,
+    upvotes: post.upvotes ?? post.votes ?? 0,
+  };
+}
+
+function mapForumAnswer(answer: any) {
+  return {
+    ...answer,
+    content: answer.body ?? answer.content ?? "",
+    author: answer.author ?? displayName(answer.user),
+    upvotes: answer.upvotes ?? answer.votes ?? 0,
+    isBestAnswer: answer.isBestAnswer ?? answer.isAccepted ?? false,
+  };
+}
+
 // ── GET /forum/posts ───────────────────────────────────────────────────────
 
 export const getPosts = async (req: Request, res: Response, next: NextFunction) => {
@@ -45,15 +71,17 @@ export const getPosts = async (req: Request, res: Response, next: NextFunction) 
       prisma.forumPost.count({ where }),
     ]);
 
-    const data = posts.map((p) => ({
-      ...p,
-      answerCount: p._count.answers,
-      userVote: p.votesRel?.[0]?.direction ?? 0,
-      isBookmarked: p.bookmarks.length > 0,
-      votesRel: undefined,
-      bookmarks: undefined,
-      _count: undefined,
-    }));
+    const data = posts.map((p) =>
+      mapForumPost({
+        ...p,
+        answerCount: p._count.answers,
+        userVote: p.votesRel?.[0]?.direction ?? 0,
+        isBookmarked: p.bookmarks.length > 0,
+        votesRel: undefined,
+        bookmarks: undefined,
+        _count: undefined,
+      })
+    );
 
     res.json({ status: "success", data, meta: { total, page: parseInt(page as string), limit: take } });
   } catch (error: any) {
@@ -95,22 +123,31 @@ export const getPost = async (req: Request, res: Response, next: NextFunction) =
     // increment views
     await prisma.forumPost.update({ where: { id }, data: { views: { increment: 1 } } });
 
-    const answers = post.answers.map((a) => ({
-      ...a,
-      userVote: a.votesRel?.[0]?.direction ?? 0,
+    const answers = post.answers.map((a) =>
+      mapForumAnswer({
+        ...a,
+        userVote: a.votesRel?.[0]?.direction ?? 0,
+        votesRel: undefined,
+      })
+    );
+
+    const mappedPost = mapForumPost({
+      ...post,
+      views: post.views + 1,
+      answerCount: post.answers.length,
+      userVote: post.votesRel?.[0]?.direction ?? 0,
+      isBookmarked: post.bookmarks.length > 0,
+      answers: undefined,
       votesRel: undefined,
-    }));
+      bookmarks: undefined,
+    });
 
     res.json({
       status: "success",
       data: {
-        ...post,
-        views: post.views + 1,
-        userVote: post.votesRel?.[0]?.direction ?? 0,
-        isBookmarked: post.bookmarks.length > 0,
+        ...mappedPost,
+        post: mappedPost,
         answers,
-        votesRel: undefined,
-        bookmarks: undefined,
       },
     });
   } catch (error) {
@@ -123,9 +160,12 @@ export const getPost = async (req: Request, res: Response, next: NextFunction) =
 export const createPost = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { title, body, subject, tags } = req.body;
+    const { title, body, content, subject, tag, tags } = req.body;
+    const finalBody = body ?? content;
+    const finalSubject = subject ?? tag ?? "General";
+    const finalTags = Array.isArray(tags) ? tags : tag ? [tag] : [];
 
-    if (!title || !body || !subject) {
+    if (!title || !finalBody || !finalSubject) {
       return res.status(400).json({ status: "error", message: "Title, body and subject are required" });
     }
 
@@ -133,16 +173,16 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
       data: {
         userId,
         title,
-        body,
-        subject,
-        tags: Array.isArray(tags) ? tags : [],
+        body: finalBody,
+        subject: finalSubject,
+        tags: finalTags,
       },
       include: {
         user: { select: { id: true, firstName: true, lastName: true } },
       },
     });
 
-    res.status(201).json({ status: "success", data: post });
+    res.status(201).json({ status: "success", data: mapForumPost(post) });
   } catch (error) {
     next(error);
   }
@@ -154,9 +194,10 @@ export const createAnswer = async (req: Request, res: Response, next: NextFuncti
   try {
     const userId = req.user!.id;
     const postId = req.params.id as string;
-    const { body } = req.body;
+    const { body, content } = req.body;
+    const finalBody = body ?? content;
 
-    if (!body) {
+    if (!finalBody) {
       return res.status(400).json({ status: "error", message: "Answer body is required" });
     }
 
@@ -167,7 +208,7 @@ export const createAnswer = async (req: Request, res: Response, next: NextFuncti
 
     const [answer] = await prisma.$transaction([
       prisma.forumAnswer.create({
-        data: { userId, postId, body },
+        data: { userId, postId, body: finalBody },
         include: {
           user: { select: { id: true, firstName: true, lastName: true } },
         },
@@ -178,7 +219,7 @@ export const createAnswer = async (req: Request, res: Response, next: NextFuncti
       }),
     ]);
 
-    res.status(201).json({ status: "success", data: answer });
+    res.status(201).json({ status: "success", data: mapForumAnswer(answer) });
   } catch (error) {
     next(error);
   }

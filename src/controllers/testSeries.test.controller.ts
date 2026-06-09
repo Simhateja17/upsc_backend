@@ -40,6 +40,9 @@ export const getSeriesDashboard = async (req: Request, res: Response, next: Next
       duration: t.duration,
       totalMarks: t.totalMarks,
       isCompleted: !!enrollment && enrollment.testsCompleted >= t.testNumber,
+      status: !!enrollment && enrollment.testsCompleted >= t.testNumber ? "completed" : "pending",
+      score: null,
+      completedAt: null,
       attemptCount: t._count.attempts,
     }));
 
@@ -52,6 +55,7 @@ export const getSeriesDashboard = async (req: Request, res: Response, next: Next
       status: "success",
       data: {
         id: series.id,
+        seriesId: series.id,
         title: series.title,
         description: series.description,
         examMode: series.examMode,
@@ -91,6 +95,12 @@ export const checkoutSeries = async (req: Request, res: Response, next: NextFunc
     res.json({
       status: "success",
       data: {
+        seriesId: series.id,
+        originalPrice: series.price,
+        discount: 0,
+        gst: 0,
+        totalPayable: series.price,
+        couponCode: null,
         enrollmentId: enrollment.id,
         enrolledAt: enrollment.enrolledAt,
         message: series.price === 0 ? "Enrolled successfully" : "Checkout initiated",
@@ -138,6 +148,7 @@ export const getTestQuestions = async (req: Request, res: Response, next: NextFu
     const questions = test.questions.map((q) => ({
       id: q.id,
       questionNum: q.questionNum,
+      text: q.questionText,
       questionText: q.questionText,
       subject: q.subject,
       category: q.category,
@@ -266,6 +277,8 @@ export const submitTest = async (req: Request, res: Response, next: NextFunction
     res.json({
       status: "success",
       data: {
+        testId,
+        status: "submitted",
         attemptId: attempt.id,
         score,
         totalMarks,
@@ -311,7 +324,11 @@ export const getTestResult = async (req: Request, res: Response, next: NextFunct
       return {
         id: q.id,
         questionNum: q.questionNum,
+        text: q.questionText,
         questionText: q.questionText,
+        userAnswer: selected || null,
+        correctAnswer: q.correctOption,
+        timeSpent: 0,
         subject: q.subject,
         options: q.options,
         correctOption: q.correctOption,
@@ -327,6 +344,9 @@ export const getTestResult = async (req: Request, res: Response, next: NextFunct
         attemptId: attempt.id,
         testId: attempt.testId,
         title: attempt.test.title,
+        correct: attempt.correctCount,
+        wrong: attempt.wrongCount,
+        skipped: attempt.skippedCount,
         score: attempt.score,
         totalMarks: attempt.totalMarks,
         correctCount: attempt.correctCount,

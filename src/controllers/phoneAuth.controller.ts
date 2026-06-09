@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { Webhook } from "standardwebhooks";
 import config from "../config";
 import { supabaseAdmin } from "../config/supabase";
+import { normalizeIndianPhone } from "../utils/phone";
 
 type PhonePurpose = "login" | "signup" | "link";
 
@@ -35,21 +36,6 @@ function ensurePhoneAuthEnabled(res: Response): boolean {
   if (config.phoneAuth.enabled) return true;
   res.status(404).json({ status: "error", message: "Phone authentication is not enabled" });
   return false;
-}
-
-export function normalizeIndianPhone(input: string): string {
-  const compact = input.trim().replace(/[\s()-]/g, "");
-  let digits = compact.startsWith("+") ? compact.slice(1) : compact;
-
-  if (digits.startsWith("0091")) digits = digits.slice(2);
-  if (digits.startsWith("91") && digits.length === 12) digits = digits.slice(2);
-  if (digits.startsWith("0") && digits.length === 11) digits = digits.slice(1);
-
-  if (!/^[6-9]\d{9}$/.test(digits)) {
-    throw new Error("Enter a valid 10 digit Indian mobile number");
-  }
-
-  return `+91${digits}`;
 }
 
 function phoneForTwoFactor(phone: string): string {
