@@ -13,72 +13,8 @@ export const getPlans = async (_req: Request, res: Response, next: NextFunction)
       orderBy: { order: "asc" },
     });
 
-    // Return defaults if empty
-    if (plans.length === 0) {
-      return res.json({
-        status: "success",
-        data: [
-          {
-            id: "1",
-            name: "3 Month Plan",
-            price: 4999,
-            duration: "3 months",
-            features: [
-              "All Daily MCQs & Answer Writing",
-              "Basic Mock Tests",
-              "Editorial Analysis",
-              "Study Planner",
-              "Email Support",
-            ],
-            isPopular: false,
-          },
-          {
-            id: "2",
-            name: "6 Month Plan",
-            price: 7999,
-            duration: "6 months",
-            features: [
-              "Everything in 3 Month Plan",
-              "Unlimited Mock Tests",
-              "AI Answer Evaluation",
-              "Video Lectures Access",
-              "Personal Mentor Support",
-              "Priority Support",
-            ],
-            isPopular: true,
-          },
-          {
-            id: "3",
-            name: "12 Month Plan",
-            price: 11999,
-            duration: "12 months",
-            features: [
-              "Everything in 6 Month Plan",
-              "1-on-1 Mentorship Sessions",
-              "Complete Study Material Library",
-              "Interview Preparation",
-              "Lifetime Community Access",
-              "Dedicated Study Manager",
-            ],
-            isPopular: false,
-          },
-        ],
-      });
-    }
-
     res.json({ status: "success", data: plans });
-  } catch (error: any) {
-    // If the table doesn't exist yet, return defaults instead of 500
-    if (error?.code === "P2021" || error?.code === "P2010" || error?.message?.includes("does not exist")) {
-      return res.json({
-        status: "success",
-        data: [
-          { id: "1", name: "3 Month Plan", price: 4999, duration: "3 months", features: ["All Daily MCQs & Answer Writing", "Basic Mock Tests", "Editorial Analysis", "Study Planner", "Email Support"], isPopular: false },
-          { id: "2", name: "6 Month Plan", price: 7999, duration: "6 months", features: ["Everything in 3 Month Plan", "Unlimited Mock Tests", "AI Answer Evaluation", "Video Lectures Access", "Personal Mentor Support", "Priority Support"], isPopular: true },
-          { id: "3", name: "12 Month Plan", price: 11999, duration: "12 months", features: ["Everything in 6 Month Plan", "1-on-1 Mentorship Sessions", "Complete Study Material Library", "Interview Preparation", "Lifetime Community Access", "Dedicated Study Manager"], isPopular: false },
-        ],
-      });
-    }
+  } catch (error) {
     next(error);
   }
 };
