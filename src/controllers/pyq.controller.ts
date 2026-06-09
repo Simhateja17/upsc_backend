@@ -13,6 +13,27 @@ function qsList(val: string | string[] | undefined): string[] {
     .filter(Boolean);
 }
 
+function paperAliases(paper: string): string[] {
+  const normalized = paper.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  const aliases: Record<string, string[]> = {
+    gsi: ["GS-I", "GS Paper I", "GS Paper 1"],
+    gspaperi: ["GS-I", "GS Paper I", "GS Paper 1"],
+    gspaper1: ["GS-I", "GS Paper I", "GS Paper 1"],
+    gsii: ["GS-II", "GS Paper II", "GS Paper 2"],
+    gspaperii: ["GS-II", "GS Paper II", "GS Paper 2"],
+    gspaper2: ["GS-II", "GS Paper II", "GS Paper 2"],
+    gsiii: ["GS-III", "GS Paper III", "GS Paper 3"],
+    gspaperiii: ["GS-III", "GS Paper III", "GS Paper 3"],
+    gspaper3: ["GS-III", "GS Paper III", "GS Paper 3"],
+    gsiv: ["GS-IV", "GS Paper IV", "GS Paper 4"],
+    gspaperiv: ["GS-IV", "GS Paper IV", "GS Paper 4"],
+    gspaper4: ["GS-IV", "GS Paper IV", "GS Paper 4"],
+    essay: ["Essay", "Essay Paper"],
+    essaypaper: ["Essay", "Essay Paper"],
+  };
+  return aliases[normalized] || [paper];
+}
+
 /**
  * GET /api/pyq/questions
  * Public endpoint - returns approved questions with optional filters.
@@ -71,7 +92,7 @@ export const getPublicPYQQuestions = async (
       if (yearFrom) where.year.gte = parseInt(yearFrom);
       if (yearTo) where.year.lte = parseInt(yearTo);
     }
-    if (paper) where.paper = paper;
+    if (paper) where.paper = { in: paperAliases(paper), mode: "insensitive" };
 
     // UPSC priority subject order for "All Papers" default sort.
     const PRIORITY = [
@@ -169,10 +190,15 @@ export const getPublicPYQCounts = async (
     }
 
     if (mode === "mains") {
-      const [total, bySubject, byTopic] = await Promise.all([
+      const [total, bySubject, byPaper, byTopic] = await Promise.all([
         prisma.pYQMainsQuestion.count({ where }),
         prisma.pYQMainsQuestion.groupBy({
           by: ["subject"],
+          _count: { id: true },
+          where,
+        }),
+        prisma.pYQMainsQuestion.groupBy({
+          by: ["paper"],
           _count: { id: true },
           where,
         }),
@@ -189,6 +215,7 @@ export const getPublicPYQCounts = async (
           mode,
           total,
           bySubject: bySubject.map((s: any) => ({ subject: s.subject, count: s._count.id })),
+          byPaper: byPaper.map((p: any) => ({ paper: p.paper, count: p._count.id })),
           // Mains has no stored `subSubject`, but the UI uses the same hierarchy slot
           // for mains child labels. Expose `topic` values through `bySubSubject` so the
           // existing tree/count UI keeps working.
@@ -207,10 +234,15 @@ export const getPublicPYQCounts = async (
       });
     }
 
-    const [total, bySubject, bySubSubject, byTopic] = await Promise.all([
+    const [total, bySubject, byPaper, bySubSubject, byTopic] = await Promise.all([
       prisma.pYQQuestion.count({ where }),
       prisma.pYQQuestion.groupBy({
         by: ["subject"],
+        _count: { id: true },
+        where,
+      }),
+      prisma.pYQQuestion.groupBy({
+        by: ["paper"],
         _count: { id: true },
         where,
       }),
@@ -232,6 +264,7 @@ export const getPublicPYQCounts = async (
         mode,
         total,
         bySubject: bySubject.map((s: any) => ({ subject: s.subject, count: s._count.id })),
+        byPaper: byPaper.map((p: any) => ({ paper: p.paper, count: p._count.id })),
         bySubSubject: bySubSubject.map((s: any) => ({
           subject: s.subject,
           subSubject: s.subSubject,
