@@ -3,11 +3,10 @@ import prisma from "../config/database";
 import {
   createRazorpayOrder,
   fetchRazorpayOrder,
+  fetchRazorpayPayment,
   verifyRazorpaySignature,
 } from "../services/razorpayGateway.service";
 
-type BillingCycle = "monthly" | "quarterly" | "yearly";
-type CheckoutPlanKey = "rise" | "ascent";
 type TestSeriesCheckoutRow = {
   id: string;
   title: string;
@@ -24,66 +23,8 @@ type TestSeriesPaymentMetadata = {
   itemName?: string;
 };
 
-const CHECKOUT_PLAN_CATALOG: Record<CheckoutPlanKey, Record<BillingCycle, { amount: number; durationDays: number; duration: string }>> = {
-  rise: {
-    monthly: { amount: 499, durationDays: 30, duration: "1 month" },
-    quarterly: { amount: 1197, durationDays: 90, duration: "3 months" },
-    yearly: { amount: 3588, durationDays: 365, duration: "12 months" },
-  },
-  ascent: {
-    monthly: { amount: 999, durationDays: 30, duration: "1 month" },
-    quarterly: { amount: 2397, durationDays: 90, duration: "3 months" },
-    yearly: { amount: 7188, durationDays: 365, duration: "12 months" },
-  },
-};
-
-function normalizeCycle(value: unknown): BillingCycle {
-  return value === "quarterly" || value === "yearly" ? value : "monthly";
-}
-
-function normalizePlanKey(value: unknown): CheckoutPlanKey | null {
-  return value === "rise" || value === "ascent" ? value : null;
-}
-
 function normalizePlanAmountInRupees(amount: number) {
   return amount >= 10000 ? Math.round(amount / 100) : amount;
-}
-
-async function findOrCreateCheckoutPlan(planKey: CheckoutPlanKey, cycle: BillingCycle) {
-  const expected = CHECKOUT_PLAN_CATALOG[planKey][cycle];
-  const checkoutPlanName = `${planKey === "rise" ? "Rise" : "Ascent"} ${cycle.charAt(0).toUpperCase()}${cycle.slice(1)}`;
-  const plans = await prisma.pricingPlan.findMany({
-    where: { isActive: true },
-    orderBy: { order: "asc" },
-  });
-
-  const matchingPlan = plans.find((plan) => {
-    const exactGeneratedName = plan.name.toLowerCase() === checkoutPlanName.toLowerCase();
-    const amountMatches = normalizePlanAmountInRupees(plan.price) === expected.amount;
-    return exactGeneratedName && amountMatches;
-  }) || plans.find((plan) => {
-    const nameMatches = plan.name.toLowerCase().includes(planKey);
-    const durationMatches = plan.durationDays === expected.durationDays || plan.duration.toLowerCase().includes(cycle);
-    const amountMatches = normalizePlanAmountInRupees(plan.price) === expected.amount;
-    return nameMatches && durationMatches && amountMatches;
-  });
-
-  if (matchingPlan) return matchingPlan;
-
-  return prisma.pricingPlan.create({
-    data: {
-      name: checkoutPlanName,
-      price: expected.amount,
-      duration: expected.duration,
-      durationDays: expected.durationDays,
-      features: planKey === "rise"
-        ? ["AI evaluations", "Mock tests", "Revision suite", "Jeet AI"]
-        : ["Unlimited evaluations", "Weekly mentorship", "Personalised roadmap", "Priority support"],
-      isPopular: planKey === "rise",
-      order: planKey === "rise" ? 20 : 30,
-      isActive: true,
-    },
-  });
 }
 
 function getRazorpayErrorStatus(error: unknown) {
@@ -262,7 +203,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
 export const initiatePayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { orderId, planId, planKey: rawPlanKey, cycle: rawCycle, itemType, itemId } = req.body;
+    const { orderId, planId, itemType, itemId } = req.body;
 
     if (itemType === "test_series") {
       if (!itemId || typeof itemId !== "string") {
@@ -412,13 +353,9 @@ export const initiatePayment = async (req: Request, res: Response, next: NextFun
       : null;
 
     if (!order) {
-      const cycle = normalizeCycle(rawCycle);
-      const planKey = normalizePlanKey(rawPlanKey);
       const plan = planId
         ? await prisma.pricingPlan.findFirst({ where: { id: planId, isActive: true } })
-        : planKey
-          ? await findOrCreateCheckoutPlan(planKey, cycle)
-          : null;
+        : null;
 
       if (!plan) {
         return res.status(404).json({ status: "error", message: "Active billing plan not found" });
@@ -605,7 +542,10 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
       return res.status(400).json({ status: "error", message: "Invalid payment signature" });
     }
 
-    const razorpayOrder = await fetchRazorpayOrder(razorpay_order_id);
+    const [razorpayOrder, razorpayPayment] = await Promise.all([
+      fetchRazorpayOrder(razorpay_order_id),
+      fetchRazorpayPayment(razorpay_payment_id),
+    ]);
     if (
       razorpayOrder.receipt !== payment.id ||
       Number(razorpayOrder.amount) !== payment.amount * 100 ||
@@ -613,6 +553,14 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
       (payment.providerOrderId && razorpayOrder.id !== payment.providerOrderId)
     ) {
       return res.status(400).json({ status: "error", message: "Payment order details do not match" });
+    }
+    if (
+      razorpayPayment.order_id !== razorpay_order_id ||
+      Number(razorpayPayment.amount) !== payment.amount * 100 ||
+      razorpayPayment.currency !== payment.currency ||
+      !["authorized", "captured"].includes(razorpayPayment.status)
+    ) {
+      return res.status(400).json({ status: "error", message: "Payment details do not match or payment is not authorized" });
     }
 
     const testSeriesMetadata = getTestSeriesPaymentMetadata(payment);

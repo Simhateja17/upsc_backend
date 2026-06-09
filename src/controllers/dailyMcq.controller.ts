@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { dailyMcqRepo } from "../repositories/prisma-daily-mcq.repository";
 import { isValidSubject, normalizeSubject } from "../constants/subjects";
-import { getSyntheticDailyMcqAttemptCount } from "../services/communityMetrics.service";
 
 const DAILY_MCQ_QUESTION_COUNT = 10;
 
@@ -47,7 +46,7 @@ export const getTodayMCQ = async (req: Request, res: Response, next: NextFunctio
     const attempt = await dailyMcqRepo.checkUserAttempt(req.user!.id, mcq.id);
     const attempted = !!attempt?.completedAt;
     const { id, title, topic, tags, questionCount, timeLimit, totalMarks } = mcq;
-    const attemptedCount = getSyntheticDailyMcqAttemptCount(await dailyMcqRepo.countTotalAttempts(mcq.id));
+    const attemptedCount = await dailyMcqRepo.countTotalAttempts(mcq.id);
 
     res.json({ status: "success", data: { id, title, topic, tags, questionCount, timeLimit, totalMarks, attempted, attemptedCount } });
   } catch (error) {
