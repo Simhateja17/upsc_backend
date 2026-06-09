@@ -8,7 +8,12 @@ function param(req: Request, key: string): string {
 }
 
 function isVisibleFlashcardSubject(subject: string | null | undefined): boolean {
-  return subject === "Current Affairs" || isValidSubject(subject);
+  if (!subject) return false;
+  if (subject === "Current Affairs") return true;
+  if (isValidSubject(subject)) return true;
+  // Accept "Indian X" variants used in admin-seeded decks (e.g. "Indian Polity" → "Polity")
+  const stripped = subject.replace(/^Indian\s+/i, '');
+  return isValidSubject(stripped);
 }
 
 /**
