@@ -34,6 +34,168 @@ function paperAliases(paper: string): string[] {
   return aliases[normalized] || [paper];
 }
 
+async function shouldUseQuestionBank(): Promise<boolean> {
+  try {
+    const rows = await prisma.$queryRawUnsafe<Array<{ count: string }>>(
+      `select count(*)::text as count from public.pyq_question_bank where exam = 'prelims' and status = 'approved'`
+    );
+    return Number(rows[0]?.count || 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+function pushParam(params: any[], value: any): string {
+  params.push(value);
+  return `$${params.length}`;
+}
+
+function buildQuestionBankWhere(req: Request): { clause: string; params: any[]; page: number; limit: number } {
+  const subject = qs(req.query.subject as string);
+  const subSubject = qs(req.query.subSubject as string) || qs(req.query.sub_subject as string);
+  const topics = qsList(req.query.topic as string | string[]);
+  const year = qs(req.query.year as string);
+  const years = qsList(req.query.years as string | string[]);
+  const yearFrom = qs(req.query.yearFrom as string);
+  const yearTo = qs(req.query.yearTo as string);
+  const paper = qs(req.query.paper as string);
+  const page = parseInt(qs(req.query.page as string) || "1");
+  const limit = parseInt(qs(req.query.limit as string) || "20");
+  const params: any[] = [];
+  const where = ["exam = 'prelims'", "status = 'approved'"];
+
+  if (subject && subject !== "All Papers") {
+    where.push(`subject ilike ${pushParam(params, subject)}`);
+  }
+  if (subSubject) {
+    where.push(`sub_subject ilike ${pushParam(params, subSubject)}`);
+  }
+  if (topics.length === 1) {
+    where.push(`topic ilike ${pushParam(params, `%${topics[0]}%`)}`);
+  } else if (topics.length > 1) {
+    const topicClauses = topics.map((topic) => `topic ilike ${pushParam(params, `%${topic}%`)}`);
+    where.push(`(${topicClauses.join(" or ")})`);
+  }
+  if (years.length > 0) {
+    const parsedYears = years.map((y) => parseInt(y, 10)).filter(Number.isFinite);
+    if (parsedYears.length > 0) where.push(`year = any(${pushParam(params, parsedYears)}::int[])`);
+  } else if (year) {
+    where.push(`year = ${pushParam(params, parseInt(year, 10))}`);
+  } else if (yearFrom || yearTo) {
+    if (yearFrom) where.push(`year >= ${pushParam(params, parseInt(yearFrom, 10))}`);
+    if (yearTo) where.push(`year <= ${pushParam(params, parseInt(yearTo, 10))}`);
+  }
+  if (paper) {
+    where.push(`paper = any(${pushParam(params, paperAliases(paper))}::text[])`);
+  }
+
+  return {
+    clause: where.join(" and "),
+    params,
+    page,
+    limit,
+  };
+}
+
+async function getQuestionBankQuestions(req: Request, res: Response) {
+  const { clause, params, page, limit } = buildQuestionBankWhere(req);
+  const skip = (page - 1) * limit;
+  const rows = await prisma.$queryRawUnsafe<any[]>(
+    `select
+       id,
+       year,
+       paper,
+       question_num as "questionNum",
+       question_text as "questionText",
+       subject,
+       sub_subject as "subSubject",
+       topic,
+       difficulty,
+       options,
+       correct_option as "correctOption",
+       explanation,
+       source_file as "sourceFile",
+       status,
+       question_structure as "questionStructure",
+       created_at as "createdAt"
+     from public.pyq_question_bank
+     where ${clause}
+     order by year desc, question_num asc, created_at desc
+     offset ${pushParam(params, skip)}
+     limit ${pushParam(params, limit)}`,
+    ...params
+  );
+  const totalRows = await prisma.$queryRawUnsafe<Array<{ count: string }>>(
+    `select count(*)::text as count from public.pyq_question_bank where ${clause}`,
+    ...params.slice(0, params.length - 2)
+  );
+  const total = Number(totalRows[0]?.count || 0);
+
+  res.json({
+    status: "success",
+    data: {
+      questions: rows,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    },
+  });
+}
+
+async function getQuestionBankCounts(req: Request, res: Response) {
+  const { clause, params } = buildQuestionBankWhere(req);
+  const [totalRows, bySubject, byPaper, bySubSubject, byTopic] = await Promise.all([
+    prisma.$queryRawUnsafe<Array<{ count: string }>>(
+      `select count(*)::text as count from public.pyq_question_bank where ${clause}`,
+      ...params
+    ),
+    prisma.$queryRawUnsafe<any[]>(
+      `select subject, count(*)::int as count from public.pyq_question_bank where ${clause} group by subject order by subject`,
+      ...params
+    ),
+    prisma.$queryRawUnsafe<any[]>(
+      `select paper, count(*)::int as count from public.pyq_question_bank where ${clause} group by paper order by paper`,
+      ...params
+    ),
+    prisma.$queryRawUnsafe<any[]>(
+      `select subject, sub_subject as "subSubject", count(*)::int as count
+       from public.pyq_question_bank where ${clause}
+       group by subject, sub_subject order by subject, sub_subject`,
+      ...params
+    ),
+    prisma.$queryRawUnsafe<any[]>(
+      `select subject, sub_subject as "subSubject", topic, count(*)::int as count
+       from public.pyq_question_bank where ${clause}
+       group by subject, sub_subject, topic order by subject, sub_subject, topic`,
+      ...params
+    ),
+  ]);
+
+  res.json({
+    status: "success",
+    data: {
+      mode: "prelims",
+      total: Number(totalRows[0]?.count || 0),
+      bySubject: bySubject.map((s: any) => ({ subject: s.subject, count: s.count })),
+      byPaper: byPaper.map((p: any) => ({ paper: p.paper, count: p.count })),
+      bySubSubject: bySubSubject.map((s: any) => ({
+        subject: s.subject,
+        subSubject: s.subSubject,
+        count: s.count,
+      })),
+      byTopic: byTopic.map((t: any) => ({
+        subject: t.subject,
+        subSubject: t.subSubject,
+        topic: t.topic,
+        count: t.count,
+      })),
+    },
+  });
+}
+
 /**
  * GET /api/pyq/questions
  * Public endpoint - returns approved questions with optional filters.
@@ -47,6 +209,10 @@ export const getPublicPYQQuestions = async (
 ) => {
   try {
     const mode = (qs(req.query.mode as string) || "prelims").toLowerCase();
+    if (mode !== "mains" && (await shouldUseQuestionBank())) {
+      return getQuestionBankQuestions(req, res);
+    }
+
     const subject = qs(req.query.subject as string);
     const subSubject = qs(req.query.subSubject as string) || qs(req.query.sub_subject as string);
     const topics = qsList(req.query.topic as string | string[]);
@@ -177,6 +343,10 @@ export const getPublicPYQCounts = async (
 ) => {
   try {
     const mode = (qs(req.query.mode as string) || "prelims").toLowerCase();
+    if (mode !== "mains" && (await shouldUseQuestionBank())) {
+      return getQuestionBankCounts(req, res);
+    }
+
     const year = qs(req.query.year as string);
     const yearFrom = qs(req.query.yearFrom as string);
     const yearTo = qs(req.query.yearTo as string);
@@ -308,7 +478,48 @@ export const submitPyqPrelimsAnswer = async (
     });
 
     if (!question) {
-      return res.status(404).json({ status: "error", message: "PYQ Prelims question not found" });
+      let bankRows: Array<{ id: string; correctOption: string | null }> = [];
+      try {
+        bankRows = await prisma.$queryRawUnsafe<Array<{ id: string; correctOption: string | null }>>(
+          `select id, correct_option as "correctOption"
+           from public.pyq_question_bank
+           where id = $1 and exam = 'prelims' and status = 'approved'
+           limit 1`,
+          questionId
+        );
+      } catch {
+        bankRows = [];
+      }
+      const bankQuestion = bankRows[0];
+      if (!bankQuestion) {
+        return res.status(404).json({ status: "error", message: "PYQ Prelims question not found" });
+      }
+
+      const correctOption = bankQuestion.correctOption?.trim().toUpperCase() || null;
+      const isCorrect = Boolean(correctOption && selectedOption === correctOption);
+      const score = isCorrect ? 1 : 0;
+      const accuracy = isCorrect ? 100 : 0;
+
+      await prisma.userActivity.create({
+        data: {
+          userId,
+          type: "mcq",
+          title: "Attempted PYQ Prelims",
+          description: isCorrect ? "Correct answer" : "Incorrect answer",
+        },
+      });
+
+      return res.json({
+        status: "success",
+        data: {
+          attemptId: null,
+          isCorrect,
+          correctOption,
+          score,
+          totalMarks: 1,
+          accuracy,
+        },
+      });
     }
 
     const correctOption = question.correctOption?.trim().toUpperCase() || null;

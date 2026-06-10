@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-06-10T05:07:41.254Z",
+  "csvDirectory": "/Users/teja/Desktop/Projects/upsc/upsc_backend/data/imports/pyq/csv",
+  "files": [
+    {
+      "file": "PYQ - Polity.csv",
+      "normalized": 212,
+      "failed": 0
+    }
+  ],
+  "totals": {
+    "files": 1,
+    "parsedRows": 212,
+    "imported": 212,
+    "skipped": 0,
+    "inserted": 0,
+    "updated": 212
+  },
+  "failures": []
+}
