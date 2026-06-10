@@ -35,7 +35,7 @@ jobs:
       - name: Sync files to EC2
         uses: burnett01/rsync-deployments@6.0.0
         with:
-          switches: -avzr --delete --exclude='.git' --exclude='node_modules' --exclude='.env' --exclude='dist' --exclude='*.dump'
+          switches: -avzr --delete --exclude='.git' --exclude='node_modules' --exclude='.env*' --exclude='dist' --exclude='*.dump' --exclude='logs'
           path: .
           remote_path: /home/mg8751721/backend
           remote_host: ${{ secrets.BACKEND_EC2_HOST }}
