@@ -23,16 +23,12 @@ sudo apt-get install -y certbot python3-certbot-nginx
 echo "=== Installing Git ==="
 sudo apt-get install -y git
 
-echo "=== Creating app directory ==="
-sudo mkdir -p /var/www/backend
-sudo chown -R $USER:$USER /var/www/backend
-
 echo ""
 echo "=== Server setup complete ==="
 echo "Next steps:"
-echo "  1. Clone your repo: git clone <your-repo-url> /var/www/backend"
-echo "  2. Copy .env:       cp /var/www/backend/.env.example /var/www/backend/.env && nano /var/www/backend/.env"
-echo "  3. Copy nginx conf: sudo cp /var/www/backend/deploy/nginx.conf /etc/nginx/sites-available/backend"
+echo "  1. Clone your repo: git clone <your-repo-url> ~/backend"
+echo "  2. Copy .env:       cp ~/backend/deploy/.env.production.template ~/backend/.env.production && nano ~/backend/.env.production"
+echo "  3. Copy nginx conf: sudo cp ~/backend/deploy/nginx.conf /etc/nginx/sites-available/backend"
 echo "  4. Enable nginx:    sudo ln -s /etc/nginx/sites-available/backend /etc/nginx/sites-enabled/"
-echo "  5. Run deploy:      bash /var/www/backend/deploy/2-deploy.sh"
+echo "  5. Run deploy:      bash ~/backend/deploy/2-deploy.sh"
 echo "  6. Setup SSL:       sudo certbot --nginx -d api.yourdomain.com"

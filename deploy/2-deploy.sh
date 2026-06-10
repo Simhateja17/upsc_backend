@@ -1,10 +1,10 @@
 #!/bin/bash
 # Run on every deployment - code is already synced by GitHub Actions via rsync
-# Usage: bash /var/www/backend/deploy/2-deploy.sh
+# Usage: bash ~/backend/deploy/2-deploy.sh
 
 set -e
 
-APP_DIR="/var/www/backend"
+APP_DIR="/home/mg8751721/backend"
 cd "$APP_DIR"
 
 echo "=== Checking Node.js version ==="
@@ -50,6 +50,7 @@ echo "=== Building TypeScript ==="
 npm run build
 
 echo "=== Restarting PM2 ==="
+mkdir -p "$APP_DIR/logs"
 pm2 startOrReload "$APP_DIR/deploy/ecosystem.config.js" --env production
 
 echo "=== Saving PM2 process list ==="
