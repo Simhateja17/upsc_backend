@@ -7,6 +7,9 @@ set -e
 APP_DIR="/home/mg8751721/backend"
 cd "$APP_DIR"
 
+# prisma.config.ts loads env via dotenv, which defaults to .env — point it at .env.production
+export DOTENV_CONFIG_PATH="$APP_DIR/.env.production"
+
 echo "=== Checking Node.js version ==="
 NODE_VERSION=$(node -v | sed 's/v//')
 NODE_MAJOR=$(echo "$NODE_VERSION" | cut -d. -f1)
