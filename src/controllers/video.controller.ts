@@ -165,3 +165,55 @@ export const askMentor = async (req: Request, res: Response, next: NextFunction)
     next(error);
   }
 };
+
+/**
+ * GET /api/videos/mentor/questions  (admin only)
+ * List all mentor questions with user info, latest first
+ */
+export const listMentorQuestions = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+    const status = req.query.status as string | undefined;
+
+    const where = status ? { status } : {};
+
+    const [questions, total] = await Promise.all([
+      prisma.mentorQuestion.findMany({
+        where,
+        include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.mentorQuestion.count({ where }),
+    ]);
+
+    res.json({ status: "success", data: { questions, total, page, limit } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PATCH /api/videos/mentor/questions/:id  (admin only)
+ * Update answer/status of a mentor question
+ */
+export const updateMentorQuestion = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { answer, status } = req.body;
+
+    const updated = await prisma.mentorQuestion.update({
+      where: { id },
+      data: {
+        ...(answer !== undefined && { answer: answer.trim() }),
+        ...(status !== undefined && { status }),
+      },
+    });
+
+    res.json({ status: "success", data: updated });
+  } catch (error) {
+    next(error);
+  }
+};

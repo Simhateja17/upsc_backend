@@ -228,6 +228,7 @@ export const getStats = async (req: Request, res: Response, next: NextFunction) 
         todayExpressCount: stats.todayCounts.express,
         todayAiCount: stats.todayCounts.aiSummarized,
         todayReadCount: stats.todayCounts.userRead,
+        savedItems: stats.savedItems,
       },
     });
   } catch (error) {

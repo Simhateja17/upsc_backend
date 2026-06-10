@@ -199,18 +199,21 @@ async function uploadFileOnce(params: {
 }
 
 /**
- * Get a signed URL for downloading a file (expires in 1 hour by default)
+ * Get a signed URL for a file.
+ * Pass inline=true to set Content-Disposition: inline (for in-browser viewing).
+ * Default (inline=false) sets Content-Disposition: attachment (for downloading).
  */
 export async function getSignedUrl(
   bucket: string,
   path: string,
-  expiresIn = 3600
+  expiresIn = 3600,
+  inline = false
 ): Promise<string> {
   if (!supabaseAdminStorage) throw new Error("Supabase admin client not configured");
 
   const { data, error } = await supabaseAdminStorage.storage
     .from(bucket)
-    .createSignedUrl(path, expiresIn);
+    .createSignedUrl(path, expiresIn, { download: !inline });
 
   if (error) throw new Error(`Signed URL failed: ${error.message}`);
   return data.signedUrl;

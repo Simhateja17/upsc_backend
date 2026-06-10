@@ -61,10 +61,15 @@ export const getTodayQuestions = async (req: Request, res: Response, next: NextF
     if (!mcq) return res.status(404).json({ status: "error", message: "No MCQ challenge available for today" });
 
     const allQuestions = await dailyMcqRepo.findQuestions(mcq.id, true);
-    // Normalize category before filtering — allows aliases like "Environment" → "Environment & Ecology"
+    // Normalize category and ensure options are valid before returning
     const questions = allQuestions.filter((q: any) => {
       const normalized = normalizeSubject(q.category || "");
-      return isValidSubject(normalized);
+      if (!isValidSubject(normalized)) return false;
+      const opts = q.options;
+      if (!opts) return false;
+      if (Array.isArray(opts)) return opts.length >= 2;
+      if (typeof opts === "object") return Object.keys(opts).length >= 2;
+      return false;
     }).map((q: any) => ({ ...q, category: normalizeSubject(q.category || "") }));
     console.log(`[Daily MCQ] Returning ${questions.length} of ${allQuestions.length} questions after subject filter`);
     if (questions.length !== DAILY_MCQ_QUESTION_COUNT) {

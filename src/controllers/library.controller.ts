@@ -172,12 +172,13 @@ export const getMaterialDownloadUrl = async (req: Request, res: Response, next: 
       return res.status(403).json({ status: "error", message: "Upgrade required to access this PDF" });
     }
 
-    let downloadUrl = material.fileUrl;
+    let viewUrl = material.fileUrl;
     if (material.fileUrl && !material.fileUrl.startsWith("http")) {
-      downloadUrl = await getSignedUrl(STORAGE_BUCKETS.STUDY_MATERIALS, material.fileUrl, 3600);
+      // inline=true → Content-Disposition: inline so the browser renders it in the iframe
+      viewUrl = await getSignedUrl(STORAGE_BUCKETS.STUDY_MATERIALS, material.fileUrl, 3600, true);
     }
 
-    res.json({ status: "success", data: { id: material.id, title: material.title, fileUrl: downloadUrl, downloadUrl } });
+    res.json({ status: "success", data: { id: material.id, title: material.title, fileUrl: viewUrl, downloadUrl: viewUrl } });
   } catch (error) {
     next(error);
   }
