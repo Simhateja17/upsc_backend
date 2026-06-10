@@ -253,7 +253,12 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
         : 0,
     };
 
-    res.json({ status: "success", data: withRank.slice(0, 60), meta: { communityStats, realRankedCount } });
+    // This endpoint is public (no auth). Strip the full email address from each
+    // entry so we don't leak user PII to anonymous callers. `handle`/`name` are
+    // already shown on the leaderboard UI and reveal nothing beyond the display name.
+    const publicLeaderboard = withRank.slice(0, 60).map(({ email, ...rest }) => rest);
+
+    res.json({ status: "success", data: publicLeaderboard, meta: { communityStats, realRankedCount } });
   } catch (error) {
     next(error);
   }
