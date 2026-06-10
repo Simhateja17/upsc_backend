@@ -23,6 +23,9 @@ sudo apt-get install -y certbot python3-certbot-nginx
 echo "=== Installing Git ==="
 sudo apt-get install -y git
 
+echo "=== Installing Rsync ==="
+sudo apt-get install -y rsync
+
 echo ""
 echo "=== Server setup complete ==="
 echo "Next steps:"
