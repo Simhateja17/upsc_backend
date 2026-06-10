@@ -1,20 +1,20 @@
 {
-  "generatedAt": "2026-06-10T05:07:41.254Z",
+  "generatedAt": "2026-06-10T06:00:23.574Z",
   "csvDirectory": "/Users/teja/Desktop/Projects/upsc/upsc_backend/data/imports/pyq/csv",
   "files": [
     {
-      "file": "PYQ - Polity.csv",
-      "normalized": 212,
+      "file": "PYQ - Ancient History and Art & Culture.csv",
+      "normalized": 126,
       "failed": 0
     }
   ],
   "totals": {
     "files": 1,
-    "parsedRows": 212,
-    "imported": 212,
+    "parsedRows": 126,
+    "imported": 126,
     "skipped": 0,
-    "inserted": 0,
-    "updated": 212
+    "inserted": 126,
+    "updated": 0
   },
   "failures": []
 }

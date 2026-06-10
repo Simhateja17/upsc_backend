@@ -266,8 +266,23 @@ function validateQuestion(q) {
   return errors;
 }
 
+function normalizeHeader(header) {
+  const aliases = new Map([
+    ["Option A", "Option 1"],
+    ["Option B", "Option 2"],
+    ["Option C", "Option 3"],
+    ["Option D", "Option 4"],
+    ["Difficulty Level", "Difficulty"],
+  ]);
+
+  return header.map((name) => aliases.get(name) || name);
+}
+
 function normalizeRow(row, header, fileName, csvRowNumber) {
-  const get = (name) => row[header.indexOf(name)] ?? "";
+  const get = (name) => {
+    const index = header.indexOf(name);
+    return index === -1 ? "" : row[index] ?? "";
+  };
   const fallbackSubject = inferSubjectFromFile(fileName);
   const year = Number.parseInt(get("Year"), 10);
   const questionNumber = Number.parseInt(get("Question Number"), 10);
@@ -295,7 +310,7 @@ function normalizeRow(row, header, fileName, csvRowNumber) {
     questionNumber,
     subject: normalizeSubject(fallbackSubject, "Polity"),
     subSubject: normalizeSubject(get("Sub Subject"), fallbackSubject),
-    topic: normalizeTopic(get("Topic")),
+    topic: normalizeTopic(get("Topic") || get("Sub Subject")),
     difficulty: titleCaseDifficulty(get("Difficulty")),
     format,
     question: {
@@ -320,7 +335,7 @@ function parseFile(filePath) {
   const rows = parseCSV(fs.readFileSync(filePath, "utf8"));
   if (rows.length < 2) return { fileName, questions: [], failures: [{ fileName, rowNumber: 0, errors: ["CSV has no data rows"] }] };
 
-  const header = rows[0].map((h) => String(h || "").trim());
+  const header = normalizeHeader(rows[0].map((h) => String(h || "").trim()));
   const required = [
     "Question Number",
     "Year",
@@ -333,7 +348,6 @@ function parseFile(filePath) {
     "Detailed Explanation",
     "Difficulty",
     "Sub Subject",
-    "Topic",
   ];
   const missing = required.filter((name) => !header.includes(name));
   if (missing.length > 0) {
