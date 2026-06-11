@@ -256,15 +256,6 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
     ]);
     const realRows = mapRealRows(rows);
     const realRankedCount = realRows.filter((row) => row.isRankUnlocked).length;
-<<<<<<< HEAD
-    const syntheticRows = buildSyntheticLeaderboardRows(range);
-    const merged = realRankedCount < 100 ? [...realRows, ...syntheticRows] : realRows;
-    const withRank = assignRanks(sortLeaderboard(merged, tab), tab);
-    const communityStats = buildCommunityStats({
-      realUserCount,
-      rows: merged,
-    });
-=======
     const withRank = sortLeaderboard(realRows, tab).map((item, index) => ({ ...item, rank: index + 1 }));
     const questionsSolved = realRows.reduce((sum, row) => sum + row.questionsSolved, 0);
     const rowsWithAccuracy = realRows.filter((row) => row.accuracy > 0);
@@ -276,7 +267,6 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
         ? Math.round(rowsWithAccuracy.reduce((sum, row) => sum + row.accuracy, 0) / rowsWithAccuracy.length)
         : 0,
     };
->>>>>>> origin/main
 
     // This endpoint is public (no auth). Strip the full email address from each
     // entry so we don't leak user PII to anonymous callers. `handle`/`name` are
@@ -302,28 +292,17 @@ export const getMyRank = async (req: Request, res: Response, next: NextFunction)
     const realRankedCount = realRows.filter((row) => row.isRankUnlocked).length;
     const myData = realRows.find((item) => item.userId === userId);
 
-<<<<<<< HEAD
-    const overallRanked = assignRanks(sortLeaderboard(mapped, "overall"), "overall");
+    const overallRanked = assignRanks(sortLeaderboard(realRows, "overall"), "overall");
     const myOverallIndex = overallRanked.findIndex((item) => item.userId === userId);
     const myOverallRank = myOverallIndex >= 0 ? overallRanked[myOverallIndex].rank : -1;
 
-    const mcqRanked = assignRanks(sortLeaderboard(mapped, "mcq"), "mcq");
+    const mcqRanked = assignRanks(sortLeaderboard(realRows, "mcq"), "mcq");
     const myMcqIndex = mcqRanked.findIndex((item) => item.userId === userId);
     const myMcqRank = myMcqIndex >= 0 ? mcqRanked[myMcqIndex].rank : -1;
 
-    const mainsRanked = assignRanks(sortLeaderboard(mapped, "mains"), "mains");
+    const mainsRanked = assignRanks(sortLeaderboard(realRows, "mains"), "mains");
     const myMainsIndex = mainsRanked.findIndex((item) => item.userId === userId);
     const myMainsRank = myMainsIndex >= 0 ? mainsRanked[myMainsIndex].rank : -1;
-=======
-    const overallSorted = sortLeaderboard(realRows, "overall");
-    const myOverallIndex = overallSorted.findIndex((item) => item.userId === userId);
-
-    const mcqSorted = sortLeaderboard(realRows, "mcq");
-    const myMcqIndex = mcqSorted.findIndex((item) => item.userId === userId);
-
-    const mainsSorted = sortLeaderboard(realRows, "mains");
-    const myMainsIndex = mainsSorted.findIndex((item) => item.userId === userId);
->>>>>>> origin/main
 
     const isRankUnlocked = Boolean(myData?.isRankUnlocked);
     const attemptsToUnlockRank = Math.max(0, 3 - (myData?.attemptCount ?? 0));
