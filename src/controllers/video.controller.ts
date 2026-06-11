@@ -194,7 +194,7 @@ export const listMentorQuestions = async (req: Request, res: Response, next: Nex
  */
 export const updateMentorQuestion = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { answer, status } = req.body;
 
     const updated = await prisma.mentorQuestion.update({

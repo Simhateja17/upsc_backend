@@ -434,7 +434,8 @@ export const getStats = async (req: Request, res: Response, next: NextFunction) 
     });
   } catch (error) {
     // If tables don't exist yet, return zeros
-    if (error?.code === "P2021" || error?.code === "P2010" || error?.message?.includes("does not exist")) {
+    const dbError = error as { code?: string; message?: string } | undefined;
+    if (dbError?.code === "P2021" || dbError?.code === "P2010" || dbError?.message?.includes("does not exist")) {
       return res.json({ status: "success", data: { questionsAsked: 0, answersGiven: 0 } });
     }
     next(error);

@@ -21,7 +21,7 @@ export const createPricingPlan = async (req: Request, res: Response, next: NextF
         name,
         price,
         duration,
-        durationDays: durationDays ? Number(durationDays) : null,
+        durationDays: durationDays !== undefined && durationDays !== null ? Number(durationDays) : undefined,
         features: features ?? [],
         isPopular: isPopular ?? false,
         order: order ?? 0,
