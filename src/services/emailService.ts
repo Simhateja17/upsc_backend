@@ -181,3 +181,60 @@ export async function sendBookingConfirmation(
     `,
   });
 }
+
+export async function sendFeedbackNotification(
+  to: string,
+  feedback: {
+    rating: number;
+    category: string;
+    workingWell: string;
+    couldBeBetter: string;
+    userEmail?: string;
+  }
+): Promise<boolean> {
+  return sendEmail({
+    to,
+    subject: `New Feedback Received — ${feedback.category} (${feedback.rating}/5)`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1a365d;">New User Feedback</h2>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Rating</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${feedback.rating}/5 ${"⭐".repeat(feedback.rating)}</td></tr>
+          <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Category</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${feedback.category}</td></tr>
+          ${feedback.userEmail ? `<tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">User Email</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${feedback.userEmail}</td></tr>` : ""}
+          <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; vertical-align: top;">What's Working</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${feedback.workingWell}</td></tr>
+          <tr><td style="padding: 8px; font-weight: bold; vertical-align: top;">Could Be Better</td><td style="padding: 8px;">${feedback.couldBeBetter}</td></tr>
+        </table>
+        <p style="color: #666; margin-top: 24px;">— Rise with Jeet Feedback System</p>
+      </div>
+    `,
+  });
+}
+
+export async function sendContactNotification(
+  to: string,
+  contact: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    subject: string;
+    message: string;
+  }
+): Promise<boolean> {
+  return sendEmail({
+    to,
+    subject: `New Contact Message: ${contact.subject}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1a365d;">New Contact Form Submission</h2>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Name</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contact.firstName} ${contact.lastName}</td></tr>
+          <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Email</td><td style="padding: 8px; border-bottom: 1px solid #eee;"><a href="mailto:${contact.email}">${contact.email}</a></td></tr>
+          <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Subject</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contact.subject}</td></tr>
+          <tr><td style="padding: 8px; font-weight: bold; vertical-align: top;">Message</td><td style="padding: 8px;">${contact.message.replace(/\n/g, "<br>")}</td></tr>
+        </table>
+        <p style="color: #666; margin-top: 24px;">— Rise with Jeet Contact System</p>
+      </div>
+    `,
+  });
+}

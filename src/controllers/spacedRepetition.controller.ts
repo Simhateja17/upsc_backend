@@ -18,13 +18,27 @@ function mapItem(item: {
   easeFactor: number;
   repetitions: number;
   status: string;
+  sourceType?: string;
+  source?: string;
+  scheduleDay?: number;
+  scheduleDays?: number[] | null;
+  remindEnabled?: boolean;
+  addedToFlashcard?: boolean;
 }) {
   return {
     id: item.id,
+    questionText: item.questionText,
     question: item.questionText,
     answer: item.answer,
     subject: item.subject,
     topic: item.topic ?? null,
+    sourceType: item.sourceType ?? 'custom',
+    source: item.source ?? 'Custom',
+    scheduleDay: item.scheduleDay ?? item.interval ?? 3,
+    scheduleDays: item.scheduleDays ?? null,
+    remindEnabled: item.remindEnabled ?? false,
+    addedToFlashcard: item.addedToFlashcard ?? false,
+    nextReviewAt: item.nextReviewAt.toISOString(),
     dueDate: item.nextReviewAt.toISOString(),
     interval: item.interval,
     easeFactor: item.easeFactor,
@@ -180,9 +194,10 @@ export const getItems = async (req: Request, res: Response, next: NextFunction) 
 export const addItem = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { question, answer, subject, topic, scheduleDay } = req.body;
+    const { question, questionText, answer, subject, topic, scheduleDay, scheduleDays, source, sourceType, remindEnabled } = req.body;
 
-    if (!question || !subject) {
+    const questionContent = question || questionText;
+    if (!questionContent || !subject) {
       res.status(400).json({ status: "error", message: "question and subject are required" });
       return;
     }
@@ -196,18 +211,22 @@ export const addItem = async (req: Request, res: Response, next: NextFunction) =
       return;
     }
 
-    const days = typeof scheduleDay === "number" ? scheduleDay : 1;
+    const days = typeof scheduleDay === "number" ? scheduleDay : (scheduleDays && scheduleDays.length > 0 ? scheduleDays[0] : 3);
     const nextReviewAt = new Date();
     nextReviewAt.setDate(nextReviewAt.getDate() + days);
 
     const item = await prisma.spacedRepItem.create({
       data: {
         userId,
-        questionText: question,
+        questionText: questionContent,
         answer: answer || "",
         subject: normalizedSubject,
         topic: topic || null,
-        interval: days,
+        interval: scheduleDay || 3,
+        scheduleDays: scheduleDays || [scheduleDay || 3],
+        source: source || 'Custom',
+        sourceType: sourceType || 'custom',
+        remindEnabled: remindEnabled || false,
         nextReviewAt,
         status: "new",
       },

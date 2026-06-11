@@ -102,12 +102,30 @@ export function createPrismaEditorialRepository(): EditorialRepository {
         prisma.editorialProgress.count({ where: { userId, isRead: true, readAt: { gte: recentSince } } }),
       ]);
 
+      // Get saved items with editorial details
+      const savedBookmarks = await prisma.editorialBookmark.findMany({
+        where: { userId },
+        orderBy: { savedAt: "desc" },
+        include: { editorial: true },
+      });
+
+      const savedItems = savedBookmarks.map((b) => ({
+        id: b.editorialId,
+        title: b.editorial.title,
+        summary: b.editorial.summary,
+        source: b.editorial.source,
+        category: b.editorial.category || "General",
+        tags: b.editorial.tags || [],
+        savedAt: b.savedAt.toISOString(),
+      }));
+
       return {
         totalRead,
         totalSaved,
         weeklyRead,
         streak: streakRow?.currentStreak || 0,
         todayCounts: { hindu, express, aiSummarized: ai, userRead: read },
+        savedItems,
       };
     },
 

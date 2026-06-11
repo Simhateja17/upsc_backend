@@ -39,6 +39,17 @@ export interface EditorialStats {
     aiSummarized: number;
     userRead: number;
   };
+  savedItems: SavedEditorialItem[];
+}
+
+export interface SavedEditorialItem {
+  id: string;
+  title: string;
+  summary: string | null;
+  source: string;
+  category: string;
+  tags: string[];
+  savedAt: string;
 }
 
 export interface EditorialAvailabilityRow {

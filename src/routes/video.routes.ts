@@ -1,15 +1,20 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
-import { getSubjects, getVideosBySubject, getStats, getVideoQuestions, submitVideoQuiz, askMentor } from "../controllers/video.controller";
+import { requireAdmin } from "../middleware/adminAuth";
+import { getSubjects, getVideosBySubject, getStats, getVideoQuestions, submitVideoQuiz, askMentor, listMentorQuestions, updateMentorQuestion } from "../controllers/video.controller";
 
 const router = Router();
 
-// Premium video content — require authentication for all access
+// Specific literal routes first (must precede parameterized routes)
 router.get("/subjects", authenticate, getSubjects);
 router.get("/stats", authenticate, getStats);
+router.post("/mentor/ask", authenticate, askMentor);
+router.get("/mentor/questions", authenticate, requireAdmin, listMentorQuestions);
+router.patch("/mentor/questions/:id", authenticate, requireAdmin, updateMentorQuestion);
+
+// Parameterized routes last
 router.get("/:id/questions", authenticate, getVideoQuestions);
 router.post("/:id/submit", authenticate, submitVideoQuiz);
 router.get("/:subject", authenticate, getVideosBySubject);
-router.post("/mentor/ask", authenticate, askMentor);
 
 export default router;

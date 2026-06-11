@@ -12,6 +12,7 @@ import {
   getMyAnswers,
   getBookmarks,
   getSubjects,
+  getStats,
 } from "../controllers/forum.controller";
 
 const router = Router();
@@ -20,6 +21,7 @@ const router = Router();
 router.get("/posts", optionalAuth, getPosts);
 router.get("/posts/:id", optionalAuth, getPost);
 router.get("/subjects", getSubjects);
+router.get("/stats", getStats);
 
 // Authenticated
 router.post("/posts", authenticate, createPost);

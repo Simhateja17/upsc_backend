@@ -66,6 +66,17 @@ async function deleteIncompleteDailyMCQ(id: string): Promise<void> {
   await prisma.dailyMCQ.delete({ where: { id } });
 }
 
+function hasValidOptions(options: any): boolean {
+  if (!options) return false;
+  if (Array.isArray(options)) {
+    return options.length >= 2 && options.every((o: any) => o && (o.text || o.value));
+  }
+  if (typeof options === "object") {
+    return Object.keys(options).length >= 2;
+  }
+  return false;
+}
+
 function toDailyMcqItem(q: {
   questionText: string;
   options: any;
@@ -77,6 +88,7 @@ function toDailyMcqItem(q: {
 }) {
   const subject = normalizeSubject(q.subject || q.category || "");
   if (!isValidSubject(subject)) return null;
+  if (!hasValidOptions(q.options)) return null;
 
   return {
     questionText: q.questionText,

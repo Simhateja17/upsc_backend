@@ -61,10 +61,24 @@ export const getGroups = async (req: Request, res: Response, next: NextFunction)
       include: {
         creator: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
         _count: { select: { members: true } },
-        members: userId ? { where: { userId, isActive: true }, select: { id: true } } : false,
+        members: {
+          where: { isActive: true },
+          include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
+          take: 10,
+        },
       },
       orderBy: { createdAt: "desc" },
     });
+
+    // Check membership separately to avoid take limit issue
+    const membershipMap = new Map<string, boolean>();
+    if (userId) {
+      const memberships = await prisma.studyGroupMember.findMany({
+        where: { userId, isActive: true },
+        select: { groupId: true },
+      });
+      memberships.forEach((m) => membershipMap.set(m.groupId, true));
+    }
 
     const data = groups.map((g) => mapGroup({
       id: g.id,
@@ -76,7 +90,8 @@ export const getGroups = async (req: Request, res: Response, next: NextFunction)
       createdById: g.createdById,
       creator: g.creator,
       memberCount: g._count.members,
-      isMember: userId ? g.members.length > 0 : false,
+      isMember: membershipMap.get(g.id) || false,
+      members: g.members.map((m) => m.user),
       createdAt: g.createdAt,
     }));
 
@@ -151,6 +166,7 @@ export const getGroup = async (req: Request, res: Response, next: NextFunction) 
         messages: recentMessages,
         recentMessages,
         sharedResources: [],
+        memberAvatars: group.members.slice(0, 3).map((m) => m.user),
       },
     });
   } catch (error) {
@@ -223,15 +239,7 @@ export const joinGroup = async (req: Request, res: Response, next: NextFunction)
     });
 
     if (existing) {
-      if (existing.isActive) {
-        res.status(400).json({ status: "error", message: "Already a member" });
-        return;
-      }
-      await prisma.studyGroupMember.update({
-        where: { id: existing.id },
-        data: { isActive: true, joinedAt: new Date() },
-      });
-      res.json({ status: "success", message: "Rejoined group" });
+      res.status(400).json({ status: "error", message: "Already a member" });
       return;
     }
 
@@ -257,14 +265,13 @@ export const leaveGroup = async (req: Request, res: Response, next: NextFunction
       where: { groupId_userId: { groupId, userId } },
     });
 
-    if (!existing || !existing.isActive) {
+    if (!existing) {
       res.status(400).json({ status: "error", message: "Not a member of this group" });
       return;
     }
 
-    await prisma.studyGroupMember.update({
+    await prisma.studyGroupMember.delete({
       where: { id: existing.id },
-      data: { isActive: false },
     });
 
     res.json({ status: "success", message: "Left group" });
@@ -356,6 +363,7 @@ export const getMyGroups = async (req: Request, res: Response, next: NextFunctio
           include: {
             creator: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
             _count: { select: { members: true } },
+            members: { where: { isActive: true }, include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } }, take: 10 },
           },
         },
       },
@@ -373,6 +381,7 @@ export const getMyGroups = async (req: Request, res: Response, next: NextFunctio
       creator: m.group.creator,
       memberCount: m.group._count.members,
       isMember: true,
+      members: m.group.members.map((gm) => gm.user),
       joinedAt: m.joinedAt,
       createdAt: m.group.createdAt,
     }));
