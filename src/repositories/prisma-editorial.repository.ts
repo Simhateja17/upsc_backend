@@ -105,7 +105,7 @@ export function createPrismaEditorialRepository(): EditorialRepository {
       // Get saved items with editorial details
       const savedBookmarks = await prisma.editorialBookmark.findMany({
         where: { userId },
-        orderBy: { savedAt: "desc" },
+        orderBy: { createdAt: "desc" },
         include: { editorial: true },
       });
 
@@ -116,7 +116,7 @@ export function createPrismaEditorialRepository(): EditorialRepository {
         source: b.editorial.source,
         category: b.editorial.category || "General",
         tags: b.editorial.tags || [],
-        savedAt: b.savedAt.toISOString(),
+        savedAt: b.createdAt.toISOString(),
       }));
 
       return {

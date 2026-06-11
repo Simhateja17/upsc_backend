@@ -128,7 +128,7 @@ export const createPlan = async (req: Request, res: Response, next: NextFunction
         name,
         price: Number(price),
         duration,
-        durationDays: durationDays ? Number(durationDays) : null,
+        durationDays: durationDays !== undefined && durationDays !== null ? Number(durationDays) : undefined,
         features: features || [],
         isPopular: isPopular || false,
         order: order || 0,
@@ -148,14 +148,17 @@ export const createPlan = async (req: Request, res: Response, next: NextFunction
  */
 export const updatePlan = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      return res.status(400).json({ status: "error", message: "id is required" });
+    }
     const { name, price, duration, durationDays, features, isPopular, order, isActive } = req.body;
 
     const updates: Record<string, any> = {};
     if (name !== undefined) updates.name = name;
     if (price !== undefined) updates.price = Number(price);
     if (duration !== undefined) updates.duration = duration;
-    if (durationDays !== undefined) updates.durationDays = Number(durationDays);
+    if (durationDays !== undefined && durationDays !== null) updates.durationDays = Number(durationDays);
     if (features !== undefined) updates.features = features;
     if (isPopular !== undefined) updates.isPopular = isPopular;
     if (order !== undefined) updates.order = Number(order);
@@ -178,7 +181,10 @@ export const updatePlan = async (req: Request, res: Response, next: NextFunction
  */
 export const deletePlan = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      return res.status(400).json({ status: "error", message: "id is required" });
+    }
 
     await prisma.pricingPlan.update({
       where: { id },

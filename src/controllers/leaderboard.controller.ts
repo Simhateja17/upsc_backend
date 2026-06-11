@@ -21,6 +21,7 @@ interface LeaderboardRawRow {
 }
 
 type LeaderboardRow = ReturnType<typeof mapRealRows>[number];
+type RankedLeaderboardRow = LeaderboardRow & { rank: number };
 
 function avg(values: number[], includeZeros = false) {
   const filtered = values.filter((value) => Number.isFinite(value) && (includeZeros || value > 0));
@@ -110,12 +111,14 @@ function sortLeaderboard(rows: LeaderboardRow[], tab: string) {
   return sorted.sort((a, b) => b.totalScore - a.totalScore);
 }
 
-function assignRanks(rows: LeaderboardRow[], tab: string) {
+function assignRanks(rows: LeaderboardRow[], tab: string): RankedLeaderboardRow[] {
+  let previousRank = 1;
   return rows.map((item, index) => {
-    if (index === 0) return { ...item, rank: 1 };
+    if (index === 0) return { ...item, rank: previousRank };
     const prev = rows[index - 1];
     const sameScore = getScoreForRanking(item, tab) === getScoreForRanking(prev, tab);
-    return { ...item, rank: sameScore ? prev.rank : index + 1 };
+    previousRank = sameScore ? previousRank : index + 1;
+    return { ...item, rank: previousRank };
   });
 }
 
