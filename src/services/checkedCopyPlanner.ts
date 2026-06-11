@@ -17,9 +17,38 @@ export interface EvaluatorCheckedCopyAnnotation {
   targetText?: string;
   comment: string;
   placement: "left_margin" | "right_margin" | "bottom" | "near_target" | "top";
+  severity?: "minor" | "major";
+  intent?: string;
+  pageNumber?: number;
 }
 
-export type EvaluatorCheckedCopyPlan = EvaluatorCheckedCopyAnnotation[];
+export interface CheckedCopyV2VisualMark {
+  type: "positive_tick" | "underline" | "circle" | "bracket" | "cross" | "arrow";
+  targetText?: string;
+  intent?: string;
+}
+
+export interface CheckedCopyV2MarginComment {
+  targetText?: string;
+  severity?: "minor" | "major";
+  comment: string;
+  placementIntent?: "left_margin" | "right_margin" | "near_target";
+}
+
+export interface CheckedCopyV2PagePlan {
+  pageNumber?: number;
+  visualMarks?: CheckedCopyV2VisualMark[];
+  marginComments?: CheckedCopyV2MarginComment[];
+  bottomComment?: string;
+}
+
+export interface CheckedCopyV2Plan {
+  version: 2;
+  scoreText?: string;
+  pagePlans: CheckedCopyV2PagePlan[];
+}
+
+export type EvaluatorCheckedCopyPlan = EvaluatorCheckedCopyAnnotation[] | CheckedCopyV2Plan;
 
 export function planCheckedCopyAnnotations(params: {
   score: number;

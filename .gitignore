@@ -19,3 +19,11 @@ dist
 # Logs
 *.log
 npm-debug.log*
+
+# Database dumps / data exports — never commit (contain user PII)
+*.csv
+*.dump
+*.backup
+upsc_data.sql
+upsc_data_clean.sql
+upsc_restore.sql

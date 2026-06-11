@@ -1,26 +1,707 @@
-import { GoogleGenAI } from "@google/genai";
 import { STORAGE_BUCKETS, uploadFile } from "../config/storage";
-import { validateCheckedCopy } from "./checkedCopyValidator";
 import type { CheckedCopyAnnotationPlan, EvaluatorCheckedCopyPlan } from "./checkedCopyPlanner";
+import type { DocumentPageLayout, NormalizedBox } from "./documentLayout.service";
 
 type CheckedCopyResult =
   | { status: "completed"; storagePath: string }
   | { status: "failed"; reason: string };
 
-function planForPage(
-  plan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan,
-  pageNumber: number
-): CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan {
-  if (pageNumber === 1) return plan;
+type OverlayAnnotation = {
+  type: string;
+  targetText?: string;
+  comment: string;
+  placement: "left_margin" | "right_margin" | "bottom" | "near_target" | "top";
+  severity?: "minor" | "major";
+  intent?: string;
+};
 
-  if (Array.isArray(plan)) {
-    return plan.filter((item) => item.type !== "score");
+type ImageSize = { width: number; height: number };
+type PixelBox = { x1: number; y1: number; x2: number; y2: number };
+type PageZones = {
+  headerBottom: number;
+  answerTop: number;
+  answerBottom: number;
+  contentLeft: number;
+  contentRight: number;
+  leftMargin: PixelBox;
+  rightMargin: PixelBox;
+  bottom: PixelBox;
+};
+type CanvasMetrics = {
+  pageWidth: number;
+  pageHeight: number;
+  canvasWidth: number;
+  canvasHeight: number;
+  pageX: number;
+  pageY: number;
+};
+type PageRenderPlan = {
+  visualMarks: OverlayAnnotation[];
+  marginComments: OverlayAnnotation[];
+  scoreText: string;
+  bottomComment: string;
+};
+
+function isV2Plan(plan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan): plan is Extract<EvaluatorCheckedCopyPlan, { version: 2 }> {
+  return Boolean(plan && typeof plan === "object" && !Array.isArray(plan) && "version" in plan && plan.version === 2);
+}
+
+function getPngSize(buffer: Buffer): ImageSize | null {
+  if (buffer.length < 24) return null;
+  if (buffer.toString("hex", 0, 8) !== "89504e470d0a1a0a") return null;
+  return {
+    width: buffer.readUInt32BE(16),
+    height: buffer.readUInt32BE(20),
+  };
+}
+
+function getJpegSize(buffer: Buffer): ImageSize | null {
+  if (buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) return null;
+
+  let offset = 2;
+  while (offset < buffer.length) {
+    if (buffer[offset] !== 0xff) return null;
+    const marker = buffer[offset + 1];
+    const length = buffer.readUInt16BE(offset + 2);
+
+    if (
+      marker === 0xc0 ||
+      marker === 0xc1 ||
+      marker === 0xc2 ||
+      marker === 0xc3 ||
+      marker === 0xc5 ||
+      marker === 0xc6 ||
+      marker === 0xc7 ||
+      marker === 0xc9 ||
+      marker === 0xca ||
+      marker === 0xcb ||
+      marker === 0xcd ||
+      marker === 0xce ||
+      marker === 0xcf
+    ) {
+      return {
+        height: buffer.readUInt16BE(offset + 5),
+        width: buffer.readUInt16BE(offset + 7),
+      };
+    }
+
+    offset += 2 + length;
   }
 
+  return null;
+}
+
+function getImageSize(buffer: Buffer, mimeType: string): ImageSize {
+  const parsed =
+    mimeType.includes("png") ? getPngSize(buffer) : mimeType.includes("jpeg") || mimeType.includes("jpg") ? getJpegSize(buffer) : null;
+  if (parsed && parsed.width > 0 && parsed.height > 0) return parsed;
+
+  // Conservative fallback for rendered UPSC answer pages.
+  return { width: 1024, height: 1448 };
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function shorten(value: string, max = 120): string {
+  const text = value.replace(/\s+/g, " ").trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1).trim()}...`;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(value, max));
+}
+
+function offsetBox(box: PixelBox, canvas: CanvasMetrics): PixelBox {
   return {
-    ...plan,
-    scoreText: "",
+    x1: box.x1 + canvas.pageX,
+    y1: box.y1 + canvas.pageY,
+    x2: box.x2 + canvas.pageX,
+    y2: box.y2 + canvas.pageY,
   };
+}
+
+function wrapText(text: string, maxChars: number, maxLines = 5): string[] {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  const source = Number.isFinite(maxLines) ? shorten(normalized, maxChars * maxLines) : normalized;
+  const words = source.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > maxChars && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+  if (current) lines.push(current);
+  return Number.isFinite(maxLines) ? lines.slice(0, maxLines) : lines;
+}
+
+function normalizePlan(
+  plan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan,
+  pageNumber: number,
+  totalPages: number
+): PageRenderPlan {
+  if (isV2Plan(plan)) {
+    const explicitPage = plan.pagePlans.find((page) => page.pageNumber === pageNumber);
+    const unnumberedPages = plan.pagePlans.filter((page) => page.pageNumber == null);
+    const orderedPage = unnumberedPages[pageNumber - 1];
+    const sharedSinglePage = totalPages === 1 ? unnumberedPages[0] : undefined;
+    const page = explicitPage || orderedPage || sharedSinglePage || { visualMarks: [], marginComments: [] };
+    return {
+      visualMarks: (page.visualMarks || []).map((mark) => ({
+        type: mark.type,
+        targetText: mark.targetText,
+        comment: mark.intent || "",
+        intent: mark.intent,
+        placement: "near_target",
+      })),
+      marginComments: (page.marginComments || []).map((comment) => ({
+        type: "margin_comment",
+        targetText: comment.targetText,
+        comment: comment.comment,
+        placement: comment.placementIntent || "right_margin",
+        severity: comment.severity || "major",
+      })),
+      scoreText: pageNumber === 1 ? plan.scoreText || "" : "",
+      bottomComment: pageNumber === totalPages ? page.bottomComment || "" : "",
+    };
+  }
+
+  if (Array.isArray(plan)) {
+    const pageItems = plan
+      .filter((item) => item.pageNumber == null || item.pageNumber === pageNumber)
+      .filter((item) => pageNumber === 1 || item.type !== "score");
+    const visualMarks = pageItems
+      .filter((item) => ["positive_tick", "underline", "circle", "bracket"].includes(item.type))
+      .map((item) => ({
+        type: item.type,
+        targetText: item.targetText,
+        comment: item.comment,
+        placement: item.placement,
+        severity: item.severity,
+        intent: item.intent,
+      }));
+    const marginComments = pageItems
+      .filter((item) => ["margin_comment", "missing_demand"].includes(item.type))
+      .map((item) => ({
+        type: item.type,
+        targetText: item.targetText,
+        comment: item.comment,
+        placement: item.placement,
+        severity: item.severity || "major",
+        intent: item.intent,
+      }));
+
+    return {
+      visualMarks,
+      marginComments,
+      scoreText:
+        pageNumber === 1
+          ? plan.find((item) => item.type === "score")?.comment.match(/\d+\s*\/\s*\d+/)?.[0] || ""
+          : "",
+      bottomComment:
+        pageNumber === totalPages
+          ? plan.find((item) => item.type === "overall_comment" || item.placement === "bottom")?.comment || ""
+          : "",
+    };
+  }
+
+  const legacyPlan = plan as CheckedCopyAnnotationPlan;
+  return {
+    visualMarks: legacyPlan.comments
+      .filter((comment) => comment.style !== "margin_comment")
+      .map((comment) => ({
+        type: comment.style,
+        comment: comment.text,
+        placement: "near_target",
+      })),
+    marginComments: legacyPlan.comments.filter((comment) => comment.style === "margin_comment").map((comment) => ({
+      type: comment.style,
+      comment: comment.text,
+      placement: "right_margin",
+      severity: "major",
+    })),
+    scoreText: pageNumber === 1 ? legacyPlan.scoreText : "",
+    bottomComment: pageNumber === totalPages ? legacyPlan.bottomComment : "",
+  };
+}
+
+function textBlock(params: {
+  x: number;
+  y: number;
+  text: string;
+  maxChars: number;
+  fontSize: number;
+  rotate?: number;
+  anchor?: "start" | "middle" | "end";
+  maxLines?: number;
+}): string {
+  const lines = wrapText(params.text, params.maxChars, params.maxLines || 5);
+  const transform = params.rotate ? ` transform="rotate(${params.rotate} ${params.x} ${params.y})"` : "";
+  const anchor = params.anchor || "start";
+
+  return `<text x="${params.x}" y="${params.y}" text-anchor="${anchor}" font-size="${params.fontSize}"${transform}>${lines
+    .map((line, index) => `<tspan x="${params.x}" dy="${index === 0 ? 0 : params.fontSize * 1.12}">${escapeXml(line)}</tspan>`)
+    .join("")}</text>`;
+}
+
+function tickPath(x: number, y: number, scale: number): string {
+  return `<path d="M ${x} ${y + scale * 0.45} L ${x + scale * 0.28} ${y + scale * 0.78} L ${x + scale} ${y}" />`;
+}
+
+function underlinePath(x: number, y: number, width: number): string {
+  return `<path d="M ${x} ${y} C ${x + width * 0.25} ${y + 5}, ${x + width * 0.75} ${y - 5}, ${x + width} ${y}" />`;
+}
+
+function bracketPath(x: number, y1: number, y2: number, direction: "left" | "right"): string {
+  const arm = direction === "left" ? -18 : 18;
+  return `<path d="M ${x} ${y1} L ${x} ${y2}" />
+  <path d="M ${x} ${y1} L ${x + arm} ${y1}" />
+  <path d="M ${x} ${y2} L ${x + arm} ${y2}" />`;
+}
+
+function arrowPath(x1: number, y1: number, x2: number, y2: number): string {
+  const head = 12;
+  return `<path d="M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}" />
+  <path d="M ${x2 - head} ${y2 - head / 2} L ${x2} ${y2} L ${x2 - head} ${y2 + head / 2}" />`;
+}
+
+function leaderPath(x1: number, y1: number, x2: number, y2: number): string {
+  return `<path d="M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}" />`;
+}
+
+function normalizeForMatch(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function tokenSet(text: string): Set<string> {
+  return new Set(normalizeForMatch(text).split(/\s+/).filter((token) => token.length > 2));
+}
+
+function similarity(a: string, b: string): number {
+  const aTokens = tokenSet(a);
+  const bTokens = tokenSet(b);
+  if (aTokens.size === 0 || bTokens.size === 0) return 0;
+
+  let overlap = 0;
+  for (const token of aTokens) {
+    if (bTokens.has(token)) overlap += 1;
+  }
+  return overlap / Math.max(aTokens.size, bTokens.size);
+}
+
+function boxToPixels(box: NormalizedBox, width: number, height: number) {
+  return {
+    x1: box.x1 * width,
+    y1: box.y1 * height,
+    x2: box.x2 * width,
+    y2: box.y2 * height,
+  };
+}
+
+function inferZones(width: number, height: number, layout: DocumentPageLayout | null | undefined): PageZones {
+  const lineBoxes = (layout?.lines || []).map((line) => boxToPixels(line.box, width, height));
+  const xs = lineBoxes.flatMap((box) => [box.x1, box.x2]).filter((value) => Number.isFinite(value));
+  const contentLeft = xs.length ? Math.max(width * 0.1, Math.min(...xs)) : width * 0.16;
+  const contentRight = xs.length ? Math.min(width * 0.86, Math.max(...xs)) : width * 0.78;
+  const configuredTop = Number(process.env.CHECKED_COPY_ANSWER_TOP_RATIO || 0.28) * height;
+  const answerTop = Math.max(configuredTop, height * 0.22);
+  const answerBottom = height * Number(process.env.CHECKED_COPY_ANSWER_BOTTOM_RATIO || 0.86);
+
+  return {
+    headerBottom: height * 0.18,
+    answerTop,
+    answerBottom,
+    contentLeft,
+    contentRight,
+    leftMargin: {
+      x1: Math.max(8, width * 0.018),
+      y1: answerTop,
+      x2: Math.max(width * 0.14, contentLeft - width * 0.03),
+      y2: answerBottom,
+    },
+    rightMargin: {
+      x1: Math.min(width * 0.82, contentRight + width * 0.025),
+      y1: answerTop,
+      x2: width * 0.985,
+      y2: answerBottom,
+    },
+    bottom: {
+      x1: Math.max(width * 0.08, contentLeft - width * 0.05),
+      y1: height * 0.875,
+      x2: Math.min(width * 0.94, contentRight + width * 0.1),
+      y2: height * 0.98,
+    },
+  };
+}
+
+function intersects(a: PixelBox, b: PixelBox): boolean {
+  return a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1;
+}
+
+function reserveRect(used: PixelBox[], rect: PixelBox): boolean {
+  if (used.some((item) => intersects(item, rect))) return false;
+  used.push(rect);
+  return true;
+}
+
+function isInsideAnswerZone(box: NormalizedBox, zones: PageZones, width: number, height: number): boolean {
+  const px = boxToPixels(box, width, height);
+  return px.y1 >= zones.answerTop && px.y2 <= zones.answerBottom && px.x1 >= zones.contentLeft - width * 0.08 && px.x2 <= zones.contentRight + width * 0.08;
+}
+
+function findTargetBox(annotation: OverlayAnnotation, layout: DocumentPageLayout | null | undefined, zones: PageZones, width: number, height: number): NormalizedBox | null {
+  if (!layout?.lines.length || !annotation.targetText?.trim()) return null;
+
+  const target = normalizeForMatch(annotation.targetText);
+  if (!target) return null;
+
+  let best: { score: number; box: NormalizedBox } | null = null;
+  for (const line of layout.lines) {
+    if (!isInsideAnswerZone(line.box, zones, width, height)) continue;
+    const lineText = normalizeForMatch(line.text);
+    const containsScore = lineText.includes(target) || target.includes(lineText);
+    const score = containsScore ? 1 : similarity(target, lineText);
+    if (!best || score > best.score) {
+      best = { score, box: line.box };
+    }
+  }
+
+  const threshold = Number(process.env.CHECKED_COPY_TARGET_MATCH_THRESHOLD || 0.34);
+  return best && best.score >= threshold ? best.box : null;
+}
+
+function placeInLane(params: {
+  lane: PixelBox;
+  preferredY: number;
+  width: number;
+  height: number;
+  used: PixelBox[];
+}): PixelBox {
+  const top = Math.max(params.lane.y1, params.preferredY - params.height * 0.25);
+  const candidates = [top];
+  const step = Math.max(22, params.height * 0.45);
+  for (let offset = step; offset < params.lane.y2 - params.lane.y1; offset += step) {
+    candidates.push(top + offset, top - offset);
+  }
+
+  for (const y of candidates) {
+    const clampedY = Math.max(params.lane.y1, Math.min(y, params.lane.y2 - params.height));
+    const rect = {
+      x1: params.lane.x1,
+      y1: clampedY,
+      x2: Math.min(params.lane.x2, params.lane.x1 + params.width),
+      y2: clampedY + params.height,
+    };
+    if (rect.x2 <= rect.x1 || rect.y2 > params.lane.y2) continue;
+    if (reserveRect(params.used, rect)) return rect;
+  }
+
+  const sameLaneRects = params.used.filter((rect) => rect.x1 < params.lane.x2 && rect.x2 > params.lane.x1);
+  const overflowY = Math.max(params.lane.y1, ...sameLaneRects.map((rect) => rect.y2 + Math.max(12, params.height * 0.12)));
+  const overflowRect = {
+    x1: params.lane.x1,
+    y1: overflowY,
+    x2: Math.min(params.lane.x2, params.lane.x1 + params.width),
+    y2: overflowY + params.height,
+  };
+  params.used.push(overflowRect);
+  return overflowRect;
+}
+
+function commentLane(annotation: OverlayAnnotation, index: number, zones: PageZones): "left" | "right" {
+  if (annotation.placement === "left_margin") return "left";
+  if (annotation.placement === "right_margin") return "right";
+  if (annotation.severity === "minor" && index % 4 === 0 && zones.leftMargin.x2 - zones.leftMargin.x1 > 110) return "left";
+  return "right";
+}
+
+function inferCanvas(width: number, height: number): CanvasMetrics {
+  const leftPadding = Math.round(width * Number(process.env.CHECKED_COPY_LEFT_PADDING_RATIO || 0.22));
+  const rightPadding = Math.round(width * Number(process.env.CHECKED_COPY_RIGHT_PADDING_RATIO || 0.42));
+  const topPadding = Math.round(height * Number(process.env.CHECKED_COPY_TOP_PADDING_RATIO || 0.025));
+  const bottomPadding = Math.round(height * Number(process.env.CHECKED_COPY_BOTTOM_PADDING_RATIO || 0.18));
+
+  return {
+    pageWidth: width,
+    pageHeight: height,
+    canvasWidth: width + leftPadding + rightPadding,
+    canvasHeight: height + topPadding + bottomPadding,
+    pageX: leftPadding,
+    pageY: topPadding,
+  };
+}
+
+function expandedZones(zones: PageZones, canvas: CanvasMetrics): PageZones {
+  const gutter = Math.max(18, canvas.pageWidth * 0.02);
+  const innerPad = Math.max(12, canvas.pageWidth * 0.012);
+  const pageZones = {
+    headerBottom: zones.headerBottom + canvas.pageY,
+    answerTop: zones.answerTop + canvas.pageY,
+    answerBottom: zones.answerBottom + canvas.pageY,
+    contentLeft: zones.contentLeft + canvas.pageX,
+    contentRight: zones.contentRight + canvas.pageX,
+    leftMargin: offsetBox(zones.leftMargin, canvas),
+    rightMargin: offsetBox(zones.rightMargin, canvas),
+    bottom: offsetBox(zones.bottom, canvas),
+  };
+
+  return {
+    ...pageZones,
+    leftMargin: {
+      x1: innerPad,
+      y1: pageZones.answerTop,
+      x2: Math.max(innerPad + 96, canvas.pageX - gutter),
+      y2: pageZones.answerBottom,
+    },
+    rightMargin: {
+      x1: canvas.pageX + canvas.pageWidth + gutter,
+      y1: pageZones.answerTop,
+      x2: canvas.canvasWidth - innerPad,
+      y2: Math.min(canvas.canvasHeight - canvas.pageHeight * 0.08, pageZones.answerBottom + canvas.pageHeight * 0.04),
+    },
+    bottom: {
+      x1: innerPad,
+      y1: canvas.pageY + canvas.pageHeight + canvas.pageHeight * 0.025,
+      x2: canvas.canvasWidth - innerPad,
+      y2: canvas.canvasHeight - innerPad,
+    },
+  };
+}
+
+function placeTickY(preferredY: number, usedTicks: PixelBox[], minGap: number, laneTop: number, laneBottom: number): number {
+  const clamped = clamp(preferredY, laneTop + minGap, laneBottom - minGap);
+  const candidates = [clamped];
+  for (let offset = minGap; offset < Math.max(1, laneBottom - laneTop); offset += minGap * 0.65) {
+    candidates.push(clamped + offset, clamped - offset);
+  }
+
+  for (const y of candidates) {
+    const nextY = clamp(y, laneTop + minGap, laneBottom - minGap);
+    const rect = { x1: 0, y1: nextY - minGap * 0.45, x2: 1, y2: nextY + minGap * 0.45 };
+    if (!usedTicks.some((tick) => intersects(tick, rect))) {
+      usedTicks.push(rect);
+      return nextY;
+    }
+  }
+
+  usedTicks.push({ x1: 0, y1: clamped - minGap * 0.45, x2: 1, y2: clamped + minGap * 0.45 });
+  return clamped;
+}
+
+function commentLeaderPath(params: {
+  fromX: number;
+  fromY: number;
+  anchorX: number;
+  anchorY: number;
+  side: "left" | "right";
+}): string {
+  const controlX = params.side === "left"
+    ? params.fromX + (params.anchorX - params.fromX) * 0.58
+    : params.fromX - (params.fromX - params.anchorX) * 0.58;
+  return `<path data-role="comment-leader" data-side="${params.side}" d="M ${params.fromX} ${params.fromY} C ${controlX} ${params.fromY}, ${controlX} ${params.anchorY}, ${params.anchorX} ${params.anchorY}" />`;
+}
+
+function renderOverlaySvg(params: {
+  originalBuffer: Buffer;
+  mimeType: string;
+  annotationPlan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan;
+  pageNumber: number;
+  totalPages: number;
+  layout?: DocumentPageLayout | null;
+}): Buffer {
+  const { width, height } = getImageSize(params.originalBuffer, params.mimeType);
+  const canvas = inferCanvas(width, height);
+  const plan = normalizePlan(params.annotationPlan, params.pageNumber, params.totalPages);
+  const imageHref = `data:${params.mimeType};base64,${params.originalBuffer.toString("base64")}`;
+
+  const red = "#A12418";
+  const pageZones = inferZones(width, height, params.layout);
+  const zones = expandedZones(pageZones, canvas);
+  const fontSize = Math.max(17, Math.round(width * 0.02));
+  const smallFontSize = Math.max(15, Math.round(width * 0.017));
+  const scoreSize = Math.max(32, Math.round(width * 0.052));
+  const strokeWidth = Math.max(3, Math.round(width * 0.004));
+
+  const hasLayoutLines = Boolean(params.layout?.lines.length);
+  const answerLineCount = Math.max(1, (params.layout?.lines || []).filter((line) => isInsideAnswerZone(line.box, pageZones, width, height)).length || 10);
+  const nonTickVisualLimit = Math.min(24, Math.max(10, Math.ceil(answerLineCount * 0.7)));
+  const tickMarks = plan.visualMarks.filter((item) => item.type === "positive_tick").slice(0, 42);
+  const visualMarks = plan.visualMarks.filter((item) => item.type !== "score" && item.type !== "positive_tick").slice(0, nonTickVisualLimit);
+  const marginComments = plan.marginComments.filter((item) => item.comment);
+
+  const marks: string[] = [];
+  const usedCommentRects: PixelBox[] = [];
+  const usedMarkRects: PixelBox[] = [];
+  const usedTickRects: PixelBox[] = [];
+  const tickKeys = new Set<string>();
+
+  if (plan.scoreText) {
+    marks.push(
+      textBlock({
+        x: Math.min(canvas.canvasWidth - width * 0.08, canvas.pageX + width * 0.84),
+        y: canvas.pageY + height * 0.075,
+        text: plan.scoreText,
+        maxChars: 10,
+        fontSize: scoreSize,
+        rotate: -4,
+      })
+    );
+  }
+
+  tickMarks.forEach((annotation, index) => {
+    const targetBox = findTargetBox(annotation, params.layout, pageZones, width, height);
+    const targetPx = targetBox ? offsetBox(boxToPixels(targetBox, width, height), canvas) : null;
+    const normalizedKey = annotation.targetText ? normalizeForMatch(annotation.targetText) : "";
+    const targetKey = targetPx
+      ? `line:${Math.round(targetPx.y1 / 8)}:${Math.round(targetPx.y2 / 8)}`
+      : `seq:${normalizedKey || index}`;
+    if (tickKeys.has(targetKey) || (normalizedKey && tickKeys.has(`text:${normalizedKey}`))) return;
+    tickKeys.add(targetKey);
+    if (normalizedKey) tickKeys.add(`text:${normalizedKey}`);
+
+    const preferredY = targetPx
+      ? targetPx.y1 + (targetPx.y2 - targetPx.y1) * 0.45
+      : zones.answerTop + (index + 0.5) * ((zones.answerBottom - zones.answerTop) / Math.max(tickMarks.length, 1));
+    const tickY = placeTickY(preferredY, usedTickRects, smallFontSize * 1.55, zones.answerTop, zones.answerBottom);
+    const tickX = clamp(zones.contentLeft - width * 0.055, canvas.pageX + 8, zones.contentLeft - smallFontSize * 1.8);
+    marks.push(tickPath(tickX, tickY - smallFontSize * 0.5, smallFontSize * 1.35));
+  });
+
+  visualMarks.forEach((annotation, index) => {
+    const targetBox = findTargetBox(annotation, params.layout, pageZones, width, height);
+    if (hasLayoutLines && !targetBox) return;
+    const targetPx = targetBox ? offsetBox(boxToPixels(targetBox, width, height), canvas) : null;
+    const row = targetPx ? targetPx.y2 + smallFontSize * 0.25 : zones.answerTop + index * height * 0.075;
+    const x1 = targetPx ? targetPx.x1 : zones.contentLeft + (index % 4) * width * 0.1;
+    const x2 = targetPx ? targetPx.x2 : Math.min(zones.contentRight, x1 + width * 0.18);
+    const markRect = { x1: x1 - 8, y1: row - smallFontSize * 1.4, x2: x2 + smallFontSize * 1.8, y2: row + smallFontSize * 1.2 };
+    if (!reserveRect(usedMarkRects, markRect)) return;
+
+    if (annotation.type === "positive_tick") {
+      marks.push(tickPath(x2 + 8, row - smallFontSize * 1.2, smallFontSize * 1.25));
+      return;
+    }
+    if (annotation.type === "circle") {
+      const cx = (x1 + x2) / 2;
+      const cy = row - smallFontSize * 0.55;
+      marks.push(`<ellipse cx="${cx}" cy="${cy}" rx="${Math.max(28, (x2 - x1) / 2 + 10)}" ry="${smallFontSize * 1.15}" transform="rotate(-2 ${cx} ${cy})" />`);
+      return;
+    }
+    if (annotation.type === "bracket") return;
+    marks.push(underlinePath(x1, row, Math.max(60, x2 - x1)));
+  });
+
+  const deferredComments: string[] = [];
+  marginComments.forEach((annotation, index) => {
+    const targetBox = findTargetBox(annotation, params.layout, pageZones, width, height);
+    const targetPx = targetBox ? offsetBox(boxToPixels(targetBox, width, height), canvas) : null;
+
+    const side = commentLane(annotation, index, zones);
+    const lane = side === "left" ? zones.leftMargin : zones.rightMargin;
+    const laneWidth = lane.x2 - lane.x1;
+    const maxChars = Math.max(10, Math.floor(laneWidth / (smallFontSize * 0.56)));
+    const commentFontSize = annotation.severity === "minor" ? Math.max(13, Math.round(smallFontSize * 0.88)) : smallFontSize;
+    const maxLines = Number.POSITIVE_INFINITY;
+    const lines = wrapText(annotation.comment, maxChars, maxLines);
+    const blockHeight = lines.length * commentFontSize * 1.12 + commentFontSize * 0.3;
+    const preferredY = targetPx ? Math.max(zones.answerTop, targetPx.y1 - smallFontSize * 0.5) : zones.answerTop + index * height * 0.12;
+    const rect = placeInLane({
+      lane,
+      preferredY,
+      width: laneWidth,
+      height: blockHeight,
+      used: usedCommentRects,
+    });
+
+    const textX = side === "left" ? rect.x1 : rect.x1 + 2;
+    const textY = rect.y1 + commentFontSize;
+    const anchorX = targetPx ? (side === "left" ? targetPx.x1 : targetPx.x2) : side === "left" ? zones.contentLeft : zones.contentRight;
+    const anchorY = targetPx ? targetPx.y1 + (targetPx.y2 - targetPx.y1) * 0.55 : rect.y1 + blockHeight * 0.5;
+    const fromX = side === "left" ? rect.x2 - 4 : rect.x1 + 2;
+    const fromY = rect.y1 + Math.min(blockHeight * 0.5, smallFontSize * 2.2);
+
+    if (targetPx) {
+      marks.push(commentLeaderPath({
+        fromX,
+        fromY,
+        anchorX,
+        anchorY,
+        side,
+      }));
+      if (annotation.type === "missing_demand") {
+        marks.push(bracketPath(side === "left" ? targetPx.x1 - 12 : targetPx.x2 + 12, targetPx.y1 - 5, targetPx.y2 + 8, side === "left" ? "right" : "left"));
+      }
+    }
+    marks.push(
+      textBlock({
+        x: textX,
+        y: textY,
+        text: annotation.comment,
+        maxChars,
+        maxLines,
+        fontSize: commentFontSize,
+      })
+    );
+  });
+
+  const railBottom = usedCommentRects.reduce((max, rect) => Math.max(max, rect.y2), canvas.pageY + canvas.pageHeight);
+  const bottomStart = Math.max(zones.bottom.y1, railBottom + smallFontSize * 1.5);
+
+  if (plan.bottomComment) {
+    deferredComments.unshift(plan.bottomComment);
+  }
+
+  if (deferredComments.length > 0) {
+    const bottomText = deferredComments.join(" ").replace(/\s+/g, " ").trim();
+    const bottomMaxChars = Math.max(42, Math.floor((zones.bottom.x2 - zones.bottom.x1) / (smallFontSize * 0.54)));
+    const bottomLines = wrapText(bottomText, bottomMaxChars, Number.POSITIVE_INFINITY);
+    const bottomFontSize = bottomLines.length > 4 ? Math.max(13, Math.round(smallFontSize * 0.84)) : smallFontSize;
+    const bottomY = bottomStart + bottomFontSize;
+    const bottomTextEnd = bottomY + Math.max(0, bottomLines.length - 1) * bottomFontSize * 1.12 + bottomFontSize * 0.45;
+    canvas.canvasHeight = Math.max(canvas.canvasHeight, Math.ceil(bottomTextEnd + smallFontSize * 1.5));
+    marks.push(
+      textBlock({
+        x: zones.bottom.x1,
+        y: bottomY,
+        text: bottomText,
+        maxChars: bottomMaxChars,
+        maxLines: Number.POSITIVE_INFINITY,
+        fontSize: bottomFontSize,
+      })
+    );
+  }
+
+  canvas.canvasHeight = Math.max(canvas.canvasHeight, Math.ceil(railBottom + smallFontSize * 1.5));
+
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.canvasWidth}" height="${canvas.canvasHeight}" viewBox="0 0 ${canvas.canvasWidth} ${canvas.canvasHeight}">
+  <rect x="0" y="0" width="${canvas.canvasWidth}" height="${canvas.canvasHeight}" fill="#f7f7f5" />
+  <image href="${imageHref}" x="${canvas.pageX}" y="${canvas.pageY}" width="${width}" height="${height}" preserveAspectRatio="none" />
+  <g fill="none" stroke="${red}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" opacity="0.96">
+    ${marks.filter((mark) => mark.startsWith("<path") || mark.startsWith("<ellipse")).join("\n    ")}
+  </g>
+  <g fill="${red}" stroke="none" font-family="'Comic Sans MS', 'Bradley Hand', 'Segoe Print', cursive" font-size="${fontSize}" font-weight="700" opacity="0.98">
+    ${marks.filter((mark) => mark.startsWith("<text")).join("\n    ")}
+  </g>
+</svg>`;
+
+  return Buffer.from(svg, "utf8");
 }
 
 export async function generateCheckedCopy(params: {
@@ -30,104 +711,44 @@ export async function generateCheckedCopy(params: {
   originalBuffer: Buffer;
   mimeType: string;
   annotationPlan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan;
+  layout?: DocumentPageLayout | null;
 }): Promise<CheckedCopyResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  const model = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image";
-  if (!apiKey) return { status: "failed", reason: "GEMINI_API_KEY is not configured" };
   const startedAt = Date.now();
+  const pageNumber = params.pageNumber || 1;
+  const totalPages = params.totalPages || 1;
 
   try {
-    console.log("[checked-copy] Gemini image request start", {
-      attemptId: params.attemptId,
-      pageNumber: params.pageNumber || 1,
-      model,
+    if (!params.mimeType.startsWith("image/")) {
+      return { status: "failed", reason: `Deterministic checked-copy renderer requires image input, got ${params.mimeType}` };
+    }
+
+    const svg = renderOverlaySvg({
+      originalBuffer: params.originalBuffer,
       mimeType: params.mimeType,
-      inputBytes: params.originalBuffer.length,
-      annotationPlanItems: Array.isArray(params.annotationPlan)
-        ? params.annotationPlan.length
-        : params.annotationPlan.comments.length,
-    });
-    const ai = new GoogleGenAI({ apiKey });
-    const pageNumber = params.pageNumber || 1;
-    const totalPages = params.totalPages || 1;
-    const annotationPlan = planForPage(params.annotationPlan, pageNumber);
-    const prompt = `Create a teacher-checked UPSC answer copy image from the uploaded answer-sheet image.
-
-Strict rules:
-- Preserve the original answer image unchanged.
-- Only add red teacher-style handwriting annotations, ticks, underlines, brackets, arrows, and concise comments.
-- Do not rewrite, crop, blur, distort, erase, or improve existing handwriting/text.
-- Keep annotations sparse and realistic.
-- Follow the annotation plan exactly. Do not invent extra feedback.
-- Place comments in page margins or bottom space when possible. Do not cover the student's handwriting.
-- Use short red handwritten-style comments like a real UPSC evaluator.
-- If targetText is present, visually anchor the mark near that phrase/section with a tick, underline, bracket, or arrow.
-- If a demand is missing, write the missing-demand comment in the margin or bottom and point to the closest relevant section.
-- This is page ${pageNumber} of ${totalPages}. Only mark what is visible on this page. If a targetText is not present on this page, skip that anchor.
-- The answer has ONE overall score for the whole submission. Write the score only on page 1. Do not write any score, percentage, total marks, or final grade on pages 2-${totalPages}.
-- Do not make page-level marks. Never imply that this page was evaluated separately.
-
-Annotation plan JSON:
-${JSON.stringify(annotationPlan, null, 2)}`;
-
-    const response = await ai.models.generateContent({
-      model,
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: prompt },
-            {
-              inlineData: {
-                mimeType: params.mimeType,
-                data: params.originalBuffer.toString("base64"),
-              },
-            },
-          ],
-        },
-      ],
+      annotationPlan: params.annotationPlan,
+      pageNumber,
+      totalPages,
+      layout: params.layout,
     });
 
-    const imagePart = response.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData?.data) as any;
-    const imageData = imagePart?.inlineData?.data;
-    const outputMime = imagePart?.inlineData?.mimeType || "image/png";
-    if (!imageData) {
-      console.warn("[checked-copy] Gemini returned no image", {
-        attemptId: params.attemptId,
-        elapsed: `${Date.now() - startedAt}ms`,
-        candidateCount: response.candidates?.length || 0,
-        partTypes: response.candidates?.[0]?.content?.parts?.map((part: any) => Object.keys(part)) || [],
-      });
-      return { status: "failed", reason: "Gemini image model returned no image" };
-    }
+    const storagePath = `${params.attemptId}/page_${pageNumber}_${Date.now()}_checked.svg`;
+    await uploadFile(STORAGE_BUCKETS.CHECKED_COPIES, storagePath, svg, "image/svg+xml");
 
-    const generated = Buffer.from(imageData, "base64");
-    const validation = validateCheckedCopy(params.originalBuffer, generated);
-    if (!validation.ok) {
-      console.warn("[checked-copy] generated image failed validation", {
-        attemptId: params.attemptId,
-        elapsed: `${Date.now() - startedAt}ms`,
-        originalBytes: params.originalBuffer.length,
-        generatedBytes: generated.length,
-        reason: validation.reason,
-      });
-      return { status: "failed", reason: validation.reason || "Checked copy validation failed" };
-    }
-
-    const ext = outputMime.includes("jpeg") ? "jpg" : "png";
-    const storagePath = `${params.attemptId}/page_${params.pageNumber || 1}_${Date.now()}_checked.${ext}`;
-    await uploadFile(STORAGE_BUCKETS.CHECKED_COPIES, storagePath, generated, outputMime);
-    console.log("[checked-copy] completed", {
+    console.log("[checked-copy] deterministic overlay completed", {
       attemptId: params.attemptId,
+      pageNumber,
+      totalPages,
       elapsed: `${Date.now() - startedAt}ms`,
-      outputMime,
-      generatedBytes: generated.length,
+      inputBytes: params.originalBuffer.length,
+      outputBytes: svg.length,
       storagePath,
     });
+
     return { status: "completed", storagePath };
   } catch (error) {
-    console.error("[checked-copy] failed", {
+    console.error("[checked-copy] deterministic overlay failed", {
       attemptId: params.attemptId,
+      pageNumber,
       elapsed: `${Date.now() - startedAt}ms`,
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,

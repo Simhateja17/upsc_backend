@@ -53,6 +53,12 @@ export const errorHandler = (
 
 export const notFoundHandler = (req: Request, res: Response) => {
   console.warn(`[404] Route not found: ${req.method} ${req.originalUrl}`);
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
   res.status(404).json({
     status: "error",
     message: `Route ${req.originalUrl} not found`,

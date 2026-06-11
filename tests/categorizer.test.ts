@@ -3,10 +3,10 @@ import { categorize, relevanceScore, isRelevant, extractTags, classifyArticle } 
 
 describe('categorizer', () => {
   describe('categorize', () => {
-    it('returns "Polity & Governance" for parliament/constitution content', () => {
-      expect(categorize('Parliament passes new bill')).toBe('Polity & Governance');
-      expect(categorize('Supreme Court ruling on constitution')).toBe('Polity & Governance');
-      expect(categorize('Election commission announces dates')).toBe('Polity & Governance');
+    it('returns "Polity" for parliament/constitution content', () => {
+      expect(categorize('Parliament passes new bill')).toBe('Polity');
+      expect(categorize('Supreme Court ruling on constitution')).toBe('Polity');
+      expect(categorize('Election commission announces dates')).toBe('Polity');
     });
 
     it('returns "Economy" for economic content', () => {
@@ -15,14 +15,13 @@ describe('categorizer', () => {
       expect(categorize('Budget 2026 highlights fiscal deficit')).toBe('Economy');
     });
 
-    it('returns "Economy" for trade-focused content (economy checked before IR)', () => {
-      // "trade" in Economy regex matches before "bilateral" in IR regex
-      expect(categorize('India-USA bilateral trade deal signed')).toBe('Economy');
+    it('maps bilateral trade content into canonical "Polity"', () => {
+      expect(categorize('India-USA bilateral trade deal signed')).toBe('Polity');
     });
 
-    it('returns "International Relations" for purely diplomatic content', () => {
-      expect(categorize('G20 summit concludes in Brazil')).toBe('International Relations');
-      expect(categorize('BRICS expansion includes new members')).toBe('International Relations');
+    it('maps diplomatic content into canonical "Polity"', () => {
+      expect(categorize('G20 summit concludes in Brazil')).toBe('Polity');
+      expect(categorize('BRICS expansion includes new members')).toBe('Polity');
     });
 
     it('returns "Environment & Ecology" for climate content', () => {
@@ -36,38 +35,36 @@ describe('categorizer', () => {
       expect(categorize('Quantum computing breakthrough announced')).toBe('Science & Technology');
     });
 
-    it('returns "Security & Defence" for military content', () => {
-      expect(categorize('Army conducts joint exercise')).toBe('Security & Defence');
+    it('maps military content into canonical "Science & Technology"', () => {
+      expect(categorize('Army conducts joint exercise')).toBe('Science & Technology');
       // ngt word boundary fix: "strengthened" no longer falsely matches "ngt"
-      expect(categorize('Border security strengthened')).toBe('Security & Defence');
+      expect(categorize('Border security strengthened')).toBe('Science & Technology');
     });
 
-    it('returns "Polity & Governance" for policy-related content (checked before Social Issues)', () => {
-      // "policy" in Polity regex matches before "education" in Social Issues regex
-      expect(categorize('New education policy implementation review')).toBe('Polity & Governance');
+    it('returns "Polity" for policy-related content', () => {
+      expect(categorize('New education policy implementation review')).toBe('Polity');
     });
 
-    it('returns "Social Issues & Welfare" for welfare content', () => {
-      expect(categorize('Welfare scheme reaches 10 million beneficiaries')).toBe('Social Issues & Welfare');
+    it('returns fallback for welfare content outside the six canonical subjects', () => {
+      expect(categorize('Welfare scheme reaches 10 million beneficiaries')).toBe('Current Affairs');
     });
 
-    it('returns "History & Culture" for heritage content', () => {
-      expect(categorize('UNESCO adds new heritage site')).toBe('History & Culture');
-      expect(categorize('Ancient temple discovered during excavation')).toBe('History & Culture');
+    it('returns "History" for heritage content', () => {
+      expect(categorize('UNESCO adds new heritage site')).toBe('History');
+      expect(categorize('Ancient temple discovered during excavation')).toBe('History');
     });
 
-    it('returns "Geography & Disasters" for disaster/geography content', () => {
-      expect(categorize('Earthquake measuring 7.2 hits region')).toBe('Geography & Disasters');
-      expect(categorize('Monsoon forecast predicts above-normal rainfall')).toBe('Geography & Disasters');
+    it('returns "Geography" for disaster/geography content', () => {
+      expect(categorize('Earthquake measuring 7.2 hits region')).toBe('Geography');
+      expect(categorize('Monsoon forecast predicts above-normal rainfall')).toBe('Geography');
     });
 
-    it('returns "Social Issues & Welfare" for farmer-related content (checked before Agriculture)', () => {
-      // "farmer" in Social Issues regex matches before Agriculture regex
-      expect(categorize('Farmers demand loan waivers')).toBe('Social Issues & Welfare');
+    it('maps farmer-related content into canonical "Economy"', () => {
+      expect(categorize('Farmers demand loan waivers')).toBe('Economy');
     });
 
-    it('returns "Agriculture" for agricultural policy content', () => {
-      expect(categorize('MSP hike announced for wheat and paddy')).toBe('Agriculture');
+    it('maps agricultural policy content into canonical "Economy"', () => {
+      expect(categorize('MSP hike announced for wheat and paddy')).toBe('Economy');
     });
 
     it('returns fallback "Current Affairs" for non-matching content', () => {
@@ -76,7 +73,7 @@ describe('categorizer', () => {
     });
 
     it('handles null/undefined summary and content', () => {
-      expect(categorize('Parliament session begins', null, null)).toBe('Polity & Governance');
+      expect(categorize('Parliament session begins', null, null)).toBe('Polity');
       expect(categorize('Random text', null, null)).toBe('Current Affairs');
     });
   });

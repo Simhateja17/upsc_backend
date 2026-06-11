@@ -3,6 +3,8 @@ import { randomUUID } from "crypto";
 import { Webhook } from "standardwebhooks";
 import config from "../config";
 import { supabaseAdmin } from "../config/supabase";
+import { normalizeIndianPhone } from "../utils/phone";
+import { parseSendSmsHookPayload, toSupabaseHookError } from "../utils/supabaseAuthHooks";
 
 type PhonePurpose = "login" | "signup" | "link";
 
@@ -35,21 +37,6 @@ function ensurePhoneAuthEnabled(res: Response): boolean {
   if (config.phoneAuth.enabled) return true;
   res.status(404).json({ status: "error", message: "Phone authentication is not enabled" });
   return false;
-}
-
-export function normalizeIndianPhone(input: string): string {
-  const compact = input.trim().replace(/[\s()-]/g, "");
-  let digits = compact.startsWith("+") ? compact.slice(1) : compact;
-
-  if (digits.startsWith("0091")) digits = digits.slice(2);
-  if (digits.startsWith("91") && digits.length === 12) digits = digits.slice(2);
-  if (digits.startsWith("0") && digits.length === 11) digits = digits.slice(1);
-
-  if (!/^[6-9]\d{9}$/.test(digits)) {
-    throw new Error("Enter a valid 10 digit Indian mobile number");
-  }
-
-  return `+91${digits}`;
 }
 
 function phoneForTwoFactor(phone: string): string {
@@ -399,19 +386,22 @@ export const sendSmsHook = async (req: Request, res: Response) => {
   try {
     if (!ensurePhoneAuthEnabled(res)) return;
     const event = verifySendSmsHook(req) as any;
-    const phone = normalizeIndianPhone(event?.user?.phone || "");
-    const otp = String(event?.sms?.otp || event?.sms?.token || "");
-
-    if (!/^\d{6,10}$/.test(otp)) {
-      return res.status(400).json({ error: "Send SMS hook payload is missing a valid OTP" });
-    }
+    const { phone, otp } = parseSendSmsHookPayload(event);
 
     await sendTwoFactorOtp(phone, otp);
     res.json({ ok: true });
   } catch (error: any) {
-    const status = error?.statusCode || 500;
+    const hookError = toSupabaseHookError(error);
+    console.warn("[PhoneAuth] Send SMS hook failed:", {
+      statusCode: hookError.status,
+      message: error?.message || "Failed to send SMS",
+      requestId: req.id,
+      hasRawBody: !!(req as any).rawBody,
+      contentType: req.headers["content-type"] || null,
+      contentLength: req.headers["content-length"] || null,
+    });
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (status === 429 || status === 503) headers["retry-after"] = "true";
-    res.status(status).set(headers).json({ error: error?.message || "Failed to send SMS" });
+    if (hookError.status === 429 || hookError.status === 503) headers["retry-after"] = "true";
+    res.status(hookError.status).set(headers).json(hookError.body);
   }
 };

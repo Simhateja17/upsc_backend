@@ -6,6 +6,40 @@ function param(req: Request, key: string): string {
   return Array.isArray(v) ? v[0] : (v ?? "");
 }
 
+function displayName(user: any): string {
+  return [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() || "Aspirant";
+}
+
+function mapGroup(group: any) {
+  return {
+    ...group,
+    icon: group.icon ?? "👥",
+    memberCount: group.memberCount ?? group._count?.members ?? 0,
+    isAdmin: group.isAdmin ?? false,
+    unreadCount: group.unreadCount ?? 0,
+    lastActivity: group.lastActivity ?? group.updatedAt ?? group.createdAt ?? null,
+  };
+}
+
+function mapMember(member: any) {
+  return {
+    ...member,
+    userId: member.userId,
+    name: member.name ?? displayName(member.user),
+    avatarUrl: member.avatarUrl ?? member.user?.avatarUrl ?? null,
+    role: member.role ?? "member",
+  };
+}
+
+function mapMessage(message: any) {
+  return {
+    ...message,
+    userName: message.userName ?? displayName(message.user),
+    userAvatarUrl: message.userAvatarUrl ?? message.user?.avatarUrl ?? null,
+    isEdited: message.isEdited ?? false,
+  };
+}
+
 // ==================== PUBLIC / AUTHENTICATED ====================
 
 /**
@@ -37,7 +71,7 @@ export const getGroups = async (req: Request, res: Response, next: NextFunction)
     });
 
     // Check membership separately to avoid take limit issue
-    let membershipMap = new Map<string, boolean>();
+    const membershipMap = new Map<string, boolean>();
     if (userId) {
       const memberships = await prisma.studyGroupMember.findMany({
         where: { userId, isActive: true },
@@ -46,7 +80,7 @@ export const getGroups = async (req: Request, res: Response, next: NextFunction)
       memberships.forEach((m) => membershipMap.set(m.groupId, true));
     }
 
-    const data = groups.map((g) => ({
+    const data = groups.map((g) => mapGroup({
       id: g.id,
       name: g.name,
       description: g.description,
@@ -107,34 +141,32 @@ export const getGroup = async (req: Request, res: Response, next: NextFunction) 
       ? group.members.some((m) => m.userId === userId)
       : false;
 
+    const mappedGroup = mapGroup({
+      id: group.id,
+      name: group.name,
+      description: group.description,
+      subject: group.subject,
+      status: group.status,
+      maxMembers: group.maxMembers,
+      createdById: group.createdById,
+      creator: group.creator,
+      memberCount: group._count.members,
+      isMember,
+      createdAt: group.createdAt,
+    });
+    const members = group.members.map(mapMember);
+    const recentMessages = group.messages.reverse().map(mapMessage);
+
     res.json({
       status: "success",
       data: {
-        id: group.id,
-        name: group.name,
-        description: group.description,
-        subject: group.subject,
-        status: group.status,
-        maxMembers: group.maxMembers,
-        createdById: group.createdById,
-        creator: group.creator,
-        memberCount: group._count.members,
-        isMember,
-        members: group.members.map((m) => ({
-          id: m.id,
-          userId: m.userId,
-          joinedAt: m.joinedAt,
-          user: m.user,
-        })),
+        ...mappedGroup,
+        group: mappedGroup,
+        members,
+        messages: recentMessages,
+        recentMessages,
+        sharedResources: [],
         memberAvatars: group.members.slice(0, 3).map((m) => m.user),
-        messages: group.messages.reverse().map((m) => ({
-          id: m.id,
-          userId: m.userId,
-          content: m.content,
-          createdAt: m.createdAt,
-          user: m.user,
-        })),
-        createdAt: group.createdAt,
       },
     });
   } catch (error) {
@@ -150,8 +182,9 @@ export const createGroup = async (req: Request, res: Response, next: NextFunctio
   try {
     const userId = req.user!.id;
     const { name, description, subject, status, maxMembers } = req.body;
+    const finalSubject = subject || "General";
 
-    if (!name || !subject) {
+    if (!name || !finalSubject) {
       res.status(400).json({ status: "error", message: "name and subject are required" });
       return;
     }
@@ -160,7 +193,7 @@ export const createGroup = async (req: Request, res: Response, next: NextFunctio
       data: {
         name,
         description: description || "",
-        subject,
+        subject: finalSubject,
         status: status || "open",
         maxMembers: maxMembers ? Number(maxMembers) : 50,
         createdById: userId,
@@ -172,7 +205,7 @@ export const createGroup = async (req: Request, res: Response, next: NextFunctio
       data: { groupId: group.id, userId, isActive: true },
     });
 
-    res.status(201).json({ status: "success", data: group });
+    res.status(201).json({ status: "success", data: mapGroup({ ...group, memberCount: 1, isMember: true }) });
   } catch (error) {
     next(error);
   }
@@ -269,7 +302,7 @@ export const getMessages = async (req: Request, res: Response, next: NextFunctio
       take: 200,
     });
 
-    res.json({ status: "success", data: messages });
+    res.json({ status: "success", data: messages.map(mapMessage) });
   } catch (error) {
     next(error);
   }
@@ -310,7 +343,7 @@ export const postMessage = async (req: Request, res: Response, next: NextFunctio
       },
     });
 
-    res.status(201).json({ status: "success", data: message });
+    res.status(201).json({ status: "success", data: mapMessage(message) });
   } catch (error) {
     next(error);
   }
@@ -337,7 +370,7 @@ export const getMyGroups = async (req: Request, res: Response, next: NextFunctio
       orderBy: { joinedAt: "desc" },
     });
 
-    const data = memberships.map((m) => ({
+    const data = memberships.map((m) => mapGroup({
       id: m.group.id,
       name: m.group.name,
       description: m.group.description,

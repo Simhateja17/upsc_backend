@@ -9,7 +9,11 @@ export const getSubjects = async (_req: Request, res: Response, next: NextFuncti
   try {
     const subjects = await prisma.videoSubject.findMany({
       orderBy: { order: "asc" },
-      include: { _count: { select: { videos: true } } },
+      include: {
+        _count: {
+          select: { videos: { where: { isPublished: true } } },
+        },
+      },
     });
 
     const data = subjects.map(s => ({
@@ -19,21 +23,6 @@ export const getSubjects = async (_req: Request, res: Response, next: NextFuncti
       iconUrl: s.iconUrl,
       videoCount: s._count.videos,
     }));
-
-    // If no subjects exist, return defaults
-    if (data.length === 0) {
-      return res.json({
-        status: "success",
-        data: [
-          { id: "1", name: "History", description: "Ancient, Medieval, Modern", videoCount: 62 },
-          { id: "2", name: "Geography", description: "Physical, Human, Indian", videoCount: 38 },
-          { id: "3", name: "Polity", description: "Constitution, Governance", videoCount: 45 },
-          { id: "4", name: "Economy", description: "Macro, Micro, Indian Economy", videoCount: 41 },
-          { id: "5", name: "Environment & Ecology", description: "Ecology, Biodiversity", videoCount: 22 },
-          { id: "6", name: "Science & Technology", description: "Current developments", videoCount: 28 },
-        ],
-      });
-    }
 
     res.json({ status: "success", data });
   } catch (error) {
@@ -75,17 +64,21 @@ export const getVideosBySubject = async (req: Request, res: Response, next: Next
  */
 export const getStats = async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const [totalVideos, totalSubjects] = await Promise.all([
+    const [totalVideos, totalSubjects, duration] = await Promise.all([
       prisma.video.count({ where: { isPublished: true } }),
       prisma.videoSubject.count(),
+      prisma.video.aggregate({
+        where: { isPublished: true },
+        _sum: { duration: true },
+      }),
     ]);
 
     res.json({
       status: "success",
       data: {
-        totalLectures: totalVideos || 500,
-        totalSubjects: totalSubjects || 12,
-        totalHours: Math.round((totalVideos || 500) * 0.75), // ~45 min avg
+        totalLectures: totalVideos,
+        totalSubjects,
+        totalHours: Math.round((duration._sum.duration ?? 0) / 3600),
       },
     });
   } catch (error) {

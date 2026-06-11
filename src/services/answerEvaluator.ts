@@ -3,9 +3,10 @@ import { renderPdfPagesToImages } from "../config/gemini";
 import { downloadFile, STORAGE_BUCKETS } from "../config/storage";
 import prisma from "../config/database";
 import { buildTopperContext, retrieveTopperMatches } from "./topperRag.service";
-import { EvaluatorCheckedCopyPlan, planCheckedCopyAnnotations } from "./checkedCopyPlanner";
+import { CheckedCopyAnnotationPlan, EvaluatorCheckedCopyPlan, planCheckedCopyAnnotations } from "./checkedCopyPlanner";
 import { generateCheckedCopy } from "./checkedCopyGenerator";
-import { transcribeStudentAnswerFromUpload } from "./studentAnswerTranscriber";
+import { transcribeStudentAnswerFromUpload, TranscribedAnswerPage } from "./studentAnswerTranscriber";
+import { analyzeDocumentPageLayout, DocumentPageLayout } from "./documentLayout.service";
 
 function evalElapsed(startedAt: number) {
   return `${Date.now() - startedAt}ms`;
@@ -34,6 +35,12 @@ interface QuestionContext {
   marks: number;
   paper: string;
 }
+
+type OriginalUploadPage = {
+  buffer: Buffer;
+  contentType: string;
+  sourcePath: string;
+};
 
 export interface EvaluationUpdate {
   score: number;
@@ -77,10 +84,22 @@ async function runAzureEvaluation(
   answerText: string,
   question: QuestionContext,
   uploadTranscriptionNote: boolean,
-  topperContext: string
+  topperContext: string,
+  answerPages?: TranscribedAnswerPage[]
 ): Promise<EvaluationResult> {
   const wordCount = answerText.trim().split(/\s+/).filter(Boolean).length;
   const expectedWords = question.marks >= 15 ? 250 : question.marks >= 10 ? 150 : 100;
+  const readablePages = (answerPages || [])
+    .filter((page) => page.studentAnswerText.trim().length > 0)
+    .sort((a, b) => a.pageNumber - b.pageNumber);
+  const pageSeparatedAnswer = readablePages.length > 0
+    ? readablePages
+        .map((page) => `[Page ${page.pageNumber}]\n${page.studentAnswerText.trim()}`)
+        .join("\n\n")
+    : `[Page 1]\n${answerText.trim()}`;
+  const pagePlanRule = readablePages.length > 1
+    ? `- The answer has ${readablePages.length} uploaded pages. Return one annotationPlan.pagePlans entry per page, with the exact "pageNumber" field. Page 1 comments must target Page 1 answer text only; Page 2 comments must target Page 2 answer text only. Never repeat the same margin comment across pages.`
+    : "- Return one annotationPlan.pagePlans entry for pageNumber 1.";
 
   const messages: BedrockMessage[] = [
     {
@@ -93,6 +112,11 @@ QUESTION (${question.paper} · ${question.subject} · ${question.marks} marks ·
 STUDENT'S ANSWER (${wordCount} words):
 ---
 ${answerText}
+---
+
+PAGE-SEPARATED ANSWER TEXT FOR CHECKED-COPY ANNOTATION:
+---
+${pageSeparatedAnswer}
 ---
 
 RAG-CALIBRATION FROM CHECKED TOPPER COPIES:
@@ -109,8 +133,17 @@ ${uploadTranscriptionNote ? "NOTE: This text was transcribed from uploaded handw
 - Penalize factual errors heavily. If a claim is wrong, call it out in "improvements".
 - NEVER give pity marks. A blank or one-sentence answer should not get more than 1/${question.marks}.
 - RAG calibration is binding: treat retrieved checked topper/evaluator copies as scoring anchors, not as automatic marks. If a retrieved answer scored 7/15, award 7/15 only when the student's answer is genuinely at that same standard. If the student's answer is weaker than the retrieved 7/15 answer in demand coverage, specificity, evidence, structure, or balance, award less. Do not award more than the best relevant retrieved example unless the student's answer is clearly and specifically superior, and explain that exact superiority in detailedFeedback. Generic polish is not enough.
-- Build annotationPlan for the checked-copy image. Use 4-8 sparse red-ink annotations: ticks for good answer points, one margin note for the introduction if useful, margin/bottom comments for missing question demands, and a score annotation. Keep comments short enough to fit in page margins.
-- For annotationPlan.targetText, use exact OCR phrases from the student's answer such as a heading or key phrase. If the student omits an entire demand, target the closest existing section and explain what is missing.
+- Build annotationPlan as semantic examiner intent, not exact coordinates. The SVG renderer will decide final placement.
+- Use annotationPlan version 2. Split detailed markups, light markups, and correctness ticks.
+- Density target: create 3-5 marginComments for a normal full page, plus one positive_tick for each correct/relevant semantic answer point. A point may span multiple OCR lines; tick the point title or first distinctive phrase only, not continuation lines.
+- Detailed markups are marginComments with severity "major": 18-32 words each, max one compact comment block. Be specific like a teacher: name the missing demand, factual problem, example/data to add, or why a claim is weak.
+- Light markups are marginComments with severity "minor": 2-8 words each, e.g. "Wrong name: Nawaz Sharif.", "Factually incorrect.", "Needs example.", "Vague drafting." Use these near factual mistakes or imprecise phrases.
+- visualMarks should be positive ticks, underlines, circles, or brackets on exact phrases from the student's answer. Add exactly one positive_tick for each correct/relevant semantic point, especially numbered/bulleted/subheading points. Do not add multiple ticks for different lines of the same point. Use underline/circle weak or wrong phrases, and bracket missed/incomplete sections. Do not target the printed question/header.
+- marginComments should name the exact missing content/factual issue/value addition. Do not repeat the same comment across pages.
+- If the student omits an entire demand, attach the marginComment to the closest existing answer section and explain the missing demand.
+- Include a final bottomComment of 18-35 words that summarizes the scoring reason and highest-priority fixes. Do not write a long paragraph.
+${pagePlanRule}
+- Every visualMarks[].targetText and marginComments[].targetText must be copied from the same page's student answer text. Do not use targetText from another page.
 
 Rubric weights (for your internal reasoning; surface in metrics):
 1. Relevance to directive & question demand (30%)
@@ -140,14 +173,31 @@ Return ONLY a JSON object (no prose, no markdown fences):
   "overallFeedback": "short examiner-style overall comment",
   "modelAnswer": "concise model answer calibrated to the marks and word limit",
   "detailedFeedback": "2-3 paragraph examiner-style feedback: what the answer did, where it falls on the rubric, and exactly what to fix. Be blunt, not encouraging.",
-  "annotationPlan": [
-    {
-      "type": "positive_tick|underline|circle|bracket|margin_comment|missing_demand|overall_comment|score",
-      "targetText": "exact short phrase from the student's transcribed answer text when available; omit only for bottom/score comments",
-      "comment": "short red-ink examiner note, max 18 words",
-      "placement": "left_margin|right_margin|bottom|near_target|top"
-    }
-  ],
+  "annotationPlan": {
+    "version": 2,
+    "scoreText": "same integer score/maxScore, e.g. \"4/${question.marks}\"",
+    "pagePlans": [
+      {
+        "pageNumber": 1,
+        "visualMarks": [
+          {
+            "type": "positive_tick|underline|circle|bracket",
+            "targetText": "exact phrase from the student's answer only, never the printed question",
+            "intent": "why this mark is placed"
+          }
+        ],
+        "marginComments": [
+          {
+            "targetText": "exact phrase from the student's answer near the issue",
+            "severity": "major|minor",
+            "comment": "teacher-style comment, 18-45 words, specific and content-rich",
+            "placementIntent": "left_margin|right_margin|near_target"
+          }
+        ],
+        "bottomComment": "final examiner summary with missing demands and concrete additions"
+      }
+    ]
+  },
   "metrics": [
     {"label": "Relevance", "value": <0-10>, "maxValue": 10},
     {"label": "Content", "value": <0-10>, "maxValue": 10},
@@ -160,7 +210,7 @@ Return ONLY a JSON object (no prose, no markdown fences):
   ];
 
   const system =
-    "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, think like a teacher marking the physical answer sheet in red ink: target actual phrases or sections in the student's answer, tick genuinely good points, and mark missing demands clearly in the margin or bottom. Do not invent targetText that is not present in the answer.";
+    "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, return semantic marking intent for an SVG checked-copy renderer: use exact targetText from the student's answer, never target printed question/header text, use detailed teacher-style margin comments, and separate visual marks from comments. Do not invent targetText that is not present in the answer.";
 
   return invokeModelJSON<EvaluationResult>(messages, {
     system,
@@ -171,12 +221,41 @@ Return ONLY a JSON object (no prose, no markdown fences):
 }
 
 function hasEvaluatorAnnotationPlan(plan: unknown): plan is EvaluatorCheckedCopyPlan {
+  if (plan && typeof plan === "object" && !Array.isArray(plan)) {
+    const entry = plan as Record<string, unknown>;
+    if (entry.version !== 2 || !Array.isArray(entry.pagePlans)) return false;
+    return entry.pagePlans.length > 0;
+  }
   if (!Array.isArray(plan) || plan.length === 0) return false;
   return plan.every((item) => {
     if (!item || typeof item !== "object") return false;
     const entry = item as Record<string, unknown>;
     return typeof entry.comment === "string" && typeof entry.placement === "string";
   });
+}
+
+function annotationPlanItemCount(plan: EvaluatorCheckedCopyPlan | CheckedCopyAnnotationPlan): number {
+  if (Array.isArray(plan)) return plan.length;
+  if ("version" in plan && plan.version === 2) {
+    return plan.pagePlans.reduce(
+      (sum, page) => sum + (page.visualMarks?.length || 0) + (page.marginComments?.length || 0) + (page.bottomComment ? 1 : 0),
+      0
+    );
+  }
+  return (plan as CheckedCopyAnnotationPlan).comments?.length || 0;
+}
+
+function parseAnswerUploadPaths(fileUrl: string | null): string[] {
+  if (!fileUrl) return [];
+  const trimmed = fileUrl.trim();
+  if (!trimmed.startsWith("[")) return [trimmed];
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (!Array.isArray(parsed)) return [trimmed];
+    return parsed.map((item) => String(item).trim()).filter(Boolean);
+  } catch {
+    return [trimmed];
+  }
 }
 
 function stripOcrChrome(line: string): string {
@@ -383,37 +462,62 @@ export async function evaluateAnswerGeneric(params: {
 
     let textToGrade = answerText?.trim() || "";
     let viaUploadTranscription = false;
-    let originalUpload: { buffer: Buffer; contentType: string } | null = null;
+    let originalUpload: OriginalUploadPage | null = null;
+    let originalUploads: OriginalUploadPage[] = [];
     let transcriptionDiagnostics: Record<string, unknown> | null = null;
+    let transcriptionPages: TranscribedAnswerPage[] | undefined;
 
     // Handwritten/upload path: transcribe the file with Azure vision, then reuse the text path.
     if (!textToGrade && fileUrl) {
+      const uploadPaths = parseAnswerUploadPaths(fileUrl);
       const downloadStartedAt = Date.now();
       console.log("[eval] uploaded-answer path: downloading original file", {
         attemptId,
         bucket: STORAGE_BUCKETS.ANSWER_UPLOADS,
         fileUrl,
+        uploadPaths,
       });
-      originalUpload = await downloadFile(
-        STORAGE_BUCKETS.ANSWER_UPLOADS,
-        fileUrl
+      originalUploads = await Promise.all(
+        uploadPaths.map(async (path) => {
+          const downloaded = await downloadFile(
+            STORAGE_BUCKETS.ANSWER_UPLOADS,
+            path
+          );
+          return { ...downloaded, sourcePath: path };
+        })
       );
+      originalUpload = originalUploads[0] || null;
       console.log("[eval] original file downloaded", {
         attemptId,
         elapsed: evalElapsed(downloadStartedAt),
-        bytes: originalUpload.buffer.length,
-        contentType: originalUpload.contentType,
+        files: originalUploads.length,
+        bytes: originalUploads.map((upload) => upload.buffer.length),
+        contentTypes: originalUploads.map((upload) => upload.contentType),
       });
+      if (originalUploads.length === 0 || !originalUpload) {
+        throw new Error("No uploaded answer files could be downloaded");
+      }
 
       const transcriptionStartedAt = Date.now();
       console.log("[eval] upload transcription start", {
         attemptId,
-        contentType: originalUpload.contentType,
-        bytes: originalUpload.buffer.length,
+        files: originalUploads.length,
+        contentTypes: originalUploads.map((upload) => upload.contentType),
+        bytes: originalUploads.map((upload) => upload.buffer.length),
       });
       const transcription = await transcribeStudentAnswerFromUpload({
-        fileBuffer: originalUpload.buffer,
-        mimeType: originalUpload.contentType,
+        fileBuffer: originalUploads.length === 1
+          ? originalUpload.buffer
+          : Buffer.concat(originalUploads.map((upload) => upload.buffer)),
+        mimeType: originalUploads.length === 1
+          ? originalUpload.contentType
+          : "application/x-upsc-multi-image",
+        files: originalUploads.length > 1
+          ? originalUploads.map((upload) => ({
+              buffer: upload.buffer,
+              mimeType: upload.contentType,
+            }))
+          : undefined,
         questionText: question.questionText,
         paper: question.paper,
         subject: question.subject,
@@ -435,6 +539,7 @@ export async function evaluateAnswerGeneric(params: {
         warnings: transcription.warnings,
         confidence: transcription.confidence,
       };
+      transcriptionPages = transcription.pages;
 
       if (transcribedAnswer.length < 20) {
         console.warn("[eval] upload transcription too short; completing as unreadable", {
@@ -569,7 +674,7 @@ export async function evaluateAnswerGeneric(params: {
         topperContextChars: topperContext.length,
         viaUploadTranscription,
       });
-      result = await runAzureEvaluation(textToGrade, question, viaUploadTranscription, topperContext);
+      result = await runAzureEvaluation(textToGrade, question, viaUploadTranscription, topperContext, transcriptionPages);
       console.log("[eval] Azure evaluator completed", {
         attemptId,
         elapsed: evalElapsed(gradingStartedAt),
@@ -579,7 +684,7 @@ export async function evaluateAnswerGeneric(params: {
         weaknesses: result.weaknesses?.length || 0,
         improvements: result.improvements?.length || 0,
         suggestions: result.suggestions?.length || 0,
-        annotationPlanItems: Array.isArray(result.annotationPlan) ? result.annotationPlan.length : 0,
+        annotationPlanItems: result.annotationPlan ? annotationPlanItemCount(result.annotationPlan) : 0,
       });
     }
 
@@ -634,16 +739,23 @@ export async function evaluateAnswerGeneric(params: {
     console.log("[eval] annotation plan selected", {
       attemptId,
       source: hasEvaluatorAnnotationPlan(result.annotationPlan) ? "evaluator" : "fallback",
-      items: Array.isArray(annotationPlan) ? annotationPlan.length : annotationPlan.comments?.length || 0,
+      items: annotationPlanItemCount(annotationPlan),
       score: clampedScore,
       maxScore: question.marks,
     });
 
     let checkedCopyUrl: string | null = null;
     let checkedCopyPages: Array<{ pageNumber: number; storagePath: string | null; status: string; reason?: string }> = [];
-    let checkedCopyStatus: string | null = originalUpload ? "skipped" : null;
-    let checkedCopyInputs: Array<{ pageNumber: number; buffer: Buffer; contentType: string; source: "image" | "pdf-page" }> = [];
-    if (originalUpload?.contentType.startsWith("image/")) {
+    let checkedCopyStatus: string | null = originalUploads.length > 0 ? "skipped" : null;
+    let checkedCopyInputs: Array<{ pageNumber: number; buffer: Buffer; contentType: string; source: "image" | "pdf-page"; layout?: DocumentPageLayout | null }> = [];
+    if (originalUploads.length > 1 && originalUploads.every((upload) => upload.contentType.startsWith("image/"))) {
+      checkedCopyInputs = originalUploads.map((upload, index) => ({
+        pageNumber: index + 1,
+        buffer: upload.buffer,
+        contentType: upload.contentType,
+        source: "image",
+      }));
+    } else if (originalUpload?.contentType.startsWith("image/")) {
       checkedCopyInputs = [{
         pageNumber: 1,
         buffer: originalUpload.buffer,
@@ -674,10 +786,46 @@ export async function evaluateAnswerGeneric(params: {
     }
 
     if (checkedCopyInputs.length > 0) {
+      if (process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT && process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY) {
+        const layoutStartedAt = Date.now();
+        console.log("[eval] checked-copy layout analysis start", {
+          attemptId,
+          pages: checkedCopyInputs.length,
+        });
+        checkedCopyInputs = await Promise.all(
+          checkedCopyInputs.map(async (input) => {
+            try {
+              const layout = await analyzeDocumentPageLayout({
+                imageBuffer: input.buffer,
+                mimeType: input.contentType,
+                pageNumber: input.pageNumber,
+                attemptId,
+              });
+              return { ...input, layout };
+            } catch (error) {
+              console.warn("[eval] checked-copy layout analysis failed for page", {
+                attemptId,
+                pageNumber: input.pageNumber,
+                message: error instanceof Error ? error.message : String(error),
+              });
+              return { ...input, layout: null };
+            }
+          })
+        );
+        console.log("[eval] checked-copy layout analysis completed", {
+          attemptId,
+          elapsed: evalElapsed(layoutStartedAt),
+          pages: checkedCopyInputs.map((input) => ({
+            pageNumber: input.pageNumber,
+            lines: input.layout?.lines.length || 0,
+          })),
+        });
+      }
+
       const checkedCopyStartedAt = Date.now();
       console.log("[eval] checked-copy generation start", {
         attemptId,
-        model: process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image",
+        renderer: "deterministic-svg",
         pages: checkedCopyInputs.length,
         inputBytes: checkedCopyInputs.map((input) => input.buffer.length),
       });
@@ -689,6 +837,7 @@ export async function evaluateAnswerGeneric(params: {
           originalBuffer: input.buffer,
           mimeType: input.contentType,
           annotationPlan,
+          layout: input.layout,
         });
         if (checked.status === "completed") {
           checkedCopyPages.push({
