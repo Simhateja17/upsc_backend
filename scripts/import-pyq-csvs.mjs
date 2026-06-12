@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import pg from "pg";
+import { createClient } from "@supabase/supabase-js";
 
 const BACKEND_ROOT = path.resolve(import.meta.dirname, "..");
 const ENV_PATH = path.join(BACKEND_ROOT, ".env");
@@ -106,9 +107,20 @@ function normalizeWhitespace(value) {
     .trim();
 }
 
+function normalizeVisibleText(value) {
+  return String(value || "")
+    .replace(/\r/g, "")
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function stripOptionPrefix(value) {
-  return normalizeWhitespace(value)
-    .replace(/^\(?\s*([a-dA-D])\s*\)?[\).:-]?\s*/, "")
+  return normalizeVisibleText(value)
+    .replace(/^\s*(?:\(([a-dA-D])\)|([a-dA-D])\s*[\).:-])\s+/, "")
     .trim();
 }
 
@@ -129,15 +141,15 @@ function normalizeSubject(value, fallback) {
 
 function normalizeTopic(value) {
   const topic = normalizeWhitespace(value);
-  return topic || "Miscellaneous & Current Affairs";
+  return topic || null;
 }
 
 function insertMarkerLineBreaks(text) {
-  let out = normalizeWhitespace(text);
+  let out = normalizeVisibleText(text);
 
   // UPSC statements are often collapsed into "I. ... II. ... III. ...".
   out = out.replace(
-    /([^\n])\s+(I{1,3}|IV|V|VI|VII|VIII|IX|X)\.\s+/g,
+    /([:;?])\s+(I{1,3}|IV|V|VI|VII|VIII|IX|X)\.\s+/g,
     (_, before, marker) => `${before}\n${marker}. `
   );
 
@@ -159,17 +171,19 @@ function insertMarkerLineBreaks(text) {
 
   // Put the final ask/code instruction on its own paragraph.
   out = out.replace(
-    /([^\n])\s+(Which (?:one |of |among )?.+?\?)\s*$/i,
+    /([.);:])\s+(Which (?:one |of |among )?.+?\?)\s*$/i,
     (_, before, prompt) => `${before}\n\n${prompt}`
   );
   out = out.replace(
-    /([^\n])\s+(How many .+?\?)\s*$/i,
+    /([.);:])\s+(How many .+?\?)\s*$/i,
     (_, before, prompt) => `${before}\n\n${prompt}`
   );
-  out = out.replace(
-    /([^\n])\s+(In how many .+?\?)\s*$/i,
-    (_, before, prompt) => `${before}\n\n${prompt}`
-  );
+  if (/[.);]\s+In how many /i.test(out)) {
+    out = out.replace(
+      /([.);])\s+(In how many .+?\?)\s*$/i,
+      (_, before, prompt) => `${before}\n\n${prompt}`
+    );
+  }
   out = out.replace(
     /([^\n])\s+(Select the answer using the code given below:?)\s*$/i,
     (_, before, prompt) => `${before}\n\n${prompt}`
@@ -185,6 +199,23 @@ function insertMarkerLineBreaks(text) {
 
 function formatDisplayText(value) {
   return insertMarkerLineBreaks(value);
+}
+
+function canonicalText(value) {
+  return normalizeWhitespace(value).toLowerCase();
+}
+
+function uniqueTaxonomyLabels(...values) {
+  const labels = [];
+  const seen = new Set();
+  for (const value of values) {
+    const label = normalizeWhitespace(value);
+    const key = canonicalText(label);
+    if (!label || seen.has(key)) continue;
+    labels.push(label);
+    seen.add(key);
+  }
+  return labels;
 }
 
 function detectQuestionFormat(displayText) {
@@ -233,6 +264,8 @@ function extractQuestionParts(displayText, format) {
 
 function normalizeCorrectOption(rawCorrect, options) {
   const raw = normalizeWhitespace(rawCorrect);
+  const optionWord = raw.match(/^option\s*([a-dA-D])\b/);
+  if (optionWord) return optionWord[1].toUpperCase();
   const direct = raw.match(/^\(?\s*([a-dA-D])\s*\)?(?:[\).:-]|\s|$)/);
   if (direct) return direct[1].toUpperCase();
 
@@ -278,25 +311,103 @@ function normalizeHeader(header) {
   return header.map((name) => aliases.get(name) || name);
 }
 
-function normalizeRow(row, header, fileName, csvRowNumber) {
-  const get = (name) => {
+function getHeaderValue(row, header, names) {
+  const candidates = Array.isArray(names) ? names : [names];
+  for (const name of candidates) {
     const index = header.indexOf(name);
-    return index === -1 ? "" : row[index] ?? "";
+    if (index !== -1) return row[index] ?? "";
+  }
+  return "";
+}
+
+function shapeRowToHeader(row, header) {
+  if (row.length === header.length) return { row, warnings: [] };
+  if (row.length > header.length) {
+    const extra = row.slice(header.length);
+    if (extra.every((cell) => !String(cell || "").trim())) {
+      return {
+        row: row.slice(0, header.length),
+        warnings: [`Ignored ${extra.length} trailing blank column${extra.length === 1 ? "" : "s"}`],
+      };
+    }
+  }
+  if (row.length < header.length) {
+    return {
+      row: [...row, ...Array.from({ length: header.length - row.length }, () => "")],
+      warnings: [`Padded ${header.length - row.length} missing trailing column${header.length - row.length === 1 ? "" : "s"}`],
+    };
+  }
+  return {
+    row,
+    warnings: [`Expected ${header.length} columns, found ${row.length}`],
   };
+}
+
+function splitParagraphs(text) {
+  return normalizeVisibleText(text)
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
+function structureExplanation(text) {
+  const displayText = formatDisplayText(text);
+  const paragraphs = splitParagraphs(displayText);
+  const structured = {
+    statement_analysis: [],
+    pair_analysis: [],
+    option_analysis: [],
+    conclusion: null,
+    paragraphs,
+  };
+
+  for (const paragraph of paragraphs) {
+    const normalized = paragraph.trim();
+    if (/^(?:therefore|hence|thus|final answer|correct answer)\b/i.test(normalized)) {
+      structured.conclusion = structured.conclusion
+        ? `${structured.conclusion}\n\n${normalized}`
+        : normalized;
+    } else if (/^(?:statement|point)\s*(?:\d+|[ivx]+)\b|^statement[-\s]*[ivx\d]+\b/i.test(normalized)) {
+      structured.statement_analysis.push(normalized);
+    } else if (/^(?:pair|match)\s*(?:\d+|[ivx]+|[a-d])\b|correctly matched|not correctly matched/i.test(normalized)) {
+      structured.pair_analysis.push(normalized);
+    } else if (/^(?:option|[a-d])\s*(?:[a-d]|\d+)?\b(?:\s*(?:is|[-:]))/i.test(normalized)) {
+      structured.option_analysis.push(normalized);
+    }
+  }
+
+  const hasStructure =
+    structured.statement_analysis.length > 0 ||
+    structured.pair_analysis.length > 0 ||
+    structured.option_analysis.length > 0 ||
+    Boolean(structured.conclusion);
+
+  return hasStructure
+    ? { rawText: normalizeVisibleText(text), displayText, structured }
+    : { rawText: normalizeVisibleText(text), displayText, structured: { paragraphs } };
+}
+
+function normalizeRow(row, header, fileName, csvRowNumber) {
+  const get = (name) => getHeaderValue(row, header, name);
   const fallbackSubject = inferSubjectFromFile(fileName);
   const year = Number.parseInt(get("Year"), 10);
   const questionNumber = Number.parseInt(get("Question Number"), 10);
-  const rawQuestion = normalizeWhitespace(get("Question"));
+  const rawQuestion = normalizeVisibleText(get("Question"));
   const displayText = formatDisplayText(rawQuestion);
   const format = detectQuestionFormat(displayText);
   const options = [1, 2, 3, 4].map((num, index) => {
-    const rawText = normalizeWhitespace(get(`Option ${num}`));
+    const rawText = normalizeVisibleText(get(`Option ${num}`));
     return {
       label: String.fromCharCode(65 + index),
       rawText,
       displayText: stripOptionPrefix(rawText),
     };
   });
+  const taxonomy = uniqueTaxonomyLabels(fallbackSubject, get("Sub Subject"), get("Topic"));
+  const subject = normalizeSubject(taxonomy[0], fallbackSubject);
+  const subSubject = taxonomy[1] ? normalizeSubject(taxonomy[1], fallbackSubject) : null;
+  const topic = normalizeTopic(taxonomy[2]);
+  const explanation = structureExplanation(get("Detailed Explanation"));
 
   const normalized = {
     source: {
@@ -308,9 +419,9 @@ function normalizeRow(row, header, fileName, csvRowNumber) {
     year,
     paper: DEFAULT_PAPER,
     questionNumber,
-    subject: normalizeSubject(fallbackSubject, "Polity"),
-    subSubject: normalizeSubject(get("Sub Subject"), fallbackSubject),
-    topic: normalizeTopic(get("Topic") || get("Sub Subject")),
+    subject,
+    subSubject,
+    topic,
     difficulty: titleCaseDifficulty(get("Difficulty")),
     format,
     question: {
@@ -320,10 +431,7 @@ function normalizeRow(row, header, fileName, csvRowNumber) {
     },
     options,
     correctOption: null,
-    explanation: {
-      rawText: normalizeWhitespace(get("Detailed Explanation")),
-      displayText: formatDisplayText(get("Detailed Explanation")),
-    },
+    explanation,
   };
 
   normalized.correctOption = normalizeCorrectOption(get("Correct Option"), options);
@@ -360,20 +468,26 @@ function parseFile(filePath) {
 
   const questions = [];
   const failures = [];
+  const warnings = [];
   for (let i = 1; i < rows.length; i++) {
     const csvRowNumber = i + 1;
-    const row = rows[i];
-    if (row.length !== header.length) {
-      failures.push({
+    const shaped = shapeRowToHeader(rows[i], header);
+    if (shaped.warnings.length > 0) {
+      const isHardColumnFailure = shaped.row.length !== header.length;
+      const warning = {
         fileName,
         rowNumber: csvRowNumber,
-        questionNumber: row[0] || "",
-        errors: [`Expected ${header.length} columns, found ${row.length}`],
-      });
-      continue;
+        questionNumber: shaped.row[0] || "",
+        warnings: shaped.warnings,
+      };
+      if (isHardColumnFailure) {
+        failures.push({ ...warning, errors: shaped.warnings });
+        continue;
+      }
+      warnings.push(warning);
     }
 
-    const normalized = normalizeRow(row, header, fileName, csvRowNumber);
+    const normalized = normalizeRow(shaped.row, header, fileName, csvRowNumber);
     const errors = validateQuestion(normalized);
     if (errors.length > 0) {
       failures.push({
@@ -388,7 +502,7 @@ function parseFile(filePath) {
     }
   }
 
-  return { fileName, questions, failures };
+  return { fileName, questions, failures, warnings };
 }
 
 function dbRowFromQuestion(q) {
@@ -453,7 +567,7 @@ async function ensureImportTable(client) {
 
 async function importQuestions(questions) {
   loadEnv(ENV_PATH);
-  const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
+  const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL;
   if (!connectionString) throw new Error("DIRECT_URL or DATABASE_URL is required in upsc_backend/.env");
 
   const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } });
@@ -529,9 +643,86 @@ async function importQuestions(questions) {
   return { inserted, updated };
 }
 
+async function importQuestionsViaSupabase(questions) {
+  loadEnv(ENV_PATH);
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for HTTPS import fallback");
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  let inserted = 0;
+  let updated = 0;
+
+  for (const question of questions) {
+    const row = dbRowFromQuestion(question);
+    const payload = {
+      exam: row.exam,
+      year: row.year,
+      paper: row.paper,
+      question_num: row.questionNum,
+      question_text: row.questionText,
+      question_structure: row.questionStructure,
+      subject: row.subject,
+      sub_subject: row.subSubject,
+      topic: row.topic,
+      difficulty: row.difficulty,
+      options: row.options,
+      correct_option: row.correctOption,
+      explanation: row.explanation,
+      structured_json: row.structuredJson,
+      source_file: row.sourceFile,
+      source_row: row.sourceRow,
+      status: row.status,
+      updated_at: new Date().toISOString(),
+    };
+
+    const existing = await supabase
+      .from("pyq_question_bank")
+      .select("id")
+      .eq("import_key", row.importKey)
+      .limit(1)
+      .maybeSingle();
+    if (existing.error) throw existing.error;
+
+    if (existing.data?.id) {
+      const { error } = await supabase
+        .from("pyq_question_bank")
+        .update(payload)
+        .eq("id", existing.data.id);
+      if (error) throw error;
+      updated++;
+    } else {
+      const { error } = await supabase
+        .from("pyq_question_bank")
+        .insert({ id: crypto.randomUUID(), import_key: row.importKey, ...payload });
+      if (error) throw error;
+      inserted++;
+    }
+  }
+
+  return { inserted, updated };
+}
+
+async function importQuestionsWithFallback(questions) {
+  try {
+    return await importQuestions(questions);
+  } catch (error) {
+    if (!["ETIMEDOUT", "ECONNREFUSED", "ENETUNREACH", "EHOSTUNREACH"].includes(error?.code)) {
+      throw error;
+    }
+    console.warn(`[pyq:import-csvs] Postgres socket import failed (${error.code}); retrying via Supabase HTTPS API.`);
+    return importQuestionsViaSupabase(questions);
+  }
+}
+
 function writeArtifacts(fileResults, importStats) {
   const allQuestions = fileResults.flatMap((result) => result.questions);
   const allFailures = fileResults.flatMap((result) => result.failures);
+  const allWarnings = fileResults.flatMap((result) => result.warnings || []);
 
   for (const result of fileResults) {
     const outPath = path.join(NORMALIZED_DIR, `${slugName(result.fileName)}.normalized.json`);
@@ -545,16 +736,19 @@ function writeArtifacts(fileResults, importStats) {
       file: result.fileName,
       normalized: result.questions.length,
       failed: result.failures.length,
+      warned: (result.warnings || []).length,
     })),
     totals: {
       files: fileResults.length,
       parsedRows: allQuestions.length + allFailures.filter((f) => f.rowNumber !== 0).length,
       imported: allQuestions.length,
       skipped: allFailures.length,
+      warned: allWarnings.length,
       inserted: importStats.inserted,
       updated: importStats.updated,
     },
     failures: allFailures,
+    warnings: allWarnings,
   };
 
   fs.writeFileSync(path.join(REPORTS_DIR, "import-report.json"), JSON.stringify(report, null, 2) + "\n");
@@ -575,11 +769,27 @@ function writeArtifacts(fileResults, importStats) {
   ].join("\n");
   fs.writeFileSync(path.join(REPORTS_DIR, "failed-rows.csv"), failedCsv + "\n");
 
+  const warningsCsv = [
+    ["file", "rowNumber", "questionNumber", "warnings"].map(csvEscape).join(","),
+    ...allWarnings.map((warning) =>
+      [
+        warning.fileName,
+        warning.rowNumber,
+        warning.questionNumber || "",
+        (warning.warnings || []).join("; "),
+      ]
+        .map(csvEscape)
+        .join(",")
+    ),
+  ].join("\n");
+  fs.writeFileSync(path.join(REPORTS_DIR, "warning-rows.csv"), warningsCsv + "\n");
+
   return report;
 }
 
 async function main() {
   ensureDirs();
+  const parseOnly = process.argv.includes("--parse-only");
   const csvFiles = fs
     .readdirSync(CSV_DIR)
     .filter((name) => name.toLowerCase().endsWith(".csv"))
@@ -593,16 +803,22 @@ async function main() {
 
   const fileResults = csvFiles.map((name) => parseFile(path.join(CSV_DIR, name)));
   const validQuestions = fileResults.flatMap((result) => result.questions);
-  const importStats = await importQuestions(validQuestions);
+  const importStats = parseOnly ? { inserted: 0, updated: 0 } : await importQuestionsWithFallback(validQuestions);
   const report = writeArtifacts(fileResults, importStats);
 
   console.log(`CSV files: ${report.totals.files}`);
   console.log(`Rows parsed: ${report.totals.parsedRows}`);
-  console.log(`Imported: ${report.totals.imported} (${report.totals.inserted} inserted, ${report.totals.updated} updated)`);
+  console.log(
+    parseOnly
+      ? `Parsed valid rows: ${report.totals.imported} (database import skipped)`
+      : `Imported: ${report.totals.imported} (${report.totals.inserted} inserted, ${report.totals.updated} updated)`
+  );
+  console.log(`Warnings: ${report.totals.warned}`);
   console.log(`Skipped: ${report.totals.skipped}`);
   console.log(`Normalized: ${NORMALIZED_DIR}`);
   console.log(`Report: ${path.join(REPORTS_DIR, "import-report.json")}`);
   console.log(`Failed rows: ${path.join(REPORTS_DIR, "failed-rows.csv")}`);
+  console.log(`Warning rows: ${path.join(REPORTS_DIR, "warning-rows.csv")}`);
 }
 
 main().catch((error) => {

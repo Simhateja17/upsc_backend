@@ -1,11 +1,12 @@
 {
-  "generatedAt": "2026-06-10T06:00:23.574Z",
+  "generatedAt": "2026-06-11T15:41:47.554Z",
   "csvDirectory": "/Users/teja/Desktop/Projects/upsc/upsc_backend/data/imports/pyq/csv",
   "files": [
     {
       "file": "PYQ - Ancient History and Art & Culture.csv",
       "normalized": 126,
-      "failed": 0
+      "failed": 0,
+      "warned": 0
     }
   ],
   "totals": {
@@ -13,8 +14,10 @@
     "parsedRows": 126,
     "imported": 126,
     "skipped": 0,
-    "inserted": 126,
-    "updated": 0
+    "warned": 0,
+    "inserted": 0,
+    "updated": 126
   },
-  "failures": []
+  "failures": [],
+  "warnings": []
 }

@@ -114,6 +114,7 @@ async function getQuestionBankQuestions(req: Request, res: Response) {
        options,
        correct_option as "correctOption",
        explanation,
+       structured_json as "structuredJson",
        source_file as "sourceFile",
        status,
        question_structure as "questionStructure",

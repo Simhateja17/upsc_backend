@@ -1,5 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import {
+  buildCommunityStats,
+  buildSyntheticLeaderboardRows,
+  SyntheticLeaderboardRow,
+} from "../services/communityMetrics.service";
 
 interface LeaderboardRawRow {
   id: string;
@@ -20,7 +25,7 @@ interface LeaderboardRawRow {
   attempt_count: number;
 }
 
-type LeaderboardRow = ReturnType<typeof mapRealRows>[number];
+type LeaderboardRow = ReturnType<typeof mapRealRows>[number] | SyntheticLeaderboardRow;
 type RankedLeaderboardRow = LeaderboardRow & { rank: number };
 
 function avg(values: number[], includeZeros = false) {
@@ -248,28 +253,19 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
     const range = (req.query.range as string) || "all";
     const tab = (req.query.tab as string) || "overall";
 
-    const [rows, realUserCount, activeTodayRows] = await Promise.all([
+    const [rows, realUserCount] = await Promise.all([
       prisma.$queryRawUnsafe<LeaderboardRawRow[]>(buildLeaderboardQuery(range, false)),
       prisma.user.count({ where: { isActive: true } }),
-      prisma.$queryRaw<Array<{ count: bigint }>>`
-        SELECT COUNT(DISTINCT user_id) AS count
-        FROM public.user_activities
-        WHERE created_at >= CURRENT_DATE
-      `,
     ]);
     const realRows = mapRealRows(rows);
     const realRankedCount = realRows.filter((row) => row.isRankUnlocked).length;
-    const withRank = sortLeaderboard(realRows, tab).map((item, index) => ({ ...item, rank: index + 1 }));
-    const questionsSolved = realRows.reduce((sum, row) => sum + row.questionsSolved, 0);
-    const rowsWithAccuracy = realRows.filter((row) => row.accuracy > 0);
-    const communityStats = {
-      totalAspirants: realUserCount,
-      activeToday: Number(activeTodayRows[0]?.count ?? 0),
-      questionsSolved,
-      avgAccuracy: rowsWithAccuracy.length
-        ? Math.round(rowsWithAccuracy.reduce((sum, row) => sum + row.accuracy, 0) / rowsWithAccuracy.length)
-        : 0,
-    };
+    const syntheticRows = buildSyntheticLeaderboardRows(range);
+    const merged = realRankedCount < 100 ? [...realRows, ...syntheticRows] : realRows;
+    const withRank = sortLeaderboard(merged, tab).map((item, index) => ({ ...item, rank: index + 1 }));
+    const communityStats = buildCommunityStats({
+      realUserCount,
+      rows: merged,
+    });
 
     // This endpoint is public (no auth). Strip the full email address from each
     // entry so we don't leak user PII to anonymous callers. `handle`/`name` are
@@ -294,16 +290,17 @@ export const getMyRank = async (req: Request, res: Response, next: NextFunction)
     const realRows = mapRealRows(rows);
     const realRankedCount = realRows.filter((row) => row.isRankUnlocked).length;
     const myData = realRows.find((item) => item.userId === userId);
+    const mapped = realRankedCount < 100 ? [...realRows, ...buildSyntheticLeaderboardRows(range)] : realRows;
 
-    const overallRanked = assignRanks(sortLeaderboard(realRows, "overall"), "overall");
+    const overallRanked = assignRanks(sortLeaderboard(mapped, "overall"), "overall");
     const myOverallIndex = overallRanked.findIndex((item) => item.userId === userId);
     const myOverallRank = myOverallIndex >= 0 ? overallRanked[myOverallIndex].rank : -1;
 
-    const mcqRanked = assignRanks(sortLeaderboard(realRows, "mcq"), "mcq");
+    const mcqRanked = assignRanks(sortLeaderboard(mapped, "mcq"), "mcq");
     const myMcqIndex = mcqRanked.findIndex((item) => item.userId === userId);
     const myMcqRank = myMcqIndex >= 0 ? mcqRanked[myMcqIndex].rank : -1;
 
-    const mainsRanked = assignRanks(sortLeaderboard(realRows, "mains"), "mains");
+    const mainsRanked = assignRanks(sortLeaderboard(mapped, "mains"), "mains");
     const myMainsIndex = mainsRanked.findIndex((item) => item.userId === userId);
     const myMainsRank = myMainsIndex >= 0 ? mainsRanked[myMainsIndex].rank : -1;
 

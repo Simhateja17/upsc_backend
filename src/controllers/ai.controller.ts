@@ -6,46 +6,26 @@ import { embedText } from "../services/embedding.service";
 
 const JEET_AI_SYSTEM_PROMPT = `You are Jeet AI, the UPSC preparation assistant for "Rise With Jeet". Never use any other platform name.
 
-Answer like a direct mentor: accurate, exam-focused, natural, and concise. Default to 120-180 words unless the user asks for depth, an essay, a mains answer, ethics case study, or a study plan.
+Answer like a direct mentor: accurate, exam-focused, natural, and concise.
 
 Use headings and bullets only when they improve revision. For UPSC topics, include exam relevance when useful. For ethics, cover stakeholders and ethical dimensions. For study plans, use weekly/monthly milestones.
 
 Use only hyphens, never em dashes or en dashes.
 
-## COLORFUL FORMATTING RULES
+## FORMATTING RULES
 
-Make responses visually rich and exam-focused using these formatting patterns:
-
-1. ALERT BLOCKS - Use for critical exam info:
-   > [!ALERT type="high-priority"]
-   > Content about why this matters for UPSC
-   > [/ALERT]
-   
-   Types: "high-priority" (orange), "important" (blue), "note" (purple), "warning" (red), "success" (green)
-
-2. EXAMINER TIPS - Use for answer-writing advice:
-   > [!TIP]
-   > Always write with a multi-dimensional lens...
-   > [/TIP]
-
-3. COLORED INLINE TEXT - Highlight key terms:
-   Use ==color{term}== syntax. Colors: red, orange, amber, yellow, green, blue, purple, pink, cyan, gold
-   Example: The ==blue{Constitution of India}== was adopted on ==gold{26 January 1950}==.
-
-4. BADGES - At the end, add relevant tags:
-   --- BADGES: NCERT Themes in History, UPSC 2023 GS-I, Jan 2025 Current Affairs ---
-   
-   Badge keywords: ncert, upsc, current, gs1, gs2, gs3, gs4, history, polity, geography, economy, ethics, science, environment
-
-5. SECTION HEADERS - Use ## for main sections, ### for subsections. The renderer adds gold accent bars to h2.
+Use only standard Markdown supported by the app:
+- Use ## for main sections and ### for subsections.
+- Use **bold** for high-yield facts, keywords, deadlines, papers, and marks.
+- Use blockquotes for important exam alerts or answer-writing tips.
+- Use bullets or numbered lists for schedules, plans, PYQs, and frameworks.
+- Do not use custom syntax such as ==blue{term}==, [!ALERT], [!TIP], HTML, or badge markers.
 
 ## EXAMPLE OUTPUT FORMAT
 
 ## Understanding Your Topic
 
-> [!ALERT type="high-priority"]
-> This topic has appeared ==orange{4 times}== in Prelims (2017-2024) and in ==blue{Mains GS Paper I}==. High-probability for 2025 too.
-> [/ALERT]
+> **Exam alert:** This topic has appeared **4 times** in Prelims (2017-2024) and in **Mains GS Paper I**.
 
 ### Key Dimensions to Cover
 - **Historical context**: Origins and evolution
@@ -53,18 +33,87 @@ Make responses visually rich and exam-focused using these formatting patterns:
 - **Contemporary relevance**: Current affairs link
 - **Critical perspective**: Challenges and gaps
 
-> [!TIP]
-> Always write with a ==blue{multi-dimensional}== lens. Most aspirants cover only 1-2 dimensions. Covering 4 dimensions in a structured way signals a prepared, thinking candidate.
-> [/TIP]
-
---- BADGES: NCERT Themes in History, UPSC 2023 GS-I, Jan 2025 Current Affairs ---`;
+> **Answer-writing tip:** Always write with a **multi-dimensional** lens. Covering 4 dimensions in a structured way signals a prepared, thinking candidate.`;
 
 const SIMILARITY_THRESHOLD = 0.68;
 const RAG_SOURCE_LIMIT = 2;
 const RAG_CHUNK_CHAR_LIMIT = 1500;
 const RECENT_HISTORY_LIMIT = 6;
 const SUMMARY_TARGET_WORDS = 130;
-const JEET_AI_MAX_TOKENS = 900;
+const COMPACT_CHAR_LIMIT = 1200;
+const DETAILED_CHAR_LIMIT = 3500;
+const EXTENDED_CHAR_LIMIT = 6000;
+const RESPONSE_MODE_MAX_TOKENS = {
+  compact: Number(process.env.JEET_AI_COMPACT_MAX_TOKENS || 650),
+  detailed: Number(process.env.JEET_AI_DETAILED_MAX_TOKENS || 1600),
+  extended: Number(process.env.JEET_AI_EXTENDED_MAX_TOKENS || 2600),
+} as const;
+
+type ResponseMode = keyof typeof RESPONSE_MODE_MAX_TOKENS;
+
+function detectResponseMode(message: string): ResponseMode {
+  const normalized = message.toLowerCase();
+
+  if (/\b(essay|full\s+(strategy|plan|answer|analysis)|complete\s+(strategy|plan|answer|analysis)|month[-\s]?wise|week[-\s]?wise|comprehensive|deep\s+dive|in\s+detail|detailed|expand|elaborate|step[-\s]?by[-\s]?step)\b/.test(normalized)) {
+    return "extended";
+  }
+
+  if (/\b(mains\s+answer|answer\s+writing|case\s+study|evaluate|critically\s+analyse|analyze|explain\s+in\s+depth)\b/.test(normalized)) {
+    return "detailed";
+  }
+
+  return "compact";
+}
+
+function getResponseLengthPolicy(mode: ResponseMode): string {
+  if (mode === "compact") {
+    return [
+      "Response length mode: compact.",
+      `Keep the complete answer within ${COMPACT_CHAR_LIMIT} characters.`,
+      "For broad strategy or planning questions, give a short meaningful summary first instead of a full month-wise plan.",
+      "If more detail would help, end with: Ask me to expand for a full plan.",
+      "Do not start a section you cannot finish within the limit.",
+    ].join("\n");
+  }
+
+  if (mode === "detailed") {
+    return [
+      "Response length mode: detailed.",
+      `Keep the complete answer within ${DETAILED_CHAR_LIMIT} characters.`,
+      "Give enough structure and examples to satisfy the user's explicit depth request, but avoid unnecessary padding.",
+    ].join("\n");
+  }
+
+  return [
+    "Response length mode: extended.",
+    `Keep the complete answer within ${EXTENDED_CHAR_LIMIT} characters.`,
+    "Use this only because the user explicitly asked for a full, comprehensive, expanded, essay, or month-wise answer.",
+  ].join("\n");
+}
+
+function getCharLimit(mode: ResponseMode): number {
+  if (mode === "compact") return COMPACT_CHAR_LIMIT;
+  if (mode === "detailed") return DETAILED_CHAR_LIMIT;
+  return EXTENDED_CHAR_LIMIT;
+}
+
+function enforceCleanCharLimit(reply: string, mode: ResponseMode): string {
+  const limit = getCharLimit(mode);
+  if (reply.length <= limit) return reply;
+
+  const suffix = mode === "compact" ? "\n\nAsk me to expand for a full plan." : "";
+  const available = limit - suffix.length;
+  const slice = reply.slice(0, Math.max(0, available));
+  const boundary = Math.max(
+    slice.lastIndexOf("\n\n"),
+    slice.lastIndexOf(". "),
+    slice.lastIndexOf("! "),
+    slice.lastIndexOf("? ")
+  );
+  const clean = boundary > available * 0.55 ? slice.slice(0, boundary + 1) : slice.replace(/\s+\S*$/, "");
+
+  return `${clean.trim()}${suffix}`.trim();
+}
 
 function normalizeAssistantReply(reply: string): string {
   return reply
@@ -217,6 +266,7 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const trimmedMessage = message.trim();
+    const responseMode = detectResponseMode(trimmedMessage);
 
     // Determine or create conversation
     let conversation;
@@ -259,10 +309,13 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
     const ragSection = rag.context
       ? `\n\nRelevant Rise With Jeet study material:\n${rag.context}\nUse this as primary grounding when relevant. Cite used sources with {CITE: Source 1}. Ignore irrelevant excerpts.`
       : "";
-    const systemPrompt = `${JEET_AI_SYSTEM_PROMPT}${memorySection}${ragSection}`;
+    const lengthPolicy = `\n\n## RESPONSE LENGTH POLICY\n${getResponseLengthPolicy(responseMode)}`;
+    const systemPrompt = `${JEET_AI_SYSTEM_PROMPT}${lengthPolicy}${memorySection}${ragSection}`;
+    const maxTokens = RESPONSE_MODE_MAX_TOKENS[responseMode];
 
     console.log(
       `[AI Chat Telemetry] policy=jeet-ai-token-reduction-v1 ` +
+        `responseMode=${responseMode} ` +
         `systemPromptChars=${systemPrompt.length} ` +
         `historyMessages=${memory.recentMessages.length} ` +
         `historyChars=${countMessageChars(memory.recentMessages)} ` +
@@ -272,18 +325,18 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
         `ragSources=${rag.sourceCount} ` +
         `ragChars=${rag.contextChars} ` +
         `userMessageChars=${trimmedMessage.length} ` +
-        `maxTokens=${JEET_AI_MAX_TOKENS}`
+        `maxTokens=${maxTokens}`
     );
 
     // Call Claude
     console.log(`[AI Chat] Sending ${claudeMessages.length} messages to Claude, RAG context: ${rag.context ? "yes" : "none"}`);
     const aiReplyRaw = await invokeModel(claudeMessages, {
-      maxTokens: JEET_AI_MAX_TOKENS,
+      maxTokens,
       temperature: 0.5,
       system: systemPrompt,
       serviceName: "jeetAiChat",
     });
-    const aiReply = normalizeAssistantReply(aiReplyRaw);
+    const aiReply = enforceCleanCharLimit(normalizeAssistantReply(aiReplyRaw), responseMode);
 
     // Persist both messages
     await prisma.chatMessage.createMany({
