@@ -1,50 +1,39 @@
 import { Request, Response, NextFunction } from "express";
+import { existsSync, readFileSync } from "fs";
 import prisma from "../config/database";
 import { invokeModel, BedrockMessage } from "../config/llm";
 import { supabaseAdmin } from "../config/supabase";
 import { embedText } from "../services/embedding.service";
+import { BUNDLED_JEET_AI_SYSTEM_PROMPT } from "../prompts/jeetAiSystemPrompt";
 
-const JEET_AI_SYSTEM_PROMPT = `You are Jeet AI, the UPSC preparation assistant for "Rise With Jeet". Never use any other platform name.
+function loadJeetAiSystemPrompt(): string {
+  const externalPromptPath = process.env.JEET_AI_SYSTEM_PROMPT_PATH;
 
-Answer like a direct mentor: accurate, exam-focused, natural, and concise.
+  if (externalPromptPath) {
+    if (existsSync(externalPromptPath)) {
+      return readFileSync(externalPromptPath, "utf8").trim();
+    }
 
-Use headings and bullets only when they improve revision. For UPSC topics, include exam relevance when useful. For ethics, cover stakeholders and ethical dimensions. For study plans, use weekly/monthly milestones.
+    console.warn(
+      `[Jeet AI] JEET_AI_SYSTEM_PROMPT_PATH is set but file was not found: ${externalPromptPath}. Falling back to bundled prompt.`
+    );
+  }
 
-Use only hyphens, never em dashes or en dashes.
+  return BUNDLED_JEET_AI_SYSTEM_PROMPT;
+}
 
-## FORMATTING RULES
-
-Use only standard Markdown supported by the app:
-- Use ## for main sections and ### for subsections.
-- Use **bold** for high-yield facts, keywords, deadlines, papers, and marks.
-- Use blockquotes for important exam alerts or answer-writing tips.
-- Use bullets or numbered lists for schedules, plans, PYQs, and frameworks.
-- Do not use custom syntax such as ==blue{term}==, [!ALERT], [!TIP], HTML, or badge markers.
-
-## EXAMPLE OUTPUT FORMAT
-
-## Understanding Your Topic
-
-> **Exam alert:** This topic has appeared **4 times** in Prelims (2017-2024) and in **Mains GS Paper I**.
-
-### Key Dimensions to Cover
-- **Historical context**: Origins and evolution
-- **Constitutional angle**: Policy frameworks
-- **Contemporary relevance**: Current affairs link
-- **Critical perspective**: Challenges and gaps
-
-> **Answer-writing tip:** Always write with a **multi-dimensional** lens. Covering 4 dimensions in a structured way signals a prepared, thinking candidate.`;
+const JEET_AI_SYSTEM_PROMPT = loadJeetAiSystemPrompt();
 
 const SIMILARITY_THRESHOLD = 0.68;
 const RAG_SOURCE_LIMIT = 2;
 const RAG_CHUNK_CHAR_LIMIT = 1500;
 const RECENT_HISTORY_LIMIT = 6;
 const SUMMARY_TARGET_WORDS = 130;
-const COMPACT_CHAR_LIMIT = 1200;
-const DETAILED_CHAR_LIMIT = 3500;
-const EXTENDED_CHAR_LIMIT = 6000;
+const COMPACT_TARGET_CHARS = 1200;
+const DETAILED_TARGET_CHARS = 3500;
+const EXTENDED_TARGET_CHARS = 6000;
 const RESPONSE_MODE_MAX_TOKENS = {
-  compact: Number(process.env.JEET_AI_COMPACT_MAX_TOKENS || 650),
+  compact: Number(process.env.JEET_AI_COMPACT_MAX_TOKENS || 900),
   detailed: Number(process.env.JEET_AI_DETAILED_MAX_TOKENS || 1600),
   extended: Number(process.env.JEET_AI_EXTENDED_MAX_TOKENS || 2600),
 } as const;
@@ -66,53 +55,39 @@ function detectResponseMode(message: string): ResponseMode {
 }
 
 function getResponseLengthPolicy(mode: ResponseMode): string {
+  const common = [
+    "This response length policy overrides any earlier formatting or depth instruction when they conflict.",
+    "Use only standard Markdown. Do not use HTML or custom markup.",
+    "The character number is a target, not a hard cutoff. Never end mid-sentence, mid-list, or mid-section.",
+    "Do not force tables, sample questions, resources snapshots, or conclusion sections when they would make the answer much longer than the selected target.",
+  ].join("\n");
+
   if (mode === "compact") {
     return [
+      common,
       "Response length mode: compact.",
-      `Keep the complete answer within ${COMPACT_CHAR_LIMIT} characters.`,
+      `Aim for about ${COMPACT_TARGET_CHARS} characters.`,
       "For broad strategy or planning questions, give a short meaningful summary first instead of a full month-wise plan.",
       "If more detail would help, end with: Ask me to expand for a full plan.",
-      "Do not start a section you cannot finish within the limit.",
+      "Do not start a section you cannot finish naturally.",
     ].join("\n");
   }
 
   if (mode === "detailed") {
     return [
+      common,
       "Response length mode: detailed.",
-      `Keep the complete answer within ${DETAILED_CHAR_LIMIT} characters.`,
+      `Aim for about ${DETAILED_TARGET_CHARS} characters.`,
       "Give enough structure and examples to satisfy the user's explicit depth request, but avoid unnecessary padding.",
     ].join("\n");
   }
 
   return [
+    common,
     "Response length mode: extended.",
-    `Keep the complete answer within ${EXTENDED_CHAR_LIMIT} characters.`,
+    `Aim for about ${EXTENDED_TARGET_CHARS} characters.`,
     "Use this only because the user explicitly asked for a full, comprehensive, expanded, essay, or month-wise answer.",
   ].join("\n");
-}
-
-function getCharLimit(mode: ResponseMode): number {
-  if (mode === "compact") return COMPACT_CHAR_LIMIT;
-  if (mode === "detailed") return DETAILED_CHAR_LIMIT;
-  return EXTENDED_CHAR_LIMIT;
-}
-
-function enforceCleanCharLimit(reply: string, mode: ResponseMode): string {
-  const limit = getCharLimit(mode);
-  if (reply.length <= limit) return reply;
-
-  const suffix = mode === "compact" ? "\n\nAsk me to expand for a full plan." : "";
-  const available = limit - suffix.length;
-  const slice = reply.slice(0, Math.max(0, available));
-  const boundary = Math.max(
-    slice.lastIndexOf("\n\n"),
-    slice.lastIndexOf(". "),
-    slice.lastIndexOf("! "),
-    slice.lastIndexOf("? ")
-  );
-  const clean = boundary > available * 0.55 ? slice.slice(0, boundary + 1) : slice.replace(/\s+\S*$/, "");
-
-  return `${clean.trim()}${suffix}`.trim();
 }
 
 function normalizeAssistantReply(reply: string): string {
@@ -336,7 +311,7 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
       system: systemPrompt,
       serviceName: "jeetAiChat",
     });
-    const aiReply = enforceCleanCharLimit(normalizeAssistantReply(aiReplyRaw), responseMode);
+    const aiReply = normalizeAssistantReply(aiReplyRaw);
 
     // Persist both messages
     await prisma.chatMessage.createMany({
