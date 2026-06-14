@@ -94,16 +94,21 @@ async function hasTestSeriesEnrollment(userSupabaseId: string, seriesId: string)
 export const getSubscription = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
+    const now = new Date();
 
-    const subscription = await prisma.subscription.findFirst({
+    const subscriptions = await prisma.subscription.findMany({
       where: {
         userId,
-        status: { in: ["active", "pending"] },
-        endDate: { gte: new Date() },
+        status: { in: ["active", "pending", "cancelled", "paused", "past_due", "halted", "failed"] },
       },
       orderBy: { createdAt: "desc" },
       include: { plan: true },
     });
+    const subscription =
+      subscriptions.find((sub) => ["active", "cancelled", "paused"].includes(sub.status) && sub.endDate >= now) ||
+      subscriptions.find((sub) => ["past_due", "halted"].includes(sub.status) && sub.graceEndsAt && sub.graceEndsAt >= now) ||
+      subscriptions[0] ||
+      null;
 
     res.json({ status: "success", data: subscription });
   } catch (error) {
@@ -152,48 +157,11 @@ export const getBillingHistory = async (req: Request, res: Response, next: NextF
  * POST /api/billing/order
  * Create a new order for a plan
  */
-export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const userId = req.user!.id;
-    const { planId } = req.body;
-
-    if (!planId) {
-      return res.status(400).json({ status: "error", message: "planId is required" });
-    }
-
-    const plan = await prisma.pricingPlan.findUnique({ where: { id: planId } });
-    if (!plan || !plan.isActive) {
-      return res.status(404).json({ status: "error", message: "Plan not found or inactive" });
-    }
-
-    // Check if user already has an active subscription for this plan
-    const existingSub = await prisma.subscription.findFirst({
-      where: {
-        userId,
-        planId,
-        status: "active",
-        endDate: { gte: new Date() },
-      },
-    });
-
-    if (existingSub) {
-      return res.status(400).json({ status: "error", message: "You already have an active subscription for this plan" });
-    }
-
-    const order = await prisma.order.create({
-      data: {
-        userId,
-        planId,
-        amount: normalizePlanAmountInRupees(plan.price),
-        status: "pending",
-      },
-      include: { plan: true },
-    });
-
-    res.status(201).json({ status: "success", data: order });
-  } catch (error) {
-    next(error);
-  }
+export const createOrder = async (_req: Request, res: Response) => {
+  return res.status(410).json({
+    status: "error",
+    message: "Paid plan checkout now uses Razorpay Subscriptions. Use /api/billing/subscriptions/create.",
+  });
 };
 
 /**
@@ -342,6 +310,13 @@ export const initiatePayment = async (req: Request, res: Response, next: NextFun
           itemId,
           itemName: series.title,
         },
+      });
+    }
+
+    if (!itemType || itemType !== "test_series") {
+      return res.status(410).json({
+        status: "error",
+        message: "Paid plan checkout now uses Razorpay Subscriptions. Use /api/billing/subscriptions/create.",
       });
     }
 

@@ -316,8 +316,7 @@ export async function getEffectiveEntitlements(userId: string) {
     prisma.subscription.findMany({
       where: {
         userId,
-        status: { in: ["active", "pending", "cancelled"] },
-        endDate: { gte: now },
+        status: { in: ["active", "cancelled", "paused", "past_due", "halted"] },
       },
       include: { plan: true },
       orderBy: { createdAt: "desc" },
@@ -328,7 +327,17 @@ export async function getEffectiveEntitlements(userId: string) {
   let tier: PlanTier = "free";
   let plan: (typeof subscriptions)[number]["plan"] | null = null;
 
-  for (const subscription of subscriptions) {
+  const eligibleSubscriptions = subscriptions.filter((subscription) => {
+    if (["active", "cancelled", "paused"].includes(subscription.status)) {
+      return subscription.endDate >= now;
+    }
+    if (["past_due", "halted"].includes(subscription.status)) {
+      return Boolean(subscription.graceEndsAt && subscription.graceEndsAt >= now);
+    }
+    return false;
+  });
+
+  for (const subscription of eligibleSubscriptions) {
     const candidateTier = normalizePlanTier(subscription.plan.tier, subscription.plan.name);
     if (TIER_RANK[candidateTier] > TIER_RANK[tier]) {
       tier = candidateTier;
@@ -347,7 +356,7 @@ export async function getEffectiveEntitlements(userId: string) {
   return {
     tier,
     plan,
-    subscription: subscriptions.find((s) => s.planId === plan?.id) || null,
+    subscription: eligibleSubscriptions.find((s) => s.planId === plan?.id) || null,
     policy: plan ? mergePolicy(tier, plan.entitlements) : DEFAULT_POLICIES[tier],
     override,
   };
@@ -482,6 +491,13 @@ export async function getEntitlementSummary(userId: string) {
           startDate: effective.subscription.startDate,
           endDate: effective.subscription.endDate,
           autoRenew: effective.subscription.autoRenew,
+          razorpayStatus: effective.subscription.razorpayStatus,
+          currentStart: effective.subscription.currentStart,
+          currentEnd: effective.subscription.currentEnd,
+          chargeAt: effective.subscription.chargeAt,
+          graceEndsAt: effective.subscription.graceEndsAt,
+          pausedAt: effective.subscription.pausedAt,
+          cancelledAt: effective.subscription.cancelledAt,
         }
       : null,
     features,
