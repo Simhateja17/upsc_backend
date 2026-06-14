@@ -455,6 +455,8 @@ export async function getEntitlementSummary(userId: string) {
     "jeet_ai_message",
     "mains_evaluation",
     "prelims_mock_attempt",
+    "forum_post",
+    "forum_reply",
     "study_material_download",
     "syllabus_tracker_items",
   ];
