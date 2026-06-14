@@ -203,7 +203,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
 export const initiatePayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { orderId, planId, itemType, itemId } = req.body;
+    const { orderId, planId, planKey, cycle, itemType, itemId } = req.body;
 
     if (itemType === "test_series") {
       if (!itemId || typeof itemId !== "string") {
@@ -355,7 +355,16 @@ export const initiatePayment = async (req: Request, res: Response, next: NextFun
     if (!order) {
       const plan = planId
         ? await prisma.pricingPlan.findFirst({ where: { id: planId, isActive: true } })
-        : null;
+        : planKey && cycle
+          ? await prisma.pricingPlan.findFirst({
+              where: {
+                tier: String(planKey).toLowerCase(),
+                billingCycle: String(cycle).toLowerCase(),
+                isActive: true,
+              },
+              orderBy: { order: "asc" },
+            })
+          : null;
 
       if (!plan) {
         return res.status(404).json({ status: "error", message: "Active billing plan not found" });

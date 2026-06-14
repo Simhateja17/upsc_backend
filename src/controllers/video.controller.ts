@@ -194,7 +194,10 @@ export const listMentorQuestions = async (req: Request, res: Response, next: Nex
  */
 export const updateMentorQuestion = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      return res.status(400).json({ status: "error", message: "id is required" });
+    }
     const { answer, status } = req.body;
 
     const updated = await prisma.mentorQuestion.update({

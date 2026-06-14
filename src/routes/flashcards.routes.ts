@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
+import { requireAccess } from "../middleware/entitlements.middleware";
 import {
   getSubjects,
   getTopics,
@@ -14,7 +15,7 @@ const router = Router();
 router.get("/subjects", authenticate, getSubjects);
 router.get("/:subjectId/topics", authenticate, getTopics);
 router.get("/:subjectId/:topicId", authenticate, getCards);
-router.post("/", authenticate, createCard);
+router.post("/", authenticate, requireAccess("flashcards", ["full"]), createCard);
 router.patch("/:cardId/progress", authenticate, updateProgress);
 
 export default router;

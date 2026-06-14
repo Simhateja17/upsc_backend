@@ -1,70 +1,94 @@
 import { Request, Response, NextFunction } from "express";
+import { existsSync, readFileSync } from "fs";
 import prisma from "../config/database";
 import { invokeModel, BedrockMessage } from "../config/llm";
 import { supabaseAdmin } from "../config/supabase";
 import { embedText } from "../services/embedding.service";
+import { BUNDLED_JEET_AI_SYSTEM_PROMPT } from "../prompts/jeetAiSystemPrompt";
 
-const JEET_AI_SYSTEM_PROMPT = `You are Jeet AI, the UPSC preparation assistant for "Rise With Jeet". Never use any other platform name.
+function loadJeetAiSystemPrompt(): string {
+  const externalPromptPath = process.env.JEET_AI_SYSTEM_PROMPT_PATH;
 
-Answer like a direct mentor: accurate, exam-focused, natural, and concise. Default to 120-180 words unless the user asks for depth, an essay, a mains answer, ethics case study, or a study plan.
+  if (externalPromptPath) {
+    if (existsSync(externalPromptPath)) {
+      return readFileSync(externalPromptPath, "utf8").trim();
+    }
 
-Use headings and bullets only when they improve revision. For UPSC topics, include exam relevance when useful. For ethics, cover stakeholders and ethical dimensions. For study plans, use weekly/monthly milestones.
+    console.warn(
+      `[Jeet AI] JEET_AI_SYSTEM_PROMPT_PATH is set but file was not found: ${externalPromptPath}. Falling back to bundled prompt.`
+    );
+  }
 
-Use only hyphens, never em dashes or en dashes.
+  return BUNDLED_JEET_AI_SYSTEM_PROMPT;
+}
 
-## COLORFUL FORMATTING RULES
-
-Make responses visually rich and exam-focused using these formatting patterns:
-
-1. ALERT BLOCKS - Use for critical exam info:
-   > [!ALERT type="high-priority"]
-   > Content about why this matters for UPSC
-   > [/ALERT]
-   
-   Types: "high-priority" (orange), "important" (blue), "note" (purple), "warning" (red), "success" (green)
-
-2. EXAMINER TIPS - Use for answer-writing advice:
-   > [!TIP]
-   > Always write with a multi-dimensional lens...
-   > [/TIP]
-
-3. COLORED INLINE TEXT - Highlight key terms:
-   Use ==color{term}== syntax. Colors: red, orange, amber, yellow, green, blue, purple, pink, cyan, gold
-   Example: The ==blue{Constitution of India}== was adopted on ==gold{26 January 1950}==.
-
-4. BADGES - At the end, add relevant tags:
-   --- BADGES: NCERT Themes in History, UPSC 2023 GS-I, Jan 2025 Current Affairs ---
-   
-   Badge keywords: ncert, upsc, current, gs1, gs2, gs3, gs4, history, polity, geography, economy, ethics, science, environment
-
-5. SECTION HEADERS - Use ## for main sections, ### for subsections. The renderer adds gold accent bars to h2.
-
-## EXAMPLE OUTPUT FORMAT
-
-## Understanding Your Topic
-
-> [!ALERT type="high-priority"]
-> This topic has appeared ==orange{4 times}== in Prelims (2017-2024) and in ==blue{Mains GS Paper I}==. High-probability for 2025 too.
-> [/ALERT]
-
-### Key Dimensions to Cover
-- **Historical context**: Origins and evolution
-- **Constitutional angle**: Policy frameworks
-- **Contemporary relevance**: Current affairs link
-- **Critical perspective**: Challenges and gaps
-
-> [!TIP]
-> Always write with a ==blue{multi-dimensional}== lens. Most aspirants cover only 1-2 dimensions. Covering 4 dimensions in a structured way signals a prepared, thinking candidate.
-> [/TIP]
-
---- BADGES: NCERT Themes in History, UPSC 2023 GS-I, Jan 2025 Current Affairs ---`;
+const JEET_AI_SYSTEM_PROMPT = loadJeetAiSystemPrompt();
 
 const SIMILARITY_THRESHOLD = 0.68;
 const RAG_SOURCE_LIMIT = 2;
 const RAG_CHUNK_CHAR_LIMIT = 1500;
 const RECENT_HISTORY_LIMIT = 6;
 const SUMMARY_TARGET_WORDS = 130;
-const JEET_AI_MAX_TOKENS = 900;
+const COMPACT_TARGET_CHARS = 1200;
+const DETAILED_TARGET_CHARS = 3500;
+const EXTENDED_TARGET_CHARS = 6000;
+const RESPONSE_MODE_MAX_TOKENS = {
+  compact: Number(process.env.JEET_AI_COMPACT_MAX_TOKENS || 900),
+  detailed: Number(process.env.JEET_AI_DETAILED_MAX_TOKENS || 1600),
+  extended: Number(process.env.JEET_AI_EXTENDED_MAX_TOKENS || 2600),
+} as const;
+
+type ResponseMode = keyof typeof RESPONSE_MODE_MAX_TOKENS;
+
+function detectResponseMode(message: string): ResponseMode {
+  const normalized = message.toLowerCase();
+
+  if (/\b(essay|full\s+(strategy|plan|answer|analysis)|complete\s+(strategy|plan|answer|analysis)|month[-\s]?wise|week[-\s]?wise|comprehensive|deep\s+dive|in\s+detail|detailed|expand|elaborate|step[-\s]?by[-\s]?step)\b/.test(normalized)) {
+    return "extended";
+  }
+
+  if (/\b(mains\s+answer|answer\s+writing|case\s+study|evaluate|critically\s+analyse|analyze|explain\s+in\s+depth)\b/.test(normalized)) {
+    return "detailed";
+  }
+
+  return "compact";
+}
+
+function getResponseLengthPolicy(mode: ResponseMode): string {
+  const common = [
+    "This response length policy overrides any earlier formatting or depth instruction when they conflict.",
+    "Use only standard Markdown. Do not use HTML or custom markup.",
+    "The character number is a target, not a hard cutoff. Never end mid-sentence, mid-list, or mid-section.",
+    "Do not force tables, sample questions, resources snapshots, or conclusion sections when they would make the answer much longer than the selected target.",
+  ].join("\n");
+
+  if (mode === "compact") {
+    return [
+      common,
+      "Response length mode: compact.",
+      `Aim for about ${COMPACT_TARGET_CHARS} characters.`,
+      "For broad strategy or planning questions, give a short meaningful summary first instead of a full month-wise plan.",
+      "If more detail would help, end with: Ask me to expand for a full plan.",
+      "Do not start a section you cannot finish naturally.",
+    ].join("\n");
+  }
+
+  if (mode === "detailed") {
+    return [
+      common,
+      "Response length mode: detailed.",
+      `Aim for about ${DETAILED_TARGET_CHARS} characters.`,
+      "Give enough structure and examples to satisfy the user's explicit depth request, but avoid unnecessary padding.",
+    ].join("\n");
+  }
+
+  return [
+    common,
+    "Response length mode: extended.",
+    `Aim for about ${EXTENDED_TARGET_CHARS} characters.`,
+    "Use this only because the user explicitly asked for a full, comprehensive, expanded, essay, or month-wise answer.",
+  ].join("\n");
+}
 
 function normalizeAssistantReply(reply: string): string {
   return reply
@@ -217,6 +241,7 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const trimmedMessage = message.trim();
+    const responseMode = detectResponseMode(trimmedMessage);
 
     // Determine or create conversation
     let conversation;
@@ -259,10 +284,13 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
     const ragSection = rag.context
       ? `\n\nRelevant Rise With Jeet study material:\n${rag.context}\nUse this as primary grounding when relevant. Cite used sources with {CITE: Source 1}. Ignore irrelevant excerpts.`
       : "";
-    const systemPrompt = `${JEET_AI_SYSTEM_PROMPT}${memorySection}${ragSection}`;
+    const lengthPolicy = `\n\n## RESPONSE LENGTH POLICY\n${getResponseLengthPolicy(responseMode)}`;
+    const systemPrompt = `${JEET_AI_SYSTEM_PROMPT}${lengthPolicy}${memorySection}${ragSection}`;
+    const maxTokens = RESPONSE_MODE_MAX_TOKENS[responseMode];
 
     console.log(
       `[AI Chat Telemetry] policy=jeet-ai-token-reduction-v1 ` +
+        `responseMode=${responseMode} ` +
         `systemPromptChars=${systemPrompt.length} ` +
         `historyMessages=${memory.recentMessages.length} ` +
         `historyChars=${countMessageChars(memory.recentMessages)} ` +
@@ -272,13 +300,13 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
         `ragSources=${rag.sourceCount} ` +
         `ragChars=${rag.contextChars} ` +
         `userMessageChars=${trimmedMessage.length} ` +
-        `maxTokens=${JEET_AI_MAX_TOKENS}`
+        `maxTokens=${maxTokens}`
     );
 
     // Call Claude
     console.log(`[AI Chat] Sending ${claudeMessages.length} messages to Claude, RAG context: ${rag.context ? "yes" : "none"}`);
     const aiReplyRaw = await invokeModel(claudeMessages, {
-      maxTokens: JEET_AI_MAX_TOKENS,
+      maxTokens,
       temperature: 0.5,
       system: systemPrompt,
       serviceName: "jeetAiChat",

@@ -434,7 +434,8 @@ export const getStats = async (req: Request, res: Response, next: NextFunction) 
     });
   } catch (error) {
     // If tables don't exist yet, return zeros
-    if (error?.code === "P2021" || error?.code === "P2010" || error?.message?.includes("does not exist")) {
+    const prismaError = error as { code?: string; message?: string };
+    if (prismaError.code === "P2021" || prismaError.code === "P2010" || prismaError.message?.includes("does not exist")) {
       return res.json({ status: "success", data: { questionsAsked: 0, answersGiven: 0 } });
     }
     next(error);

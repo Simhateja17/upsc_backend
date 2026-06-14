@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
+import { requireAccess } from "../middleware/entitlements.middleware";
 import {
   getGroups,
   getGroup,
@@ -14,7 +15,7 @@ import {
 const router = Router();
 
 // All study-group routes require authentication
-router.use(authenticate);
+router.use(authenticate, requireAccess("live_study_room", ["full"]));
 
 // Groups
 router.get("/", getGroups);

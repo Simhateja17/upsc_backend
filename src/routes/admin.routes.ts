@@ -22,6 +22,7 @@ import * as aiCostCtrl from "../controllers/admin/aiCost.controller";
 import * as cmsCtrl from "../controllers/admin/cms.controller";
 import * as studyMaterialCtrl from "../controllers/admin/studyMaterial.controller";
 import * as mockTestMaterialCtrl from "../controllers/admin/mockTestMaterial.controller";
+import * as entitlementCtrl from "../controllers/admin/entitlements.controller";
 
 const router = Router();
 
@@ -97,6 +98,9 @@ router.delete("/syllabus/sub-topics/:id", syllabusCtrl.deleteSyllabusSubTopic);
 // ==================== User Management ====================
 router.get("/users", usersCtrl.getUsers);
 router.put("/users/:id", usersCtrl.updateUser);
+router.get("/users/:userId/entitlement-overrides", entitlementCtrl.getUserEntitlementOverrides);
+router.post("/users/:userId/entitlement-overrides", entitlementCtrl.createUserEntitlementOverride);
+router.delete("/entitlement-overrides/:id", entitlementCtrl.deleteUserEntitlementOverride);
 
 // ==================== Video Management ====================
 router.get("/videos/subjects", videoCtrl.getVideoSubjects);

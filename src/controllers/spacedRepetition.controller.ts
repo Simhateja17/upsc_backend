@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import { isValidSubject, normalizeSubject } from "../constants/subjects";
+import { getEffectiveEntitlements } from "../services/entitlements.service";
 
 function param(req: Request, key: string): string {
   const v = req.params[key];
@@ -47,6 +48,23 @@ function mapItem(item: {
   };
 }
 
+async function spacedRepAccess(userId: string) {
+  const effective = await getEffectiveEntitlements(userId);
+  const access = effective.policy.access.spaced_repetition || "none";
+  const limit = effective.policy.preview.spaced_repetition_questions;
+  return { access, limit };
+}
+
+function blockSpacedRep(res: Response) {
+  res.status(403).json({
+    status: "error",
+    code: "FEATURE_ACCESS_REQUIRED",
+    feature: "spaced_repetition",
+    message: "Upgrade to Aspire to unlock spaced repetition.",
+    upgrade: { recommendedTier: "aspire", message: "Upgrade to Aspire to unlock spaced repetition." },
+  });
+}
+
 function applySM2(
   repetitions: number,
   easeFactor: number,
@@ -86,6 +104,8 @@ function applySM2(
 export const getSeeds = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
+    const access = await spacedRepAccess(userId);
+    if (access.access === "none") return blockSpacedRep(res);
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
@@ -124,7 +144,18 @@ export const getSeeds = async (req: Request, res: Response, next: NextFunction) 
       checkDate = new Date(checkDate.getTime() - 24 * 60 * 60 * 1000);
     }
 
-    res.json({ status: "success", data: { overdue, dueToday, scheduled, streak } });
+    const limited = access.access !== "full" && typeof access.limit === "number";
+    const visibleLimit = limited ? access.limit! : undefined;
+    res.json({
+      status: "success",
+      data: {
+        overdue: limited ? overdue.slice(0, visibleLimit) : overdue,
+        dueToday: limited ? dueToday.slice(0, visibleLimit) : dueToday,
+        scheduled: limited ? scheduled.slice(0, visibleLimit) : scheduled,
+        streak,
+      },
+      access: limited ? { mode: "limited", upgradeRequired: true, visibleItemsLimit: visibleLimit } : { mode: "full" },
+    });
   } catch (error) {
     next(error);
   }
@@ -137,6 +168,8 @@ export const getSeeds = async (req: Request, res: Response, next: NextFunction) 
 export const getSubjectSummaries = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
+    const access = await spacedRepAccess(userId);
+    if (access.access === "none") return blockSpacedRep(res);
     const now = new Date();
     const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
@@ -170,6 +203,8 @@ export const getSubjectSummaries = async (req: Request, res: Response, next: Nex
 export const getItems = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
+    const access = await spacedRepAccess(userId);
+    if (access.access === "none") return blockSpacedRep(res);
     const rawSubject = req.query.subject;
     const subject =
       Array.isArray(rawSubject) ? String(rawSubject[0]) : typeof rawSubject === "string" ? rawSubject : undefined;
@@ -182,7 +217,13 @@ export const getItems = async (req: Request, res: Response, next: NextFunction) 
       orderBy: { nextReviewAt: "asc" },
     });
 
-    res.json({ status: "success", data: items.map(mapItem) });
+    const limited = access.access !== "full" && typeof access.limit === "number";
+    const visibleLimit = limited ? access.limit! : undefined;
+    res.json({
+      status: "success",
+      data: (limited ? items.slice(0, visibleLimit) : items).map(mapItem),
+      access: limited ? { mode: "limited", upgradeRequired: true, visibleItemsLimit: visibleLimit } : { mode: "full" },
+    });
   } catch (error) {
     next(error);
   }
@@ -194,6 +235,25 @@ export const getItems = async (req: Request, res: Response, next: NextFunction) 
 export const addItem = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
+    const access = await spacedRepAccess(userId);
+    if (access.access === "none") return blockSpacedRep(res);
+    if (access.access !== "full" && typeof access.limit === "number") {
+      const existingCount = await prisma.spacedRepItem.count({ where: { userId } });
+      if (existingCount >= access.limit) {
+        res.status(403).json({
+          status: "error",
+          code: "FEATURE_LIMIT_REACHED",
+          feature: "spaced_repetition",
+          limit: access.limit,
+          used: existingCount,
+          remaining: 0,
+          period: "total",
+          message: "Upgrade to Rise to unlock the full spaced repetition system.",
+          upgrade: { recommendedTier: "rise", message: "Upgrade to Rise to unlock the full spaced repetition system." },
+        });
+        return;
+      }
+    }
     const { question, questionText, answer, subject, topic, scheduleDay, scheduleDays, source, sourceType, remindEnabled } = req.body;
 
     const questionContent = question || questionText;
@@ -222,8 +282,8 @@ export const addItem = async (req: Request, res: Response, next: NextFunction) =
         answer: answer || "",
         subject: normalizedSubject,
         topic: topic || null,
-        interval: scheduleDay || 3,
-        scheduleDays: scheduleDays || [scheduleDay || 3],
+        interval: days,
+        scheduleDay: days,
         source: source || 'Custom',
         sourceType: sourceType || 'custom',
         remindEnabled: remindEnabled || false,
