@@ -28,6 +28,7 @@ import bookmarkRoutes from "./bookmark.routes";
 import supportRoutes from "./support.routes";
 import billingRoutes from "./billing.routes";
 import mentalHealthRoutes from "./mentalHealth.routes";
+import entitlementsRoutes from "./entitlements.routes";
 import { initiatePayment, verifyPayment } from "../controllers/billing.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import * as cmsPublicCtrl from "../controllers/cms.public.controller";
@@ -86,6 +87,9 @@ router.use("/auth", authRoutes);
 
 // User routes (dashboard, profile, settings, notifications, subscription — merged)
 router.use("/user", userRoutes);
+
+// Entitlement and usage summary routes
+router.use("/entitlements", entitlementsRoutes);
 
 // Daily MCQ routes
 router.use("/daily-mcq", dailyMcqRoutes);

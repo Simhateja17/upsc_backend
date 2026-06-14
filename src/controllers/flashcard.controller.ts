@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import { isValidSubject, normalizeSubject } from "../constants/subjects";
+import { getEffectiveEntitlements } from "../services/entitlements.service";
 
 function param(req: Request, key: string): string {
   const v = req.params[key];
@@ -16,6 +17,20 @@ function isVisibleFlashcardSubject(subject: string | null | undefined): boolean 
   return isValidSubject(stripped);
 }
 
+async function limitedFlashcardSubjectIds(userId?: string) {
+  if (!userId) return null;
+  const effective = await getEffectiveEntitlements(userId);
+  if (effective.policy.access.flashcards === "full") return null;
+  const limit = effective.policy.preview.flashcard_subjects ?? 4;
+  const decks = await prisma.flashcardDeck.findMany({ orderBy: { createdAt: "asc" } });
+  return new Set(
+    decks
+      .filter((deck) => isVisibleFlashcardSubject(deck.subject))
+      .slice(0, limit)
+      .map((deck) => deck.subjectId)
+  );
+}
+
 /**
  * GET /api/flashcards/subjects
  */
@@ -26,6 +41,7 @@ export const getSubjects = async (
 ) => {
   try {
     const userId = req.user?.id;
+    const allowedSubjectIds = await limitedFlashcardSubjectIds(userId);
 
     const decks = await prisma.flashcardDeck.findMany({
       include: { cards: true },
@@ -34,6 +50,7 @@ export const getSubjects = async (
     const deckData = await Promise.all(
       decks
         .filter((deck) => isVisibleFlashcardSubject(deck.subject))
+        .filter((deck) => !allowedSubjectIds || allowedSubjectIds.has(deck.subjectId))
         .map(async (deck) => {
           const totalCards = deck.cards.length;
           let masteredCards = 0;
@@ -63,7 +80,11 @@ export const getSubjects = async (
         })
     );
 
-    res.json({ status: "success", data: deckData });
+    res.json({
+      status: "success",
+      data: deckData,
+      access: allowedSubjectIds ? { mode: "limited", upgradeRequired: true, visibleItemsLimit: allowedSubjectIds.size } : { mode: "full" },
+    });
   } catch (error) {
     next(error);
   }
@@ -80,6 +101,17 @@ export const getTopics = async (
   try {
     const subjectId = param(req, "subjectId");
     const userId = req.user?.id;
+    const allowedSubjectIds = await limitedFlashcardSubjectIds(userId);
+    if (allowedSubjectIds && !allowedSubjectIds.has(subjectId)) {
+      res.status(403).json({
+        status: "error",
+        code: "FEATURE_ACCESS_REQUIRED",
+        feature: "flashcards",
+        message: "Upgrade to Rise to unlock the full flashcard library.",
+        upgrade: { recommendedTier: "rise", message: "Upgrade to Rise to unlock the full flashcard library." },
+      });
+      return;
+    }
 
     const deck = await prisma.flashcardDeck.findUnique({
       where: { subjectId },
@@ -138,6 +170,17 @@ export const getCards = async (
     const subjectId = param(req, "subjectId");
     const topicId = param(req, "topicId");
     const userId = req.user?.id;
+    const allowedSubjectIds = await limitedFlashcardSubjectIds(userId);
+    if (allowedSubjectIds && !allowedSubjectIds.has(subjectId)) {
+      res.status(403).json({
+        status: "error",
+        code: "FEATURE_ACCESS_REQUIRED",
+        feature: "flashcards",
+        message: "Upgrade to Rise to unlock the full flashcard library.",
+        upgrade: { recommendedTier: "rise", message: "Upgrade to Rise to unlock the full flashcard library." },
+      });
+      return;
+    }
 
     const deck = await prisma.flashcardDeck.findUnique({ where: { subjectId } });
     if (!deck) {

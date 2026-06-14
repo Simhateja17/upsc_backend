@@ -3,6 +3,7 @@ import { getPublicPYQCounts, getPublicPYQQuestions, submitPyqPrelimsAnswer } fro
 import { authenticate } from "../middleware/auth.middleware";
 import { submissionLimiter } from "../middleware/rateLimit";
 import { uploadAnswerFiles } from "../middleware/upload";
+import { enforceUsage } from "../middleware/entitlements.middleware";
 import {
   submitPyqMainsAnswer,
   getPyqMainsEvaluationStatus,
@@ -20,6 +21,7 @@ router.post(
   "/mains/:questionId/submit",
   authenticate,
   submissionLimiter,
+  enforceUsage("mains_evaluation", "pyq_mains"),
   uploadAnswerFiles(),
   submitPyqMainsAnswer
 );

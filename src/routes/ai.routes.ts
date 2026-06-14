@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
-import { aiLimiter } from "../middleware/rateLimit";
+import { enforceUsage } from "../middleware/entitlements.middleware";
 import {
   chat,
   getConversations,
@@ -13,8 +13,8 @@ const router = Router();
 // All AI routes require authentication
 router.use(authenticate);
 
-// POST /api/ai/chat — send message, get AI reply (rate limited — expensive)
-router.post("/chat", aiLimiter, chat);
+// POST /api/ai/chat — send message, get AI reply (plan limited + throttled)
+router.post("/chat", enforceUsage("jeet_ai_message", "jeet_ai"), chat);
 
 // GET /api/ai/conversations — list all conversations grouped by date
 router.get("/conversations", getConversations);

@@ -117,7 +117,7 @@ export const getOrders = async (req: Request, res: Response, next: NextFunction)
  */
 export const createPlan = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, price, duration, durationDays, features, isPopular, order } = req.body;
+    const { name, price, duration, durationDays, features, isPopular, order, tier, billingCycle, originalPrice, entitlements } = req.body;
 
     if (!name || price === undefined || !duration) {
       return res.status(400).json({ status: "error", message: "name, price, and duration are required" });
@@ -133,6 +133,10 @@ export const createPlan = async (req: Request, res: Response, next: NextFunction
         isPopular: isPopular || false,
         order: order || 0,
         isActive: true,
+        tier: tier || undefined,
+        billingCycle: billingCycle || undefined,
+        originalPrice: originalPrice !== undefined && originalPrice !== null ? Number(originalPrice) : undefined,
+        entitlements: entitlements ?? undefined,
       },
     });
 
@@ -152,7 +156,7 @@ export const updatePlan = async (req: Request, res: Response, next: NextFunction
     if (!id) {
       return res.status(400).json({ status: "error", message: "id is required" });
     }
-    const { name, price, duration, durationDays, features, isPopular, order, isActive } = req.body;
+    const { name, price, duration, durationDays, features, isPopular, order, isActive, tier, billingCycle, originalPrice, entitlements } = req.body;
 
     const updates: Record<string, any> = {};
     if (name !== undefined) updates.name = name;
@@ -163,6 +167,10 @@ export const updatePlan = async (req: Request, res: Response, next: NextFunction
     if (isPopular !== undefined) updates.isPopular = isPopular;
     if (order !== undefined) updates.order = Number(order);
     if (isActive !== undefined) updates.isActive = isActive;
+    if (tier !== undefined) updates.tier = tier;
+    if (billingCycle !== undefined) updates.billingCycle = billingCycle;
+    if (originalPrice !== undefined) updates.originalPrice = originalPrice === null ? null : Number(originalPrice);
+    if (entitlements !== undefined) updates.entitlements = entitlements;
 
     const plan = await prisma.pricingPlan.update({
       where: { id },
