@@ -11,7 +11,10 @@ export async function summarizeEditorial(editorialId: string): Promise<string> {
   // Return cached summary if exists
   if (editorial.aiSummary) return editorial.aiSummary;
 
-  const content = editorial.content || editorial.summary || editorial.title;
+  const content = editorial.content || editorial.summary;
+  if (!content || content.trim().length < 50) {
+    throw new Error("NO_CONTENT");
+  }
 
   const system = `You are a UPSC preparation expert who analyzes newspaper editorials for IAS aspirants. Stay factual, non-partisan, exam-oriented, and concise. Focus on policy issues over isolated events. Apply a PYQ lens and highlight precise Prelims facts only when they are present in the source.`;
 
@@ -25,11 +28,11 @@ Content:
 ${content}
 
 Provide a structured summary with:
-1. **Key Arguments** (3-4 bullet points)
-2. **UPSC Relevance** — which GS papers/topics this maps to
-3. **Key Terms & Concepts** to remember
-4. **Potential Exam Questions** — 2-3 questions that could be framed from this editorial
-5. **Critical Analysis** — balanced perspective for answer writing
+1. **Key Arguments** (5-6 detailed bullet points — for each point, write 2-3 sentences covering: the core argument, its policy/constitutional significance, and why it matters for governance or society; make this section substantive and analytical, not just a headline list)
+2. **Critical Analysis** — a balanced multi-perspective analysis in 4-5 sentences covering: the strengths of the approach, gaps or criticisms, what is at stake for institutions/citizens, and the key tension or trade-off an aspirant should address in a Mains answer
+3. **UPSC Relevance** — which GS papers/topics this maps to
+4. **Key Terms & Concepts** to remember
+5. **Potential Exam Questions** — 2-3 questions that could be framed from this editorial
 
 Analysis rules:
 - Prefer the underlying governance, constitutional, economic, social, environmental, ethical, technological, or international issue over the day-to-day event.
@@ -38,11 +41,11 @@ Analysis rules:
 - If the article is mostly rhetoric or has weak UPSC value, say so briefly and keep the output conservative.
 - Do not invent schemes, statistics, committee names, article numbers, or PYQ links not present in the content.
 
-Keep the summary concise (300-400 words).`;
+Target 450-550 words — Key Arguments and Critical Analysis sections should be the most substantial parts.`;
 
   const summary = await invokeModel(
     [{ role: "user", content: prompt }],
-    { system, maxTokens: 1024, temperature: 0.3, serviceName: "editorialSummarizer" }
+    { system, maxTokens: 1536, temperature: 0.3, serviceName: "editorialSummarizer" }
   );
 
   // Cache the summary

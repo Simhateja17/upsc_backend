@@ -201,7 +201,14 @@ export const summarize = async (req: Request, res: Response, next: NextFunction)
 
     const summary = await summarizeEditorial(editorial.id);
     res.json({ status: "success", data: { summary } });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message === "NO_CONTENT") {
+      return res.status(422).json({
+        status: "error",
+        code: "NO_CONTENT",
+        message: "Full article text isn't available yet for this item.",
+      });
+    }
     next(error);
   }
 };
