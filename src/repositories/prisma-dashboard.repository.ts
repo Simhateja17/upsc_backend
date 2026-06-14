@@ -40,7 +40,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
           where: { date: today },
           select: { id: true, subject: true },
         }),
-        prisma.mCQAttempt.findFirst({ where: { userId, createdAt: { gte: today } } }),
+        prisma.mCQAttempt.findFirst({ where: { userId, dailyMcq: { date: today } } }),
         prisma.mainsAttempt.findFirst({ where: { userId, createdAt: { gte: today } } }),
         prisma.editorialProgress.findFirst({ where: { userId, isRead: true, readAt: { gte: today } } }),
       ]);
