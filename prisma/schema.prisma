@@ -57,6 +57,7 @@ model User {
   studyPlanTasks          StudyPlanTask[]
   studyStreak             StudyStreak?
   subscriptions           Subscription[]
+  couponRedemptions       SubscriptionCouponRedemption[]
   supportTickets          SupportTicket[]
   syllabusCoverage        SyllabusCoverage[]
   syllabusTrackerState    SyllabusTrackerState?
@@ -648,6 +649,8 @@ model PricingPlan {
   billingCycle  String         @default("quarterly") @map("billing_cycle")
   originalPrice Int?           @map("original_price")
   entitlements  Json?
+  razorpayPlanId String?       @map("razorpay_plan_id")
+  razorpayPlanVerifiedAt DateTime? @map("razorpay_plan_verified_at")
   orders        Order[]
   subscriptions Subscription[]
 
@@ -1421,6 +1424,7 @@ model Payment {
   updatedAt         DateTime      @updatedAt @map("updated_at")
   providerOrderId   String?       @map("provider_order_id")
   metadata          Json?
+  couponRedemptions SubscriptionCouponRedemption[]
   order             Order?        @relation(fields: [orderId], references: [id])
   subscription      Subscription? @relation(fields: [subscriptionId], references: [id])
   user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1438,14 +1442,89 @@ model Subscription {
   endDate     DateTime    @map("end_date")
   autoRenew   Boolean     @default(true) @map("auto_renew")
   cancelledAt DateTime?   @map("cancelled_at")
+  razorpaySubscriptionId String? @unique @map("razorpay_subscription_id")
+  razorpayPlanId String? @map("razorpay_plan_id")
+  razorpayStatus String? @map("razorpay_status")
+  currentStart DateTime? @map("current_start")
+  currentEnd DateTime? @map("current_end")
+  chargeAt DateTime? @map("charge_at")
+  graceEndsAt DateTime? @map("grace_ends_at")
+  supersededAt DateTime? @map("superseded_at")
+  supersededBySubscriptionId String? @map("superseded_by_subscription_id")
+  pausedAt DateTime? @map("paused_at")
+  resumedAt DateTime? @map("resumed_at")
+  failureReason String? @map("failure_reason")
+  metadata Json?
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
   payments    Payment[]
+  couponRedemptions SubscriptionCouponRedemption[]
   plan        PricingPlan @relation(fields: [planId], references: [id])
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
+  @@index([razorpaySubscriptionId])
+  @@index([razorpayStatus])
   @@map("subscriptions")
+}
+
+model RazorpayWebhookEvent {
+  id               String    @id @default(uuid())
+  eventId          String    @unique @map("event_id")
+  eventType        String    @map("event_type")
+  entity           String?
+  entityId         String?   @map("entity_id")
+  payload          Json
+  processingStatus String    @default("pending") @map("processing_status")
+  processedAt      DateTime? @map("processed_at")
+  error            String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@index([eventType, createdAt])
+  @@index([processingStatus, createdAt])
+  @@map("razorpay_webhook_events")
+}
+
+model SubscriptionCoupon {
+  id                    String   @id @default(uuid())
+  code                  String   @unique
+  razorpayOfferId       String   @map("razorpay_offer_id")
+  discountLabel         String?  @map("discount_label")
+  maxRedemptions        Int?     @map("max_redemptions")
+  maxRedemptionsPerUser Int?     @map("max_redemptions_per_user")
+  redeemedCount         Int      @default(0) @map("redeemed_count")
+  validFrom             DateTime? @map("valid_from")
+  validUntil            DateTime? @map("valid_until")
+  allowedTiers          String[] @default([]) @map("allowed_tiers")
+  allowedBillingCycles  String[] @default([]) @map("allowed_billing_cycles")
+  isActive              Boolean  @default(true) @map("is_active")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  redemptions           SubscriptionCouponRedemption[]
+
+  @@index([code, isActive])
+  @@map("subscription_coupons")
+}
+
+model SubscriptionCouponRedemption {
+  id             String   @id @default(uuid())
+  couponId       String   @map("coupon_id")
+  userId         String   @map("user_id")
+  subscriptionId String   @map("subscription_id")
+  paymentId      String?  @map("payment_id")
+  status         String   @default("pending")
+  redeemedAt     DateTime? @map("redeemed_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  coupon         SubscriptionCoupon @relation(fields: [couponId], references: [id])
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  payment        Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([subscriptionId, status])
+  @@unique([couponId, subscriptionId])
+  @@map("subscription_coupon_redemptions")
 }
 
 model Notification {

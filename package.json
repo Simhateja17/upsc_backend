@@ -15,7 +15,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed:cms": "npx tsx prisma/seed-cms.ts",
-    "pyq:import-csvs": "node scripts/import-pyq-csvs.mjs"
+    "pyq:import-csvs": "node scripts/import-pyq-csvs.mjs",
+    "billing:sync-razorpay-plans": "tsx scripts/sync-razorpay-plans.ts"
   },
   "keywords": [
     "upsc",

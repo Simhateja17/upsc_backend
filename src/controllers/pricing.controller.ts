@@ -69,29 +69,11 @@ export const getTestimonials = async (_req: Request, res: Response, next: NextFu
  * POST /api/pricing/orders
  * Create a purchase order
  */
-export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const userId = req.user!.id;
-    const { planId } = req.body;
-
-    if (!planId) {
-      return res.status(400).json({ status: "error", message: "planId is required" });
-    }
-
-    const plan = await prisma.pricingPlan.findUnique({ where: { id: planId } });
-    if (!plan || !plan.isActive) {
-      return res.status(404).json({ status: "error", message: "Plan not found or inactive" });
-    }
-
-    const order = await prisma.order.create({
-      data: { userId, planId, amount: plan.price, status: "pending" },
-      include: { plan: true },
-    });
-
-    res.status(201).json({ status: "success", data: order });
-  } catch (error) {
-    next(error);
-  }
+export const createOrder = async (_req: Request, res: Response) => {
+  return res.status(410).json({
+    status: "error",
+    message: "Paid plan checkout now uses Razorpay Subscriptions. Use /api/billing/subscriptions/create.",
+  });
 };
 
 /**

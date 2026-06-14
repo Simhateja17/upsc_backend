@@ -30,6 +30,7 @@ import billingRoutes from "./billing.routes";
 import mentalHealthRoutes from "./mentalHealth.routes";
 import entitlementsRoutes from "./entitlements.routes";
 import { initiatePayment, verifyPayment } from "../controllers/billing.controller";
+import { handleRazorpayWebhook } from "../controllers/razorpaySubscriptions.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import * as cmsPublicCtrl from "../controllers/cms.public.controller";
 import { getSyllabus } from "../controllers/syllabus.controller";
@@ -185,6 +186,9 @@ router.use("/support", supportRoutes);
 
 // Billing routes
 router.use("/billing", billingRoutes);
+
+// Razorpay webhooks
+router.post("/webhooks/razorpay", handleRazorpayWebhook);
 
 // Razorpay Standard Checkout aliases
 router.post("/create-order", authenticate, initiatePayment);
