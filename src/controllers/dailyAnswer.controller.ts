@@ -10,6 +10,25 @@ function getToday(): Date {
   return d;
 }
 
+function parseDateParam(value: unknown): Date | null {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const d = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * Resolves the target question date from ?date=, defaulting to today.
+ * Returns null if the param is malformed or refers to a future date.
+ */
+function resolveDate(req: Request): Date | null {
+  const raw = req.query.date;
+  if (raw === undefined) return getToday();
+  const parsed = parseDateParam(raw);
+  if (!parsed) return null;
+  if (parsed.getTime() > getToday().getTime()) return null;
+  return parsed;
+}
+
 async function signedCheckedCopyUrl(path: string | null | undefined): Promise<string | null> {
   if (!path) return null;
   return getSignedUrl(STORAGE_BUCKETS.CHECKED_COPIES, path, 3600);
@@ -66,8 +85,12 @@ export const getTodayQuestion = async (req: Request, res: Response, next: NextFu
  */
 export const getTodayFullQuestion = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const today = getToday();
-    const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: today } });
+    const targetDate = resolveDate(req);
+    if (!targetDate) {
+      return res.status(400).json({ status: "error", message: "Invalid or future date" });
+    }
+
+    const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: targetDate } });
 
     if (!question) {
       return res.status(404).json({ status: "error", message: "No mains question for today" });
@@ -75,7 +98,30 @@ export const getTodayFullQuestion = async (req: Request, res: Response, next: Ne
 
     const attemptCount = await prisma.mainsAttempt.count({ where: { questionId: question.id } });
 
-    res.json({ status: "success", data: { ...question, attemptCount } });
+    let attempted = false;
+    let attemptId: string | null = null;
+    let evaluationStatus: string | null = null;
+    let score: number | null = null;
+    let maxScore: number | null = null;
+
+    if (req.user) {
+      const attempt = await prisma.mainsAttempt.findUnique({
+        where: { userId_questionId: { userId: req.user.id, questionId: question.id } },
+        include: { evaluation: true },
+      });
+      if (attempt) {
+        attempted = !!attempt.submittedAt;
+        attemptId = attempt.id;
+        evaluationStatus = attempt.evaluation?.status || null;
+        score = attempt.evaluation?.score ?? null;
+        maxScore = attempt.evaluation?.maxScore ?? null;
+      }
+    }
+
+    res.json({
+      status: "success",
+      data: { ...question, attemptCount, attempted, attemptId, evaluationStatus, score, maxScore },
+    });
   } catch (error) {
     next(error);
   }
@@ -94,8 +140,12 @@ export const submitTextAnswer = async (req: Request, res: Response, next: NextFu
       return res.status(400).json({ status: "error", message: "Answer text is required" });
     }
 
-    const today = getToday();
-    const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: today } });
+    const targetDate = resolveDate(req);
+    if (!targetDate) {
+      return res.status(400).json({ status: "error", message: "Invalid or future date" });
+    }
+
+    const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: targetDate } });
 
     if (!question) {
       return res.status(404).json({ status: "error", message: "No mains question for today" });
@@ -141,8 +191,12 @@ export const submitTextAnswer = async (req: Request, res: Response, next: NextFu
 export const uploadAnswer = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const today = getToday();
-    const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: today } });
+    const targetDate = resolveDate(req);
+    if (!targetDate) {
+      return res.status(400).json({ status: "error", message: "Invalid or future date" });
+    }
+
+    const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: targetDate } });
 
     if (!question) {
       return res.status(404).json({ status: "error", message: "No mains question for today" });
@@ -193,20 +247,35 @@ export const uploadAnswer = async (req: Request, res: Response, next: NextFuncti
 export const getEvaluationStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const today = getToday();
 
-    const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: today } });
-    if (!question) {
-      return res.status(404).json({ status: "error", message: "No mains question for today" });
-    }
+    let attempt;
+    if (typeof req.query.attemptId === "string") {
+      attempt = await prisma.mainsAttempt.findUnique({
+        where: { id: req.query.attemptId },
+        include: { evaluation: true },
+      });
+      if (!attempt || attempt.userId !== userId) {
+        return res.status(404).json({ status: "error", message: "No attempt found" });
+      }
+    } else {
+      const targetDate = resolveDate(req);
+      if (!targetDate) {
+        return res.status(400).json({ status: "error", message: "Invalid or future date" });
+      }
 
-    const attempt = await prisma.mainsAttempt.findUnique({
-      where: { userId_questionId: { userId, questionId: question.id } },
-      include: { evaluation: true },
-    });
+      const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: targetDate } });
+      if (!question) {
+        return res.status(404).json({ status: "error", message: "No mains question for today" });
+      }
 
-    if (!attempt) {
-      return res.status(404).json({ status: "error", message: "No attempt found" });
+      attempt = await prisma.mainsAttempt.findUnique({
+        where: { userId_questionId: { userId, questionId: question.id } },
+        include: { evaluation: true },
+      });
+
+      if (!attempt) {
+        return res.status(404).json({ status: "error", message: "No attempt found" });
+      }
     }
 
     const evalStatus = attempt.evaluation?.status || "pending";
@@ -232,17 +301,32 @@ export const getEvaluationStatus = async (req: Request, res: Response, next: Nex
 export const getTodayResults = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const today = getToday();
 
-    const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: today } });
-    if (!question) {
-      return res.status(404).json({ status: "error", message: "No mains question for today" });
+    let attempt;
+    if (typeof req.query.attemptId === "string") {
+      attempt = await prisma.mainsAttempt.findUnique({
+        where: { id: req.query.attemptId },
+        include: { evaluation: true, question: true },
+      });
+      if (!attempt || attempt.userId !== userId) {
+        return res.status(404).json({ status: "error", message: "No evaluation results found" });
+      }
+    } else {
+      const targetDate = resolveDate(req);
+      if (!targetDate) {
+        return res.status(400).json({ status: "error", message: "Invalid or future date" });
+      }
+
+      const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: targetDate } });
+      if (!question) {
+        return res.status(404).json({ status: "error", message: "No mains question for today" });
+      }
+
+      attempt = await prisma.mainsAttempt.findUnique({
+        where: { userId_questionId: { userId, questionId: question.id } },
+        include: { evaluation: true, question: true },
+      });
     }
-
-    const attempt = await prisma.mainsAttempt.findUnique({
-      where: { userId_questionId: { userId, questionId: question.id } },
-      include: { evaluation: true },
-    });
 
     if (!attempt || !attempt.evaluation) {
       return res.status(404).json({ status: "error", message: "No evaluation results found" });
@@ -254,6 +338,15 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
     res.json({
       status: "success",
       data: {
+        question: {
+          title: attempt.question.title,
+          subject: attempt.question.subject,
+          paper: attempt.question.paper,
+          date: attempt.question.date,
+          marks: attempt.question.marks,
+          wordLimit: attempt.question.wordLimit,
+          timeLimit: attempt.question.timeLimit,
+        },
         score: attempt.evaluation.score,
         maxScore: attempt.evaluation.maxScore,
         strengths: attempt.evaluation.strengths,

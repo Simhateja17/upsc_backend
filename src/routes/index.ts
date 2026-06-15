@@ -194,7 +194,7 @@ router.post("/webhooks/razorpay", handleRazorpayWebhook);
 router.post("/create-order", authenticate, initiatePayment);
 router.post("/verify-payment", authenticate, verifyPayment);
 
-// Jeet AI chat routes
+// Jeet AI Mentor chat routes
 router.use("/ai", aiRoutes);
 
 // Mental Health Buddy routes

@@ -15,7 +15,7 @@ function loadJeetAiSystemPrompt(): string {
     }
 
     console.warn(
-      `[Jeet AI] JEET_AI_SYSTEM_PROMPT_PATH is set but file was not found: ${externalPromptPath}. Falling back to bundled prompt.`
+      `[Jeet AI Mentor] JEET_AI_SYSTEM_PROMPT_PATH is set but file was not found: ${externalPromptPath}. Falling back to bundled prompt.`
     );
   }
 
@@ -141,7 +141,7 @@ async function retrieveRelevantContext(query: string): Promise<{ context: string
     ].filter((c: any) => c.similarity >= SIMILARITY_THRESHOLD);
 
     if (chunks.length === 0) {
-      console.log(`[Jeet AI RAG] No chunks above threshold ${SIMILARITY_THRESHOLD} for query: "${query.slice(0, 80)}"`);
+      console.log(`[Jeet AI Mentor RAG] No chunks above threshold ${SIMILARITY_THRESHOLD} for query: "${query.slice(0, 80)}"`);
       return { context: "", sourceCount: 0, contextChars: 0 };
     }
 
@@ -149,7 +149,7 @@ async function retrieveRelevantContext(query: string): Promise<{ context: string
     const selected = chunks.slice(0, RAG_SOURCE_LIMIT);
 
     console.log(
-      `[Jeet AI RAG] Found ${chunks.length} relevant chunks (threshold: ${SIMILARITY_THRESHOLD}). ` +
+      `[Jeet AI Mentor RAG] Found ${chunks.length} relevant chunks (threshold: ${SIMILARITY_THRESHOLD}). ` +
       `Using ${selected.length}. ` +
       `Top similarities: [${selected.map(c => c.similarity.toFixed(3)).join(', ')}]. ` +
       `Sources: [${selected.map(c => c.metadata?.subject || 'unknown').join(', ')}]`
@@ -164,7 +164,7 @@ async function retrieveRelevantContext(query: string): Promise<{ context: string
 
     return { context, sourceCount: selected.length, contextChars: context.length };
   } catch (err) {
-    console.warn("[Jeet AI] RAG context retrieval failed (non-fatal):", err);
+    console.warn("[Jeet AI Mentor] RAG context retrieval failed (non-fatal):", err);
     return { context: "", sourceCount: 0, contextChars: 0 };
   }
 }

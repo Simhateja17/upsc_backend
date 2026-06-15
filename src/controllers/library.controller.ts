@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
-import { getSignedUrl, STORAGE_BUCKETS } from "../config/storage";
+import { downloadFile, getSignedUrl, STORAGE_BUCKETS } from "../config/storage";
+import { renderPdfPagesToImages } from "../config/gemini";
 
 function hasAccess(userPlan: string, accessLevel: string): boolean {
   if (accessLevel === "free") return true;
@@ -179,6 +180,60 @@ export const getMaterialDownloadUrl = async (req: Request, res: Response, next: 
     }
 
     res.json({ status: "success", data: { id: material.id, title: material.title, fileUrl: viewUrl, downloadUrl: viewUrl } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/library/view/material/:materialId/pages
+ * Protected in-app reader pages. Returns rendered PNG pages instead of the raw PDF.
+ */
+export const getMaterialViewPages = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const materialId = req.params.materialId as string;
+    const maxPages = Math.min(Math.max(Number(req.query.maxPages || 20), 1), 50);
+
+    const material = await prisma.studyMaterial.findUnique({
+      where: { id: materialId },
+    });
+
+    if (!material || !material.isPublished) {
+      return res.status(404).json({ status: "error", message: "Material not found" });
+    }
+
+    const userPlan = await getUserPlan(req.user!.id);
+    if (!hasAccess(userPlan, material.accessLevel || "free")) {
+      return res.status(403).json({ status: "error", message: "Upgrade required to access this PDF" });
+    }
+
+    let pdfBuffer: Buffer;
+    if (material.fileUrl?.startsWith("http")) {
+      const response = await fetch(material.fileUrl);
+      if (!response.ok) throw new Error(`Failed to fetch PDF: ${response.status}`);
+      pdfBuffer = Buffer.from(await response.arrayBuffer());
+    } else if (material.fileUrl) {
+      const file = await downloadFile(STORAGE_BUCKETS.STUDY_MATERIALS, material.fileUrl);
+      pdfBuffer = file.buffer;
+    } else {
+      return res.status(404).json({ status: "error", message: "PDF file not found" });
+    }
+
+    const images = await renderPdfPagesToImages(pdfBuffer, maxPages);
+    res.json({
+      status: "success",
+      data: {
+        id: material.id,
+        title: material.title,
+        totalPages: material.pageCount || images.length,
+        renderedPages: images.length,
+        pages: images.map((buffer, index) => ({
+          pageNumber: index + 1,
+          mimeType: "image/png",
+          url: `data:image/png;base64,${buffer.toString("base64")}`,
+        })),
+      },
+    });
   } catch (error) {
     next(error);
   }
