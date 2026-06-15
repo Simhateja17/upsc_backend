@@ -412,6 +412,65 @@ export const getHistory = async (req: Request, res: Response, next: NextFunction
   }
 };
 
+/**
+ * GET /api/daily-answer/calendar
+ * Paginated list of past daily mains questions with the user's attempt status.
+ * Query: from, to (YYYY-MM-DD, default to last 180 days up to today), page, limit (default 10, max 31)
+ */
+export const getCalendar = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+
+    const to = parseDateParam(req.query.to) || getToday();
+    const defaultFrom = new Date(to);
+    defaultFrom.setDate(defaultFrom.getDate() - 180);
+    const from = parseDateParam(req.query.from) || defaultFrom;
+
+    const page = Math.max(parseInt(req.query.page as string) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 10, 1), 31);
+    const skip = (page - 1) * limit;
+
+    const where = { date: { gte: from, lte: to }, isActive: true };
+
+    const [questions, total] = await Promise.all([
+      prisma.dailyMainsQuestion.findMany({
+        where,
+        orderBy: { date: "desc" },
+        skip,
+        take: limit,
+        select: { id: true, date: true, title: true, paper: true, subject: true, marks: true },
+      }),
+      prisma.dailyMainsQuestion.count({ where }),
+    ]);
+
+    const questionIds = questions.map((q) => q.id);
+    const attempts = await prisma.mainsAttempt.findMany({
+      where: { userId, questionId: { in: questionIds } },
+      include: { evaluation: { select: { score: true, maxScore: true, status: true } } },
+    });
+    const attemptByQuestion = new Map(attempts.map((a) => [a.questionId, a]));
+
+    const items = questions.map((q) => {
+      const attempt = attemptByQuestion.get(q.id);
+      return {
+        date: q.date.toISOString().split("T")[0],
+        title: q.title,
+        paper: q.paper,
+        subject: q.subject,
+        marks: q.marks,
+        attempted: !!attempt?.submittedAt,
+        score: attempt?.evaluation?.score ?? null,
+        maxScore: attempt?.evaluation?.maxScore ?? null,
+        evaluationStatus: attempt?.evaluation?.status ?? null,
+      };
+    });
+
+    res.json({ status: "success", data: { items, total, page, limit } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Real AI evaluation: typed answers go straight to the evaluator; uploads use
 // Uploaded files are transcribed by the generic evaluator, then graded through the same path.
 async function startEvaluation(
