@@ -27,6 +27,12 @@ interface EvaluationResult {
   detailedFeedback: string;
   metrics?: Array<{ label: string; value: number; maxValue: number }>;
   annotationPlan?: EvaluatorCheckedCopyPlan;
+  keyTerms?: Array<{ term: string; found: boolean }>;
+  nextAttemptFocus?: string;
+  evaluatorConclusion?: string;
+  modelAnswerKeyPoints?: string[];
+  modelAnswerContent?: string;
+  parameterScores?: Array<{ parameter: string; score: number; maxScore: number; comment?: string }>;
 }
 
 interface QuestionContext {
@@ -60,6 +66,12 @@ export interface EvaluationUpdate {
   checkedCopyStatus?: string | null;
   ragDiagnostics?: any;
   evaluationMode?: "daily" | "pyq" | "mock";
+  keyTerms?: any;
+  nextAttemptFocus?: string | null;
+  evaluatorConclusion?: string | null;
+  modelAnswerKeyPoints?: any;
+  modelAnswerContent?: string | null;
+  parameterScores?: any;
   evaluatedAt: Date | null;
 }
 
@@ -204,8 +216,26 @@ Return ONLY a JSON object (no prose, no markdown fences):
     {"label": "Structure", "value": <0-10>, "maxValue": 10},
     {"label": "Examples", "value": <0-10>, "maxValue": 10},
     {"label": "Balance", "value": <0-10>, "maxValue": 10}
+  ],
+  "keyTerms": [
+    {"term": "specific keyword/scheme/report/concept an examiner expects for this question", "found": <true if the student's answer uses this term, else false>}
+  ],
+  "nextAttemptFocus": "1-2 sentences telling the student exactly what to focus on in their next attempt at a similar question",
+  "evaluatorConclusion": "2-3 sentence overall verdict in an encouraging-but-honest examiner tone, naming the single biggest gap and what score the answer could realistically reach if fixed",
+  "modelAnswerKeyPoints": ["short bullet point the model answer must hit", "..."],
+  "modelAnswerContent": "the full model answer text, written in the same style as 'modelAnswer' but as flowing paragraphs with an intro, body points, and conclusion",
+  "parameterScores": [
+    {"parameter": "Demand Fulfilment", "score": <0-${question.marks}, scaled to this parameter's weight>, "maxScore": <weighted max for this parameter>, "comment": "specific feedback for this parameter"},
+    {"parameter": "Conceptual Clarity", "score": <number>, "maxScore": <number>, "comment": "..."},
+    {"parameter": "Analysis & Depth", "score": <number>, "maxScore": <number>, "comment": "..."},
+    {"parameter": "Knowledge Enrichment", "score": <number>, "maxScore": <number>, "comment": "..."},
+    {"parameter": "Structure & Flow", "score": <number>, "maxScore": <number>, "comment": "..."},
+    {"parameter": "Value Addition", "score": <number>, "maxScore": <number>, "comment": "..."},
+    {"parameter": "Presentation", "score": <number>, "maxScore": <number>, "comment": "..."}
   ]
-}`,
+}
+
+For "keyTerms", list 6-10 terms (mix of found and missing). For "parameterScores", the seven maxScore values must sum to exactly ${question.marks} and the seven score values must sum to exactly the overall "score" value above.`,
     },
   ];
 
@@ -886,6 +916,12 @@ export async function evaluateAnswerGeneric(params: {
       checkedCopyStatus,
       ragDiagnostics,
       evaluationMode: params.evaluationMode || "daily",
+      keyTerms: result.keyTerms || null,
+      nextAttemptFocus: result.nextAttemptFocus || null,
+      evaluatorConclusion: result.evaluatorConclusion || null,
+      modelAnswerKeyPoints: result.modelAnswerKeyPoints || null,
+      modelAnswerContent: result.modelAnswerContent || null,
+      parameterScores: result.parameterScores || null,
       evaluatedAt: new Date(),
     });
     console.log("[eval] completed and saved", {

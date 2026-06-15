@@ -22,6 +22,18 @@ function avg(arr: number[]): number {
   return arr.reduce((s, v) => s + v, 0) / arr.length;
 }
 
+/** Format a duration in minutes to a compact, human-readable string. */
+function formatStudyDuration(minutes: number): string {
+  const totalSeconds = Math.round(minutes * 60);
+  if (totalSeconds <= 0) return "0h 0m";
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  return `${s}s`;
+}
+
 function parseTimeToMinutes(t?: string | null): number | null {
   if (!t) return null;
   const [hRaw, mRaw] = t.split(":");
@@ -32,10 +44,13 @@ function parseTimeToMinutes(t?: string | null): number | null {
 }
 
 function getTaskDurationMinutes(task: {
+  actualDuration?: number | null;
   duration?: number | null;
   startTime?: string | null;
   endTime?: string | null;
 }): number {
+  // Prefer the actual time tracked by the focus timer (stored in seconds).
+  if (task.actualDuration && task.actualDuration > 0) return task.actualDuration / 60;
   if (task.duration && task.duration > 0) return task.duration;
   const start = parseTimeToMinutes(task.startTime);
   const end = parseTimeToMinutes(task.endTime);
@@ -129,10 +144,11 @@ export async function getPerformance(userId: string) {
   const strongTopics = sortedTopics.slice(0, 5);
   const weakTopics = sortedTopics.slice(-5).reverse();
 
-  const estimatedMinutes = raw.todayActivitiesCount * 15;
-  const studyHours = Math.floor(estimatedMinutes / 60);
-  const studyMinutes = estimatedMinutes % 60;
-  const studyTimeToday = `${studyHours}h ${studyMinutes}m`;
+  const studyMinutesToday = raw.todayCompletedStudyTasks.reduce(
+    (sum, task) => sum + getTaskDurationMinutes(task),
+    0
+  );
+  const studyTimeToday = formatStudyDuration(studyMinutesToday);
 
   const testsTaken =
     raw.mcqAgg._count.id + raw.mockCount + raw.mockMainsCount + raw.pyqMainsCount + raw.mainsCount + raw.seriesAttempts.count;
@@ -252,13 +268,13 @@ export async function getTestAnalytics(userId: string) {
   const dailyActivity = ORDERED_DAYS.map((day) => ({
     day,
     questionsAttempted: dailyMap[day].questions,
-    hours: Math.round((studyTimeByDayHours[day] ?? 0) * 10) / 10,
+    hours: studyTimeByDayHours[day] ?? 0,
   }));
 
   const totalStudyTypeMinutes = Object.values(studyTypeMinutes).reduce((s, v) => s + v, 0);
   const studyTypeDistribution = (Object.keys(studyTypeMinutes) as Array<keyof typeof studyTypeMinutes>).map((label) => {
     const minutes = studyTypeMinutes[label];
-    const hours = Math.round((minutes / 60) * 10) / 10;
+    const hours = minutes / 60;
     return {
       label,
       hours,
