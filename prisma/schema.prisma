@@ -24,6 +24,7 @@ model User {
   bio                     String?
   settings                Json?
   bookmarks               Bookmark[]
+  questionFlags           QuestionFlag[]
   calendarSyncSetting     CalendarSyncSetting?
   chatConversations       ChatConversation[]
   contactSubmissions      ContactSubmission[]
@@ -1691,6 +1692,7 @@ model Bookmark {
   sourceUrl  String?  @map("source_url")
   tag        String?
   tagColor   String?  @map("tag_color")
+  content    Json?
   isPinned   Boolean  @default(false) @map("is_pinned")
   createdAt  DateTime @default(now()) @map("created_at")
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1698,6 +1700,22 @@ model Bookmark {
   @@index([userId, entityType])
   @@index([userId, createdAt])
   @@map("bookmarks")
+}
+
+model QuestionFlag {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  questionType String   @map("question_type")
+  questionId   String   @map("question_id")
+  questionText String   @map("question_text")
+  reason       String?
+  status       String   @default("pending")
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionType, questionId])
+  @@index([status])
+  @@map("question_flags")
 }
 
 model SupportTicket {

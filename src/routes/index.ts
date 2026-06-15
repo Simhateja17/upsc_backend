@@ -25,6 +25,7 @@ import contactRoutes from "./contact.routes";
 import forumRoutes from "./forum.routes";
 import studyGroupRoutes from "./studyGroup.routes";
 import bookmarkRoutes from "./bookmark.routes";
+import flagRoutes from "./flag.routes";
 import supportRoutes from "./support.routes";
 import billingRoutes from "./billing.routes";
 import mentalHealthRoutes from "./mentalHealth.routes";
@@ -180,6 +181,9 @@ router.use("/study-groups", studyGroupRoutes);
 
 // Bookmarks routes
 router.use("/bookmarks", bookmarkRoutes);
+
+// Question flag routes
+router.use("/flags", flagRoutes);
 
 // Support routes
 router.use("/support", supportRoutes);
