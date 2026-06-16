@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
-import { isValidStudyPlannerSubject, normalizeStudyPlannerSubject } from "../constants/subjects";
+import { isValidSubject, normalizeSubject, isValidStudyPlannerSubject, normalizeStudyPlannerSubject } from "../constants/subjects";
 import { getEffectiveEntitlements } from "../services/entitlements.service";
 
 function param(req: Request, key: string): string {
