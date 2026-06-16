@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
-import { isValidSubject, normalizeSubject } from "../constants/subjects";
+import { isValidStudyPlannerSubject, normalizeStudyPlannerSubject } from "../constants/subjects";
 import { getEffectiveEntitlements } from "../services/entitlements.service";
 
 function param(req: Request, key: string): string {
@@ -262,11 +262,11 @@ export const addItem = async (req: Request, res: Response, next: NextFunction) =
       return;
     }
 
-    const normalizedSubject = normalizeSubject(subject);
-    if (!isValidSubject(normalizedSubject)) {
+    const normalizedSubject = normalizeStudyPlannerSubject(subject);
+    if (!isValidStudyPlannerSubject(normalizedSubject)) {
       res.status(400).json({
         status: "error",
-        message: `Invalid subject "${subject}". Must be one of: History, Geography, Polity, Economy, Environment & Ecology, Science & Technology`,
+        message: `Invalid subject "${subject}".`,
       });
       return;
     }
