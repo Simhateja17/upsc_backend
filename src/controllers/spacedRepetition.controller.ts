@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+// isValidSubject/normalizeSubject used for admin seeds; study planner variants used for user addItem
 import { isValidSubject, normalizeSubject, isValidStudyPlannerSubject, normalizeStudyPlannerSubject } from "../constants/subjects";
 import { getEffectiveEntitlements } from "../services/entitlements.service";
 
