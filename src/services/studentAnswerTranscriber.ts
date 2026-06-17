@@ -245,7 +245,7 @@ Return ONLY valid JSON:
     truncated: pageInput.truncated,
   });
 
-  const concurrency = Math.max(1, Math.min(Number(process.env.AZURE_OPENAI_OCR_CONCURRENCY || 2), 4));
+  const concurrency = Math.max(1, Math.min(Number(process.env.AZURE_OPENAI_OCR_CONCURRENCY || 1), 4));
   const pageResults: Array<{ pageNumber: number; result?: TranscribedAnswer; error?: string; usage?: any }> = [];
   let nextIndex = 0;
   async function worker() {
@@ -271,6 +271,8 @@ Return ONLY valid JSON:
           pageNumber: page.pageNumber,
           message,
         });
+      } finally {
+        page.buffer = Buffer.alloc(0);
       }
     }
   }

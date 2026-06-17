@@ -494,12 +494,13 @@ export async function evaluateAnswerGeneric(params: {
     let viaUploadTranscription = false;
     let originalUpload: OriginalUploadPage | null = null;
     let originalUploads: OriginalUploadPage[] = [];
+    let uploadPaths: string[] = [];
     let transcriptionDiagnostics: Record<string, unknown> | null = null;
     let transcriptionPages: TranscribedAnswerPage[] | undefined;
 
     // Handwritten/upload path: transcribe the file with Azure vision, then reuse the text path.
     if (!textToGrade && fileUrl) {
-      const uploadPaths = parseAnswerUploadPaths(fileUrl);
+      uploadPaths = parseAnswerUploadPaths(fileUrl);
       const downloadStartedAt = Date.now();
       console.log("[eval] uploaded-answer path: downloading original file", {
         attemptId,
@@ -609,6 +610,13 @@ export async function evaluateAnswerGeneric(params: {
         wordCount,
         chars: textToGrade.length,
         confidence: transcription.confidence,
+      });
+
+      originalUploads = [];
+      originalUpload = null;
+      console.log("[eval] released uploaded buffers after transcription", {
+        attemptId,
+        uploadPaths: uploadPaths.length,
       });
     }
 
@@ -776,6 +784,31 @@ export async function evaluateAnswerGeneric(params: {
 
     let checkedCopyUrl: string | null = null;
     let checkedCopyPages: Array<{ pageNumber: number; storagePath: string | null; status: string; reason?: string }> = [];
+    if (originalUploads.length === 0 && fileUrl && uploadPaths.length > 0) {
+      const redownloadStartedAt = Date.now();
+      console.log("[eval] checked-copy redownload start", {
+        attemptId,
+        bucket: STORAGE_BUCKETS.ANSWER_UPLOADS,
+        uploadPaths,
+      });
+      originalUploads = await Promise.all(
+        uploadPaths.map(async (path) => {
+          const downloaded = await downloadFile(
+            STORAGE_BUCKETS.ANSWER_UPLOADS,
+            path
+          );
+          return { ...downloaded, sourcePath: path };
+        })
+      );
+      originalUpload = originalUploads[0] || null;
+      console.log("[eval] checked-copy redownload completed", {
+        attemptId,
+        elapsed: evalElapsed(redownloadStartedAt),
+        files: originalUploads.length,
+        bytes: originalUploads.map((upload) => upload.buffer.length),
+        contentTypes: originalUploads.map((upload) => upload.contentType),
+      });
+    }
     let checkedCopyStatus: string | null = originalUploads.length > 0 ? "skipped" : null;
     let checkedCopyInputs: Array<{ pageNumber: number; buffer: Buffer; contentType: string; source: "image" | "pdf-page"; layout?: DocumentPageLayout | null }> = [];
     if (originalUploads.length > 1 && originalUploads.every((upload) => upload.contentType.startsWith("image/"))) {
@@ -895,6 +928,13 @@ export async function evaluateAnswerGeneric(params: {
         elapsed: evalElapsed(checkedCopyStartedAt),
         status: checkedCopyStatus,
         pages: checkedCopyPages,
+      });
+
+      checkedCopyInputs = [];
+      originalUploads = [];
+      originalUpload = null;
+      console.log("[eval] released checked-copy buffers", {
+        attemptId,
       });
     }
 

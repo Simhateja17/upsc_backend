@@ -97,12 +97,15 @@ app.listen(PORT, async () => {
   // Initialize cron scheduler
   initScheduler();
 
-  // Populate editorials immediately on startup — critical for Render free tier
-  // which spins down between requests, killing cron jobs. This ensures the DB
-  // always has fresh articles after every cold start. Fire-and-forget.
-  runLatestNewsJob().catch((err) =>
-    console.warn("[Startup] RSS fetch failed (non-fatal):", err?.message)
-  );
+  // Optional startup RSS sync. Keep disabled by default in production so a
+  // PM2 memory restart does not immediately launch another AI summarization job.
+  if (process.env.RUN_LATEST_NEWS_ON_STARTUP === "true") {
+    runLatestNewsJob().catch((err) =>
+      console.warn("[Startup] RSS fetch failed (non-fatal):", err?.message)
+    );
+  } else {
+    console.log("[Startup] RSS fetch skipped; set RUN_LATEST_NEWS_ON_STARTUP=true to enable.");
+  }
 });
 
 export default app;

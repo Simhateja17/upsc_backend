@@ -21,7 +21,7 @@ module.exports = {
       // Auto-restart on crash
       autorestart: true,
       watch: false,
-      max_memory_restart: "500M",
+      max_memory_restart: "750M",
       // Logging
       out_file: "/home/mg8751721/backend/logs/backend-out.log",
       error_file: "/home/mg8751721/backend/logs/backend-error.log",
