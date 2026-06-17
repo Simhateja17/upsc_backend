@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
 import { submissionLimiter } from "../middleware/rateLimit";
-import { uploadSingle } from "../middleware/upload";
+import { uploadAnswerFiles } from "../middleware/upload";
 import { enforceUsage } from "../middleware/entitlements.middleware";
 import {
   getSubjects,
@@ -41,7 +41,7 @@ router.post(
   authenticate,
   submissionLimiter,
   enforceUsage("mains_evaluation", "mock_test_mains"),
-  uploadSingle("file"),
+  uploadAnswerFiles(),
   submitMockTestMainsAnswer
 );
 router.get(

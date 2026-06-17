@@ -48,6 +48,14 @@ type OriginalUploadPage = {
   sourcePath: string;
 };
 
+type CheckedCopyInput = {
+  pageNumber: number;
+  buffer: Buffer;
+  contentType: string;
+  source: "image" | "pdf-page";
+  layout?: DocumentPageLayout | null;
+};
+
 export interface EvaluationUpdate {
   score: number;
   maxScore: number;
@@ -286,6 +294,84 @@ function parseAnswerUploadPaths(fileUrl: string | null): string[] {
   } catch {
     return [trimmed];
   }
+}
+
+function getCheckedCopyMaxPages(): number {
+  return Math.max(1, Number(process.env.AZURE_OPENAI_OCR_MAX_PAGES || process.env.OCR_PDF_MAX_PAGES || 6));
+}
+
+async function buildCheckedCopyInputsFromUploads(
+  attemptId: string,
+  uploads: OriginalUploadPage[]
+): Promise<CheckedCopyInput[]> {
+  const maxPages = getCheckedCopyMaxPages();
+  const inputs: CheckedCopyInput[] = [];
+  let truncated = false;
+
+  for (const upload of uploads) {
+    const remaining = maxPages - inputs.length;
+    if (remaining <= 0) {
+      truncated = true;
+      break;
+    }
+
+    if (upload.contentType.startsWith("image/")) {
+      inputs.push({
+        pageNumber: inputs.length + 1,
+        buffer: upload.buffer,
+        contentType: upload.contentType,
+        source: "image",
+      });
+      continue;
+    }
+
+    if (upload.contentType === "application/pdf") {
+      const renderStartedAt = Date.now();
+      console.log("[eval] checked-copy PDF render start", {
+        attemptId,
+        sourcePath: upload.sourcePath,
+        bytes: upload.buffer.length,
+        remainingPages: remaining,
+        maxPages,
+      });
+      const rendered = await renderPdfPagesToImages(upload.buffer, remaining + 1);
+      if (rendered.length > remaining) truncated = true;
+      rendered.slice(0, remaining).forEach((buffer) => {
+        inputs.push({
+          pageNumber: inputs.length + 1,
+          buffer,
+          contentType: "image/png",
+          source: "pdf-page",
+        });
+      });
+      console.log("[eval] checked-copy PDF render completed", {
+        attemptId,
+        sourcePath: upload.sourcePath,
+        elapsed: evalElapsed(renderStartedAt),
+        renderedPages: Math.min(rendered.length, remaining),
+        truncated: rendered.length > remaining,
+        pageBytes: rendered.slice(0, remaining).map((page) => page.length),
+      });
+      continue;
+    }
+
+    console.warn("[eval] checked-copy unsupported upload type skipped", {
+      attemptId,
+      sourcePath: upload.sourcePath,
+      contentType: upload.contentType,
+    });
+  }
+
+  if (truncated) {
+    console.warn("[eval] checked-copy input truncated", {
+      attemptId,
+      maxPages,
+      uploads: uploads.length,
+      renderedPages: inputs.length,
+    });
+  }
+
+  return inputs;
 }
 
 function stripOcrChrome(line: string): string {
@@ -539,10 +625,10 @@ export async function evaluateAnswerGeneric(params: {
       const transcription = await transcribeStudentAnswerFromUpload({
         fileBuffer: originalUploads.length === 1
           ? originalUpload.buffer
-          : Buffer.concat(originalUploads.map((upload) => upload.buffer)),
+          : Buffer.alloc(0),
         mimeType: originalUploads.length === 1
           ? originalUpload.contentType
-          : "application/x-upsc-multi-image",
+          : "application/x-upsc-multi-upload",
         files: originalUploads.length > 1
           ? originalUploads.map((upload) => ({
               buffer: upload.buffer,
@@ -810,43 +896,7 @@ export async function evaluateAnswerGeneric(params: {
       });
     }
     let checkedCopyStatus: string | null = originalUploads.length > 0 ? "skipped" : null;
-    let checkedCopyInputs: Array<{ pageNumber: number; buffer: Buffer; contentType: string; source: "image" | "pdf-page"; layout?: DocumentPageLayout | null }> = [];
-    if (originalUploads.length > 1 && originalUploads.every((upload) => upload.contentType.startsWith("image/"))) {
-      checkedCopyInputs = originalUploads.map((upload, index) => ({
-        pageNumber: index + 1,
-        buffer: upload.buffer,
-        contentType: upload.contentType,
-        source: "image",
-      }));
-    } else if (originalUpload?.contentType.startsWith("image/")) {
-      checkedCopyInputs = [{
-        pageNumber: 1,
-        buffer: originalUpload.buffer,
-        contentType: originalUpload.contentType,
-        source: "image",
-      }];
-    } else if (originalUpload?.contentType === "application/pdf") {
-      const renderStartedAt = Date.now();
-      const maxPages = Number(process.env.AZURE_OPENAI_OCR_MAX_PAGES || process.env.OCR_PDF_MAX_PAGES || 6);
-      console.log("[eval] checked-copy PDF render start", {
-        attemptId,
-        bytes: originalUpload.buffer.length,
-        maxPages,
-      });
-      const pages = await renderPdfPagesToImages(originalUpload.buffer, maxPages);
-      checkedCopyInputs = pages.map((buffer, index) => ({
-          pageNumber: index + 1,
-          buffer,
-          contentType: "image/png",
-          source: "pdf-page" as const,
-      }));
-      console.log("[eval] checked-copy PDF render completed", {
-        attemptId,
-        elapsed: evalElapsed(renderStartedAt),
-        renderedPages: pages.length,
-        pageBytes: pages.map((page) => page.length),
-      });
-    }
+    let checkedCopyInputs: CheckedCopyInput[] = await buildCheckedCopyInputsFromUploads(attemptId, originalUploads);
 
     if (checkedCopyInputs.length > 0) {
       if (process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT && process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY) {
