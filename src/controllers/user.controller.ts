@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { supabaseAdmin } from "../config/supabase";
-import { VALID_UPSC_SUBJECTS } from "../constants/subjects";
+import { VALID_OPTIONAL_SUBJECTS } from "../constants/subjects";
 
 /**
  * GET /api/user/profile
@@ -65,8 +65,8 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
     if (state !== undefined) profileExtra.state = state;
     if (targetYear !== undefined) profileExtra.targetYear = targetYear;
     if (optionalSubject !== undefined) {
-      if (optionalSubject && !VALID_UPSC_SUBJECTS.includes(optionalSubject as any)) {
-        return res.status(400).json({ status: "error", message: `Invalid optionalSubject. Must be one of: ${VALID_UPSC_SUBJECTS.join(", ")}` });
+      if (optionalSubject && !VALID_OPTIONAL_SUBJECTS.includes(optionalSubject as any)) {
+        return res.status(400).json({ status: "error", message: `Invalid optionalSubject. Must be one of: ${VALID_OPTIONAL_SUBJECTS.join(", ")}` });
       }
       profileExtra.optionalSubject = optionalSubject;
     }
