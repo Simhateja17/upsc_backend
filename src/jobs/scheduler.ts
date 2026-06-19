@@ -4,6 +4,12 @@ import { rotateDailyMCQ, createDailyMainsQuestion } from "./dailyContentJob";
 import { runEditorialSummarization } from "./dailyEditorialJob";
 import { runLatestNewsJob } from "./latestNewsJob";
 import { fireAndForget } from "./jobRunner";
+import {
+  sendDailyMcqReminders,
+  sendStreakAlerts,
+  sendMorningDigestNotifications,
+  sendWeeklyProgressEmails,
+} from "./notificationJobs";
 import prisma from "../config/database";
 import { supabaseAdmin } from "../config/supabase";
 
@@ -43,6 +49,26 @@ export function initScheduler() {
   // 8:00 AM IST (02:30 UTC) — Send spaced repetition reminders for due items
   cron.schedule("30 2 * * *", () => {
     fireAndForget(() => sendSpacedRepReminders(), { name: "spaced-rep-reminders" });
+  });
+
+  // 7:30 AM IST (02:00 UTC) — Morning editorial digest
+  cron.schedule("0 2 * * *", () => {
+    fireAndForget(() => sendMorningDigestNotifications(), { name: "morning-digest" });
+  });
+
+  // 8:05 AM IST (02:35 UTC) — Daily MCQ reminder (staggered after spaced-rep)
+  cron.schedule("35 2 * * *", () => {
+    fireAndForget(() => sendDailyMcqReminders(), { name: "daily-mcq-reminder" });
+  });
+
+  // 7:00 PM IST (13:30 UTC) — Streak at risk alert
+  cron.schedule("30 13 * * *", () => {
+    fireAndForget(() => sendStreakAlerts(), { name: "streak-alert" });
+  });
+
+  // Sunday 9:00 AM IST (03:30 UTC) — Weekly progress summary
+  cron.schedule("30 3 * * 0", () => {
+    fireAndForget(() => sendWeeklyProgressEmails(), { name: "weekly-progress" });
   });
 
   console.log("[Scheduler] All cron jobs registered with retry + monitoring.");
