@@ -6,6 +6,7 @@ import {
   getTopics,
   getCards,
   createCard,
+  deleteTopic,
   updateProgress,
 } from "../controllers/flashcard.controller";
 
@@ -16,6 +17,7 @@ router.get("/subjects", authenticate, getSubjects);
 router.get("/:subjectId/topics", authenticate, getTopics);
 router.get("/:subjectId/:topicId", authenticate, getCards);
 router.post("/", authenticate, requireAccess("flashcards", ["full"]), createCard);
+router.delete("/:subjectId/:topicId", authenticate, deleteTopic);
 router.patch("/:cardId/progress", authenticate, updateProgress);
 
 export default router;
