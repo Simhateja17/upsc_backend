@@ -451,6 +451,7 @@ model StudyPlanTask {
   startTime               String?   @map("start_time")
   endTime                 String?   @map("end_time")
   duration                Int?
+  actualDuration          Int?      @map("actual_duration")
   isCompleted             Boolean   @default(false) @map("is_completed")
   completedAt             DateTime? @map("completed_at")
   createdAt               DateTime  @default(now()) @map("created_at")

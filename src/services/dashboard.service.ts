@@ -1,4 +1,5 @@
 import { dashboardRepo } from "../repositories/prisma-dashboard.repository";
+import { supabaseAdmin } from "../config/supabase";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const ORDERED_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -61,9 +62,14 @@ function getDailyDummyRank(): number {
   return Math.floor(670 + hash * (810 - 670 + 1));
 }
 
-/** Compute days remaining until UPSC Prelims 2026 (June 2). */
-export function computeDaysRemaining(): number {
-  const prelimsDate = new Date(2026, 5, 2);
+const PRELIMS_DATES: Record<string, Date> = {
+  "2026": new Date(2026, 5, 2),   // June 2, 2026
+  "2027": new Date(2027, 4, 25),  // May 25, 2027
+  "2028": new Date(2028, 4, 28),  // May 28, 2028
+};
+
+export function computeDaysRemaining(targetYear?: string): number {
+  const prelimsDate = PRELIMS_DATES[targetYear || "2026"] || PRELIMS_DATES["2026"];
   return Math.max(0, Math.ceil((prelimsDate.getTime() - Date.now()) / 86400000));
 }
 
@@ -72,8 +78,14 @@ export async function getDashboard(userId: string) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const snap = await dashboardRepo.getTodaySnapshot(userId, today);
-  const daysRemaining = computeDaysRemaining();
+  const [snap, userRes] = await Promise.all([
+    dashboardRepo.getTodaySnapshot(userId, today),
+    supabaseAdmin.from("users").select("settings").eq("id", userId).single(),
+  ]);
+
+  const settings = (userRes.data?.settings as Record<string, any>) || {};
+  const targetYear = settings.profile?.targetYear || "2026";
+  const daysRemaining = computeDaysRemaining(targetYear);
 
   const trio = {
     mcq: {
@@ -93,6 +105,7 @@ export async function getDashboard(userId: string) {
 
   return {
     daysRemaining,
+    targetYear,
     trio,
     todayTasksCount: snap.todayTasksCount,
     recentActivity: snap.recentActivity,
@@ -129,9 +142,20 @@ export async function getPerformance(userId: string) {
   const strongTopics = sortedTopics.slice(0, 5);
   const weakTopics = sortedTopics.slice(-5).reverse();
 
-  const estimatedMinutes = raw.todayActivitiesCount * 15;
-  const studyHours = Math.floor(estimatedMinutes / 60);
-  const studyMinutes = estimatedMinutes % 60;
+  const totalStudySeconds = (raw.todayCompletedTasks ?? []).reduce((sum: number, task: any) => {
+    if (task.actualDuration != null && task.actualDuration > 0) {
+      return sum + task.actualDuration;
+    }
+    if (task.startTime && task.endTime) {
+      const [sh, sm] = task.startTime.split(':').map(Number);
+      const [eh, em] = task.endTime.split(':').map(Number);
+      const diffMin = (eh * 60 + em) - (sh * 60 + sm);
+      if (diffMin > 0) return sum + diffMin * 60;
+    }
+    return sum;
+  }, 0);
+  const studyHours = Math.floor(totalStudySeconds / 3600);
+  const studyMinutes = Math.floor((totalStudySeconds % 3600) / 60);
   const studyTimeToday = `${studyHours}h ${studyMinutes}m`;
 
   const testsTaken =

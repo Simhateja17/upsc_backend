@@ -110,7 +110,7 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
   try {
     const userId = req.user!.id;
     const id = req.params.id as string;
-    const { title, description, subject, type, date, startTime, endTime, duration, isCompleted } = req.body;
+    const { title, description, subject, type, date, startTime, endTime, duration, actualDuration, isCompleted } = req.body;
     console.log(`[Study Plan] Update task: id=${id}, user=${userId}, isCompleted=${isCompleted}`);
 
     const existing = await prisma.studyPlanTask.findFirst({ where: { id, userId } });
@@ -136,6 +136,7 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
     if (startTime !== undefined) updateData.startTime = startTime;
     if (endTime !== undefined) updateData.endTime = endTime;
     if (duration !== undefined) updateData.duration = duration;
+    if (typeof actualDuration === 'number' && actualDuration >= 0) updateData.actualDuration = actualDuration;
     if (isCompleted !== undefined) {
       updateData.isCompleted = isCompleted;
       updateData.completedAt = isCompleted ? new Date() : null;

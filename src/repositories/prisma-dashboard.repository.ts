@@ -59,7 +59,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
     },
 
     async getPerformanceRaw(userId, today) {
-      const [mcqAgg, recentMcq, mainsCount, mockCount, mockMainsCount, pyqMainsCount, streak, todayActivities, syllabusCov, seriesRes] =
+      const [mcqAgg, recentMcq, mainsCount, mockCount, mockMainsCount, pyqMainsCount, streak, todayActivities, syllabusSubjects, trackerState, seriesRes, todayCompletedTasksRaw] =
         await Promise.all([
           prisma.mCQAttempt.aggregate({
             where: { userId },
@@ -75,12 +75,42 @@ export function createPrismaDashboardRepository(): DashboardRepository {
           prisma.pyqMainsAttempt.count({ where: { userId } }),
           prisma.userStreak.findUnique({ where: { userId } }),
           prisma.userActivity.findMany({ where: { userId, createdAt: { gte: today } } }),
-          prisma.syllabusCoverage.findMany({ where: { userId } }),
+          prisma.syllabusSubject.findMany({
+            orderBy: [{ stage: "asc" }, { sortOrder: "asc" }],
+            include: {
+              topics: {
+                orderBy: { sortOrder: "asc" },
+                include: { subTopics: { orderBy: { sortOrder: "asc" } } },
+              },
+            },
+          }),
+          prisma.syllabusTrackerState.findUnique({
+            where: { userId },
+            select: { states: true },
+          }),
           supabaseAdmin
             .from("test_series_attempts")
             .select("id, score, total", { count: "exact" })
             .eq("user_id", userId),
+          prisma.studyPlanTask.findMany({
+            where: { userId, date: today, isCompleted: true },
+            select: { actualDuration: true, duration: true, startTime: true, endTime: true },
+          }),
         ]);
+
+      const stateMap = (trackerState?.states ?? {}) as Record<string, { status?: string }>;
+      const syllabusCov = syllabusSubjects.map((subject) => {
+        let totalTopics = 0;
+        let coveredTopics = 0;
+        subject.topics.forEach((topic, topicIndex) => {
+          topic.subTopics.forEach((_, subTopicIndex) => {
+            totalTopics += 1;
+            const key = `${subject.id}__${topicIndex}__${subTopicIndex}`;
+            if (stateMap[key]?.status === "done") coveredTopics += 1;
+          });
+        });
+        return { coveredTopics, totalTopics };
+      });
 
       const mockAgg = await prisma.mockTestAttempt.aggregate({
         where: { userId },
@@ -102,6 +132,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
           data: (seriesRes.data ?? []) as any[],
         },
         mockAgg,
+        todayCompletedTasks: todayCompletedTasksRaw,
       };
     },
 
