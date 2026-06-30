@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { getPublicPYQCounts, getPublicPYQQuestions, submitPyqPrelimsAnswer } from "../controllers/pyq.controller";
+import {
+  getPublicPYQCounts,
+  getPublicPYQQuestionById,
+  getPublicPYQQuestions,
+  submitPyqPrelimsAnswer,
+} from "../controllers/pyq.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import { submissionLimiter } from "../middleware/rateLimit";
 import { uploadAnswerFiles } from "../middleware/upload";
@@ -13,6 +18,7 @@ import {
 const router = Router();
 
 router.get("/questions", getPublicPYQQuestions);
+router.get("/questions/:questionId", getPublicPYQQuestionById);
 router.get("/counts", getPublicPYQCounts);
 router.post("/prelims/:questionId/submit", authenticate, submitPyqPrelimsAnswer);
 

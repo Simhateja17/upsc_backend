@@ -1,0 +1,2322 @@
+[
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 2,
+      "questionNumber": 1
+    },
+    "exam": "prelims",
+    "year": 2025,
+    "paper": "GS-I",
+    "questionNumber": 1,
+    "subject": "Medieval India",
+    "subSubject": "Cholas & South Indian Kingdoms",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "plain",
+    "question": {
+      "rawText": "Who among the following led a successful military campaign against the kingdom of Srivijaya, the powerful maritime State, which ruled the Malay Peninsula, Sumatra, Java and the neighbouring islands?",
+      "displayText": "Who among the following led a successful military campaign against the kingdom of Srivijaya, the powerful maritime State, which ruled the Malay Peninsula, Sumatra, Java and the neighbouring islands?",
+      "parts": {
+        "intro": "Who among the following led a successful military campaign against the kingdom of Srivijaya, the powerful maritime State, which ruled the Malay Peninsula, Sumatra, Java and the neighbouring islands?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Amoghavarsha (Rashtrakuta)",
+        "displayText": "Amoghavarsha (Rashtrakuta)"
+      },
+      {
+        "label": "B",
+        "rawText": "Prataparudra (Kakatiya)",
+        "displayText": "Prataparudra (Kakatiya)"
+      },
+      {
+        "label": "C",
+        "rawText": "Rajendra I (Chola)",
+        "displayText": "Rajendra I (Chola)"
+      },
+      {
+        "label": "D",
+        "rawText": "Vishnuvardhana (Hoysala)",
+        "displayText": "Vishnuvardhana (Hoysala)"
+      }
+    ],
+    "correctOption": "C",
+    "explanation": {
+      "rawText": "the correct answer is Rajendra I of the Chola dynasty.\n\nRajendra Chola I (r. c. 1014–1044 CE), the son and successor of Rajaraja I, launched a celebrated naval expedition against the Srivijaya around 1025 CE. Srivijaya was a powerful maritime empire controlling key trade routes through the Straits of Malacca and regions of Sumatra, the Malay Peninsula, and nearby islands.\n\nSignificance of the Campaign\nDemonstrated the naval strength of the Chola Empire.\nSecured Chola commercial interests in Southeast Asia.\nEnhanced Chola influence over the lucrative Indian Ocean trade network.\nEstablished Rajendra I as one of the most powerful rulers of medieval India.\nWhy the Other Rulers Are Incorrect\nAmoghavarsha I: Focused primarily on administration, literature, and Deccan politics.\nPrataparudra: His reign was centered in the Deccan and conflicts with the Delhi Sultanate.\nVishnuvardhana: Concentrated on South Indian territorial expansion and conflicts with neighboring kingdoms.\n\nTherefore, Rajendra Chola I was the ruler who led the famous naval expedition against Srivijaya.",
+      "displayText": "the correct answer is Rajendra I of the Chola dynasty.\n\nRajendra Chola I (r. c. 1014–1044 CE), the son and successor of Rajaraja I, launched a celebrated naval expedition against the Srivijaya around 1025 CE. Srivijaya was a powerful maritime empire controlling key trade routes through the Straits of Malacca and regions of Sumatra, the Malay Peninsula, and nearby islands.\n\nSignificance of the Campaign\nDemonstrated the naval strength of the Chola Empire.\nSecured Chola commercial interests in Southeast Asia.\nEnhanced Chola influence over the lucrative Indian Ocean trade network.\nEstablished Rajendra I as one of the most powerful rulers of medieval India.\nWhy the Other Rulers Are Incorrect\nAmoghavarsha I: Focused primarily on administration, literature, and Deccan politics.\nPrataparudra: His reign was centered in the Deccan and conflicts with the Delhi Sultanate.\nVishnuvardhana: Concentrated on South Indian territorial expansion and conflicts with neighboring kingdoms.\n\nTherefore, Rajendra Chola I was the ruler who led the famous naval expedition against Srivijaya.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, Rajendra Chola I was the ruler who led the famous naval expedition against Srivijaya.",
+        "paragraphs": [
+          "the correct answer is Rajendra I of the Chola dynasty.",
+          "Rajendra Chola I (r. c. 1014–1044 CE), the son and successor of Rajaraja I, launched a celebrated naval expedition against the Srivijaya around 1025 CE. Srivijaya was a powerful maritime empire controlling key trade routes through the Straits of Malacca and regions of Sumatra, the Malay Peninsula, and nearby islands.",
+          "Significance of the Campaign\nDemonstrated the naval strength of the Chola Empire.\nSecured Chola commercial interests in Southeast Asia.\nEnhanced Chola influence over the lucrative Indian Ocean trade network.\nEstablished Rajendra I as one of the most powerful rulers of medieval India.\nWhy the Other Rulers Are Incorrect\nAmoghavarsha I: Focused primarily on administration, literature, and Deccan politics.\nPrataparudra: His reign was centered in the Deccan and conflicts with the Delhi Sultanate.\nVishnuvardhana: Concentrated on South Indian territorial expansion and conflicts with neighboring kingdoms.",
+          "Therefore, Rajendra Chola I was the ruler who led the famous naval expedition against Srivijaya."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 3,
+      "questionNumber": 2
+    },
+    "exam": "prelims",
+    "year": 2024,
+    "paper": "GS-I",
+    "questionNumber": 2,
+    "subject": "Medieval India",
+    "subSubject": "Vijayanagara & Bahmani Kingdoms",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "plain",
+    "question": {
+      "rawText": "Who of the following rulers of medieval India gave permission to the Portuguese to build a fort at Bhatkal?",
+      "displayText": "Who of the following rulers of medieval India gave permission to the Portuguese to build a fort at Bhatkal?",
+      "parts": {
+        "intro": "Who of the following rulers of medieval India gave permission to the Portuguese to build a fort at Bhatkal?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Krishnadevaraya",
+        "displayText": "Krishnadevaraya"
+      },
+      {
+        "label": "B",
+        "rawText": "Narasimha Saluva",
+        "displayText": "Narasimha Saluva"
+      },
+      {
+        "label": "C",
+        "rawText": "Muhammad Shah III",
+        "displayText": "Muhammad Shah III"
+      },
+      {
+        "label": "D",
+        "rawText": "Yusuf Adil Shah",
+        "displayText": "Yusuf Adil Shah"
+      }
+    ],
+    "correctOption": "A",
+    "explanation": {
+      "rawText": "Krishnadeva Raya of the Vijayanagara Empire maintained cordial relations with the Portuguese, recognizing the benefits of maritime trade and access to horses imported through Portuguese-controlled ports. In 1510, he permitted Afonso de Albuquerque, the Portuguese Governor, to construct a fort at Bhatkal on the western coast. This reflected the cooperative relationship between Vijayanagara and the Portuguese during his reign.\n\nWhy the Other Rulers Are Incorrect\nNarasimha Saluva: Although he ruled Vijayanagara before Krishnadeva Raya, the Portuguese had only recently arrived in India after Vasco da Gama's voyage of 1498, and no such fortification arrangement is associated with his reign.\nMuhammad Shah III: He ruled before the Portuguese arrival in India; therefore, any interaction with them is historically impossible.\nYusuf Adil Shah: His relations with the Portuguese were largely hostile, especially regarding the control of Goa, which was captured by Albuquerque in 1510.\nConclusion\n\nThe ruler who permitted the Portuguese to build a fort at Bhatkal was Krishnadeva Raya (1509–1529 CE).",
+      "displayText": "Krishnadeva Raya of the Vijayanagara Empire maintained cordial relations with the Portuguese, recognizing the benefits of maritime trade and access to horses imported through Portuguese-controlled ports. In 1510, he permitted Afonso de Albuquerque, the Portuguese Governor, to construct a fort at Bhatkal on the western coast. This reflected the cooperative relationship between Vijayanagara and the Portuguese during his reign.\n\nWhy the Other Rulers Are Incorrect\nNarasimha Saluva: Although he ruled Vijayanagara before Krishnadeva Raya, the Portuguese had only recently arrived in India after Vasco da Gama's voyage of 1498, and no such fortification arrangement is associated with his reign.\nMuhammad Shah III: He ruled before the Portuguese arrival in India; therefore, any interaction with them is historically impossible.\nYusuf Adil Shah: His relations with the Portuguese were largely hostile, especially regarding the control of Goa, which was captured by Albuquerque in 1510.\nConclusion\n\nThe ruler who permitted the Portuguese to build a fort at Bhatkal was Krishnadeva Raya (1509–1529 CE).",
+      "structured": {
+        "paragraphs": [
+          "Krishnadeva Raya of the Vijayanagara Empire maintained cordial relations with the Portuguese, recognizing the benefits of maritime trade and access to horses imported through Portuguese-controlled ports. In 1510, he permitted Afonso de Albuquerque, the Portuguese Governor, to construct a fort at Bhatkal on the western coast. This reflected the cooperative relationship between Vijayanagara and the Portuguese during his reign.",
+          "Why the Other Rulers Are Incorrect\nNarasimha Saluva: Although he ruled Vijayanagara before Krishnadeva Raya, the Portuguese had only recently arrived in India after Vasco da Gama's voyage of 1498, and no such fortification arrangement is associated with his reign.\nMuhammad Shah III: He ruled before the Portuguese arrival in India; therefore, any interaction with them is historically impossible.\nYusuf Adil Shah: His relations with the Portuguese were largely hostile, especially regarding the control of Goa, which was captured by Albuquerque in 1510.\nConclusion",
+          "The ruler who permitted the Portuguese to build a fort at Bhatkal was Krishnadeva Raya (1509–1529 CE)."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 4,
+      "questionNumber": 3
+    },
+    "exam": "prelims",
+    "year": 2023,
+    "paper": "GS-I",
+    "questionNumber": 3,
+    "subject": "Medieval India",
+    "subSubject": "Early Medieval India (750–1200 AD)",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "statements_numbered",
+    "question": {
+      "rawText": "Consider the following dynasties :\n\n1.Hoysala\n2. Gahadavala\n3.Kakatiya\n4. Yadava.\n\nHow many of the above dynasties established their kingdoms in early eighth century AD?",
+      "displayText": "Consider the following dynasties :\n\n1.Hoysala\n2. Gahadavala\n3.Kakatiya\n4. Yadava.\n\nHow many of the above dynasties established their kingdoms in early eighth century AD?",
+      "parts": {
+        "intro": "Consider the following dynasties :\n\n1.Hoysala",
+        "items": [
+          {
+            "label": "2",
+            "text": "Gahadavala"
+          },
+          {
+            "label": "4",
+            "text": "Yadava."
+          }
+        ],
+        "prompt": "3.Kakatiya\n\nHow many of the above dynasties established their kingdoms in early eighth century AD?"
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Only one",
+        "displayText": "Only one"
+      },
+      {
+        "label": "B",
+        "rawText": "Only two",
+        "displayText": "Only two"
+      },
+      {
+        "label": "C",
+        "rawText": "Only three",
+        "displayText": "Only three"
+      },
+      {
+        "label": "D",
+        "rawText": "None",
+        "displayText": "None"
+      }
+    ],
+    "correctOption": "D",
+    "explanation": {
+      "rawText": "None of the listed dynasties were established in the early eighth century CE (c. 700–800 CE).\n\nDynasty Approximate Emergence\nHoysala c. 1006 CE\nGahadavala c. 1025–1030 CE\nKakatiya c. 10th–11th century CE (independent power later)\nYadava (Seuna) c. 850 CE; imperial expansion much later\n\nThus, all these dynasties belong to the later early-medieval period (9th–12th centuries) rather than the early eighth century.\n\nMajor Dynasties of the Early Eighth Century\n\nThe early eighth century witnessed the rise of three major powers that dominated Indian politics during the famous Tripartite Struggle:\n\nPala Empire – Founded by Gopala in Bengal (c. 750 CE)\nGurjara-Pratihara dynasty – Rose in western and northern India during the 8th century\nRashtrakuta dynasty – Established by Dantidurga in the Deccan around 753 CE\n\nThese three dynasties emerged during the early medieval period and competed for control of Kannauj, making them the dominant political powers of the era.\n\nTherefore, none of the Hoysala, Gahadavala, Kakatiya, or Yadava dynasties were established in the early eighth century CE.",
+      "displayText": "None of the listed dynasties were established in the early eighth century CE (c. 700–800 CE).\n\nDynasty Approximate Emergence\nHoysala c. 1006 CE\nGahadavala c. 1025–1030 CE\nKakatiya c. 10th–11th century CE (independent power later)\nYadava (Seuna) c. 850 CE; imperial expansion much later\n\nThus, all these dynasties belong to the later early-medieval period (9th–12th centuries) rather than the early eighth century.\n\nMajor Dynasties of the Early Eighth Century\n\nThe early eighth century witnessed the rise of three major powers that dominated Indian politics during the famous Tripartite Struggle:\n\nPala Empire – Founded by Gopala in Bengal (c. 750 CE)\nGurjara-Pratihara dynasty – Rose in western and northern India during the 8th century\nRashtrakuta dynasty – Established by Dantidurga in the Deccan around 753 CE\n\nThese three dynasties emerged during the early medieval period and competed for control of Kannauj, making them the dominant political powers of the era.\n\nTherefore, none of the Hoysala, Gahadavala, Kakatiya, or Yadava dynasties were established in the early eighth century CE.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Thus, all these dynasties belong to the later early-medieval period (9th–12th centuries) rather than the early eighth century.\n\nTherefore, none of the Hoysala, Gahadavala, Kakatiya, or Yadava dynasties were established in the early eighth century CE.",
+        "paragraphs": [
+          "None of the listed dynasties were established in the early eighth century CE (c. 700–800 CE).",
+          "Dynasty Approximate Emergence\nHoysala c. 1006 CE\nGahadavala c. 1025–1030 CE\nKakatiya c. 10th–11th century CE (independent power later)\nYadava (Seuna) c. 850 CE; imperial expansion much later",
+          "Thus, all these dynasties belong to the later early-medieval period (9th–12th centuries) rather than the early eighth century.",
+          "Major Dynasties of the Early Eighth Century",
+          "The early eighth century witnessed the rise of three major powers that dominated Indian politics during the famous Tripartite Struggle:",
+          "Pala Empire – Founded by Gopala in Bengal (c. 750 CE)\nGurjara-Pratihara dynasty – Rose in western and northern India during the 8th century\nRashtrakuta dynasty – Established by Dantidurga in the Deccan around 753 CE",
+          "These three dynasties emerged during the early medieval period and competed for control of Kannauj, making them the dominant political powers of the era.",
+          "Therefore, none of the Hoysala, Gahadavala, Kakatiya, or Yadava dynasties were established in the early eighth century CE."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 5,
+      "questionNumber": 4
+    },
+    "exam": "prelims",
+    "year": 2023,
+    "paper": "GS-I",
+    "questionNumber": 4,
+    "subject": "Medieval India",
+    "subSubject": "Vijayanagara & Bahmani Kingdoms",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "plain",
+    "question": {
+      "rawText": "Who among the following rulers of Vijayanagara Empire constructed a large dam across Tungabhadra River and a canal-cum-aqueduct several kilometres long from the river to the capital city?",
+      "displayText": "Who among the following rulers of Vijayanagara Empire constructed a large dam across Tungabhadra River and a canal-cum-aqueduct several kilometres long from the river to the capital city?",
+      "parts": {
+        "intro": "Who among the following rulers of Vijayanagara Empire constructed a large dam across Tungabhadra River and a canal-cum-aqueduct several kilometres long from the river to the capital city?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Devaraya I",
+        "displayText": "Devaraya I"
+      },
+      {
+        "label": "B",
+        "rawText": "Mallikatjuna",
+        "displayText": "Mallikatjuna"
+      },
+      {
+        "label": "C",
+        "rawText": "Vira Vijaya",
+        "displayText": "Vira Vijaya"
+      },
+      {
+        "label": "D",
+        "rawText": "Virupaksha",
+        "displayText": "Virupaksha"
+      }
+    ],
+    "correctOption": "A",
+    "explanation": {
+      "rawText": "Devaraya I (r. 1406–1422 CE) of the Vijayanagara Empire is credited with undertaking major irrigation works to improve agriculture and ensure a reliable water supply to the capital.\n\nAround 1410 CE, he:\n\nConstructed a barrage (dam/anicut) across the Tungabhadra River.\nCommissioned a 24-km-long aqueduct (canal) to bring water from the Tungabhadra to the capital city of Vijayanagara.\n\nThese projects significantly increased agricultural productivity, expanded cultivation, and contributed to the prosperity of the kingdom.\n\nThe Portuguese chronicler Fernao Nuniz provides valuable details about these irrigation works and their beneficial impact on the economy of Vijayanagara. His account highlights how Devaraya I's public works enhanced both revenue and urban development.\n\nTherefore, Devaraya I was the ruler who constructed the barrage across the Tungabhadra and the aqueduct to the capital, making Option (A) the correct answer.",
+      "displayText": "Devaraya I (r. 1406–1422 CE) of the Vijayanagara Empire is credited with undertaking major irrigation works to improve agriculture and ensure a reliable water supply to the capital.\n\nAround 1410 CE, he:\n\nConstructed a barrage (dam/anicut) across the Tungabhadra River.\nCommissioned a 24-km-long aqueduct (canal) to bring water from the Tungabhadra to the capital city of Vijayanagara.\n\nThese projects significantly increased agricultural productivity, expanded cultivation, and contributed to the prosperity of the kingdom.\n\nThe Portuguese chronicler Fernao Nuniz provides valuable details about these irrigation works and their beneficial impact on the economy of Vijayanagara. His account highlights how Devaraya I's public works enhanced both revenue and urban development.\n\nTherefore, Devaraya I was the ruler who constructed the barrage across the Tungabhadra and the aqueduct to the capital, making Option (A) the correct answer.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, Devaraya I was the ruler who constructed the barrage across the Tungabhadra and the aqueduct to the capital, making Option (A) the correct answer.",
+        "paragraphs": [
+          "Devaraya I (r. 1406–1422 CE) of the Vijayanagara Empire is credited with undertaking major irrigation works to improve agriculture and ensure a reliable water supply to the capital.",
+          "Around 1410 CE, he:",
+          "Constructed a barrage (dam/anicut) across the Tungabhadra River.\nCommissioned a 24-km-long aqueduct (canal) to bring water from the Tungabhadra to the capital city of Vijayanagara.",
+          "These projects significantly increased agricultural productivity, expanded cultivation, and contributed to the prosperity of the kingdom.",
+          "The Portuguese chronicler Fernao Nuniz provides valuable details about these irrigation works and their beneficial impact on the economy of Vijayanagara. His account highlights how Devaraya I's public works enhanced both revenue and urban development.",
+          "Therefore, Devaraya I was the ruler who constructed the barrage across the Tungabhadra and the aqueduct to the capital, making Option (A) the correct answer."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 6,
+      "questionNumber": 5
+    },
+    "exam": "prelims",
+    "year": 2022,
+    "paper": "GS-I",
+    "questionNumber": 5,
+    "subject": "Medieval India",
+    "subSubject": "Cholas & South Indian Kingdoms",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "plain",
+    "question": {
+      "rawText": "In medieval India, the term “Fanam” referred to:",
+      "displayText": "In medieval India, the term “Fanam” referred to:",
+      "parts": {
+        "intro": "In medieval India, the term “Fanam” referred to:",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Clothing",
+        "displayText": "Clothing"
+      },
+      {
+        "label": "B",
+        "rawText": "Coins",
+        "displayText": "Coins"
+      },
+      {
+        "label": "C",
+        "rawText": "Ornaments",
+        "displayText": "Ornaments"
+      },
+      {
+        "label": "D",
+        "rawText": "Weapons",
+        "displayText": "Weapons"
+      }
+    ],
+    "correctOption": "B",
+    "explanation": {
+      "rawText": "In medieval South India, Fanam (also spelled Panam, Phanam, or Fanon) was a small denomination coin, most commonly made of gold, though silver and other metal variants also existed in certain regions and periods.\n\nKey Features of the Fanam\nWidely used in the Vijayanagara Empire, the Nayaka kingdoms, and several Deccan states.\nServed as an important medium of exchange in local and regional trade.\nUsually minted in very small sizes and weights, making it suitable for everyday commercial transactions.\nContinued to circulate in parts of South India even under later regional powers and European trading settlements.",
+      "displayText": "In medieval South India, Fanam (also spelled Panam, Phanam, or Fanon) was a small denomination coin, most commonly made of gold, though silver and other metal variants also existed in certain regions and periods.\n\nKey Features of the Fanam\nWidely used in the Vijayanagara Empire, the Nayaka kingdoms, and several Deccan states.\nServed as an important medium of exchange in local and regional trade.\nUsually minted in very small sizes and weights, making it suitable for everyday commercial transactions.\nContinued to circulate in parts of South India even under later regional powers and European trading settlements.",
+      "structured": {
+        "paragraphs": [
+          "In medieval South India, Fanam (also spelled Panam, Phanam, or Fanon) was a small denomination coin, most commonly made of gold, though silver and other metal variants also existed in certain regions and periods.",
+          "Key Features of the Fanam\nWidely used in the Vijayanagara Empire, the Nayaka kingdoms, and several Deccan states.\nServed as an important medium of exchange in local and regional trade.\nUsually minted in very small sizes and weights, making it suitable for everyday commercial transactions.\nContinued to circulate in parts of South India even under later regional powers and European trading settlements."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 7,
+      "questionNumber": 6
+    },
+    "exam": "prelims",
+    "year": 2022,
+    "paper": "GS-I",
+    "questionNumber": 6,
+    "subject": "Medieval India",
+    "subSubject": "Delhi Sultanate (1206–1526 AD)",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "statements_numbered",
+    "question": {
+      "rawText": "With reference to Indian history, consider the following statements:\n\n1. The first Mongol invasion of India happened during the reign of Jalal-ud-din Khalji.\n\n2. During the reign of Ala-ud-din Khalji, one Mongol assault marched up to Delhi and besieged the city.\n\n3. Muhammad-bin-Tughlaq temporarily lost portions of north-west of his kingdom to Mongols.\n\nWhich of the statements given above is/are correct?",
+      "displayText": "With reference to Indian history, consider the following statements:\n1. The first Mongol invasion of India happened during the reign of Jalal-ud-din Khalji.\n2. During the reign of Ala-ud-din Khalji, one Mongol assault marched up to Delhi and besieged the city.\n3. Muhammad-bin-Tughlaq temporarily lost portions of north-west of his kingdom to Mongols.\n\nWhich of the statements given above is/are correct?",
+      "parts": {
+        "intro": "With reference to Indian history, consider the following statements:",
+        "items": [
+          {
+            "label": "1",
+            "text": "The first Mongol invasion of India happened during the reign of Jalal-ud-din Khalji."
+          },
+          {
+            "label": "2",
+            "text": "During the reign of Ala-ud-din Khalji, one Mongol assault marched up to Delhi and besieged the city."
+          },
+          {
+            "label": "3",
+            "text": "Muhammad-bin-Tughlaq temporarily lost portions of north-west of his kingdom to Mongols."
+          }
+        ],
+        "prompt": "Which of the statements given above is/are correct?"
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1 and 2",
+        "displayText": "1 and 2"
+      },
+      {
+        "label": "B",
+        "rawText": "2 only",
+        "displayText": "2 only"
+      },
+      {
+        "label": "C",
+        "rawText": "1 and 3",
+        "displayText": "1 and 3"
+      },
+      {
+        "label": "D",
+        "rawText": "3 only",
+        "displayText": "3 only"
+      }
+    ],
+    "correctOption": "B",
+    "explanation": {
+      "rawText": "Statement 1: Incorrect\n\nThe first Mongol incursion into India occurred in 1221 CE during the reign of Shamsuddin Iltutmish. It was associated with Genghis Khan pursuing Jalal al-Din Mangburni into the Indus region. This event took place decades before the reign of Jalaluddin Khalji (1290–1296).\n\nStatement 2: Correct\n\nDuring the reign of Alauddin Khalji, the Mongols launched repeated invasions. One of the most serious occurred in 1303 CE, when a large Mongol force under Targhi advanced to Delhi and besieged the city. This threat prompted Alauddin to strengthen the defenses of Delhi, including the development of Siri as a fortified military center.\n\nStatement 3: Incorrect\n\nThe Mongol invasion associated with Tarmashirin occurred during the reign of Muhammad bin Tughlaq. Although historians differ on some details, it is incorrect to state that Muhammad bin Tughlaq lost territories to the Mongols. His reign witnessed diplomatic engagement, frontier defense measures, and the ambitious but ultimately abandoned Khurasan project. No significant territorial loss to the Mongols resulted from this invasion.\n\nConclusion\nStatement 1 – Incorrect ✔️\nStatement 2 – Correct ✔️\nStatement 3 – Incorrect ✔️\n\nTherefore, only Statement 2 is correct.",
+      "displayText": "Statement 1: Incorrect\n\nThe first Mongol incursion into India occurred in 1221 CE during the reign of Shamsuddin Iltutmish. It was associated with Genghis Khan pursuing Jalal al-Din Mangburni into the Indus region. This event took place decades before the reign of Jalaluddin Khalji (1290–1296).\nStatement 2: Correct\n\nDuring the reign of Alauddin Khalji, the Mongols launched repeated invasions. One of the most serious occurred in 1303 CE, when a large Mongol force under Targhi advanced to Delhi and besieged the city. This threat prompted Alauddin to strengthen the defenses of Delhi, including the development of Siri as a fortified military center.\n\nStatement 3: Incorrect\n\nThe Mongol invasion associated with Tarmashirin occurred during the reign of Muhammad bin Tughlaq. Although historians differ on some details, it is incorrect to state that Muhammad bin Tughlaq lost territories to the Mongols. His reign witnessed diplomatic engagement, frontier defense measures, and the ambitious but ultimately abandoned Khurasan project. No significant territorial loss to the Mongols resulted from this invasion.\n\nConclusion\nStatement 1 – Incorrect ✔️\nStatement 2 – Correct ✔️\nStatement 3 – Incorrect ✔️\n\nTherefore, only Statement 2 is correct.",
+      "structured": {
+        "statement_analysis": [
+          "Statement 1: Incorrect",
+          "Statement 3: Incorrect"
+        ],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, only Statement 2 is correct.",
+        "paragraphs": [
+          "Statement 1: Incorrect",
+          "The first Mongol incursion into India occurred in 1221 CE during the reign of Shamsuddin Iltutmish. It was associated with Genghis Khan pursuing Jalal al-Din Mangburni into the Indus region. This event took place decades before the reign of Jalaluddin Khalji (1290–1296).\nStatement 2: Correct",
+          "During the reign of Alauddin Khalji, the Mongols launched repeated invasions. One of the most serious occurred in 1303 CE, when a large Mongol force under Targhi advanced to Delhi and besieged the city. This threat prompted Alauddin to strengthen the defenses of Delhi, including the development of Siri as a fortified military center.",
+          "Statement 3: Incorrect",
+          "The Mongol invasion associated with Tarmashirin occurred during the reign of Muhammad bin Tughlaq. Although historians differ on some details, it is incorrect to state that Muhammad bin Tughlaq lost territories to the Mongols. His reign witnessed diplomatic engagement, frontier defense measures, and the ambitious but ultimately abandoned Khurasan project. No significant territorial loss to the Mongols resulted from this invasion.",
+          "Conclusion\nStatement 1 – Incorrect ✔️\nStatement 2 – Correct ✔️\nStatement 3 – Incorrect ✔️",
+          "Therefore, only Statement 2 is correct."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 8,
+      "questionNumber": 7
+    },
+    "exam": "prelims",
+    "year": 2022,
+    "paper": "GS-I",
+    "questionNumber": 7,
+    "subject": "Medieval India",
+    "subSubject": "Delhi Sultanate (1206–1526 AD)",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "plain",
+    "question": {
+      "rawText": "With reference to Indian history, who of the following were known as “Kulah-Daran”?",
+      "displayText": "With reference to Indian history, who of the following were known as “Kulah-Daran”?",
+      "parts": {
+        "intro": "With reference to Indian history, who of the following were known as “Kulah-Daran”?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Arab merchants",
+        "displayText": "Arab merchants"
+      },
+      {
+        "label": "B",
+        "rawText": "Qalandars",
+        "displayText": "Qalandars"
+      },
+      {
+        "label": "C",
+        "rawText": "Persian calligraphists",
+        "displayText": "Persian calligraphists"
+      },
+      {
+        "label": "D",
+        "rawText": "Sayyids",
+        "displayText": "Sayyids"
+      }
+    ],
+    "correctOption": "D",
+    "explanation": {
+      "rawText": "The Sayyids were a prestigious group in Islamic society who claimed descent from the Prophet Muhammad through his daughter Fatimah and her husband Ali ibn Abi Talib. Because of this lineage, they enjoyed exceptional social and religious respect throughout the Islamic world, including in medieval India.\n\nDuring the invasion of India by Timur in 1398–99, contemporary accounts note that Timur generally extended protection to Sayyids despite the widespread massacres and destruction that accompanied his campaign.\n\nKulahDaran\nDuring the Delhi Sultanate period, Sayyids were often distinguished by a pointed cap (Kulah).\nOwing to this distinctive headgear, they came to be known as KulahDaran (\"wearers of the kulah\").\nThe pointed cap served as a visible symbol of their revered lineage and social status.\nUPSC Fact\n\nThe Sayyid dynasty (1414–1451), founded by Khizr Khan, derived its legitimacy partly from the claim of Sayyid ancestry, which carried considerable prestige among the Muslim population.\n\nThus, the Sayyids were respected descendants of the Prophet's family and were popularly known as KulahDaran because of their distinctive pointed caps. ✔️",
+      "displayText": "The Sayyids were a prestigious group in Islamic society who claimed descent from the Prophet Muhammad through his daughter Fatimah and her husband Ali ibn Abi Talib. Because of this lineage, they enjoyed exceptional social and religious respect throughout the Islamic world, including in medieval India.\n\nDuring the invasion of India by Timur in 1398–99, contemporary accounts note that Timur generally extended protection to Sayyids despite the widespread massacres and destruction that accompanied his campaign.\n\nKulahDaran\nDuring the Delhi Sultanate period, Sayyids were often distinguished by a pointed cap (Kulah).\nOwing to this distinctive headgear, they came to be known as KulahDaran (\"wearers of the kulah\").\nThe pointed cap served as a visible symbol of their revered lineage and social status.\nUPSC Fact\n\nThe Sayyid dynasty (1414–1451), founded by Khizr Khan, derived its legitimacy partly from the claim of Sayyid ancestry, which carried considerable prestige among the Muslim population.\n\nThus, the Sayyids were respected descendants of the Prophet's family and were popularly known as KulahDaran because of their distinctive pointed caps. ✔️",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Thus, the Sayyids were respected descendants of the Prophet's family and were popularly known as KulahDaran because of their distinctive pointed caps. ✔️",
+        "paragraphs": [
+          "The Sayyids were a prestigious group in Islamic society who claimed descent from the Prophet Muhammad through his daughter Fatimah and her husband Ali ibn Abi Talib. Because of this lineage, they enjoyed exceptional social and religious respect throughout the Islamic world, including in medieval India.",
+          "During the invasion of India by Timur in 1398–99, contemporary accounts note that Timur generally extended protection to Sayyids despite the widespread massacres and destruction that accompanied his campaign.",
+          "KulahDaran\nDuring the Delhi Sultanate period, Sayyids were often distinguished by a pointed cap (Kulah).\nOwing to this distinctive headgear, they came to be known as KulahDaran (\"wearers of the kulah\").\nThe pointed cap served as a visible symbol of their revered lineage and social status.\nUPSC Fact",
+          "The Sayyid dynasty (1414–1451), founded by Khizr Khan, derived its legitimacy partly from the claim of Sayyid ancestry, which carried considerable prestige among the Muslim population.",
+          "Thus, the Sayyids were respected descendants of the Prophet's family and were popularly known as KulahDaran because of their distinctive pointed caps. ✔️"
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 9,
+      "questionNumber": 8
+    },
+    "exam": "prelims",
+    "year": 2022,
+    "paper": "GS-I",
+    "questionNumber": 8,
+    "subject": "Medieval India",
+    "subSubject": "Early Medieval India (750–1200 AD)",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "pairs",
+    "question": {
+      "rawText": "Consider the following pairs:\n\nKing - Dynasty\n1. Nannuka - Chandela\n2. Jayashakti - Paramara\n3. Nagabhata II - Gurjara-Pratihara\n4. Bhoja - Rashtrakuta.\n\nHow many pairs given above are correctly matched?",
+      "displayText": "Consider the following pairs:\n\nKing - Dynasty\n1. Nannuka - Chandela\n2. Jayashakti - Paramara\n3. Nagabhata II - Gurjara-Pratihara\n4. Bhoja - Rashtrakuta.\n\nHow many pairs given above are correctly matched?",
+      "parts": {
+        "intro": "Consider the following pairs:\n\nKing - Dynasty",
+        "items": [
+          {
+            "label": "1",
+            "text": "Nannuka - Chandela"
+          },
+          {
+            "label": "2",
+            "text": "Jayashakti - Paramara"
+          },
+          {
+            "label": "3",
+            "text": "Nagabhata II - Gurjara-Pratihara"
+          },
+          {
+            "label": "4",
+            "text": "Bhoja - Rashtrakuta."
+          }
+        ],
+        "prompt": "How many pairs given above are correctly matched?"
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Only one pair",
+        "displayText": "Only one pair"
+      },
+      {
+        "label": "B",
+        "rawText": "Only two pairs",
+        "displayText": "Only two pairs"
+      },
+      {
+        "label": "C",
+        "rawText": "Only three pairs",
+        "displayText": "Only three pairs"
+      },
+      {
+        "label": "D",
+        "rawText": "All four pairs",
+        "displayText": "All four pairs"
+      }
+    ],
+    "correctOption": "B",
+    "explanation": {
+      "rawText": "Pair-wise Analysis\n\n1. Nannuka — Chandela Dynasty ✅ Correct\n\nNannuka is regarded as the founder of the Chandela dynasty in the Bundelkhand region.\nThe Chandelas later became famous for the temples of Khajuraho Group of Monuments.\n\n2. Jayashakti — Paramara Dynasty ❌ Incorrect\n\nJayashakti was an early ruler of the Chandela dynasty.\nHe was not associated with the Paramaras.\n\n3. Nagabhata II — Gurjara-Pratihara Dynasty ✅ Correct\n\nNagabhata II was a prominent ruler of the Gurjara-Pratihara dynasty.\nHe played an important role in expanding Pratihara power and capturing Kannauj.\n\n4. Bhoja — Rashtrakuta Dynasty ❌ Incorrect\n\nBhoja was the celebrated ruler of the Paramara dynasty.\nHe is renowned for his patronage of literature, architecture, and learning.\nHe did not belong to the Rashtrakuta dynasty.\nConclusion\n\nCorrectly matched pairs: 1 and 3 only ✔️.",
+      "displayText": "Pair-wise Analysis\n1. Nannuka — Chandela Dynasty ✅ Correct\n\nNannuka is regarded as the founder of the Chandela dynasty in the Bundelkhand region.\nThe Chandelas later became famous for the temples of Khajuraho Group of Monuments.\n2. Jayashakti — Paramara Dynasty ❌ Incorrect\n\nJayashakti was an early ruler of the Chandela dynasty.\nHe was not associated with the Paramaras.\n3. Nagabhata II — Gurjara-Pratihara Dynasty ✅ Correct\n\nNagabhata II was a prominent ruler of the Gurjara-Pratihara dynasty.\nHe played an important role in expanding Pratihara power and capturing Kannauj.\n4. Bhoja — Rashtrakuta Dynasty ❌ Incorrect\n\nBhoja was the celebrated ruler of the Paramara dynasty.\nHe is renowned for his patronage of literature, architecture, and learning.\nHe did not belong to the Rashtrakuta dynasty.\nConclusion\n\nCorrectly matched pairs: 1 and 3 only ✔️.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [
+          "Correctly matched pairs: 1 and 3 only ✔️."
+        ],
+        "option_analysis": [],
+        "conclusion": null,
+        "paragraphs": [
+          "Pair-wise Analysis\n1. Nannuka — Chandela Dynasty ✅ Correct",
+          "Nannuka is regarded as the founder of the Chandela dynasty in the Bundelkhand region.\nThe Chandelas later became famous for the temples of Khajuraho Group of Monuments.\n2. Jayashakti — Paramara Dynasty ❌ Incorrect",
+          "Jayashakti was an early ruler of the Chandela dynasty.\nHe was not associated with the Paramaras.\n3. Nagabhata II — Gurjara-Pratihara Dynasty ✅ Correct",
+          "Nagabhata II was a prominent ruler of the Gurjara-Pratihara dynasty.\nHe played an important role in expanding Pratihara power and capturing Kannauj.\n4. Bhoja — Rashtrakuta Dynasty ❌ Incorrect",
+          "Bhoja was the celebrated ruler of the Paramara dynasty.\nHe is renowned for his patronage of literature, architecture, and learning.\nHe did not belong to the Rashtrakuta dynasty.\nConclusion",
+          "Correctly matched pairs: 1 and 3 only ✔️."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 10,
+      "questionNumber": 9
+    },
+    "exam": "prelims",
+    "year": 2022,
+    "paper": "GS-I",
+    "questionNumber": 9,
+    "subject": "Medieval India",
+    "subSubject": "Bhakti & Sufi Movements",
+    "topic": null,
+    "difficulty": "Easy",
+    "format": "plain",
+    "question": {
+      "rawText": "The world’s second tallest statue in sitting pose of Ramanuja was inaugurated by the Prime Minister of India at Hyderabad recently.\n\nWhich one of the following statements correctly represents the teachings of Ramanuja?",
+      "displayText": "The world’s second tallest statue in sitting pose of Ramanuja was inaugurated by the Prime Minister of India at Hyderabad recently.\n\nWhich one of the following statements correctly represents the teachings of Ramanuja?",
+      "parts": {
+        "intro": "The world’s second tallest statue in sitting pose of Ramanuja was inaugurated by the Prime Minister of India at Hyderabad recently.\n\nWhich one of the following statements correctly represents the teachings of Ramanuja?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "The best means of salvation was devotion.",
+        "displayText": "The best means of salvation was devotion."
+      },
+      {
+        "label": "B",
+        "rawText": "Vedas are eternal, self-existent and wholly authoritative.",
+        "displayText": "Vedas are eternal, self-existent and wholly authoritative."
+      },
+      {
+        "label": "C",
+        "rawText": "Logical arguments were meant for the highest bliss.",
+        "displayText": "Logical arguments were meant for the highest bliss."
+      },
+      {
+        "label": "D",
+        "rawText": "Salvation was to be obtained through meditation.",
+        "displayText": "Salvation was to be obtained through meditation."
+      }
+    ],
+    "correctOption": "A",
+    "explanation": {
+      "rawText": "Key Teachings of Ramanujacharya\nBorn in 1017 CE at Sriperumbudur.\nPropounded Vishishtadvaita (Qualified Non-Dualism), a major school of Vedanta.\nEmphasized bhakti (devotion) to Vishnu as the principal means to attain salvation.\nAdvocated values such as compassion, humility, devotion, equality before God, and mutual respect.\nBelieved that salvation was open to all devotees irrespective of birth, thereby giving a more inclusive character to religious practice.\nBecame the foremost theologian of the Sri Vaishnavism tradition.\nImportant UPSC Nuance\n\nIt is not entirely accurate to say that Ramanuja \"revived the Bhakti Movement.\" The Bhakti tradition in South India had already been flourishing through the Alvars before him. Ramanuja's major contribution was to systematize and philosophically strengthen the Bhakti tradition, giving it a strong theological foundation.\n\nInfluence\n\nHis teachings profoundly influenced later Bhakti traditions across India and contributed to the spread of devotional movements that stressed personal devotion over ritualism and social exclusiveness. While figures such as Kabir and Meerabai belonged to different Bhakti streams, Ramanuja's emphasis on devotion and accessibility of salvation helped shape the broader Bhakti milieu that emerged across India.\n\nUPSC One-Line Takeaway\n\nRamanujacharya's central teaching was that salvation is attained through loving devotion (bhakti) to Vishnu, and that God's grace is available to all devotees regardless of social status. ✔️",
+      "displayText": "Key Teachings of Ramanujacharya\nBorn in 1017 CE at Sriperumbudur.\nPropounded Vishishtadvaita (Qualified Non-Dualism), a major school of Vedanta.\nEmphasized bhakti (devotion) to Vishnu as the principal means to attain salvation.\nAdvocated values such as compassion, humility, devotion, equality before God, and mutual respect.\nBelieved that salvation was open to all devotees irrespective of birth, thereby giving a more inclusive character to religious practice.\nBecame the foremost theologian of the Sri Vaishnavism tradition.\nImportant UPSC Nuance\n\nIt is not entirely accurate to say that Ramanuja \"revived the Bhakti Movement.\" The Bhakti tradition in South India had already been flourishing through the Alvars before him. Ramanuja's major contribution was to systematize and philosophically strengthen the Bhakti tradition, giving it a strong theological foundation.\n\nInfluence\n\nHis teachings profoundly influenced later Bhakti traditions across India and contributed to the spread of devotional movements that stressed personal devotion over ritualism and social exclusiveness. While figures such as Kabir and Meerabai belonged to different Bhakti streams, Ramanuja's emphasis on devotion and accessibility of salvation helped shape the broader Bhakti milieu that emerged across India.\n\nUPSC One-Line Takeaway\n\nRamanujacharya's central teaching was that salvation is attained through loving devotion (bhakti) to Vishnu, and that God's grace is available to all devotees regardless of social status. ✔️",
+      "structured": {
+        "paragraphs": [
+          "Key Teachings of Ramanujacharya\nBorn in 1017 CE at Sriperumbudur.\nPropounded Vishishtadvaita (Qualified Non-Dualism), a major school of Vedanta.\nEmphasized bhakti (devotion) to Vishnu as the principal means to attain salvation.\nAdvocated values such as compassion, humility, devotion, equality before God, and mutual respect.\nBelieved that salvation was open to all devotees irrespective of birth, thereby giving a more inclusive character to religious practice.\nBecame the foremost theologian of the Sri Vaishnavism tradition.\nImportant UPSC Nuance",
+          "It is not entirely accurate to say that Ramanuja \"revived the Bhakti Movement.\" The Bhakti tradition in South India had already been flourishing through the Alvars before him. Ramanuja's major contribution was to systematize and philosophically strengthen the Bhakti tradition, giving it a strong theological foundation.",
+          "Influence",
+          "His teachings profoundly influenced later Bhakti traditions across India and contributed to the spread of devotional movements that stressed personal devotion over ritualism and social exclusiveness. While figures such as Kabir and Meerabai belonged to different Bhakti streams, Ramanuja's emphasis on devotion and accessibility of salvation helped shape the broader Bhakti milieu that emerged across India.",
+          "UPSC One-Line Takeaway",
+          "Ramanujacharya's central teaching was that salvation is attained through loving devotion (bhakti) to Vishnu, and that God's grace is available to all devotees regardless of social status. ✔️"
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 11,
+      "questionNumber": 10
+    },
+    "exam": "prelims",
+    "year": 2021,
+    "paper": "GS-I",
+    "questionNumber": 10,
+    "subject": "Medieval India",
+    "subSubject": "Vijayanagara & Bahmani Kingdoms",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "plain",
+    "question": {
+      "rawText": "According to Portuguese writer Nuniz, the women in the Vijayanagara empire were experts in which the following areas?\n\n(1) Wrestling\n(2) Astrology\n(3) Accounting\n(4) Soothsaying\n\nSelect the correct answer using the code given below:",
+      "displayText": "According to Portuguese writer Nuniz, the women in the Vijayanagara empire were experts in which the following areas?\n\n(1) Wrestling\n(2) Astrology\n(3) Accounting\n(4) Soothsaying\n\nSelect the correct answer using the code given below:",
+      "parts": {
+        "intro": "According to Portuguese writer Nuniz, the women in the Vijayanagara empire were experts in which the following areas?\n\n(1) Wrestling\n\n(2) Astrology\n\n(3) Accounting\n\n(4) Soothsaying\n\nSelect the correct answer using the code given below:",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1, 2, and 3 only",
+        "displayText": "1, 2, and 3 only"
+      },
+      {
+        "label": "B",
+        "rawText": "1, 3, and 4 only",
+        "displayText": "1, 3, and 4 only"
+      },
+      {
+        "label": "C",
+        "rawText": "2 and 4 only",
+        "displayText": "2 and 4 only"
+      },
+      {
+        "label": "D",
+        "rawText": "1, 2, 3 and 4",
+        "displayText": "1, 2, 3 and 4"
+      }
+    ],
+    "correctOption": "D",
+    "explanation": {
+      "rawText": "Statement-wise Analysis\n\n1. Women were employed in the royal household ✅\n\nWomen served in various capacities within the royal establishment, including administrative, ceremonial, and security-related roles.\nAccounts of foreign travelers indicate the presence of women attendants, guards, entertainers, and officials in the palace.\n\n2. Women contributed to literature and the arts ✅\n\nThe Vijayanagara rulers, particularly Krishnadevaraya, were notable patrons of literature and learning.\nWomen poets and scholars received encouragement and patronage at the royal court.\n\n3. Women were skilled in wrestling and martial activities ✅\n\nContemporary foreign accounts mention women trained in physical exercises, wrestling, and other martial skills.\n\n4. Women worked as astrologers, accountants, and soothsayers ✅\n\nThe Portuguese chronicler Fernao Nuniz describes women engaged in occupations such as astrology, accounting, and fortune-telling, reflecting the relatively diverse roles available to women in the empire.\nHistorical Significance\n\nForeign travelers such as Domingo Paes and Nuniz provide valuable evidence that women in Vijayanagara society, especially those associated with the court, enjoyed opportunities in administration, culture, education, and specialized professions that were uncommon in many contemporary states.\n\nConclusion\n\nAll four statements are correct. Therefore, the correct answer is 1, 2, 3, and 4.",
+      "displayText": "Statement-wise Analysis\n1. Women were employed in the royal household ✅\n\nWomen served in various capacities within the royal establishment, including administrative, ceremonial, and security-related roles.\nAccounts of foreign travelers indicate the presence of women attendants, guards, entertainers, and officials in the palace.\n2. Women contributed to literature and the arts ✅\n\nThe Vijayanagara rulers, particularly Krishnadevaraya, were notable patrons of literature and learning.\nWomen poets and scholars received encouragement and patronage at the royal court.\n3. Women were skilled in wrestling and martial activities ✅\n\nContemporary foreign accounts mention women trained in physical exercises, wrestling, and other martial skills.\n4. Women worked as astrologers, accountants, and soothsayers ✅\n\nThe Portuguese chronicler Fernao Nuniz describes women engaged in occupations such as astrology, accounting, and fortune-telling, reflecting the relatively diverse roles available to women in the empire.\nHistorical Significance\n\nForeign travelers such as Domingo Paes and Nuniz provide valuable evidence that women in Vijayanagara society, especially those associated with the court, enjoyed opportunities in administration, culture, education, and specialized professions that were uncommon in many contemporary states.\n\nConclusion\n\nAll four statements are correct. Therefore, the correct answer is 1, 2, 3, and 4.",
+      "structured": {
+        "paragraphs": [
+          "Statement-wise Analysis\n1. Women were employed in the royal household ✅",
+          "Women served in various capacities within the royal establishment, including administrative, ceremonial, and security-related roles.\nAccounts of foreign travelers indicate the presence of women attendants, guards, entertainers, and officials in the palace.\n2. Women contributed to literature and the arts ✅",
+          "The Vijayanagara rulers, particularly Krishnadevaraya, were notable patrons of literature and learning.\nWomen poets and scholars received encouragement and patronage at the royal court.\n3. Women were skilled in wrestling and martial activities ✅",
+          "Contemporary foreign accounts mention women trained in physical exercises, wrestling, and other martial skills.\n4. Women worked as astrologers, accountants, and soothsayers ✅",
+          "The Portuguese chronicler Fernao Nuniz describes women engaged in occupations such as astrology, accounting, and fortune-telling, reflecting the relatively diverse roles available to women in the empire.\nHistorical Significance",
+          "Foreign travelers such as Domingo Paes and Nuniz provide valuable evidence that women in Vijayanagara society, especially those associated with the court, enjoyed opportunities in administration, culture, education, and specialized professions that were uncommon in many contemporary states.",
+          "Conclusion",
+          "All four statements are correct. Therefore, the correct answer is 1, 2, 3, and 4."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 12,
+      "questionNumber": 11
+    },
+    "exam": "prelims",
+    "year": 2021,
+    "paper": "GS-I",
+    "questionNumber": 11,
+    "subject": "Medieval India",
+    "subSubject": "Delhi Sultanate (1206–1526 AD)",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "plain",
+    "question": {
+      "rawText": "Consider the following statements:\n\n(1) It was during the reign of Iltumish that Chengiz Khan reached the Indus in pursuit of the fugitive Khwarezm prince.\n\n(2) It was during the reign of Muhammad bin Tughluq that Taimur occupied Multan and crossed the Indus.\n\n(3) It was during the reign of Deva Raya II of the Vijayanagara Empire that Vasco da Gama reached the coast of Kerala.\n\nWhich of the statements given above is/are correct?",
+      "displayText": "Consider the following statements:\n\n(1) It was during the reign of Iltumish that Chengiz Khan reached the Indus in pursuit of the fugitive Khwarezm prince.\n\n(2) It was during the reign of Muhammad bin Tughluq that Taimur occupied Multan and crossed the Indus.\n\n(3) It was during the reign of Deva Raya II of the Vijayanagara Empire that Vasco da Gama reached the coast of Kerala.\n\nWhich of the statements given above is/are correct?",
+      "parts": {
+        "intro": "Consider the following statements:\n\n(1) It was during the reign of Iltumish that Chengiz Khan reached the Indus in pursuit of the fugitive Khwarezm prince.\n\n(2) It was during the reign of Muhammad bin Tughluq that Taimur occupied Multan and crossed the Indus.\n\n(3) It was during the reign of Deva Raya II of the Vijayanagara Empire that Vasco da Gama reached the coast of Kerala.\n\nWhich of the statements given above is/are correct?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1 only",
+        "displayText": "1 only"
+      },
+      {
+        "label": "B",
+        "rawText": "1 and 2",
+        "displayText": "1 and 2"
+      },
+      {
+        "label": "C",
+        "rawText": "3 only",
+        "displayText": "3 only"
+      },
+      {
+        "label": "D",
+        "rawText": "2 and 3",
+        "displayText": "2 and 3"
+      }
+    ],
+    "correctOption": "A",
+    "explanation": {
+      "rawText": "Statement 1: Correct ✅\n\nIn 1221 CE, Genghis Khan reached the banks of the Indus River while pursuing Jalal al-Din Mangburni, the fleeing ruler of the Khwarazmian Empire.\n\nThe Delhi Sultan Shamsuddin Iltutmish wisely refused asylum to Jalal al-Din, thereby avoiding a direct confrontation with the Mongols and helping preserve the security of the Delhi Sultanate.\n\nStatement 2: Incorrect ❌\n\nTimur invaded India in 1398 CE, during the reign of Nasir-ud-Din Mahmud Shah Tughlaq, not Muhammad bin Tughluq.\n\nMuhammad bin Tughlaq died in 1351, nearly five decades before Timur's invasion.\nTimur's grandson Pir Muhammad advanced into Multan before Timur himself entered India.\nStatement 3: Incorrect ❌\n\nVasco da Gama arrived at Calicut in 1498 CE.\n\nAt that time:\n\nThe Vijayanagara throne was occupied by Immadi Narasimha of the Saluva dynasty.\nDeva Raya II had ruled much earlier (1422–1446 CE) and was not a contemporary of Vasco da Gama.\nConclusion\nStatement 1 – Correct ✅\nStatement 2 – Incorrect ❌\nStatement 3 – Incorrect ❌\n\nTherefore, only Statement 1 is correct. ✔️",
+      "displayText": "Statement 1: Correct ✅\n\nIn 1221 CE, Genghis Khan reached the banks of the Indus River while pursuing Jalal al-Din Mangburni, the fleeing ruler of the Khwarazmian Empire.\n\nThe Delhi Sultan Shamsuddin Iltutmish wisely refused asylum to Jalal al-Din, thereby avoiding a direct confrontation with the Mongols and helping preserve the security of the Delhi Sultanate.\nStatement 2: Incorrect ❌\n\nTimur invaded India in 1398 CE, during the reign of Nasir-ud-Din Mahmud Shah Tughlaq, not Muhammad bin Tughluq.\n\nMuhammad bin Tughlaq died in 1351, nearly five decades before Timur's invasion.\nTimur's grandson Pir Muhammad advanced into Multan before Timur himself entered India.\nStatement 3: Incorrect ❌\n\nVasco da Gama arrived at Calicut in 1498 CE.\n\nAt that time:\n\nThe Vijayanagara throne was occupied by Immadi Narasimha of the Saluva dynasty.\nDeva Raya II had ruled much earlier (1422–1446 CE) and was not a contemporary of Vasco da Gama.\nConclusion\nStatement 1 – Correct ✅\nStatement 2 – Incorrect ❌\nStatement 3 – Incorrect ❌\n\nTherefore, only Statement 1 is correct. ✔️",
+      "structured": {
+        "statement_analysis": [
+          "Statement 1: Correct ✅"
+        ],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, only Statement 1 is correct. ✔️",
+        "paragraphs": [
+          "Statement 1: Correct ✅",
+          "In 1221 CE, Genghis Khan reached the banks of the Indus River while pursuing Jalal al-Din Mangburni, the fleeing ruler of the Khwarazmian Empire.",
+          "The Delhi Sultan Shamsuddin Iltutmish wisely refused asylum to Jalal al-Din, thereby avoiding a direct confrontation with the Mongols and helping preserve the security of the Delhi Sultanate.\nStatement 2: Incorrect ❌",
+          "Timur invaded India in 1398 CE, during the reign of Nasir-ud-Din Mahmud Shah Tughlaq, not Muhammad bin Tughluq.",
+          "Muhammad bin Tughlaq died in 1351, nearly five decades before Timur's invasion.\nTimur's grandson Pir Muhammad advanced into Multan before Timur himself entered India.\nStatement 3: Incorrect ❌",
+          "Vasco da Gama arrived at Calicut in 1498 CE.",
+          "At that time:",
+          "The Vijayanagara throne was occupied by Immadi Narasimha of the Saluva dynasty.\nDeva Raya II had ruled much earlier (1422–1446 CE) and was not a contemporary of Vasco da Gama.\nConclusion\nStatement 1 – Correct ✅\nStatement 2 – Incorrect ❌\nStatement 3 – Incorrect ❌",
+          "Therefore, only Statement 1 is correct. ✔️"
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 13,
+      "questionNumber": 12
+    },
+    "exam": "prelims",
+    "year": 2021,
+    "paper": "GS-I",
+    "questionNumber": 12,
+    "subject": "Medieval India",
+    "subSubject": "Mughal Empire",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "plain",
+    "question": {
+      "rawText": "With reference to medieval India, which one of the following is the correct sequence in ascending order in terms of size?",
+      "displayText": "With reference to medieval India, which one of the following is the correct sequence in ascending order in terms of size?",
+      "parts": {
+        "intro": "With reference to medieval India, which one of the following is the correct sequence in ascending order in terms of size?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Paragana – Sarkar – Suba",
+        "displayText": "Paragana – Sarkar – Suba"
+      },
+      {
+        "label": "B",
+        "rawText": "Sarkar – Paragana – Suba",
+        "displayText": "Sarkar – Paragana – Suba"
+      },
+      {
+        "label": "C",
+        "rawText": "Suba – Sarkar – Paragana",
+        "displayText": "Suba – Sarkar – Paragana"
+      },
+      {
+        "label": "D",
+        "rawText": "Paragana – Suba – Sarkar",
+        "displayText": "Paragana – Suba – Sarkar"
+      }
+    ],
+    "correctOption": "A",
+    "explanation": {
+      "rawText": "Ascending Order of Administrative Divisions (Smallest to Largest)\n\nPargana → Sarkar → Suba\n\nExplanation\n\n1. Pargana ✅\n\nThe basic administrative unit above the village.\nConsisted of a group of villages.\nRevenue collection and local administration were organized at this level.\n\n2. Sarkar ✅\n\nA collection of several Parganas.\nCorresponded roughly to a district-level administrative unit.\nIntroduced and systematized during the reign of Sher Shah Suri and retained by the Mughals.\n\n3. Suba ✅\n\nThe largest provincial unit in the Mughal administrative system.\nComprised several Sarkars.\nAdministered by a Subadar (Governor).\nThe system was formally organized by Akbar.\nUPSC Administrative Hierarchy\n\nVillage → Pargana → Sarkar → Suba\n\nFor example, under the Mughal Empire:\n\nSeveral villages formed a Pargana.\nSeveral Parganas formed a Sarkar.\nSeveral Sarkars formed a Suba.\n\nTherefore, the correct ascending order of size is:\n\nPargana → Sarkar → Suba ✔️\n\nSelect 31 more words to run Humanizer.",
+      "displayText": "Ascending Order of Administrative Divisions (Smallest to Largest)\n\nPargana → Sarkar → Suba\n\nExplanation\n1. Pargana ✅\n\nThe basic administrative unit above the village.\nConsisted of a group of villages.\nRevenue collection and local administration were organized at this level.\n2. Sarkar ✅\n\nA collection of several Parganas.\nCorresponded roughly to a district-level administrative unit.\nIntroduced and systematized during the reign of Sher Shah Suri and retained by the Mughals.\n3. Suba ✅\n\nThe largest provincial unit in the Mughal administrative system.\nComprised several Sarkars.\nAdministered by a Subadar (Governor).\nThe system was formally organized by Akbar.\nUPSC Administrative Hierarchy\n\nVillage → Pargana → Sarkar → Suba\n\nFor example, under the Mughal Empire:\n\nSeveral villages formed a Pargana.\nSeveral Parganas formed a Sarkar.\nSeveral Sarkars formed a Suba.\n\nTherefore, the correct ascending order of size is:\n\nPargana → Sarkar → Suba ✔️\n\nSelect 31 more words to run Humanizer.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, the correct ascending order of size is:",
+        "paragraphs": [
+          "Ascending Order of Administrative Divisions (Smallest to Largest)",
+          "Pargana → Sarkar → Suba",
+          "Explanation\n1. Pargana ✅",
+          "The basic administrative unit above the village.\nConsisted of a group of villages.\nRevenue collection and local administration were organized at this level.\n2. Sarkar ✅",
+          "A collection of several Parganas.\nCorresponded roughly to a district-level administrative unit.\nIntroduced and systematized during the reign of Sher Shah Suri and retained by the Mughals.\n3. Suba ✅",
+          "The largest provincial unit in the Mughal administrative system.\nComprised several Sarkars.\nAdministered by a Subadar (Governor).\nThe system was formally organized by Akbar.\nUPSC Administrative Hierarchy",
+          "Village → Pargana → Sarkar → Suba",
+          "For example, under the Mughal Empire:",
+          "Several villages formed a Pargana.\nSeveral Parganas formed a Sarkar.\nSeveral Sarkars formed a Suba.",
+          "Therefore, the correct ascending order of size is:",
+          "Pargana → Sarkar → Suba ✔️",
+          "Select 31 more words to run Humanizer."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 14,
+      "questionNumber": 13
+    },
+    "exam": "prelims",
+    "year": 2021,
+    "paper": "GS-I",
+    "questionNumber": 13,
+    "subject": "Medieval India",
+    "subSubject": "Marathas & Regional States",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "plain",
+    "question": {
+      "rawText": "With reference to Indian history, which of the following statements is/are correct?\n\n(1) The Nizamat of Arcot emerged out of Hyderabad state.\n\n(2) The Mysore Kingdom emerged out of the Vijayanagara empire.\n\n(3) Rohilkhand kingdom was formed out of the territories occupied by Ahmad Shah Durrani.\n\nSelect the correct answer using the codes given below:",
+      "displayText": "With reference to Indian history, which of the following statements is/are correct?\n\n(1) The Nizamat of Arcot emerged out of Hyderabad state.\n\n(2) The Mysore Kingdom emerged out of the Vijayanagara empire.\n\n(3) Rohilkhand kingdom was formed out of the territories occupied by Ahmad Shah Durrani.\n\nSelect the correct answer using the codes given below:",
+      "parts": {
+        "intro": "With reference to Indian history, which of the following statements is/are correct?\n\n(1) The Nizamat of Arcot emerged out of Hyderabad state.\n\n(2) The Mysore Kingdom emerged out of the Vijayanagara empire.\n\n(3) Rohilkhand kingdom was formed out of the territories occupied by Ahmad Shah Durrani.\n\nSelect the correct answer using the codes given below:",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1 and 2",
+        "displayText": "1 and 2"
+      },
+      {
+        "label": "B",
+        "rawText": "2 only",
+        "displayText": "2 only"
+      },
+      {
+        "label": "C",
+        "rawText": "2 and 3",
+        "displayText": "2 and 3"
+      },
+      {
+        "label": "D",
+        "rawText": "3 only",
+        "displayText": "3 only"
+      }
+    ],
+    "correctOption": "B",
+    "explanation": {
+      "rawText": "Statement 1: Incorrect\n\nThe Nizamate of Arcot (Carnatic) was established by Aurangzeb as a Mughal administrative unit in South India. The Nawab of Arcot was initially subordinate to the Mughal system and later came under the influence of the Hyderabad State Nizam. Therefore, it did not emerge from the Hyderabad state itself.\n\nStatement 2: Correct\n\nThe Kingdom of Mysore emerged from the disintegration of the Vijayanagara Empire.\n\nThe Wodeyar dynasty initially served as feudatories of Vijayanagara.\nFollowing the Battle of Talikota and the subsequent decline of Vijayanagara power, the Wodeyars gradually asserted their independence and established Mysore as a sovereign kingdom.\nStatement 3: Incorrect\n\nRohilkhand did not emerge from the Mughal provincial structure.\n\nIt was founded by Afghan settlers known as Rohillas.\nAli Muhammad Khan consolidated power in the region during the weakening of Mughal authority in the 18th century, especially after Nader Shah's invasion of India in 1739.\nThus, Rohilkhand arose from Afghan political ascendancy rather than from a pre-existing Mughal state.\nConclusion\nStatement 1 – Incorrect\nStatement 2 – Correct\nStatement 3 – Incorrect\nTherefore, only Statement 2 is correct. ✔️",
+      "displayText": "Statement 1: Incorrect\n\nThe Nizamate of Arcot (Carnatic) was established by Aurangzeb as a Mughal administrative unit in South India. The Nawab of Arcot was initially subordinate to the Mughal system and later came under the influence of the Hyderabad State Nizam. Therefore, it did not emerge from the Hyderabad state itself.\nStatement 2: Correct\n\nThe Kingdom of Mysore emerged from the disintegration of the Vijayanagara Empire.\n\nThe Wodeyar dynasty initially served as feudatories of Vijayanagara.\nFollowing the Battle of Talikota and the subsequent decline of Vijayanagara power, the Wodeyars gradually asserted their independence and established Mysore as a sovereign kingdom.\nStatement 3: Incorrect\n\nRohilkhand did not emerge from the Mughal provincial structure.\n\nIt was founded by Afghan settlers known as Rohillas.\nAli Muhammad Khan consolidated power in the region during the weakening of Mughal authority in the 18th century, especially after Nader Shah's invasion of India in 1739.\nThus, Rohilkhand arose from Afghan political ascendancy rather than from a pre-existing Mughal state.\nConclusion\nStatement 1 – Incorrect\nStatement 2 – Correct\nStatement 3 – Incorrect\nTherefore, only Statement 2 is correct. ✔️",
+      "structured": {
+        "statement_analysis": [
+          "Statement 1: Incorrect"
+        ],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": null,
+        "paragraphs": [
+          "Statement 1: Incorrect",
+          "The Nizamate of Arcot (Carnatic) was established by Aurangzeb as a Mughal administrative unit in South India. The Nawab of Arcot was initially subordinate to the Mughal system and later came under the influence of the Hyderabad State Nizam. Therefore, it did not emerge from the Hyderabad state itself.\nStatement 2: Correct",
+          "The Kingdom of Mysore emerged from the disintegration of the Vijayanagara Empire.",
+          "The Wodeyar dynasty initially served as feudatories of Vijayanagara.\nFollowing the Battle of Talikota and the subsequent decline of Vijayanagara power, the Wodeyars gradually asserted their independence and established Mysore as a sovereign kingdom.\nStatement 3: Incorrect",
+          "Rohilkhand did not emerge from the Mughal provincial structure.",
+          "It was founded by Afghan settlers known as Rohillas.\nAli Muhammad Khan consolidated power in the region during the weakening of Mughal authority in the 18th century, especially after Nader Shah's invasion of India in 1739.\nThus, Rohilkhand arose from Afghan political ascendancy rather than from a pre-existing Mughal state.\nConclusion\nStatement 1 – Incorrect\nStatement 2 – Correct\nStatement 3 – Incorrect\nTherefore, only Statement 2 is correct. ✔️"
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 15,
+      "questionNumber": 14
+    },
+    "exam": "prelims",
+    "year": 2020,
+    "paper": "GS-I",
+    "questionNumber": 14,
+    "subject": "Medieval India",
+    "subSubject": "Early Medieval India (750–1200 AD)",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "statements_numbered",
+    "question": {
+      "rawText": "Consider the following events in the history of India :\n\n1. Rise of Pratiharas under King Bhoja\n\n2. Establishment of Pallava power under Mahendravarman – I\n\n3. Establishment of Chola power by Parantaka – I\n\n4. The Pala dynasty was founded by Gopala.\n\nWhat is the correct chronological order of the above events, starting from the earliest time?",
+      "displayText": "Consider the following events in the history of India :\n1. Rise of Pratiharas under King Bhoja\n2. Establishment of Pallava power under Mahendravarman – I\n3. Establishment of Chola power by Parantaka – I\n4. The Pala dynasty was founded by Gopala.\n\nWhat is the correct chronological order of the above events, starting from the earliest time?",
+      "parts": {
+        "intro": "Consider the following events in the history of India :",
+        "items": [
+          {
+            "label": "1",
+            "text": "Rise of Pratiharas under King Bhoja"
+          },
+          {
+            "label": "2",
+            "text": "Establishment of Pallava power under Mahendravarman – I"
+          },
+          {
+            "label": "3",
+            "text": "Establishment of Chola power by Parantaka – I"
+          },
+          {
+            "label": "4",
+            "text": "The Pala dynasty was founded by Gopala."
+          }
+        ],
+        "prompt": "What is the correct chronological order of the above events, starting from the earliest time?"
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "2-1-4-3",
+        "displayText": "2-1-4-3"
+      },
+      {
+        "label": "B",
+        "rawText": "3-1-4-2",
+        "displayText": "3-1-4-2"
+      },
+      {
+        "label": "C",
+        "rawText": "2-4-1-3",
+        "displayText": "2-4-1-3"
+      },
+      {
+        "label": "D",
+        "rawText": "3-4-1-2",
+        "displayText": "3-4-1-2"
+      }
+    ],
+    "correctOption": "C",
+    "explanation": {
+      "rawText": "Chronological Order of Rise of the Dynasties\n\nPallavas → Palas → Pratiharas → Cholas\n\nExplanation\n\n1. Pallavas (Earliest)\n\nFlourished in South India from about 3rd century CE to 9th century CE.\nImportant rulers included Mahendravarman I (c. 600–630 CE) and Narasimhavarman I.\nTheir capital was Kanchipuram.\n\n2. Palas\n\nFounded by Gopala around 750 CE in Bengal.\nBecame a major power in eastern India and patrons of Buddhism.\n\n3. Pratiharas\n\nThe Gurjara-Pratihara dynasty emerged during the 8th century.\nReached its zenith under Mihira Bhoja (c. 836–885 CE).\nPlayed a major role in the Tripartite Struggle for Kannauj.\n\n4. Cholas (Latest among the options)\n\nAlthough the Cholas existed earlier, their imperial rise began in the 9th century under Vijayalaya Chola.\nParantaka I (907–955 CE) belonged to the later phase of Chola expansion.\nThe dynasty reached its peak under Rajaraja I and Rajendra I.\nFinal Sequence\n\nPallavas → Palas → Pratiharas → Cholas ✔️",
+      "displayText": "Chronological Order of Rise of the Dynasties\n\nPallavas → Palas → Pratiharas → Cholas\n\nExplanation\n1. Pallavas (Earliest)\n\nFlourished in South India from about 3rd century CE to 9th century CE.\nImportant rulers included Mahendravarman I (c. 600–630 CE) and Narasimhavarman I.\nTheir capital was Kanchipuram.\n2. Palas\n\nFounded by Gopala around 750 CE in Bengal.\nBecame a major power in eastern India and patrons of Buddhism.\n3. Pratiharas\n\nThe Gurjara-Pratihara dynasty emerged during the 8th century.\nReached its zenith under Mihira Bhoja (c. 836–885 CE).\nPlayed a major role in the Tripartite Struggle for Kannauj.\n4. Cholas (Latest among the options)\n\nAlthough the Cholas existed earlier, their imperial rise began in the 9th century under Vijayalaya Chola.\nParantaka I (907–955 CE) belonged to the later phase of Chola expansion.\nThe dynasty reached its peak under Rajaraja I and Rajendra I.\nFinal Sequence\n\nPallavas → Palas → Pratiharas → Cholas ✔️",
+      "structured": {
+        "paragraphs": [
+          "Chronological Order of Rise of the Dynasties",
+          "Pallavas → Palas → Pratiharas → Cholas",
+          "Explanation\n1. Pallavas (Earliest)",
+          "Flourished in South India from about 3rd century CE to 9th century CE.\nImportant rulers included Mahendravarman I (c. 600–630 CE) and Narasimhavarman I.\nTheir capital was Kanchipuram.\n2. Palas",
+          "Founded by Gopala around 750 CE in Bengal.\nBecame a major power in eastern India and patrons of Buddhism.\n3. Pratiharas",
+          "The Gurjara-Pratihara dynasty emerged during the 8th century.\nReached its zenith under Mihira Bhoja (c. 836–885 CE).\nPlayed a major role in the Tripartite Struggle for Kannauj.\n4. Cholas (Latest among the options)",
+          "Although the Cholas existed earlier, their imperial rise began in the 9th century under Vijayalaya Chola.\nParantaka I (907–955 CE) belonged to the later phase of Chola expansion.\nThe dynasty reached its peak under Rajaraja I and Rajendra I.\nFinal Sequence",
+          "Pallavas → Palas → Pratiharas → Cholas ✔️"
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 16,
+      "questionNumber": 15
+    },
+    "exam": "prelims",
+    "year": 2020,
+    "paper": "GS-I",
+    "questionNumber": 15,
+    "subject": "Medieval India",
+    "subSubject": "Early Medieval India (750–1200 AD)",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "plain",
+    "question": {
+      "rawText": "Which of the following phrases defines the nature of the 'Hundi' generally referred to in the sources of the post-Harsha period?",
+      "displayText": "Which of the following phrases defines the nature of the 'Hundi' generally referred to in the sources of the post-Harsha period?",
+      "parts": {
+        "intro": "Which of the following phrases defines the nature of the 'Hundi' generally referred to in the sources of the post-Harsha period?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "(a) An advisory issued by the king to his subordinates",
+        "displayText": "An advisory issued by the king to his subordinates"
+      },
+      {
+        "label": "B",
+        "rawText": "(b) A diary to be maintained for daily accounts",
+        "displayText": "A diary to be maintained for daily accounts"
+      },
+      {
+        "label": "C",
+        "rawText": "(c) A bill of exchange",
+        "displayText": "A bill of exchange"
+      },
+      {
+        "label": "D",
+        "rawText": "(d) An order from the feudal lord to his subordinates",
+        "displayText": "An order from the feudal lord to his subordinates"
+      }
+    ],
+    "correctOption": "C",
+    "explanation": {
+      "rawText": "The phrase that most accurately describes a Hundi in the post-Harsha period is “a bill of exchange.”\n\nA Hundi was an important financial instrument widely used in medieval Indian trade and commerce. It facilitated the transfer of money, settlement of accounts, and extension of credit across different regions, making long-distance trade more secure and efficient.\n\nLike a modern bill of exchange, a Hundi was a written order directing a person or agency to pay a specified sum to another person, either immediately or at a future date. This allowed merchants to conduct transactions without physically transporting large amounts of cash.\n\nMerchants used Hundis for several purposes:\n\nFacilitating payments: A trader could issue a Hundi to a seller, directing an agent or banker in another town to make the payment.\nObtaining credit: Traders could draw Hundis against expected future income and have them discounted by bankers or moneylenders in return for immediate funds.\nEnsuring security in trade: By reducing the need to carry cash over long distances, Hundis minimized the risks of theft and loss.\n\nThe widespread use of Hundis reflects the sophistication of India's commercial and banking practices during the early medieval period.\n\nTherefore, a Hundi is best understood as a bill of exchange used for trade, credit, and money transfer.",
+      "displayText": "The phrase that most accurately describes a Hundi in the post-Harsha period is “a bill of exchange.”\n\nA Hundi was an important financial instrument widely used in medieval Indian trade and commerce. It facilitated the transfer of money, settlement of accounts, and extension of credit across different regions, making long-distance trade more secure and efficient.\n\nLike a modern bill of exchange, a Hundi was a written order directing a person or agency to pay a specified sum to another person, either immediately or at a future date. This allowed merchants to conduct transactions without physically transporting large amounts of cash.\n\nMerchants used Hundis for several purposes:\n\nFacilitating payments: A trader could issue a Hundi to a seller, directing an agent or banker in another town to make the payment.\nObtaining credit: Traders could draw Hundis against expected future income and have them discounted by bankers or moneylenders in return for immediate funds.\nEnsuring security in trade: By reducing the need to carry cash over long distances, Hundis minimized the risks of theft and loss.\n\nThe widespread use of Hundis reflects the sophistication of India's commercial and banking practices during the early medieval period.\n\nTherefore, a Hundi is best understood as a bill of exchange used for trade, credit, and money transfer.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, a Hundi is best understood as a bill of exchange used for trade, credit, and money transfer.",
+        "paragraphs": [
+          "The phrase that most accurately describes a Hundi in the post-Harsha period is “a bill of exchange.”",
+          "A Hundi was an important financial instrument widely used in medieval Indian trade and commerce. It facilitated the transfer of money, settlement of accounts, and extension of credit across different regions, making long-distance trade more secure and efficient.",
+          "Like a modern bill of exchange, a Hundi was a written order directing a person or agency to pay a specified sum to another person, either immediately or at a future date. This allowed merchants to conduct transactions without physically transporting large amounts of cash.",
+          "Merchants used Hundis for several purposes:",
+          "Facilitating payments: A trader could issue a Hundi to a seller, directing an agent or banker in another town to make the payment.\nObtaining credit: Traders could draw Hundis against expected future income and have them discounted by bankers or moneylenders in return for immediate funds.\nEnsuring security in trade: By reducing the need to carry cash over long distances, Hundis minimized the risks of theft and loss.",
+          "The widespread use of Hundis reflects the sophistication of India's commercial and banking practices during the early medieval period.",
+          "Therefore, a Hundi is best understood as a bill of exchange used for trade, credit, and money transfer."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 17,
+      "questionNumber": 16
+    },
+    "exam": "prelims",
+    "year": 2019,
+    "paper": "GS-I",
+    "questionNumber": 16,
+    "subject": "Medieval India",
+    "subSubject": "Mughal Empire",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "statements_numbered",
+    "question": {
+      "rawText": "With reference to Mughal India, what is/are the difference/differences between Jagirdar and Zamindar?\n\n1. Jagirdars were holders of land assignments in lieu of judicial and police duties, whereas Zamindars were holders of revenue rights without obligation to perform any duty other than revenue collection.\n\n2. Land assignments to Jagirdars were hereditary and revenue rights of Zamindars were not hereditary.\n\nSelect the correct answer using the code given below.",
+      "displayText": "With reference to Mughal India, what is/are the difference/differences between Jagirdar and Zamindar?\n1. Jagirdars were holders of land assignments in lieu of judicial and police duties, whereas Zamindars were holders of revenue rights without obligation to perform any duty other than revenue collection.\n2. Land assignments to Jagirdars were hereditary and revenue rights of Zamindars were not hereditary.\n\nSelect the correct answer using the code given below.",
+      "parts": {
+        "intro": "With reference to Mughal India, what is/are the difference/differences between Jagirdar and Zamindar?",
+        "items": [
+          {
+            "label": "1",
+            "text": "Jagirdars were holders of land assignments in lieu of judicial and police duties, whereas Zamindars were holders of revenue rights without obligation to perform any duty other than revenue collection."
+          },
+          {
+            "label": "2",
+            "text": "Land assignments to Jagirdars were hereditary and revenue rights of Zamindars were not hereditary."
+          }
+        ],
+        "prompt": "Select the correct answer using the code given below."
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1 only",
+        "displayText": "1 only"
+      },
+      {
+        "label": "B",
+        "rawText": "2 only",
+        "displayText": "2 only"
+      },
+      {
+        "label": "C",
+        "rawText": "Both 1 and 2",
+        "displayText": "Both 1 and 2"
+      },
+      {
+        "label": "D",
+        "rawText": "Neither 1 nor 2",
+        "displayText": "Neither 1 nor 2"
+      }
+    ],
+    "correctOption": "D",
+    "explanation": {
+      "rawText": "Statement 1: Incorrect\n\nThe distinction between Jagirdars and Zamindars is more nuanced.\n\nJagirdars were Mughal Mansabdars who received Jagirs (revenue assignments) in lieu of salary for their civil and military services.\nZamindars were hereditary local chiefs, landed magnates, or intermediaries with customary rights over land and revenue collection.\nHowever, Zamindars were not merely revenue collectors. They often maintained armed retainers, exercised local authority, and rendered Khidmat (service) to the state, including military assistance when required.\n\nTherefore, any statement limiting Zamindars solely to revenue collection is incorrect.\n\nStatement 2: Incorrect\n\nThe hereditary character of the two institutions was fundamentally different.\n\nJagirs were not hereditary. Mughal emperors frequently transferred Jagirdars from one assignment to another to prevent the emergence of entrenched local power bases.\nZamindari rights were generally hereditary, passing from one generation to the next and rooted in local social and political authority.\nUPSC Quick Comparison\nFeature\tJagirdar\tZamindar\nBasis of authority\tImperial appointment\tHereditary local rights\nNature of holding\tJagir (revenue assignment)\tZamindari rights over land/revenue\nHereditary?\tNo\tGenerally yes\nTransferable?\tFrequently transferred\tNot normally transferred\nMilitary role\tAs Mansabdar, maintained troops\tCould provide troops and local service\nConclusion\nStatement 1 – Incorrect\nStatement 2 – Incorrect\n\nTherefore, both statements are incorrect. ✔️",
+      "displayText": "Statement 1: Incorrect\n\nThe distinction between Jagirdars and Zamindars is more nuanced.\n\nJagirdars were Mughal Mansabdars who received Jagirs (revenue assignments) in lieu of salary for their civil and military services.\nZamindars were hereditary local chiefs, landed magnates, or intermediaries with customary rights over land and revenue collection.\nHowever, Zamindars were not merely revenue collectors. They often maintained armed retainers, exercised local authority, and rendered Khidmat (service) to the state, including military assistance when required.\n\nTherefore, any statement limiting Zamindars solely to revenue collection is incorrect.\nStatement 2: Incorrect\n\nThe hereditary character of the two institutions was fundamentally different.\n\nJagirs were not hereditary. Mughal emperors frequently transferred Jagirdars from one assignment to another to prevent the emergence of entrenched local power bases.\nZamindari rights were generally hereditary, passing from one generation to the next and rooted in local social and political authority.\nUPSC Quick Comparison\nFeature\tJagirdar\tZamindar\nBasis of authority\tImperial appointment\tHereditary local rights\nNature of holding\tJagir (revenue assignment)\tZamindari rights over land/revenue\nHereditary?\tNo\tGenerally yes\nTransferable?\tFrequently transferred\tNot normally transferred\nMilitary role\tAs Mansabdar, maintained troops\tCould provide troops and local service\nConclusion\nStatement 1 – Incorrect\nStatement 2 – Incorrect\n\nTherefore, both statements are incorrect. ✔️",
+      "structured": {
+        "statement_analysis": [
+          "Statement 1: Incorrect"
+        ],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, any statement limiting Zamindars solely to revenue collection is incorrect.\nStatement 2: Incorrect\n\nTherefore, both statements are incorrect. ✔️",
+        "paragraphs": [
+          "Statement 1: Incorrect",
+          "The distinction between Jagirdars and Zamindars is more nuanced.",
+          "Jagirdars were Mughal Mansabdars who received Jagirs (revenue assignments) in lieu of salary for their civil and military services.\nZamindars were hereditary local chiefs, landed magnates, or intermediaries with customary rights over land and revenue collection.\nHowever, Zamindars were not merely revenue collectors. They often maintained armed retainers, exercised local authority, and rendered Khidmat (service) to the state, including military assistance when required.",
+          "Therefore, any statement limiting Zamindars solely to revenue collection is incorrect.\nStatement 2: Incorrect",
+          "The hereditary character of the two institutions was fundamentally different.",
+          "Jagirs were not hereditary. Mughal emperors frequently transferred Jagirdars from one assignment to another to prevent the emergence of entrenched local power bases.\nZamindari rights were generally hereditary, passing from one generation to the next and rooted in local social and political authority.\nUPSC Quick Comparison\nFeature\tJagirdar\tZamindar\nBasis of authority\tImperial appointment\tHereditary local rights\nNature of holding\tJagir (revenue assignment)\tZamindari rights over land/revenue\nHereditary?\tNo\tGenerally yes\nTransferable?\tFrequently transferred\tNot normally transferred\nMilitary role\tAs Mansabdar, maintained troops\tCould provide troops and local service\nConclusion\nStatement 1 – Incorrect\nStatement 2 – Incorrect",
+          "Therefore, both statements are incorrect. ✔️"
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 18,
+      "questionNumber": 17
+    },
+    "exam": "prelims",
+    "year": 2019,
+    "paper": "GS-I",
+    "questionNumber": 17,
+    "subject": "Medieval India",
+    "subSubject": "Delhi Sultanate (1206–1526 AD)",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "statements_numbered",
+    "question": {
+      "rawText": "Consider the following statements:\n\n1. In the revenue administration of Delhi Sultanate, the in-charge of revenue collection was known as ‘Amil’.\n\n2. The lqta system of Sultans of Delhi was an ancient indigenous institution.\n\n3. The office of ‘Mir Bakshi’ came into existence during the reign of Khalji Sultans of Delhi.\n\nWhich of the statements given above is/are correct?",
+      "displayText": "Consider the following statements:\n1. In the revenue administration of Delhi Sultanate, the in-charge of revenue collection was known as ‘Amil’.\n2. The lqta system of Sultans of Delhi was an ancient indigenous institution.\n3. The office of ‘Mir Bakshi’ came into existence during the reign of Khalji Sultans of Delhi.\n\nWhich of the statements given above is/are correct?",
+      "parts": {
+        "intro": "Consider the following statements:",
+        "items": [
+          {
+            "label": "1",
+            "text": "In the revenue administration of Delhi Sultanate, the in-charge of revenue collection was known as ‘Amil’."
+          },
+          {
+            "label": "2",
+            "text": "The lqta system of Sultans of Delhi was an ancient indigenous institution."
+          },
+          {
+            "label": "3",
+            "text": "The office of ‘Mir Bakshi’ came into existence during the reign of Khalji Sultans of Delhi."
+          }
+        ],
+        "prompt": "Which of the statements given above is/are correct?"
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1 only",
+        "displayText": "1 only"
+      },
+      {
+        "label": "B",
+        "rawText": "1 and 2 only",
+        "displayText": "1 and 2 only"
+      },
+      {
+        "label": "C",
+        "rawText": "3 only",
+        "displayText": "3 only"
+      },
+      {
+        "label": "D",
+        "rawText": "1, 2 and 3",
+        "displayText": "1, 2 and 3"
+      }
+    ],
+    "correctOption": "A",
+    "explanation": {
+      "rawText": "Statement 1: Correct\n\nThe Amil was an important revenue official in the Delhi Sultanate.\n\nThe Amil was responsible for the assessment and collection of land revenue.\nHe supervised local revenue administration and ensured that the state's share was collected efficiently.\nStatement 2: Incorrect\n\nThe Iqta system was not an indigenous Indian institution.\n\nIt originated in the Islamic-Persian administrative tradition and was widely used in West and Central Asia before its introduction into India.\nThe system was brought to India by the Ghurid Empire and developed further under the Delhi Sultans.\nUnder this arrangement, revenue assignments (Iqtas) were granted to officials and military commanders in lieu of salary.\nStatement 3: Incorrect\n\nThe office of Mir Bakshi belonged to the Mughal administrative system, not the Delhi Sultanate.\n\nThe Mir Bakshi was a high-ranking military officer under the Mughal Empire.\nHe supervised military recruitment, maintained the mansabdari records, and handled matters related to the imperial army.\nThe office became prominent during the reign of Akbar, not during the Khalji period.\nConclusion\nStatement 1 – Correct\nStatement 2 – Incorrect\nStatement 3 – Incorrect\n\nTherefore, only Statement 1 is correct. ✔️",
+      "displayText": "Statement 1: Correct\n\nThe Amil was an important revenue official in the Delhi Sultanate.\n\nThe Amil was responsible for the assessment and collection of land revenue.\nHe supervised local revenue administration and ensured that the state's share was collected efficiently.\nStatement 2: Incorrect\n\nThe Iqta system was not an indigenous Indian institution.\n\nIt originated in the Islamic-Persian administrative tradition and was widely used in West and Central Asia before its introduction into India.\nThe system was brought to India by the Ghurid Empire and developed further under the Delhi Sultans.\nUnder this arrangement, revenue assignments (Iqtas) were granted to officials and military commanders in lieu of salary.\nStatement 3: Incorrect\n\nThe office of Mir Bakshi belonged to the Mughal administrative system, not the Delhi Sultanate.\n\nThe Mir Bakshi was a high-ranking military officer under the Mughal Empire.\nHe supervised military recruitment, maintained the mansabdari records, and handled matters related to the imperial army.\nThe office became prominent during the reign of Akbar, not during the Khalji period.\nConclusion\nStatement 1 – Correct\nStatement 2 – Incorrect\nStatement 3 – Incorrect\n\nTherefore, only Statement 1 is correct. ✔️",
+      "structured": {
+        "statement_analysis": [
+          "Statement 1: Correct"
+        ],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, only Statement 1 is correct. ✔️",
+        "paragraphs": [
+          "Statement 1: Correct",
+          "The Amil was an important revenue official in the Delhi Sultanate.",
+          "The Amil was responsible for the assessment and collection of land revenue.\nHe supervised local revenue administration and ensured that the state's share was collected efficiently.\nStatement 2: Incorrect",
+          "The Iqta system was not an indigenous Indian institution.",
+          "It originated in the Islamic-Persian administrative tradition and was widely used in West and Central Asia before its introduction into India.\nThe system was brought to India by the Ghurid Empire and developed further under the Delhi Sultans.\nUnder this arrangement, revenue assignments (Iqtas) were granted to officials and military commanders in lieu of salary.\nStatement 3: Incorrect",
+          "The office of Mir Bakshi belonged to the Mughal administrative system, not the Delhi Sultanate.",
+          "The Mir Bakshi was a high-ranking military officer under the Mughal Empire.\nHe supervised military recruitment, maintained the mansabdari records, and handled matters related to the imperial army.\nThe office became prominent during the reign of Akbar, not during the Khalji period.\nConclusion\nStatement 1 – Correct\nStatement 2 – Incorrect\nStatement 3 – Incorrect",
+          "Therefore, only Statement 1 is correct. ✔️"
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 19,
+      "questionNumber": 18
+    },
+    "exam": "prelims",
+    "year": 2019,
+    "paper": "GS-I",
+    "questionNumber": 18,
+    "subject": "Medieval India",
+    "subSubject": "Bhakti & Sufi Movements",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "statements_numbered",
+    "question": {
+      "rawText": "Consider the following statements:\n\n1. Saint Nimbarka was a contemporary of Akbar.\n\n2. Saint Kabir was greatly influenced by Shaikh Ahmad Sirhindi.\n\nWhich of the statements given above is/are correct?",
+      "displayText": "Consider the following statements:\n1. Saint Nimbarka was a contemporary of Akbar.\n2. Saint Kabir was greatly influenced by Shaikh Ahmad Sirhindi.\n\nWhich of the statements given above is/are correct?",
+      "parts": {
+        "intro": "Consider the following statements:",
+        "items": [
+          {
+            "label": "1",
+            "text": "Saint Nimbarka was a contemporary of Akbar."
+          },
+          {
+            "label": "2",
+            "text": "Saint Kabir was greatly influenced by Shaikh Ahmad Sirhindi."
+          }
+        ],
+        "prompt": "Which of the statements given above is/are correct?"
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1 only",
+        "displayText": "1 only"
+      },
+      {
+        "label": "B",
+        "rawText": "2 only",
+        "displayText": "2 only"
+      },
+      {
+        "label": "C",
+        "rawText": "Both 1 and 2",
+        "displayText": "Both 1 and 2"
+      },
+      {
+        "label": "D",
+        "rawText": "Neither 1 nor 2",
+        "displayText": "Neither 1 nor 2"
+      }
+    ],
+    "correctOption": "D",
+    "explanation": {
+      "rawText": "Statement 1: Incorrect\nNimbarka was a major exponent of the Dvaitadvaita (Dualistic Non-dualism) school of Vedanta and is associated with the worship of Radha-Krishna.\n\nHe is generally placed around the 11th–12th century CE (though dates are debated).\nHe lived several centuries before Akbar (1542–1605).\nTherefore, any statement suggesting that Nimbarka was a contemporary of Akbar is incorrect.\nStatement 2: Incorrect\n\nKabir (c. 15th century) and Ahmad Sirhindi (1564–1624) did not belong to the same period.\n\nKabir is associated with the Bhakti movement and lived roughly between the late 14th and early 16th centuries.\nAhmad Sirhindi lived later, during the reigns of Akbar and Jahangir, and is known for opposing Akbar's religious policies.\nHence, they were not contemporaries.\nUPSC Timeline Snapshot\nPersonality\tPeriod\nNimbarka\tc. 11th–12th century\nKabir\tc. 1398–1518\nAkbar\t1542–1605\nAhmad Sirhindi\t1564–1624\nConclusion\nStatement 1 – Incorrect\nStatement 2 – Incorrect\n\nTherefore, neither statement is correct (Option 4).",
+      "displayText": "Statement 1: Incorrect\nNimbarka was a major exponent of the Dvaitadvaita (Dualistic Non-dualism) school of Vedanta and is associated with the worship of Radha-Krishna.\n\nHe is generally placed around the 11th–12th century CE (though dates are debated).\nHe lived several centuries before Akbar (1542–1605).\nTherefore, any statement suggesting that Nimbarka was a contemporary of Akbar is incorrect.\nStatement 2: Incorrect\n\nKabir (c. 15th century) and Ahmad Sirhindi (1564–1624) did not belong to the same period.\n\nKabir is associated with the Bhakti movement and lived roughly between the late 14th and early 16th centuries.\nAhmad Sirhindi lived later, during the reigns of Akbar and Jahangir, and is known for opposing Akbar's religious policies.\nHence, they were not contemporaries.\nUPSC Timeline Snapshot\nPersonality\tPeriod\nNimbarka\tc. 11th–12th century\nKabir\tc. 1398–1518\nAkbar\t1542–1605\nAhmad Sirhindi\t1564–1624\nConclusion\nStatement 1 – Incorrect\nStatement 2 – Incorrect\n\nTherefore, neither statement is correct (Option 4).",
+      "structured": {
+        "statement_analysis": [
+          "Statement 1: Incorrect\nNimbarka was a major exponent of the Dvaitadvaita (Dualistic Non-dualism) school of Vedanta and is associated with the worship of Radha-Krishna."
+        ],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, neither statement is correct (Option 4).",
+        "paragraphs": [
+          "Statement 1: Incorrect\nNimbarka was a major exponent of the Dvaitadvaita (Dualistic Non-dualism) school of Vedanta and is associated with the worship of Radha-Krishna.",
+          "He is generally placed around the 11th–12th century CE (though dates are debated).\nHe lived several centuries before Akbar (1542–1605).\nTherefore, any statement suggesting that Nimbarka was a contemporary of Akbar is incorrect.\nStatement 2: Incorrect",
+          "Kabir (c. 15th century) and Ahmad Sirhindi (1564–1624) did not belong to the same period.",
+          "Kabir is associated with the Bhakti movement and lived roughly between the late 14th and early 16th centuries.\nAhmad Sirhindi lived later, during the reigns of Akbar and Jahangir, and is known for opposing Akbar's religious policies.\nHence, they were not contemporaries.\nUPSC Timeline Snapshot\nPersonality\tPeriod\nNimbarka\tc. 11th–12th century\nKabir\tc. 1398–1518\nAkbar\t1542–1605\nAhmad Sirhindi\t1564–1624\nConclusion\nStatement 1 – Incorrect\nStatement 2 – Incorrect",
+          "Therefore, neither statement is correct (Option 4)."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 20,
+      "questionNumber": 19
+    },
+    "exam": "prelims",
+    "year": 2019,
+    "paper": "GS-I",
+    "questionNumber": 19,
+    "subject": "Medieval India",
+    "subSubject": "Mughal Empire",
+    "topic": null,
+    "difficulty": "Easy",
+    "format": "plain",
+    "question": {
+      "rawText": "With reference to Mian Tansen, which one of the following statements is not correct?",
+      "displayText": "With reference to Mian Tansen, which one of the following statements is not correct?",
+      "parts": {
+        "intro": "With reference to Mian Tansen, which one of the following statements is not correct?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Tansen was the title given to him by Emperor Akbar.",
+        "displayText": "Tansen was the title given to him by Emperor Akbar."
+      },
+      {
+        "label": "B",
+        "rawText": "Tansen composed Dhrupads on Hindu gods and goddesses.",
+        "displayText": "Tansen composed Dhrupads on Hindu gods and goddesses."
+      },
+      {
+        "label": "C",
+        "rawText": "Tansen composed songs on his patrons.",
+        "displayText": "Tansen composed songs on his patrons."
+      },
+      {
+        "label": "D",
+        "rawText": "Tansen invented many Ragas.",
+        "displayText": "Tansen invented many Ragas."
+      }
+    ],
+    "correctOption": "A",
+    "explanation": {
+      "rawText": "Tansen (originally Ramtanu Pandey) was one of the greatest musicians of medieval India and one of the Navaratnas of Akbar's court.\n\nHe initially served in the court of Raja Ramchandra Singh Baghela (often referred to as Bandhavgarh/Rewa).\nThe title \"Mian Tansen\" was bestowed by Akbar. Some traditions associate the honorific \"Tansen\" with Vikramaditya of Gwalior, but for UPSC purposes, the accepted fact is that Tansen became famous through Akbar's patronage.\nAnalysis of the Statements\n\n1. Tansen was given the title by Raja Vikramjit of Gwalior Incorrect\n\nThis is not accepted as a standard historical fact in most UPSC sources.\nTansen is primarily known as Akbar's court musician and was honored with the title \"Mian.\"\n\n2. Tansen composed Dhrupads Correct\n\nHe is closely associated with the Dhrupad style of Hindustani classical music.\nSeveral compositions attributed to him are devotional in nature.\n\n3. Tansen composed songs in praise of his patrons, including Akbar Correct\n\nCourt musicians commonly composed works honoring their patrons.\nTansen composed pieces dedicated to Akbar as well as devotional themes.\n\n4. Tansen is credited with creating or popularizing several ragas Correct\n\nHe is traditionally associated with ragas such as Miyan ki Todi, Miyan ki Malhar, and Darbari Kanada.\nHistorians generally prefer the phrase \"innovated or popularized\" rather than definitively \"invented.\"\nUPSC Takeaway\n\nTansen is remembered as:\n\nA leading exponent of Dhrupad.\nOne of Akbar's Navaratnas.\nA musician associated with the development and popularization of several important Hindustani ragas.\n\nTherefore, Statement 1 is incorrect, while Statements 2, 3, and 4 are correct.",
+      "displayText": "Tansen (originally Ramtanu Pandey) was one of the greatest musicians of medieval India and one of the Navaratnas of Akbar's court.\n\nHe initially served in the court of Raja Ramchandra Singh Baghela (often referred to as Bandhavgarh/Rewa).\nThe title \"Mian Tansen\" was bestowed by Akbar. Some traditions associate the honorific \"Tansen\" with Vikramaditya of Gwalior, but for UPSC purposes, the accepted fact is that Tansen became famous through Akbar's patronage.\nAnalysis of the Statements\n1. Tansen was given the title by Raja Vikramjit of Gwalior Incorrect\n\nThis is not accepted as a standard historical fact in most UPSC sources.\nTansen is primarily known as Akbar's court musician and was honored with the title \"Mian.\"\n2. Tansen composed Dhrupads Correct\n\nHe is closely associated with the Dhrupad style of Hindustani classical music.\nSeveral compositions attributed to him are devotional in nature.\n3. Tansen composed songs in praise of his patrons, including Akbar Correct\n\nCourt musicians commonly composed works honoring their patrons.\nTansen composed pieces dedicated to Akbar as well as devotional themes.\n4. Tansen is credited with creating or popularizing several ragas Correct\n\nHe is traditionally associated with ragas such as Miyan ki Todi, Miyan ki Malhar, and Darbari Kanada.\nHistorians generally prefer the phrase \"innovated or popularized\" rather than definitively \"invented.\"\nUPSC Takeaway\n\nTansen is remembered as:\n\nA leading exponent of Dhrupad.\nOne of Akbar's Navaratnas.\nA musician associated with the development and popularization of several important Hindustani ragas.\n\nTherefore, Statement 1 is incorrect, while Statements 2, 3, and 4 are correct.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, Statement 1 is incorrect, while Statements 2, 3, and 4 are correct.",
+        "paragraphs": [
+          "Tansen (originally Ramtanu Pandey) was one of the greatest musicians of medieval India and one of the Navaratnas of Akbar's court.",
+          "He initially served in the court of Raja Ramchandra Singh Baghela (often referred to as Bandhavgarh/Rewa).\nThe title \"Mian Tansen\" was bestowed by Akbar. Some traditions associate the honorific \"Tansen\" with Vikramaditya of Gwalior, but for UPSC purposes, the accepted fact is that Tansen became famous through Akbar's patronage.\nAnalysis of the Statements\n1. Tansen was given the title by Raja Vikramjit of Gwalior Incorrect",
+          "This is not accepted as a standard historical fact in most UPSC sources.\nTansen is primarily known as Akbar's court musician and was honored with the title \"Mian.\"\n2. Tansen composed Dhrupads Correct",
+          "He is closely associated with the Dhrupad style of Hindustani classical music.\nSeveral compositions attributed to him are devotional in nature.\n3. Tansen composed songs in praise of his patrons, including Akbar Correct",
+          "Court musicians commonly composed works honoring their patrons.\nTansen composed pieces dedicated to Akbar as well as devotional themes.\n4. Tansen is credited with creating or popularizing several ragas Correct",
+          "He is traditionally associated with ragas such as Miyan ki Todi, Miyan ki Malhar, and Darbari Kanada.\nHistorians generally prefer the phrase \"innovated or popularized\" rather than definitively \"invented.\"\nUPSC Takeaway",
+          "Tansen is remembered as:",
+          "A leading exponent of Dhrupad.\nOne of Akbar's Navaratnas.\nA musician associated with the development and popularization of several important Hindustani ragas.",
+          "Therefore, Statement 1 is incorrect, while Statements 2, 3, and 4 are correct."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 21,
+      "questionNumber": 20
+    },
+    "exam": "prelims",
+    "year": 2019,
+    "paper": "GS-I",
+    "questionNumber": 20,
+    "subject": "Medieval India",
+    "subSubject": "Mughal Empire",
+    "topic": null,
+    "difficulty": "Easy",
+    "format": "plain",
+    "question": {
+      "rawText": "Who among the following Mughal Emperors shifted emphasis from illustrated manuscripts to album and individual portrait?",
+      "displayText": "Who among the following Mughal Emperors shifted emphasis from illustrated manuscripts to album and individual portrait?",
+      "parts": {
+        "intro": "Who among the following Mughal Emperors shifted emphasis from illustrated manuscripts to album and individual portrait?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Humayun",
+        "displayText": "Humayun"
+      },
+      {
+        "label": "B",
+        "rawText": "Akbar",
+        "displayText": "Akbar"
+      },
+      {
+        "label": "C",
+        "rawText": "Jahangir",
+        "displayText": "Jahangir"
+      },
+      {
+        "label": "D",
+        "rawText": "Shah Jahan",
+        "displayText": "Shah Jahan"
+      }
+    ],
+    "correctOption": "C",
+    "explanation": {
+      "rawText": "Mughal Painting under Akbar and Jahangir\nAkbar's Reign (1556–1605)\n\nDuring the reign of Akbar, Mughal painting witnessed rapid growth under royal patronage.\n\nThe emphasis was on:\n\nIllustrated manuscripts\nHistorical narratives\nEpic and literary works\nCourt scenes and battles\n\nImportant illustrated manuscripts include:\n\nTutinama (Tales of a Parrot)\nHamzanama\nAnvar-i-Suhaili\nGulistan\n\nAkbar established a large imperial atelier (painting workshop) where Persian and Indian artistic traditions merged to create the distinctive Mughal style.\n\nJahangir's Reign (1605–1627)\n\nUnder Jahangir, Mughal painting reached its artistic zenith.\n\nThe focus shifted from large illustrated manuscripts to:\n\nIndividual portraits\nNaturalistic studies\nBirds, animals, and plants\nRealistic depiction of nature\n\nJahangir had a keen personal interest in painting and encouraged artists such as Ustad Mansur, who became famous for his detailed studies of flora and fauna.\n\nUPSC One-Liner\nAkbar → Illustrated manuscripts and narrative paintings.\nJahangir → Portraiture and naturalistic paintings of flora and fauna.\n\nTherefore, the correct answer is Option (3).",
+      "displayText": "Mughal Painting under Akbar and Jahangir\nAkbar's Reign (1556–1605)\n\nDuring the reign of Akbar, Mughal painting witnessed rapid growth under royal patronage.\n\nThe emphasis was on:\n\nIllustrated manuscripts\nHistorical narratives\nEpic and literary works\nCourt scenes and battles\n\nImportant illustrated manuscripts include:\n\nTutinama (Tales of a Parrot)\nHamzanama\nAnvar-i-Suhaili\nGulistan\n\nAkbar established a large imperial atelier (painting workshop) where Persian and Indian artistic traditions merged to create the distinctive Mughal style.\n\nJahangir's Reign (1605–1627)\n\nUnder Jahangir, Mughal painting reached its artistic zenith.\n\nThe focus shifted from large illustrated manuscripts to:\n\nIndividual portraits\nNaturalistic studies\nBirds, animals, and plants\nRealistic depiction of nature\n\nJahangir had a keen personal interest in painting and encouraged artists such as Ustad Mansur, who became famous for his detailed studies of flora and fauna.\n\nUPSC One-Liner\nAkbar → Illustrated manuscripts and narrative paintings.\nJahangir → Portraiture and naturalistic paintings of flora and fauna.\n\nTherefore, the correct answer is Option (3).",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, the correct answer is Option (3).",
+        "paragraphs": [
+          "Mughal Painting under Akbar and Jahangir\nAkbar's Reign (1556–1605)",
+          "During the reign of Akbar, Mughal painting witnessed rapid growth under royal patronage.",
+          "The emphasis was on:",
+          "Illustrated manuscripts\nHistorical narratives\nEpic and literary works\nCourt scenes and battles",
+          "Important illustrated manuscripts include:",
+          "Tutinama (Tales of a Parrot)\nHamzanama\nAnvar-i-Suhaili\nGulistan",
+          "Akbar established a large imperial atelier (painting workshop) where Persian and Indian artistic traditions merged to create the distinctive Mughal style.",
+          "Jahangir's Reign (1605–1627)",
+          "Under Jahangir, Mughal painting reached its artistic zenith.",
+          "The focus shifted from large illustrated manuscripts to:",
+          "Individual portraits\nNaturalistic studies\nBirds, animals, and plants\nRealistic depiction of nature",
+          "Jahangir had a keen personal interest in painting and encouraged artists such as Ustad Mansur, who became famous for his detailed studies of flora and fauna.",
+          "UPSC One-Liner\nAkbar → Illustrated manuscripts and narrative paintings.\nJahangir → Portraiture and naturalistic paintings of flora and fauna.",
+          "Therefore, the correct answer is Option (3)."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 22,
+      "questionNumber": 21
+    },
+    "exam": "prelims",
+    "year": 2018,
+    "paper": "GS-I",
+    "questionNumber": 21,
+    "subject": "Medieval India",
+    "subSubject": "Mughal Empire",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "plain",
+    "question": {
+      "rawText": "Which one of the following foreign travellers elaborately discussed about diamonds and diamond mines of India?",
+      "displayText": "Which one of the following foreign travellers elaborately discussed about diamonds and diamond mines of India?",
+      "parts": {
+        "intro": "Which one of the following foreign travellers elaborately discussed about diamonds and diamond mines of India?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Francois Bernier",
+        "displayText": "Francois Bernier"
+      },
+      {
+        "label": "B",
+        "rawText": "Jean-Baptiste Tavernier",
+        "displayText": "Jean-Baptiste Tavernier"
+      },
+      {
+        "label": "C",
+        "rawText": "Jean de Thevenot",
+        "displayText": "Jean de Thevenot"
+      },
+      {
+        "label": "D",
+        "rawText": "Abbe Barthelemy Carre",
+        "displayText": "Abbe Barthelemy Carre"
+      }
+    ],
+    "correctOption": "B",
+    "explanation": {
+      "rawText": "Jean-Baptiste Tavernier and the Diamond Trade ✅\n\nJean-Baptiste Tavernier was a 17th-century French jeweller, merchant, and traveler who made several journeys to India and other parts of Asia.\n\nHe is particularly famous for:\n\nProviding detailed descriptions of India's diamond mines.\nDocumenting the extraction, grading, and trade of precious stones.\nRecording information about famous diamonds and gem markets under the Mughal Empire.\nLeaving valuable accounts of the economic life of India during the 17th century.\n\nBecause he was himself a gem merchant, his observations on diamonds are regarded as especially important by historians.",
+      "displayText": "Jean-Baptiste Tavernier and the Diamond Trade ✅\n\nJean-Baptiste Tavernier was a 17th-century French jeweller, merchant, and traveler who made several journeys to India and other parts of Asia.\n\nHe is particularly famous for:\n\nProviding detailed descriptions of India's diamond mines.\nDocumenting the extraction, grading, and trade of precious stones.\nRecording information about famous diamonds and gem markets under the Mughal Empire.\nLeaving valuable accounts of the economic life of India during the 17th century.\n\nBecause he was himself a gem merchant, his observations on diamonds are regarded as especially important by historians.",
+      "structured": {
+        "paragraphs": [
+          "Jean-Baptiste Tavernier and the Diamond Trade ✅",
+          "Jean-Baptiste Tavernier was a 17th-century French jeweller, merchant, and traveler who made several journeys to India and other parts of Asia.",
+          "He is particularly famous for:",
+          "Providing detailed descriptions of India's diamond mines.\nDocumenting the extraction, grading, and trade of precious stones.\nRecording information about famous diamonds and gem markets under the Mughal Empire.\nLeaving valuable accounts of the economic life of India during the 17th century.",
+          "Because he was himself a gem merchant, his observations on diamonds are regarded as especially important by historians."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 23,
+      "questionNumber": 22
+    },
+    "exam": "prelims",
+    "year": 2017,
+    "paper": "GS-I",
+    "questionNumber": 22,
+    "subject": "Medieval India",
+    "subSubject": "Cholas & South Indian Kingdoms",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "plain",
+    "question": {
+      "rawText": "Which one of the following was a very important seaport in the Kakatiya kingdom?",
+      "displayText": "Which one of the following was a very important seaport in the Kakatiya kingdom?",
+      "parts": {
+        "intro": "Which one of the following was a very important seaport in the Kakatiya kingdom?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Kakinada",
+        "displayText": "Kakinada"
+      },
+      {
+        "label": "B",
+        "rawText": "Motupalli",
+        "displayText": "Motupalli"
+      },
+      {
+        "label": "C",
+        "rawText": "Machilipatnam (Masulipatnam)",
+        "displayText": "Machilipatnam (Masulipatnam)"
+      },
+      {
+        "label": "D",
+        "rawText": "Nelluru",
+        "displayText": "Nelluru"
+      }
+    ],
+    "correctOption": "B",
+    "explanation": {
+      "rawText": "Motupalli: The Principal Port of the Kakatiyas\nMotupalli was one of the most important seaports of the Kakatiya kingdom.\nIt served as a major center for overseas trade with Southeast Asia and other regions of the Indian Ocean world.\nMotupalli Inscription (Abhaya Shasanam)\nIssued by Ganapati Deva.\nKnown as the Abhaya Shasanam (\"Charter of Assurance\").\nIt provided security and protection to merchants.\nIt regulated and reduced customs duties to encourage maritime commerce.\nThe inscription reflects the Kakatiyas' active policy of promoting foreign trade.\nMarco Polo's Account\nThe Venetian traveler Marco Polo visited the region during the reign of Rudrama Devi in the late 13th century.\nHe referred to the area as \"Mutfili\" (generally identified with the Motupalli region and the Telugu coast).\nMarco Polo praised:\nThe prosperity of the kingdom.\nThe production of fine cotton textiles (muslin).\nThe trade in precious stones and diamonds.\n\nUPSC Takeaway\n\nMotupalli was the chief seaport of the Kakatiyas, and Ganapati Deva's Motupalli Inscription (Abhaya Shasanam) provided protection and trade concessions to merchants, helping make it a flourishing center of maritime commerce.",
+      "displayText": "Motupalli: The Principal Port of the Kakatiyas\nMotupalli was one of the most important seaports of the Kakatiya kingdom.\nIt served as a major center for overseas trade with Southeast Asia and other regions of the Indian Ocean world.\nMotupalli Inscription (Abhaya Shasanam)\nIssued by Ganapati Deva.\nKnown as the Abhaya Shasanam (\"Charter of Assurance\").\nIt provided security and protection to merchants.\nIt regulated and reduced customs duties to encourage maritime commerce.\nThe inscription reflects the Kakatiyas' active policy of promoting foreign trade.\nMarco Polo's Account\nThe Venetian traveler Marco Polo visited the region during the reign of Rudrama Devi in the late 13th century.\nHe referred to the area as \"Mutfili\" (generally identified with the Motupalli region and the Telugu coast).\nMarco Polo praised:\nThe prosperity of the kingdom.\nThe production of fine cotton textiles (muslin).\nThe trade in precious stones and diamonds.\n\nUPSC Takeaway\n\nMotupalli was the chief seaport of the Kakatiyas, and Ganapati Deva's Motupalli Inscription (Abhaya Shasanam) provided protection and trade concessions to merchants, helping make it a flourishing center of maritime commerce.",
+      "structured": {
+        "paragraphs": [
+          "Motupalli: The Principal Port of the Kakatiyas\nMotupalli was one of the most important seaports of the Kakatiya kingdom.\nIt served as a major center for overseas trade with Southeast Asia and other regions of the Indian Ocean world.\nMotupalli Inscription (Abhaya Shasanam)\nIssued by Ganapati Deva.\nKnown as the Abhaya Shasanam (\"Charter of Assurance\").\nIt provided security and protection to merchants.\nIt regulated and reduced customs duties to encourage maritime commerce.\nThe inscription reflects the Kakatiyas' active policy of promoting foreign trade.\nMarco Polo's Account\nThe Venetian traveler Marco Polo visited the region during the reign of Rudrama Devi in the late 13th century.\nHe referred to the area as \"Mutfili\" (generally identified with the Motupalli region and the Telugu coast).\nMarco Polo praised:\nThe prosperity of the kingdom.\nThe production of fine cotton textiles (muslin).\nThe trade in precious stones and diamonds.",
+          "UPSC Takeaway",
+          "Motupalli was the chief seaport of the Kakatiyas, and Ganapati Deva's Motupalli Inscription (Abhaya Shasanam) provided protection and trade concessions to merchants, helping make it a flourishing center of maritime commerce."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 24,
+      "questionNumber": 23
+    },
+    "exam": "prelims",
+    "year": 2016,
+    "paper": "GS-I",
+    "questionNumber": 23,
+    "subject": "Medieval India",
+    "subSubject": "Early Medieval India (750–1200 AD)",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "plain",
+    "question": {
+      "rawText": "With reference to the economic history of medieval India, the term ‘Araghatta’ refers to",
+      "displayText": "With reference to the economic history of medieval India, the term ‘Araghatta’ refers to",
+      "parts": {
+        "intro": "With reference to the economic history of medieval India, the term ‘Araghatta’ refers to",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "bonded labour",
+        "displayText": "bonded labour"
+      },
+      {
+        "label": "B",
+        "rawText": "land grants made to military officers",
+        "displayText": "land grants made to military officers"
+      },
+      {
+        "label": "C",
+        "rawText": "waterwheel used in the irrigation of land",
+        "displayText": "waterwheel used in the irrigation of land"
+      },
+      {
+        "label": "D",
+        "rawText": "wasteland converted to cultivated land",
+        "displayText": "wasteland converted to cultivated land"
+      }
+    ],
+    "correctOption": "C",
+    "explanation": {
+      "rawText": "Araghatta, commonly referred to as the Persian wheel or Noria, was an important water-lifting device used in medieval India to support irrigation.\n\nThe mechanism consisted of a large rotating wheel with a series of pots or containers attached around its rim. As the wheel turned, these containers collected water from a well, river, or other water source and carried it upward. The water was then discharged into channels or troughs, from where it was conveyed to agricultural fields and other areas in need of irrigation.",
+      "displayText": "Araghatta, commonly referred to as the Persian wheel or Noria, was an important water-lifting device used in medieval India to support irrigation.\n\nThe mechanism consisted of a large rotating wheel with a series of pots or containers attached around its rim. As the wheel turned, these containers collected water from a well, river, or other water source and carried it upward. The water was then discharged into channels or troughs, from where it was conveyed to agricultural fields and other areas in need of irrigation.",
+      "structured": {
+        "paragraphs": [
+          "Araghatta, commonly referred to as the Persian wheel or Noria, was an important water-lifting device used in medieval India to support irrigation.",
+          "The mechanism consisted of a large rotating wheel with a series of pots or containers attached around its rim. As the wheel turned, these containers collected water from a well, river, or other water source and carried it upward. The water was then discharged into channels or troughs, from where it was conveyed to agricultural fields and other areas in need of irrigation."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 25,
+      "questionNumber": 24
+    },
+    "exam": "prelims",
+    "year": 2016,
+    "paper": "GS-I",
+    "questionNumber": 24,
+    "subject": "Medieval India",
+    "subSubject": "Vijayanagara & Bahmani Kingdoms",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "statements_numbered",
+    "question": {
+      "rawText": "Regarding the taxation system of Krishna Deva, the ruler of Vijayanagar, consider the following statements:\n\n1. The tax rate on land was fixed depending on the quality of the land.\n\n2. Private owners of workshops paid an industries tax.\n\nWhich of the statements given above is/are correct?",
+      "displayText": "Regarding the taxation system of Krishna Deva, the ruler of Vijayanagar, consider the following statements:\n1. The tax rate on land was fixed depending on the quality of the land.\n2. Private owners of workshops paid an industries tax.\n\nWhich of the statements given above is/are correct?",
+      "parts": {
+        "intro": "Regarding the taxation system of Krishna Deva, the ruler of Vijayanagar, consider the following statements:",
+        "items": [
+          {
+            "label": "1",
+            "text": "The tax rate on land was fixed depending on the quality of the land."
+          },
+          {
+            "label": "2",
+            "text": "Private owners of workshops paid an industries tax."
+          }
+        ],
+        "prompt": "Which of the statements given above is/are correct?"
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1 only",
+        "displayText": "1 only"
+      },
+      {
+        "label": "B",
+        "rawText": "2 only",
+        "displayText": "2 only"
+      },
+      {
+        "label": "C",
+        "rawText": "Both 1 and 2",
+        "displayText": "Both 1 and 2"
+      },
+      {
+        "label": "D",
+        "rawText": "Neither 1 nor 2",
+        "displayText": "Neither 1 nor 2"
+      }
+    ],
+    "correctOption": "C",
+    "explanation": {
+      "rawText": "Both statements are correct. During the reign of Krishna Deva Raya, the Vijayanagara Empire maintained an organized revenue system in which land revenue formed the chief source of state income. The assessment of land tax was based on factors such as the quality and fertility of the soil, as well as the availability of irrigation facilities. Consequently, more productive lands were generally subjected to higher revenue demands.\n\nApart from land revenue, the state also collected taxes from various economic activities, professions, and commercial establishments. Taxes imposed on industries, workshops, and other productive enterprises contributed significantly to the imperial treasury and supplemented the revenue obtained from agriculture.\n\nTherefore, both statements correctly describe important features of the taxation system under Krishna Deva Raya.",
+      "displayText": "Both statements are correct. During the reign of Krishna Deva Raya, the Vijayanagara Empire maintained an organized revenue system in which land revenue formed the chief source of state income. The assessment of land tax was based on factors such as the quality and fertility of the soil, as well as the availability of irrigation facilities. Consequently, more productive lands were generally subjected to higher revenue demands.\n\nApart from land revenue, the state also collected taxes from various economic activities, professions, and commercial establishments. Taxes imposed on industries, workshops, and other productive enterprises contributed significantly to the imperial treasury and supplemented the revenue obtained from agriculture.\n\nTherefore, both statements correctly describe important features of the taxation system under Krishna Deva Raya.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, both statements correctly describe important features of the taxation system under Krishna Deva Raya.",
+        "paragraphs": [
+          "Both statements are correct. During the reign of Krishna Deva Raya, the Vijayanagara Empire maintained an organized revenue system in which land revenue formed the chief source of state income. The assessment of land tax was based on factors such as the quality and fertility of the soil, as well as the availability of irrigation facilities. Consequently, more productive lands were generally subjected to higher revenue demands.",
+          "Apart from land revenue, the state also collected taxes from various economic activities, professions, and commercial establishments. Taxes imposed on industries, workshops, and other productive enterprises contributed significantly to the imperial treasury and supplemented the revenue obtained from agriculture.",
+          "Therefore, both statements correctly describe important features of the taxation system under Krishna Deva Raya."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 26,
+      "questionNumber": 25
+    },
+    "exam": "prelims",
+    "year": 2016,
+    "paper": "GS-I",
+    "questionNumber": 25,
+    "subject": "Medieval India",
+    "subSubject": "Medieval India Miscellaneous",
+    "topic": null,
+    "difficulty": "Easy",
+    "format": "plain",
+    "question": {
+      "rawText": "Banjaras during the medieval period of Indian history were generally",
+      "displayText": "Banjaras during the medieval period of Indian history were generally",
+      "parts": {
+        "intro": "Banjaras during the medieval period of Indian history were generally",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "agriculturists",
+        "displayText": "agriculturists"
+      },
+      {
+        "label": "B",
+        "rawText": "warriors",
+        "displayText": "warriors"
+      },
+      {
+        "label": "C",
+        "rawText": "weavers",
+        "displayText": "weavers"
+      },
+      {
+        "label": "D",
+        "rawText": "traders",
+        "displayText": "traders"
+      }
+    ],
+    "correctOption": "D",
+    "explanation": {
+      "rawText": "Banjaras were primarily a community of itinerant traders during the medieval period of Indian history. Known for their mobility, they transported a wide variety of goods, including salt, grains, cattle, and other essential commodities, across different regions of the subcontinent.\n\nUsing large caravans of pack bullocks, known as tandas, they connected distant markets and settlements, thereby playing an important role in the movement of goods. Their extensive trading networks significantly contributed to the growth of internal trade and commerce in medieval India.\n\nTherefore, Banjaras are best identified as traders.",
+      "displayText": "Banjaras were primarily a community of itinerant traders during the medieval period of Indian history. Known for their mobility, they transported a wide variety of goods, including salt, grains, cattle, and other essential commodities, across different regions of the subcontinent.\n\nUsing large caravans of pack bullocks, known as tandas, they connected distant markets and settlements, thereby playing an important role in the movement of goods. Their extensive trading networks significantly contributed to the growth of internal trade and commerce in medieval India.\n\nTherefore, Banjaras are best identified as traders.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, Banjaras are best identified as traders.",
+        "paragraphs": [
+          "Banjaras were primarily a community of itinerant traders during the medieval period of Indian history. Known for their mobility, they transported a wide variety of goods, including salt, grains, cattle, and other essential commodities, across different regions of the subcontinent.",
+          "Using large caravans of pack bullocks, known as tandas, they connected distant markets and settlements, thereby playing an important role in the movement of goods. Their extensive trading networks significantly contributed to the growth of internal trade and commerce in medieval India.",
+          "Therefore, Banjaras are best identified as traders."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 27,
+      "questionNumber": 26
+    },
+    "exam": "prelims",
+    "year": 2015,
+    "paper": "GS-I",
+    "questionNumber": 26,
+    "subject": "Medieval India",
+    "subSubject": "Early Medieval India (750–1200 AD)",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "pairs",
+    "question": {
+      "rawText": "Consider the following pairs:\n\nMedieval Indian State : Present Region.\n1. Champaka : Central India.\n2. Durgara : Jammu.\n3. Kuluta : Malabar.\n\nWhich of the above pairs is/are correctly matched?",
+      "displayText": "Consider the following pairs:\n\nMedieval Indian State : Present Region.\n1. Champaka : Central India.\n2. Durgara : Jammu.\n3. Kuluta : Malabar.\n\nWhich of the above pairs is/are correctly matched?",
+      "parts": {
+        "intro": "Consider the following pairs:\n\nMedieval Indian State : Present Region.",
+        "items": [
+          {
+            "label": "1",
+            "text": "Champaka : Central India."
+          },
+          {
+            "label": "2",
+            "text": "Durgara : Jammu."
+          },
+          {
+            "label": "3",
+            "text": "Kuluta : Malabar."
+          }
+        ],
+        "prompt": "Which of the above pairs is/are correctly matched?"
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1 and 2",
+        "displayText": "1 and 2"
+      },
+      {
+        "label": "B",
+        "rawText": "2 only",
+        "displayText": "2 only"
+      },
+      {
+        "label": "C",
+        "rawText": "1 and 3",
+        "displayText": "1 and 3"
+      },
+      {
+        "label": "D",
+        "rawText": "3 only",
+        "displayText": "3 only"
+      }
+    ],
+    "correctOption": "B",
+    "explanation": {
+      "rawText": "Only Pair 2 is correctly matched.\n\nDurgara corresponds to the present-day Jammu region and is therefore correctly matched.\n\nThe other pairs are incorrect. Champaka (Chamba) was located in the Himalayan region of present-day Himachal Pradesh, not in Central India. Similarly, Kuluta refers to the Kullu region in present-day Himachal Pradesh. It was situated in the upper Beas Valley and has no connection with the Malabar coast, which lies along the southwestern coast of India.\n\nTherefore, only Pair 2 is correctly matched.",
+      "displayText": "Only Pair 2 is correctly matched.\n\nDurgara corresponds to the present-day Jammu region and is therefore correctly matched.\n\nThe other pairs are incorrect. Champaka (Chamba) was located in the Himalayan region of present-day Himachal Pradesh, not in Central India. Similarly, Kuluta refers to the Kullu region in present-day Himachal Pradesh. It was situated in the upper Beas Valley and has no connection with the Malabar coast, which lies along the southwestern coast of India.\n\nTherefore, only Pair 2 is correctly matched.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [
+          "Only Pair 2 is correctly matched.",
+          "Durgara corresponds to the present-day Jammu region and is therefore correctly matched."
+        ],
+        "option_analysis": [],
+        "conclusion": "Therefore, only Pair 2 is correctly matched.",
+        "paragraphs": [
+          "Only Pair 2 is correctly matched.",
+          "Durgara corresponds to the present-day Jammu region and is therefore correctly matched.",
+          "The other pairs are incorrect. Champaka (Chamba) was located in the Himalayan region of present-day Himachal Pradesh, not in Central India. Similarly, Kuluta refers to the Kullu region in present-day Himachal Pradesh. It was situated in the upper Beas Valley and has no connection with the Malabar coast, which lies along the southwestern coast of India.",
+          "Therefore, only Pair 2 is correctly matched."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 28,
+      "questionNumber": 27
+    },
+    "exam": "prelims",
+    "year": 2015,
+    "paper": "GS-I",
+    "questionNumber": 27,
+    "subject": "Medieval India",
+    "subSubject": "Mughal Empire",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "statements_numbered",
+    "question": {
+      "rawText": "Consider the following:\n\nThe arrival of Babur into India led to the\n\n1. introduction of gunpowder in the subcontinent\n2. introduction of the arch and dome in the region’s architecture\n3. establishment of Timurid dynasty in the region.\n\nSelect the correct answer using the code given below:",
+      "displayText": "Consider the following:\n\nThe arrival of Babur into India led to the\n\n1. introduction of gunpowder in the subcontinent\n2. introduction of the arch and dome in the region’s architecture\n3. establishment of Timurid dynasty in the region.\n\nSelect the correct answer using the code given below:",
+      "parts": {
+        "intro": "Consider the following:\n\nThe arrival of Babur into India led to the",
+        "items": [
+          {
+            "label": "1",
+            "text": "introduction of gunpowder in the subcontinent"
+          },
+          {
+            "label": "2",
+            "text": "introduction of the arch and dome in the region’s architecture"
+          },
+          {
+            "label": "3",
+            "text": "establishment of Timurid dynasty in the region."
+          }
+        ],
+        "prompt": "Select the correct answer using the code given below:"
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1 and 2 only",
+        "displayText": "1 and 2 only"
+      },
+      {
+        "label": "B",
+        "rawText": "3 only",
+        "displayText": "3 only"
+      },
+      {
+        "label": "C",
+        "rawText": "1 and 3 only",
+        "displayText": "1 and 3 only"
+      },
+      {
+        "label": "D",
+        "rawText": "1, 2 and 3",
+        "displayText": "1, 2 and 3"
+      }
+    ],
+    "correctOption": "B",
+    "explanation": {
+      "rawText": "Only Statement 3 is correct.\n\nStatement 3 is correct because Babur was a descendant of Timur through his paternal lineage. Following his victory over Ibrahim Lodi in the First Battle of Panipat in 1526, he laid the foundation of the Mughal Empire, which was also known as the Timurid dynasty due to its ancestral connection with Timur.\n\nStatements 1 and 2 are incorrect. Gunpowder was already known and used in India before Babur's arrival. It had been employed by the Delhi Sultanate as well as the Bahmani and Vijayanagara kingdoms. Babur's significance lay in his effective use of advanced field artillery and the Ottoman-inspired 'Rumi' system of warfare, not in introducing gunpowder itself.\n\nSimilarly, the architectural features of the arch and dome had become established in India during the Delhi Sultanate period, centuries before Babur. Monuments such as the Alai Darwaza and several Lodi-era structures demonstrate the use of these elements well before the advent of Mughal rule.\n\nTherefore, only Statement 3 is correct.",
+      "displayText": "Only Statement 3 is correct.\n\nStatement 3 is correct because Babur was a descendant of Timur through his paternal lineage. Following his victory over Ibrahim Lodi in the First Battle of Panipat in 1526, he laid the foundation of the Mughal Empire, which was also known as the Timurid dynasty due to its ancestral connection with Timur.\n\nStatements 1 and 2 are incorrect. Gunpowder was already known and used in India before Babur's arrival. It had been employed by the Delhi Sultanate as well as the Bahmani and Vijayanagara kingdoms. Babur's significance lay in his effective use of advanced field artillery and the Ottoman-inspired 'Rumi' system of warfare, not in introducing gunpowder itself.\n\nSimilarly, the architectural features of the arch and dome had become established in India during the Delhi Sultanate period, centuries before Babur. Monuments such as the Alai Darwaza and several Lodi-era structures demonstrate the use of these elements well before the advent of Mughal rule.\n\nTherefore, only Statement 3 is correct.",
+      "structured": {
+        "statement_analysis": [
+          "Statement 3 is correct because Babur was a descendant of Timur through his paternal lineage. Following his victory over Ibrahim Lodi in the First Battle of Panipat in 1526, he laid the foundation of the Mughal Empire, which was also known as the Timurid dynasty due to its ancestral connection with Timur."
+        ],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, only Statement 3 is correct.",
+        "paragraphs": [
+          "Only Statement 3 is correct.",
+          "Statement 3 is correct because Babur was a descendant of Timur through his paternal lineage. Following his victory over Ibrahim Lodi in the First Battle of Panipat in 1526, he laid the foundation of the Mughal Empire, which was also known as the Timurid dynasty due to its ancestral connection with Timur.",
+          "Statements 1 and 2 are incorrect. Gunpowder was already known and used in India before Babur's arrival. It had been employed by the Delhi Sultanate as well as the Bahmani and Vijayanagara kingdoms. Babur's significance lay in his effective use of advanced field artillery and the Ottoman-inspired 'Rumi' system of warfare, not in introducing gunpowder itself.",
+          "Similarly, the architectural features of the arch and dome had become established in India during the Delhi Sultanate period, centuries before Babur. Monuments such as the Alai Darwaza and several Lodi-era structures demonstrate the use of these elements well before the advent of Mughal rule.",
+          "Therefore, only Statement 3 is correct."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 29,
+      "questionNumber": 28
+    },
+    "exam": "prelims",
+    "year": 2015,
+    "paper": "GS-I",
+    "questionNumber": 28,
+    "subject": "Medieval India",
+    "subSubject": "Early Medieval India (750–1200 AD)",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "statements_numbered",
+    "question": {
+      "rawText": "With reference to Indian history, which of the following is/are the essential element/elements of the feudal system?\n\n1. A very strong centralized political authority and a very weak provincial or local political authority.\n2. Emergence of administrative structure based on control and possession of land.\n3. Creation of lord-vassal relationship between the feudal lord and his overlord.\n\nSelect the correct answer using the code given below:",
+      "displayText": "With reference to Indian history, which of the following is/are the essential element/elements of the feudal system?\n1. A very strong centralized political authority and a very weak provincial or local political authority.\n2. Emergence of administrative structure based on control and possession of land.\n3. Creation of lord-vassal relationship between the feudal lord and his overlord.\n\nSelect the correct answer using the code given below:",
+      "parts": {
+        "intro": "With reference to Indian history, which of the following is/are the essential element/elements of the feudal system?",
+        "items": [
+          {
+            "label": "1",
+            "text": "A very strong centralized political authority and a very weak provincial or local political authority."
+          },
+          {
+            "label": "2",
+            "text": "Emergence of administrative structure based on control and possession of land."
+          },
+          {
+            "label": "3",
+            "text": "Creation of lord-vassal relationship between the feudal lord and his overlord."
+          }
+        ],
+        "prompt": "Select the correct answer using the code given below:"
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1 and 2 only",
+        "displayText": "1 and 2 only"
+      },
+      {
+        "label": "B",
+        "rawText": "2 and 3 only",
+        "displayText": "2 and 3 only"
+      },
+      {
+        "label": "C",
+        "rawText": "3 only",
+        "displayText": "3 only"
+      },
+      {
+        "label": "D",
+        "rawText": "1, 2 and 3",
+        "displayText": "1, 2 and 3"
+      }
+    ],
+    "correctOption": "B",
+    "explanation": {
+      "rawText": "Correct evaluation: Statements 2 and 3 are correct; Statement 1 is incorrect.\n\nStatement 1 (Incorrect)\n\nA defining feature of feudal systems is decentralisation of power, not strong central authority. Authority is typically fragmented among regional lords. In the Indian context as well, what is often termed “feudalism” reflects weakening central control and rise of intermediaries, rather than a strong centralized state.\n\nStatement 2 (Correct)\n\nControl over land was the economic base of the system. In the Indian context, intermediaries such as Zamindar and Jagirdar exercised authority over land and the peasantry, extracting surplus and managing revenue collection.\n\nStatement 3 (Correct)\n\nA hierarchical structure of obligations—land in exchange for service—was central. This involved a layered system of authority where land grants were tied to military or administrative service, forming a structured chain of loyalty and dependence.",
+      "displayText": "Correct evaluation: Statements 2 and 3 are correct; Statement 1 is incorrect.\n\nStatement 1 (Incorrect)\n\nA defining feature of feudal systems is decentralisation of power, not strong central authority. Authority is typically fragmented among regional lords. In the Indian context as well, what is often termed “feudalism” reflects weakening central control and rise of intermediaries, rather than a strong centralized state.\n\nStatement 2 (Correct)\n\nControl over land was the economic base of the system. In the Indian context, intermediaries such as Zamindar and Jagirdar exercised authority over land and the peasantry, extracting surplus and managing revenue collection.\n\nStatement 3 (Correct)\n\nA hierarchical structure of obligations—land in exchange for service—was central. This involved a layered system of authority where land grants were tied to military or administrative service, forming a structured chain of loyalty and dependence.",
+      "structured": {
+        "statement_analysis": [
+          "Statement 1 (Incorrect)",
+          "Statement 2 (Correct)",
+          "Statement 3 (Correct)"
+        ],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": null,
+        "paragraphs": [
+          "Correct evaluation: Statements 2 and 3 are correct; Statement 1 is incorrect.",
+          "Statement 1 (Incorrect)",
+          "A defining feature of feudal systems is decentralisation of power, not strong central authority. Authority is typically fragmented among regional lords. In the Indian context as well, what is often termed “feudalism” reflects weakening central control and rise of intermediaries, rather than a strong centralized state.",
+          "Statement 2 (Correct)",
+          "Control over land was the economic base of the system. In the Indian context, intermediaries such as Zamindar and Jagirdar exercised authority over land and the peasantry, extracting surplus and managing revenue collection.",
+          "Statement 3 (Correct)",
+          "A hierarchical structure of obligations—land in exchange for service—was central. This involved a layered system of authority where land grants were tied to military or administrative service, forming a structured chain of loyalty and dependence."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 30,
+      "questionNumber": 29
+    },
+    "exam": "prelims",
+    "year": 2015,
+    "paper": "GS-I",
+    "questionNumber": 29,
+    "subject": "Medieval India",
+    "subSubject": "Vijayanagara & Bahmani Kingdoms",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "plain",
+    "question": {
+      "rawText": "Who of the following founded a new city on the south bank of a tributary to river Krishna and undertook to rule his new kingdom as the agent of a deity to whom all the land south of the river Krishna was supposed to belong?",
+      "displayText": "Who of the following founded a new city on the south bank of a tributary to river Krishna and undertook to rule his new kingdom as the agent of a deity to whom all the land south of the river Krishna was supposed to belong?",
+      "parts": {
+        "intro": "Who of the following founded a new city on the south bank of a tributary to river Krishna and undertook to rule his new kingdom as the agent of a deity to whom all the land south of the river Krishna was supposed to belong?",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "Amoghavarsha I",
+        "displayText": "Amoghavarsha I"
+      },
+      {
+        "label": "B",
+        "rawText": "Ballala II",
+        "displayText": "Ballala II"
+      },
+      {
+        "label": "C",
+        "rawText": "Harihara I",
+        "displayText": "Harihara I"
+      },
+      {
+        "label": "D",
+        "rawText": "Prataparudra II",
+        "displayText": "Prataparudra II"
+      }
+    ],
+    "correctOption": "C",
+    "explanation": {
+      "rawText": "Harihara I and his brother Bukka I established the Vijayanagara Empire in 1336, with its capital at Vijayanagara (present-day Hampi) on the southern bank of the Tungabhadra River, an important tributary of the Krishna River.\n\nThe rulers of the Sangama dynasty regarded Virupaksha, a form of Lord Shiva, as the tutelary deity of the kingdom. They considered themselves representatives of the deity and believed that the territory lying south of the Krishna River was under His divine ownership. As a symbol of this belief and to legitimize their authority, royal proclamations and official documents were customarily issued in the name of 'Shri Virupaksha' and endorsed in the Kannada script.\n\nTherefore, the early Vijayanagara rulers derived political legitimacy from their association with the deity Virupaksha and presented themselves as governing on His behalf.",
+      "displayText": "Harihara I and his brother Bukka I established the Vijayanagara Empire in 1336, with its capital at Vijayanagara (present-day Hampi) on the southern bank of the Tungabhadra River, an important tributary of the Krishna River.\n\nThe rulers of the Sangama dynasty regarded Virupaksha, a form of Lord Shiva, as the tutelary deity of the kingdom. They considered themselves representatives of the deity and believed that the territory lying south of the Krishna River was under His divine ownership. As a symbol of this belief and to legitimize their authority, royal proclamations and official documents were customarily issued in the name of 'Shri Virupaksha' and endorsed in the Kannada script.\n\nTherefore, the early Vijayanagara rulers derived political legitimacy from their association with the deity Virupaksha and presented themselves as governing on His behalf.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, the early Vijayanagara rulers derived political legitimacy from their association with the deity Virupaksha and presented themselves as governing on His behalf.",
+        "paragraphs": [
+          "Harihara I and his brother Bukka I established the Vijayanagara Empire in 1336, with its capital at Vijayanagara (present-day Hampi) on the southern bank of the Tungabhadra River, an important tributary of the Krishna River.",
+          "The rulers of the Sangama dynasty regarded Virupaksha, a form of Lord Shiva, as the tutelary deity of the kingdom. They considered themselves representatives of the deity and believed that the territory lying south of the Krishna River was under His divine ownership. As a symbol of this belief and to legitimize their authority, royal proclamations and official documents were customarily issued in the name of 'Shri Virupaksha' and endorsed in the Kannada script.",
+          "Therefore, the early Vijayanagara rulers derived political legitimacy from their association with the deity Virupaksha and presented themselves as governing on His behalf."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 31,
+      "questionNumber": 30
+    },
+    "exam": "prelims",
+    "year": 2014,
+    "paper": "GS-I",
+    "questionNumber": 30,
+    "subject": "Medieval India",
+    "subSubject": "Mughal Empire",
+    "topic": null,
+    "difficulty": "Easy",
+    "format": "plain",
+    "question": {
+      "rawText": "Ibadat Khana at Fatehpur Sikri was",
+      "displayText": "Ibadat Khana at Fatehpur Sikri was",
+      "parts": {
+        "intro": "Ibadat Khana at Fatehpur Sikri was",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "the mosque for the use of Royal Family",
+        "displayText": "the mosque for the use of Royal Family"
+      },
+      {
+        "label": "B",
+        "rawText": "Akbar’s private prayer chamber",
+        "displayText": "Akbar’s private prayer chamber"
+      },
+      {
+        "label": "C",
+        "rawText": "the hall in which Akbar held discussions with scholars of various religions",
+        "displayText": "the hall in which Akbar held discussions with scholars of various religions"
+      },
+      {
+        "label": "D",
+        "rawText": "the room in which the nobles belonging to different religions gathered to discuss religious affairs",
+        "displayText": "the room in which the nobles belonging to different religions gathered to discuss religious affairs"
+      }
+    ],
+    "correctOption": "C",
+    "explanation": {
+      "rawText": "The Ibadat Khana (House of Worship) was established in 1575 CE by Mughal Emperor Akbar at Fatehpur Sikri, which served as his capital at the time.\n\nInitially, the venue was meant for theological discussions among Sunni Muslim scholars, where religious and doctrinal issues were debated.\n\nFrom around 1578 CE onwards, Akbar broadened its scope and invited scholars from diverse religious traditions, including Hindus, Jains, Jesuit Christians, and Zoroastrians. This step reflected his growing interest in comparative religion and dissatisfaction with sectarian rigidity.\n\nThese discussions were typically held on Thursday evenings. Over time, these interactions influenced Akbar’s evolving religious outlook, contributing to his idea of Sulh-i-Kul (universal peace) and later the formulation of Din-i-Ilahi, an ethical-philosophical code rather than a structured religion.",
+      "displayText": "The Ibadat Khana (House of Worship) was established in 1575 CE by Mughal Emperor Akbar at Fatehpur Sikri, which served as his capital at the time.\n\nInitially, the venue was meant for theological discussions among Sunni Muslim scholars, where religious and doctrinal issues were debated.\n\nFrom around 1578 CE onwards, Akbar broadened its scope and invited scholars from diverse religious traditions, including Hindus, Jains, Jesuit Christians, and Zoroastrians. This step reflected his growing interest in comparative religion and dissatisfaction with sectarian rigidity.\n\nThese discussions were typically held on Thursday evenings. Over time, these interactions influenced Akbar’s evolving religious outlook, contributing to his idea of Sulh-i-Kul (universal peace) and later the formulation of Din-i-Ilahi, an ethical-philosophical code rather than a structured religion.",
+      "structured": {
+        "paragraphs": [
+          "The Ibadat Khana (House of Worship) was established in 1575 CE by Mughal Emperor Akbar at Fatehpur Sikri, which served as his capital at the time.",
+          "Initially, the venue was meant for theological discussions among Sunni Muslim scholars, where religious and doctrinal issues were debated.",
+          "From around 1578 CE onwards, Akbar broadened its scope and invited scholars from diverse religious traditions, including Hindus, Jains, Jesuit Christians, and Zoroastrians. This step reflected his growing interest in comparative religion and dissatisfaction with sectarian rigidity.",
+          "These discussions were typically held on Thursday evenings. Over time, these interactions influenced Akbar’s evolving religious outlook, contributing to his idea of Sulh-i-Kul (universal peace) and later the formulation of Din-i-Ilahi, an ethical-philosophical code rather than a structured religion."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 32,
+      "questionNumber": 31
+    },
+    "exam": "prelims",
+    "year": 2014,
+    "paper": "GS-I",
+    "questionNumber": 31,
+    "subject": "Medieval India",
+    "subSubject": "Early Medieval India (750–1200 AD)",
+    "topic": null,
+    "difficulty": "Medium",
+    "format": "plain",
+    "question": {
+      "rawText": "In medieval India, the designations ‘Mahattara’ and ‘Pattakila’ were used for",
+      "displayText": "In medieval India, the designations ‘Mahattara’ and ‘Pattakila’ were used for",
+      "parts": {
+        "intro": "In medieval India, the designations ‘Mahattara’ and ‘Pattakila’ were used for",
+        "items": [],
+        "prompt": null
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "military officers",
+        "displayText": "military officers"
+      },
+      {
+        "label": "B",
+        "rawText": "village headmen",
+        "displayText": "village headmen"
+      },
+      {
+        "label": "C",
+        "rawText": "specialists in Vedic rituals",
+        "displayText": "specialists in Vedic rituals"
+      },
+      {
+        "label": "D",
+        "rawText": "chiefs of craft guilds",
+        "displayText": "chiefs of craft guilds"
+      }
+    ],
+    "correctOption": "B",
+    "explanation": {
+      "rawText": "In medieval India, the titles 'Mahattara' and 'Pattakila' were associated with village-level administration and referred to village headmen.\n\nThe Mahattara served as the senior village headman and played an important role in local governance, including overseeing administrative matters and assisting in the collection of revenue. The Pattakila functioned as a subordinate official who supported the Mahattara in carrying out these responsibilities.\n\nThus, both Mahattara and Pattakila were important functionaries in the village administrative system, with the former occupying a higher position than the latter.",
+      "displayText": "In medieval India, the titles 'Mahattara' and 'Pattakila' were associated with village-level administration and referred to village headmen.\n\nThe Mahattara served as the senior village headman and played an important role in local governance, including overseeing administrative matters and assisting in the collection of revenue. The Pattakila functioned as a subordinate official who supported the Mahattara in carrying out these responsibilities.\n\nThus, both Mahattara and Pattakila were important functionaries in the village administrative system, with the former occupying a higher position than the latter.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Thus, both Mahattara and Pattakila were important functionaries in the village administrative system, with the former occupying a higher position than the latter.",
+        "paragraphs": [
+          "In medieval India, the titles 'Mahattara' and 'Pattakila' were associated with village-level administration and referred to village headmen.",
+          "The Mahattara served as the senior village headman and played an important role in local governance, including overseeing administrative matters and assisting in the collection of revenue. The Pattakila functioned as a subordinate official who supported the Mahattara in carrying out these responsibilities.",
+          "Thus, both Mahattara and Pattakila were important functionaries in the village administrative system, with the former occupying a higher position than the latter."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 33,
+      "questionNumber": 32
+    },
+    "exam": "prelims",
+    "year": 2013,
+    "paper": "GS-I",
+    "questionNumber": 32,
+    "subject": "Medieval India",
+    "subSubject": "Bhakti & Sufi Movements",
+    "topic": null,
+    "difficulty": "Hard",
+    "format": "statements_numbered",
+    "question": {
+      "rawText": "Consider the following Bhakti Saints:\n\n1. Dadu Dayal\n2. Guru Nanak\n3. Tyagaraja.\n\nWho among the above was/were preaching when the Lodi dynasty fell and Babur took over?",
+      "displayText": "Consider the following Bhakti Saints:\n1. Dadu Dayal\n2. Guru Nanak\n3. Tyagaraja.\n\nWho among the above was/were preaching when the Lodi dynasty fell and Babur took over?",
+      "parts": {
+        "intro": "Consider the following Bhakti Saints:",
+        "items": [
+          {
+            "label": "1",
+            "text": "Dadu Dayal"
+          },
+          {
+            "label": "2",
+            "text": "Guru Nanak"
+          },
+          {
+            "label": "3",
+            "text": "Tyagaraja."
+          }
+        ],
+        "prompt": "Who among the above was/were preaching when the Lodi dynasty fell and Babur took over?"
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1 and 3",
+        "displayText": "1 and 3"
+      },
+      {
+        "label": "B",
+        "rawText": "2 only",
+        "displayText": "2 only"
+      },
+      {
+        "label": "C",
+        "rawText": "2 and 3",
+        "displayText": "2 and 3"
+      },
+      {
+        "label": "D",
+        "rawText": "1 and 2",
+        "displayText": "1 and 2"
+      }
+    ],
+    "correctOption": "B",
+    "explanation": {
+      "rawText": "Only Guru Nanak was a contemporary of Babur.\n\nBabur established Mughal rule in India after defeating Ibrahim Lodi in the First Battle of Panipat in 1526. Guru Nanak (1469–1539), the founder of Sikhism, was alive during this period and witnessed the political upheavals associated with Babur's invasions. His compositions even contain references to these events.\n\nThe other personalities were not contemporaries of Babur. Dadu Dayal lived much later, from 1544 to 1603, while Tyagaraja belonged to a much later period, living between 1767 and 1847.\n\nTherefore, only Guru Nanak was preaching and active during the time when Babur established Mughal rule in India.",
+      "displayText": "Only Guru Nanak was a contemporary of Babur.\n\nBabur established Mughal rule in India after defeating Ibrahim Lodi in the First Battle of Panipat in 1526. Guru Nanak (1469–1539), the founder of Sikhism, was alive during this period and witnessed the political upheavals associated with Babur's invasions. His compositions even contain references to these events.\n\nThe other personalities were not contemporaries of Babur. Dadu Dayal lived much later, from 1544 to 1603, while Tyagaraja belonged to a much later period, living between 1767 and 1847.\n\nTherefore, only Guru Nanak was preaching and active during the time when Babur established Mughal rule in India.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, only Guru Nanak was preaching and active during the time when Babur established Mughal rule in India.",
+        "paragraphs": [
+          "Only Guru Nanak was a contemporary of Babur.",
+          "Babur established Mughal rule in India after defeating Ibrahim Lodi in the First Battle of Panipat in 1526. Guru Nanak (1469–1539), the founder of Sikhism, was alive during this period and witnessed the political upheavals associated with Babur's invasions. His compositions even contain references to these events.",
+          "The other personalities were not contemporaries of Babur. Dadu Dayal lived much later, from 1544 to 1603, while Tyagaraja belonged to a much later period, living between 1767 and 1847.",
+          "Therefore, only Guru Nanak was preaching and active during the time when Babur established Mughal rule in India."
+        ]
+      }
+    }
+  },
+  {
+    "source": {
+      "file": "PYQ - Medieval India.csv",
+      "rowNumber": 34,
+      "questionNumber": 33
+    },
+    "exam": "prelims",
+    "year": 2012,
+    "paper": "GS-I",
+    "questionNumber": 33,
+    "subject": "Medieval India",
+    "subSubject": "Bhakti & Sufi Movements",
+    "topic": null,
+    "difficulty": "Easy",
+    "format": "statements_numbered",
+    "question": {
+      "rawText": "With reference to the religious history of medieval India, the Sufi mystics were known to pursue which of the following practices?\n\n1. Meditation and control of breath\n2. Severe ascetic exercises in a lonely place\n3. Recitation of holy songs to arouse a state of ecstasy in their audience.\n\nSelect the correct answer using the codes given below:",
+      "displayText": "With reference to the religious history of medieval India, the Sufi mystics were known to pursue which of the following practices?\n1. Meditation and control of breath\n2. Severe ascetic exercises in a lonely place\n3. Recitation of holy songs to arouse a state of ecstasy in their audience.\n\nSelect the correct answer using the codes given below:",
+      "parts": {
+        "intro": "With reference to the religious history of medieval India, the Sufi mystics were known to pursue which of the following practices?",
+        "items": [
+          {
+            "label": "1",
+            "text": "Meditation and control of breath"
+          },
+          {
+            "label": "2",
+            "text": "Severe ascetic exercises in a lonely place"
+          },
+          {
+            "label": "3",
+            "text": "Recitation of holy songs to arouse a state of ecstasy in their audience."
+          }
+        ],
+        "prompt": "Select the correct answer using the codes given below:"
+      }
+    },
+    "options": [
+      {
+        "label": "A",
+        "rawText": "1 and 2 only",
+        "displayText": "1 and 2 only"
+      },
+      {
+        "label": "B",
+        "rawText": "2 and 3 only",
+        "displayText": "2 and 3 only"
+      },
+      {
+        "label": "C",
+        "rawText": "3 only",
+        "displayText": "3 only"
+      },
+      {
+        "label": "D",
+        "rawText": "1, 2 and 3",
+        "displayText": "1, 2 and 3"
+      }
+    ],
+    "correctOption": "D",
+    "explanation": {
+      "rawText": "The correct answer is D, as all three practices were associated with the Sufi tradition in medieval India.\n\nSufism was a mystical movement within Islam that sought a direct and intimate experience of the Divine through spiritual discipline and devotion. To deepen their spiritual practice, some Sufis adopted techniques resembling Pranayama or breath control, influenced by interactions with indigenous Yogic traditions, as a means of enhancing concentration and meditation.\n\nSufi saints also emphasized asceticism and self-discipline. Many lived in Khanqahs or in relative seclusion, undertaking rigorous spiritual exercises and acts of penance, known as Mujahida, to overcome worldly attachments and purify the soul.\n\nAnother important feature of Sufi practice was Sama, the devotional gathering in which spiritual music, hymns, and Qawwalis were performed. These were intended to elevate the devotee's consciousness and foster a profound sense of divine love and spiritual ecstasy.\n\nTherefore, all three practices formed part of the Sufi spiritual tradition, making option D the correct answer.",
+      "displayText": "The correct answer is D, as all three practices were associated with the Sufi tradition in medieval India.\n\nSufism was a mystical movement within Islam that sought a direct and intimate experience of the Divine through spiritual discipline and devotion. To deepen their spiritual practice, some Sufis adopted techniques resembling Pranayama or breath control, influenced by interactions with indigenous Yogic traditions, as a means of enhancing concentration and meditation.\n\nSufi saints also emphasized asceticism and self-discipline. Many lived in Khanqahs or in relative seclusion, undertaking rigorous spiritual exercises and acts of penance, known as Mujahida, to overcome worldly attachments and purify the soul.\n\nAnother important feature of Sufi practice was Sama, the devotional gathering in which spiritual music, hymns, and Qawwalis were performed. These were intended to elevate the devotee's consciousness and foster a profound sense of divine love and spiritual ecstasy.\n\nTherefore, all three practices formed part of the Sufi spiritual tradition, making option D the correct answer.",
+      "structured": {
+        "statement_analysis": [],
+        "pair_analysis": [],
+        "option_analysis": [],
+        "conclusion": "Therefore, all three practices formed part of the Sufi spiritual tradition, making option D the correct answer.",
+        "paragraphs": [
+          "The correct answer is D, as all three practices were associated with the Sufi tradition in medieval India.",
+          "Sufism was a mystical movement within Islam that sought a direct and intimate experience of the Divine through spiritual discipline and devotion. To deepen their spiritual practice, some Sufis adopted techniques resembling Pranayama or breath control, influenced by interactions with indigenous Yogic traditions, as a means of enhancing concentration and meditation.",
+          "Sufi saints also emphasized asceticism and self-discipline. Many lived in Khanqahs or in relative seclusion, undertaking rigorous spiritual exercises and acts of penance, known as Mujahida, to overcome worldly attachments and purify the soul.",
+          "Another important feature of Sufi practice was Sama, the devotional gathering in which spiritual music, hymns, and Qawwalis were performed. These were intended to elevate the devotee's consciousness and foster a profound sense of divine love and spiritual ecstasy.",
+          "Therefore, all three practices formed part of the Sufi spiritual tradition, making option D the correct answer."
+        ]
+      }
+    }
+  }
+]
