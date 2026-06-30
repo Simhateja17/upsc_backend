@@ -79,6 +79,24 @@ function normalizePage(page: AzurePage): DocumentPageLayout {
   };
 }
 
+function validateDocumentIntelligenceConfig(endpoint: string, apiKey: string) {
+  if (/\.openai\.azure\.com\/?$/i.test(endpoint)) {
+    throw new Error(
+      "AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT is an Azure OpenAI endpoint. Use the Azure AI Document Intelligence endpoint, e.g. https://<resource>.cognitiveservices.azure.com/"
+    );
+  }
+
+  if (!/\.cognitiveservices\.azure\.com\/?$/i.test(endpoint)) {
+    throw new Error(
+      "AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT must be the Document Intelligence endpoint from Azure Portal Key and endpoints."
+    );
+  }
+
+  if (/^your-/i.test(apiKey.trim())) {
+    throw new Error("AZURE_DOCUMENT_INTELLIGENCE_KEY is still a placeholder.");
+  }
+}
+
 export async function analyzeDocumentPageLayout(params: {
   imageBuffer: Buffer;
   mimeType: string;
@@ -95,6 +113,7 @@ export async function analyzeDocumentPageLayout(params: {
     console.warn("[doc-layout] skipped: Azure Document Intelligence env vars are not configured");
     return null;
   }
+  validateDocumentIntelligenceConfig(endpoint, apiKey);
 
   const startedAt = Date.now();
   const baseUrl = endpoint.replace(/\/+$/, "");
@@ -105,6 +124,7 @@ export async function analyzeDocumentPageLayout(params: {
     pageNumber: params.pageNumber,
     model,
     apiVersion,
+    endpointHost: new URL(baseUrl).host,
     bytes: params.imageBuffer.length,
     mimeType: params.mimeType,
   });

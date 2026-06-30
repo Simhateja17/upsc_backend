@@ -37,7 +37,7 @@ const pages: PageSeed[] = [
           { title: "Interactive Video Lessons", description: "Learn from India's best UPSC educators with interactive quizzes and notes.", icon: "/icon-mobile.png", useImage: true },
         ]),
       },
-      { key: "jeetai_title", type: "text", content: "Experience Jeet AI in Action", order: 7 },
+      { key: "jeetai_title", type: "text", content: "Experience Jeet AI Mentor in Action", order: 7 },
       {
         key: "jeetai_features", type: "json", order: 8,
         content: JSON.stringify([
@@ -280,7 +280,7 @@ const pages: PageSeed[] = [
       { key: "right_panel_title", type: "text", content: "Subject Progress", order: 8 },
       { key: "right_panel_view_all", type: "text", content: "View all →", order: 9 },
       { key: "cta_title", type: "text", content: "Plan Today's Study", order: 10 },
-      { key: "cta_subtitle", type: "text", content: "Set daily goals with Jeet AI and stay on track for UPSC 2026.", order: 11 },
+      { key: "cta_subtitle", type: "text", content: "Set daily goals with Jeet AI Mentor and stay on track for UPSC 2026.", order: 11 },
       { key: "cta_button", type: "text", content: "+ Add in Study Planner", order: 12 },
       { key: "modal_title", type: "text", content: "Syllabus Progress Overview", order: 13 },
       { key: "subtopic_placeholder_title", type: "text", content: "Sub-Topics", order: 14 },
@@ -320,16 +320,16 @@ const pages: PageSeed[] = [
   {
     slug: "dashboard/jeet-gpt",
     title: "Jeet GPT",
-    description: "Jeet AI chat page content",
+    description: "Jeet AI Mentor chat page content",
     sections: [
-      { key: "page_title", type: "text", content: "Jeet AI", order: 0 },
+      { key: "page_title", type: "text", content: "Jeet AI Mentor", order: 0 },
       { key: "sidebar_app_name", type: "text", content: "Rise with Jeet IAS", order: 1 },
       { key: "sidebar_tagline", type: "text", content: "India's Premier UPSC Platform", order: 2 },
-      { key: "header_title", type: "text", content: "Jeet AI", order: 3 },
+      { key: "header_title", type: "text", content: "Jeet AI Mentor", order: 3 },
       { key: "header_subtitle", type: "text", content: "Your UPSC Mentor", order: 4 },
       { key: "header_description", type: "text", content: "Ask anything about UPSC preparation", order: 5 },
-      { key: "welcome_greeting", type: "text", content: "Hi {firstName}, I'm Jeet AI.", order: 6 },
-      { key: "welcome_description", type: "text", content: "I'm Jeet AI, your intelligent UPSC preparation partner — from ancient history to current affairs, revision strategy, or just thinking through a topic together.", order: 7 },
+      { key: "welcome_greeting", type: "text", content: "Hi {firstName}, I'm Jeet AI Mentor.", order: 6 },
+      { key: "welcome_description", type: "text", content: "I'm Jeet AI Mentor, your intelligent UPSC preparation partner — from ancient history to current affairs, revision strategy, or just thinking through a topic together.", order: 7 },
       { key: "welcome_prompt", type: "text", content: "How can I help you today in your preparation?", order: 8 },
       { key: "suggestion_cards", type: "json", content: JSON.stringify([
         { title: "Explain a UPSC topic", subtitle: "Deep explanation with dimensions, UPSC angle & related questions", prompt: "Explain a UPSC topic in depth with all dimensions that an examiner would reward." },
@@ -338,8 +338,8 @@ const pages: PageSeed[] = [
         { title: "Study strategy & planner", subtitle: "Personalized roadmap, daily schedules + all-topic prioritization", prompt: "Give me a study strategy and daily schedule for UPSC preparation with topic prioritization." },
       ]), order: 9 },
       { key: "input_placeholder", type: "text", content: "Ask me anything about your preparation...", order: 10 },
-      { key: "input_placeholder_chat", type: "text", content: "Ask Jeet AI anything about UPSC...", order: 11 },
-      { key: "disclaimer", type: "text", content: "Jeet AI can make mistakes. Verify important facts from NCERT & official sources.", order: 12 },
+      { key: "input_placeholder_chat", type: "text", content: "Ask Jeet AI Mentor anything about UPSC...", order: 11 },
+      { key: "disclaimer", type: "text", content: "Jeet AI Mentor can make mistakes. Verify important facts from NCERT & official sources.", order: 12 },
     ],
   },
   {

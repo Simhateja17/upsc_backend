@@ -35,6 +35,23 @@ export function enforceUsage(featureKey: FeatureKey, source?: string) {
 
       const featureStatus = await getFeatureStatus(userId, featureKey);
       if (!featureStatus.allowed) {
+        console.warn("[Entitlements] Blocking feature usage", {
+          requestId: req.id,
+          userId,
+          featureKey,
+          source,
+          code: featureStatus.code,
+          tier: featureStatus.tier,
+          used: featureStatus.used,
+          limit: featureStatus.limit,
+          remaining: featureStatus.remaining,
+          period: featureStatus.period,
+          resetAt: featureStatus.resetAt,
+          throttle: featureStatus.throttle,
+          path: req.originalUrl,
+          method: req.method,
+        });
+
         return res.status(blockStatus(featureStatus.code)).json({
           status: "error",
           code: featureStatus.code,

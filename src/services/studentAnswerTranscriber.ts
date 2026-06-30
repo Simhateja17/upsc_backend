@@ -62,13 +62,17 @@ function normalizeTranscription(raw: unknown): TranscribedAnswer {
   };
 }
 
-async function fileToPageImages(fileBuffer: Buffer, mimeType: string): Promise<{
+function getOcrMaxPages(): number {
+  return Math.max(1, Number(process.env.AZURE_OPENAI_OCR_MAX_PAGES || process.env.OCR_PDF_MAX_PAGES || 6));
+}
+
+async function fileToPageImages(fileBuffer: Buffer, mimeType: string, maxPagesOverride?: number): Promise<{
   pages: Array<{ pageNumber: number; buffer: Buffer; mimeType: string }>;
   maxPages: number;
   truncated: boolean;
 }> {
   if (mimeType === "application/pdf") {
-    const maxPages = Number(process.env.AZURE_OPENAI_OCR_MAX_PAGES || process.env.OCR_PDF_MAX_PAGES || 6);
+    const maxPages = Math.max(1, maxPagesOverride ?? getOcrMaxPages());
     const rendered = await renderPdfPagesToImages(fileBuffer, maxPages + 1);
     const truncated = rendered.length > maxPages;
     const pages = rendered.slice(0, maxPages).map((buffer, index) => ({
@@ -88,6 +92,36 @@ async function fileToPageImages(fileBuffer: Buffer, mimeType: string): Promise<{
   }
 
   throw new Error(`Unsupported answer upload type for vision transcription: ${mimeType}`);
+}
+
+async function filesToPageImages(files: Array<{ buffer: Buffer; mimeType: string }>): Promise<{
+  pages: Array<{ pageNumber: number; buffer: Buffer; mimeType: string }>;
+  maxPages: number;
+  truncated: boolean;
+}> {
+  const maxPages = getOcrMaxPages();
+  const pages: Array<{ pageNumber: number; buffer: Buffer; mimeType: string }> = [];
+  let truncated = false;
+
+  for (const file of files) {
+    const remaining = maxPages - pages.length;
+    if (remaining <= 0) {
+      truncated = true;
+      break;
+    }
+
+    const rendered = await fileToPageImages(file.buffer, file.mimeType, remaining);
+    rendered.pages.forEach((page) => {
+      pages.push({
+        pageNumber: pages.length + 1,
+        buffer: page.buffer,
+        mimeType: page.mimeType,
+      });
+    });
+    truncated = truncated || rendered.truncated;
+  }
+
+  return { pages, maxPages, truncated };
 }
 
 export async function transcribeStudentAnswerFromUpload(params: {
@@ -120,15 +154,7 @@ export async function transcribeStudentAnswerFromUpload(params: {
   });
 
   const pageInput = params.files && params.files.length > 0
-    ? {
-        pages: params.files.map((file, index) => ({
-          pageNumber: index + 1,
-          buffer: file.buffer,
-          mimeType: file.mimeType,
-        })),
-        maxPages: Number(process.env.AZURE_OPENAI_OCR_MAX_PAGES || process.env.OCR_PDF_MAX_PAGES || 6),
-        truncated: false,
-      }
+    ? await filesToPageImages(params.files)
     : await fileToPageImages(params.fileBuffer, params.mimeType);
   const pageImages = pageInput.pages;
   if (pageImages.length === 0) {
@@ -245,7 +271,7 @@ Return ONLY valid JSON:
     truncated: pageInput.truncated,
   });
 
-  const concurrency = Math.max(1, Math.min(Number(process.env.AZURE_OPENAI_OCR_CONCURRENCY || 2), 4));
+  const concurrency = Math.max(1, Math.min(Number(process.env.AZURE_OPENAI_OCR_CONCURRENCY || 1), 4));
   const pageResults: Array<{ pageNumber: number; result?: TranscribedAnswer; error?: string; usage?: any }> = [];
   let nextIndex = 0;
   async function worker() {
@@ -271,6 +297,8 @@ Return ONLY valid JSON:
           pageNumber: page.pageNumber,
           message,
         });
+      } finally {
+        page.buffer = Buffer.alloc(0);
       }
     }
   }

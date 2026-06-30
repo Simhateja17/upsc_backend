@@ -74,6 +74,22 @@ export function createPrismaDashboardRepository(): DashboardRepository {
           prisma.mockTestMainsAttempt.count({ where: { userId } }),
           prisma.pyqMainsAttempt.count({ where: { userId } }),
           prisma.userStreak.findUnique({ where: { userId } }),
+          prisma.studyPlanTask.findMany({
+            where: {
+              userId,
+              isCompleted: true,
+              OR: [
+                { completedAt: { gte: today } },
+                { date: { gte: today } },
+              ],
+            },
+            select: {
+              duration: true,
+              actualDuration: true,
+              startTime: true,
+              endTime: true,
+            },
+          }),
           prisma.userActivity.findMany({ where: { userId, createdAt: { gte: today } } }),
           prisma.syllabusSubject.findMany({
             orderBy: [{ stage: "asc" }, { sortOrder: "asc" }],
@@ -125,6 +141,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
         mockMainsCount,
         pyqMainsCount,
         streak,
+        todayCompletedStudyTasks,
         todayActivitiesCount: todayActivities.length,
         syllabusCoverage: syllabusCov,
         seriesAttempts: {
@@ -202,6 +219,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
               type: true,
               date: true,
               duration: true,
+              actualDuration: true,
               startTime: true,
               endTime: true,
               completedAt: true,

@@ -20,7 +20,7 @@ async function main() {
           features: [
             "5 Mains Answer Evaluations / day",
             "5 Prelims Mock Tests / day",
-            "Jeet AI Mentor - 5 Messages / day",
+            "Jeet AI Mentor Mentor - 5 Messages / day",
             "Limited analytics and revision suite",
           ],
           isPopular: false,
@@ -64,7 +64,7 @@ async function main() {
           features: [
             "25 Mains Answer Evaluations / day",
             "50 Prelims Mock Tests / day",
-            "Jeet AI Mentor - 100 Messages / day",
+            "Jeet AI Mentor Mentor - 100 Messages / day",
             "Full analytics and revision suite",
           ],
           isPopular: true,
@@ -108,7 +108,7 @@ async function main() {
           features: [
             "Unlimited Mains Answer Evaluations",
             "Unlimited Prelims Mock Test practice",
-            "Jeet AI - Unlimited messages",
+            "Jeet AI Mentor - Unlimited messages",
             "Mentor-led growth",
           ],
           isPopular: false,

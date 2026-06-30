@@ -8,6 +8,12 @@ const ALLOWED_MIME_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
+const ANSWER_EVALUATION_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "application/pdf",
+];
+
 const MAGIC_BYTES: Record<string, number[][]> = {
   "image/jpeg": [[0xff, 0xd8, 0xff]],
   "image/png": [[0x89, 0x50, 0x4e, 0x47]],
@@ -40,6 +46,19 @@ function fileFilter(
   const signatures = MAGIC_BYTES[file.mimetype];
   if (signatures && file.buffer && !verifyMagicBytes(file.buffer, signatures)) {
     cb(new Error(`File content does not match its declared type (${file.mimetype})`));
+    return;
+  }
+
+  cb(null, true);
+}
+
+function answerEvaluationFileFilter(
+  _req: any,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) {
+  if (!ANSWER_EVALUATION_MIME_TYPES.includes(file.mimetype)) {
+    cb(new Error(`File type ${file.mimetype} is not allowed for answer evaluation. Allowed: JPG, PNG, PDF`));
     return;
   }
 
@@ -108,7 +127,7 @@ export const uploadSingle = (fieldName: string = "file") => {
 export const uploadAnswerFiles = () => {
   const middleware = multer({
     storage,
-    fileFilter,
+    fileFilter: answerEvaluationFileFilter,
     limits: {
       fileSize: MAX_FILE_SIZE,
       files: Number(process.env.ANSWER_UPLOAD_MAX_FILES || 10),

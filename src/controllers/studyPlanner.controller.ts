@@ -61,7 +61,7 @@ export const getTodayTasks = async (req: Request, res: Response, next: NextFunct
 export const createTask = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { title, description, subject, type, date, startTime, endTime, duration } = req.body;
+    const { title, description, subject, type, date, startTime, endTime, duration, actualDuration } = req.body;
     console.log(`[Study Plan] Create task: user=${userId}, title="${title}", subject=${subject}`);
 
     if (!title) {
@@ -91,6 +91,7 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
         startTime,
         endTime,
         duration,
+        actualDuration,
       },
     });
 

@@ -254,7 +254,7 @@ User clicks "Buy Rise Monthly" on frontend
 | `src/services/chunking.service.ts` | PDF → pages → clean text → smart split. What's "overlap"? Why does each chunk overlap with the previous one? |
 | `src/services/studyMaterialVectorizer.ts` | Full pipeline: chunk PDF → embed each chunk → store in Supabase Vector table. |
 | `src/services/mockTestRag.service.ts` | **Read twice.** Search vectors → get top chunks → inject into Claude prompt → generate grounded MCQ. This IS RAG. |
-| `src/controllers/ai.controller.ts` | Lines 46-110: `retrieveRelevantContext`. Jeet AI chat RAG flow: embed query → search study_chunks + mock_test_chunks in parallel → merge results → inject into Claude prompt. Lines 7-13: `JEET_AI_SYSTEM_PROMPT`. |
+| `src/controllers/ai.controller.ts` | Lines 46-110: `retrieveRelevantContext`. Jeet AI Mentor chat RAG flow: embed query → search study_chunks + mock_test_chunks in parallel → merge results → inject into Claude prompt. Lines 7-13: `JEET_AI_SYSTEM_PROMPT`. |
 
 ### Both must also read
 
@@ -269,7 +269,7 @@ User clicks "Buy Rise Monthly" on frontend
 
 ```
 1. Admin uploads NCERT PDF → studyMaterialVectorizer → chunks → Azure embeddings → Supabase Vector
-2. Student asks Jeet AI "explain fundamental rights"
+2. Student asks Jeet AI Mentor "explain fundamental rights"
    → embedText("explain fundamental rights") → 1536-dim vector
    → supabaseAdmin.rpc("search_study_chunks", {query_embedding: [...]})
    → PostgreSQL pgvector does cosine similarity
@@ -279,7 +279,7 @@ User clicks "Buy Rise Monthly" on frontend
 ```
 
 ### Discussion topic
-"I'll explain how an answer gets evaluated by AI. You explain how a study PDF becomes searchable vectors. Together, draw the FULL RAG cycle on a whiteboard — from admin uploading a PDF to a student asking Jeet AI a question and getting a grounded answer. Label every step with the file and function that handles it."
+"I'll explain how an answer gets evaluated by AI. You explain how a study PDF becomes searchable vectors. Together, draw the FULL RAG cycle on a whiteboard — from admin uploading a PDF to a student asking Jeet AI Mentor a question and getting a grounded answer. Label every step with the file and function that handles it."
 
 ---
 

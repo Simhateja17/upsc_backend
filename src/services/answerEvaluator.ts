@@ -27,6 +27,12 @@ interface EvaluationResult {
   detailedFeedback: string;
   metrics?: Array<{ label: string; value: number; maxValue: number }>;
   annotationPlan?: EvaluatorCheckedCopyPlan;
+  keyTerms?: Array<{ term: string; found: boolean }>;
+  nextAttemptFocus?: string;
+  evaluatorConclusion?: string;
+  modelAnswerKeyPoints?: string[];
+  modelAnswerContent?: string;
+  parameterScores?: Array<{ parameter: string; score: number; maxScore: number; comment?: string }>;
 }
 
 interface QuestionContext {
@@ -40,6 +46,14 @@ type OriginalUploadPage = {
   buffer: Buffer;
   contentType: string;
   sourcePath: string;
+};
+
+type CheckedCopyInput = {
+  pageNumber: number;
+  buffer: Buffer;
+  contentType: string;
+  source: "image" | "pdf-page";
+  layout?: DocumentPageLayout | null;
 };
 
 export interface EvaluationUpdate {
@@ -60,6 +74,12 @@ export interface EvaluationUpdate {
   checkedCopyStatus?: string | null;
   ragDiagnostics?: any;
   evaluationMode?: "daily" | "pyq" | "mock";
+  keyTerms?: any;
+  nextAttemptFocus?: string | null;
+  evaluatorConclusion?: string | null;
+  modelAnswerKeyPoints?: any;
+  modelAnswerContent?: string | null;
+  parameterScores?: any;
   evaluatedAt: Date | null;
 }
 
@@ -204,8 +224,26 @@ Return ONLY a JSON object (no prose, no markdown fences):
     {"label": "Structure", "value": <0-10>, "maxValue": 10},
     {"label": "Examples", "value": <0-10>, "maxValue": 10},
     {"label": "Balance", "value": <0-10>, "maxValue": 10}
+  ],
+  "keyTerms": [
+    {"term": "specific keyword/scheme/report/concept an examiner expects for this question", "found": <true if the student's answer uses this term, else false>}
+  ],
+  "nextAttemptFocus": "1-2 sentences telling the student exactly what to focus on in their next attempt at a similar question",
+  "evaluatorConclusion": "2-3 sentence overall verdict in an encouraging-but-honest examiner tone, naming the single biggest gap and what score the answer could realistically reach if fixed",
+  "modelAnswerKeyPoints": ["short bullet point the model answer must hit", "..."],
+  "modelAnswerContent": "the full model answer text, written in the same style as 'modelAnswer' but as flowing paragraphs with an intro, body points, and conclusion",
+  "parameterScores": [
+    {"parameter": "Demand Fulfilment", "score": <0-${question.marks}, scaled to this parameter's weight>, "maxScore": <weighted max for this parameter>, "comment": "specific feedback for this parameter"},
+    {"parameter": "Conceptual Clarity", "score": <number>, "maxScore": <number>, "comment": "..."},
+    {"parameter": "Analysis & Depth", "score": <number>, "maxScore": <number>, "comment": "..."},
+    {"parameter": "Knowledge Enrichment", "score": <number>, "maxScore": <number>, "comment": "..."},
+    {"parameter": "Structure & Flow", "score": <number>, "maxScore": <number>, "comment": "..."},
+    {"parameter": "Value Addition", "score": <number>, "maxScore": <number>, "comment": "..."},
+    {"parameter": "Presentation", "score": <number>, "maxScore": <number>, "comment": "..."}
   ]
-}`,
+}
+
+For "keyTerms", list 6-10 terms (mix of found and missing). For "parameterScores", the seven maxScore values must sum to exactly ${question.marks} and the seven score values must sum to exactly the overall "score" value above.`,
     },
   ];
 
@@ -256,6 +294,84 @@ function parseAnswerUploadPaths(fileUrl: string | null): string[] {
   } catch {
     return [trimmed];
   }
+}
+
+function getCheckedCopyMaxPages(): number {
+  return Math.max(1, Number(process.env.AZURE_OPENAI_OCR_MAX_PAGES || process.env.OCR_PDF_MAX_PAGES || 6));
+}
+
+async function buildCheckedCopyInputsFromUploads(
+  attemptId: string,
+  uploads: OriginalUploadPage[]
+): Promise<CheckedCopyInput[]> {
+  const maxPages = getCheckedCopyMaxPages();
+  const inputs: CheckedCopyInput[] = [];
+  let truncated = false;
+
+  for (const upload of uploads) {
+    const remaining = maxPages - inputs.length;
+    if (remaining <= 0) {
+      truncated = true;
+      break;
+    }
+
+    if (upload.contentType.startsWith("image/")) {
+      inputs.push({
+        pageNumber: inputs.length + 1,
+        buffer: upload.buffer,
+        contentType: upload.contentType,
+        source: "image",
+      });
+      continue;
+    }
+
+    if (upload.contentType === "application/pdf") {
+      const renderStartedAt = Date.now();
+      console.log("[eval] checked-copy PDF render start", {
+        attemptId,
+        sourcePath: upload.sourcePath,
+        bytes: upload.buffer.length,
+        remainingPages: remaining,
+        maxPages,
+      });
+      const rendered = await renderPdfPagesToImages(upload.buffer, remaining + 1);
+      if (rendered.length > remaining) truncated = true;
+      rendered.slice(0, remaining).forEach((buffer) => {
+        inputs.push({
+          pageNumber: inputs.length + 1,
+          buffer,
+          contentType: "image/png",
+          source: "pdf-page",
+        });
+      });
+      console.log("[eval] checked-copy PDF render completed", {
+        attemptId,
+        sourcePath: upload.sourcePath,
+        elapsed: evalElapsed(renderStartedAt),
+        renderedPages: Math.min(rendered.length, remaining),
+        truncated: rendered.length > remaining,
+        pageBytes: rendered.slice(0, remaining).map((page) => page.length),
+      });
+      continue;
+    }
+
+    console.warn("[eval] checked-copy unsupported upload type skipped", {
+      attemptId,
+      sourcePath: upload.sourcePath,
+      contentType: upload.contentType,
+    });
+  }
+
+  if (truncated) {
+    console.warn("[eval] checked-copy input truncated", {
+      attemptId,
+      maxPages,
+      uploads: uploads.length,
+      renderedPages: inputs.length,
+    });
+  }
+
+  return inputs;
 }
 
 function stripOcrChrome(line: string): string {
@@ -464,12 +580,13 @@ export async function evaluateAnswerGeneric(params: {
     let viaUploadTranscription = false;
     let originalUpload: OriginalUploadPage | null = null;
     let originalUploads: OriginalUploadPage[] = [];
+    let uploadPaths: string[] = [];
     let transcriptionDiagnostics: Record<string, unknown> | null = null;
     let transcriptionPages: TranscribedAnswerPage[] | undefined;
 
     // Handwritten/upload path: transcribe the file with Azure vision, then reuse the text path.
     if (!textToGrade && fileUrl) {
-      const uploadPaths = parseAnswerUploadPaths(fileUrl);
+      uploadPaths = parseAnswerUploadPaths(fileUrl);
       const downloadStartedAt = Date.now();
       console.log("[eval] uploaded-answer path: downloading original file", {
         attemptId,
@@ -508,10 +625,10 @@ export async function evaluateAnswerGeneric(params: {
       const transcription = await transcribeStudentAnswerFromUpload({
         fileBuffer: originalUploads.length === 1
           ? originalUpload.buffer
-          : Buffer.concat(originalUploads.map((upload) => upload.buffer)),
+          : Buffer.alloc(0),
         mimeType: originalUploads.length === 1
           ? originalUpload.contentType
-          : "application/x-upsc-multi-image",
+          : "application/x-upsc-multi-upload",
         files: originalUploads.length > 1
           ? originalUploads.map((upload) => ({
               buffer: upload.buffer,
@@ -579,6 +696,13 @@ export async function evaluateAnswerGeneric(params: {
         wordCount,
         chars: textToGrade.length,
         confidence: transcription.confidence,
+      });
+
+      originalUploads = [];
+      originalUpload = null;
+      console.log("[eval] released uploaded buffers after transcription", {
+        attemptId,
+        uploadPaths: uploadPaths.length,
       });
     }
 
@@ -746,44 +870,33 @@ export async function evaluateAnswerGeneric(params: {
 
     let checkedCopyUrl: string | null = null;
     let checkedCopyPages: Array<{ pageNumber: number; storagePath: string | null; status: string; reason?: string }> = [];
-    let checkedCopyStatus: string | null = originalUploads.length > 0 ? "skipped" : null;
-    let checkedCopyInputs: Array<{ pageNumber: number; buffer: Buffer; contentType: string; source: "image" | "pdf-page"; layout?: DocumentPageLayout | null }> = [];
-    if (originalUploads.length > 1 && originalUploads.every((upload) => upload.contentType.startsWith("image/"))) {
-      checkedCopyInputs = originalUploads.map((upload, index) => ({
-        pageNumber: index + 1,
-        buffer: upload.buffer,
-        contentType: upload.contentType,
-        source: "image",
-      }));
-    } else if (originalUpload?.contentType.startsWith("image/")) {
-      checkedCopyInputs = [{
-        pageNumber: 1,
-        buffer: originalUpload.buffer,
-        contentType: originalUpload.contentType,
-        source: "image",
-      }];
-    } else if (originalUpload?.contentType === "application/pdf") {
-      const renderStartedAt = Date.now();
-      const maxPages = Number(process.env.AZURE_OPENAI_OCR_MAX_PAGES || process.env.OCR_PDF_MAX_PAGES || 6);
-      console.log("[eval] checked-copy PDF render start", {
+    if (originalUploads.length === 0 && fileUrl && uploadPaths.length > 0) {
+      const redownloadStartedAt = Date.now();
+      console.log("[eval] checked-copy redownload start", {
         attemptId,
-        bytes: originalUpload.buffer.length,
-        maxPages,
+        bucket: STORAGE_BUCKETS.ANSWER_UPLOADS,
+        uploadPaths,
       });
-      const pages = await renderPdfPagesToImages(originalUpload.buffer, maxPages);
-      checkedCopyInputs = pages.map((buffer, index) => ({
-          pageNumber: index + 1,
-          buffer,
-          contentType: "image/png",
-          source: "pdf-page" as const,
-      }));
-      console.log("[eval] checked-copy PDF render completed", {
+      originalUploads = await Promise.all(
+        uploadPaths.map(async (path) => {
+          const downloaded = await downloadFile(
+            STORAGE_BUCKETS.ANSWER_UPLOADS,
+            path
+          );
+          return { ...downloaded, sourcePath: path };
+        })
+      );
+      originalUpload = originalUploads[0] || null;
+      console.log("[eval] checked-copy redownload completed", {
         attemptId,
-        elapsed: evalElapsed(renderStartedAt),
-        renderedPages: pages.length,
-        pageBytes: pages.map((page) => page.length),
+        elapsed: evalElapsed(redownloadStartedAt),
+        files: originalUploads.length,
+        bytes: originalUploads.map((upload) => upload.buffer.length),
+        contentTypes: originalUploads.map((upload) => upload.contentType),
       });
     }
+    let checkedCopyStatus: string | null = originalUploads.length > 0 ? "skipped" : null;
+    let checkedCopyInputs: CheckedCopyInput[] = await buildCheckedCopyInputsFromUploads(attemptId, originalUploads);
 
     if (checkedCopyInputs.length > 0) {
       if (process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT && process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY) {
@@ -866,6 +979,13 @@ export async function evaluateAnswerGeneric(params: {
         status: checkedCopyStatus,
         pages: checkedCopyPages,
       });
+
+      checkedCopyInputs = [];
+      originalUploads = [];
+      originalUpload = null;
+      console.log("[eval] released checked-copy buffers", {
+        attemptId,
+      });
     }
 
     await dbOps.saveEvaluation({
@@ -886,6 +1006,12 @@ export async function evaluateAnswerGeneric(params: {
       checkedCopyStatus,
       ragDiagnostics,
       evaluationMode: params.evaluationMode || "daily",
+      keyTerms: result.keyTerms || null,
+      nextAttemptFocus: result.nextAttemptFocus || null,
+      evaluatorConclusion: result.evaluatorConclusion || null,
+      modelAnswerKeyPoints: result.modelAnswerKeyPoints || null,
+      modelAnswerContent: result.modelAnswerContent || null,
+      parameterScores: result.parameterScores || null,
       evaluatedAt: new Date(),
     });
     console.log("[eval] completed and saved", {

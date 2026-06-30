@@ -292,7 +292,7 @@ function nextTierFor(featureKey: FeatureKey, tier: PlanTier): PlanTier {
 
 function upgradeMessage(featureKey: FeatureKey, tier: PlanTier, limit: FeatureLimit) {
   if (featureKey === "jeet_ai_message" && tier === "free") {
-    return "Jeet AI is handling heavy queries right now. Please try again later or upgrade for priority access.";
+    return "Jeet AI Mentor is handling heavy queries right now. Please try again later or upgrade for priority access.";
   }
   const nextTier = nextTierFor(featureKey, tier);
   const readable = featureKey.replace(/_/g, " ");
@@ -421,7 +421,7 @@ export async function getFeatureStatus(userId: string, featureKey: FeatureKey): 
         allowed: false,
         code: "FEATURE_THROTTLED",
         message: featureKey === "jeet_ai_message" && tier === "free"
-          ? "Jeet AI is handling heavy queries right now. Please try again later or upgrade for priority access."
+          ? "Jeet AI Mentor is handling heavy queries right now. Please try again later or upgrade for priority access."
           : "You are sending requests too quickly. Please try again after some time.",
         throttle: quotaStatus(featureKey, throttle, throttleUsed, false),
       };

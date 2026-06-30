@@ -23,6 +23,15 @@ async function signedCheckedCopyPages(pages: unknown): Promise<any[]> {
   );
 }
 
+function getUploadedAnswerFiles(req: Request): Express.Multer.File[] {
+  const filesByField = (req.files || {}) as Record<string, Express.Multer.File[]>;
+  return [
+    ...(req.file ? [req.file] : []),
+    ...(filesByField.file || []),
+    ...(filesByField.files || []),
+  ];
+}
+
 function buildDbOps(attemptId: string): EvaluationDbOps {
   return {
     markEvaluating: async (maxScore) => {
@@ -129,15 +138,27 @@ export const submitMockTestMainsAnswer = async (
       typeof rawAnswer === "string" ? rawAnswer : undefined;
     let fileUrl: string | null = null;
 
-    if (req.file) {
-      const fileName = buildStoragePath(userId, "mock-test", `${Date.now()}_${req.file.originalname}`);
-      await uploadFile(
-        STORAGE_BUCKETS.ANSWER_UPLOADS,
-        fileName,
-        req.file.buffer,
-        req.file.mimetype
-      );
-      fileUrl = fileName;
+    const uploadedFiles = getUploadedAnswerFiles(req);
+    if (uploadedFiles.length > 0) {
+      const storedPaths: string[] = [];
+      for (let index = 0; index < uploadedFiles.length; index++) {
+        const file = uploadedFiles[index];
+        const fileName = buildStoragePath(
+          userId,
+          "mock-test",
+          testId,
+          mockTestQuestionId,
+          `${Date.now()}_${String(index + 1).padStart(2, "0")}_${file.originalname}`
+        );
+        await uploadFile(
+          STORAGE_BUCKETS.ANSWER_UPLOADS,
+          fileName,
+          file.buffer,
+          file.mimetype
+        );
+        storedPaths.push(fileName);
+      }
+      fileUrl = storedPaths.length === 1 ? storedPaths[0] : JSON.stringify(storedPaths);
     }
 
     if (!fileUrl && (!answerText || answerText.trim().length === 0)) {

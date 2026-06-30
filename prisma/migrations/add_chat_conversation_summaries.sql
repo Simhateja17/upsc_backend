@@ -1,5 +1,5 @@
 -- Migration: add_chat_conversation_summaries
--- Stores compact rolling memory for Jeet AI so old chat turns do not need to
+-- Stores compact rolling memory for Jeet AI Mentor so old chat turns do not need to
 -- be resent verbatim on every model call.
 
 ALTER TABLE "chat_conversations"

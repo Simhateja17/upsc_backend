@@ -5,6 +5,7 @@ import {
   toggleBookmark,
   deleteBookmark,
   checkBookmark,
+  togglePin,
 } from "../controllers/bookmark.controller";
 
 const router = Router();
@@ -16,5 +17,6 @@ router.get("/", getBookmarks);
 router.post("/toggle", toggleBookmark);
 router.delete("/:id", deleteBookmark);
 router.get("/check", checkBookmark);
+router.patch("/:id/pin", togglePin);
 
 export default router;

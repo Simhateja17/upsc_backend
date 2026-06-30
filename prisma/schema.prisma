@@ -24,6 +24,7 @@ model User {
   bio                     String?
   settings                Json?
   bookmarks               Bookmark[]
+  questionFlags           QuestionFlag[]
   calendarSyncSetting     CalendarSyncSetting?
   chatConversations       ChatConversation[]
   contactSubmissions      ContactSubmission[]
@@ -233,6 +234,12 @@ model MainsEvaluation {
   evaluationMode    String?      @map("evaluation_mode")
   ragDiagnostics    Json?        @map("rag_diagnostics")
   checkedCopyPages  Json?        @map("checked_copy_pages")
+  keyTerms             Json?        @map("key_terms")
+  nextAttemptFocus     String?      @map("next_attempt_focus")
+  evaluatorConclusion  String?      @map("evaluator_conclusion")
+  modelAnswerKeyPoints Json?        @map("model_answer_key_points")
+  modelAnswerContent   String?      @map("model_answer_content")
+  parameterScores      Json?        @map("parameter_scores")
   attempt           MainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@map("mains_evaluations")
@@ -1294,6 +1301,12 @@ model PyqMainsEvaluation {
   evaluationMode    String?         @map("evaluation_mode")
   ragDiagnostics    Json?           @map("rag_diagnostics")
   checkedCopyPages  Json?           @map("checked_copy_pages")
+  keyTerms             Json?           @map("key_terms")
+  nextAttemptFocus     String?         @map("next_attempt_focus")
+  evaluatorConclusion  String?         @map("evaluator_conclusion")
+  modelAnswerKeyPoints Json?           @map("model_answer_key_points")
+  modelAnswerContent   String?         @map("model_answer_content")
+  parameterScores      Json?           @map("parameter_scores")
   attempt           PyqMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@map("pyq_mains_evaluations")
@@ -1340,6 +1353,12 @@ model MockTestMainsEvaluation {
   evaluationMode    String?              @map("evaluation_mode")
   ragDiagnostics    Json?                @map("rag_diagnostics")
   checkedCopyPages  Json?                @map("checked_copy_pages")
+  keyTerms             Json?                @map("key_terms")
+  nextAttemptFocus     String?              @map("next_attempt_focus")
+  evaluatorConclusion  String?              @map("evaluator_conclusion")
+  modelAnswerKeyPoints Json?                @map("model_answer_key_points")
+  modelAnswerContent   String?              @map("model_answer_content")
+  parameterScores      Json?                @map("parameter_scores")
   attempt           MockTestMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@map("mock_test_mains_evaluations")
@@ -1686,6 +1705,7 @@ model Bookmark {
   sourceUrl  String?  @map("source_url")
   tag        String?
   tagColor   String?  @map("tag_color")
+  content    Json?
   isPinned   Boolean  @default(false) @map("is_pinned")
   createdAt  DateTime @default(now()) @map("created_at")
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1693,6 +1713,22 @@ model Bookmark {
   @@index([userId, entityType])
   @@index([userId, createdAt])
   @@map("bookmarks")
+}
+
+model QuestionFlag {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  questionType String   @map("question_type")
+  questionId   String   @map("question_id")
+  questionText String   @map("question_text")
+  reason       String?
+  status       String   @default("pending")
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionType, questionId])
+  @@index([status])
+  @@map("question_flags")
 }
 
 model SupportTicket {

@@ -27,6 +27,12 @@ export interface PerformanceRaw {
   mockMainsCount: number;
   pyqMainsCount: number;
   streak: any;
+  todayCompletedStudyTasks: Array<{
+    duration: number | null;
+    actualDuration: number | null;
+    startTime: string | null;
+    endTime: string | null;
+  }>;
   todayActivitiesCount: number;
   todayCompletedTasks: Array<{ actualDuration: number | null; duration: number | null; startTime: string | null; endTime: string | null }>;
   syllabusCoverage: { coveredTopics: number; totalTopics: number }[];
@@ -47,6 +53,7 @@ export interface TestAnalyticsRaw {
     type: string;
     date: Date;
     duration: number | null;
+    actualDuration: number | null;
     startTime: string | null;
     endTime: string | null;
     completedAt: Date | null;
