@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getPublicPYQCounts,
+  getPublicPYQMetadata,
   getPublicPYQQuestionById,
   getPublicPYQQuestions,
   submitPyqPrelimsAnswer,
@@ -18,6 +19,7 @@ import {
 const router = Router();
 
 router.get("/questions", getPublicPYQQuestions);
+router.get("/metadata", getPublicPYQMetadata);
 router.get("/questions/:questionId", getPublicPYQQuestionById);
 router.get("/counts", getPublicPYQCounts);
 router.post("/prelims/:questionId/submit", authenticate, submitPyqPrelimsAnswer);

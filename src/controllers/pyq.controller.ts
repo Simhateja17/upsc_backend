@@ -175,6 +175,31 @@ async function findQuestionBankQuestionById(id: string) {
   return rows[0] || null;
 }
 
+async function getQuestionBankYearCounts() {
+  const rows = await prisma.$queryRawUnsafe<Array<{ year: number; count: number }>>(
+    `select year, count(*)::int as count
+     from public.pyq_question_bank
+     where exam = 'prelims' and status = 'approved' and year is not null
+     group by year
+     order by year desc`
+  );
+  return rows.map((row) => ({ year: Number(row.year), count: Number(row.count || 0) }));
+}
+
+async function getQuestionBankCsatYearCounts() {
+  const rows = await prisma.$queryRawUnsafe<Array<{ year: number; count: number }>>(
+    `select year, count(*)::int as count
+     from public.pyq_question_bank
+     where exam = 'prelims'
+       and status = 'approved'
+       and year is not null
+       and (paper ilike '%csat%' or subject ilike '%csat%' or topic ilike '%csat%')
+     group by year
+     order by year desc`
+  );
+  return rows.map((row) => ({ year: Number(row.year), count: Number(row.count || 0) }));
+}
+
 async function getQuestionBankCounts(req: Request, res: Response) {
   const { clause, params } = buildQuestionBankWhere(req);
   const [totalRows, bySubject, byPaper, bySubSubject, byTopic] = await Promise.all([
@@ -413,6 +438,74 @@ export const getPublicPYQQuestionById = async (
     return res.status(404).json({ status: "error", message: "Question not found" });
   } catch (error) {
     console.error("[PYQ] Error fetching question detail:", error);
+    next(error);
+  }
+};
+
+/**
+ * GET /api/pyq/metadata
+ * Public endpoint - returns available PYQ modes and years from approved data.
+ */
+export const getPublicPYQMetadata = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const useQuestionBank = await shouldUseQuestionBank();
+    const [prelimsYears, csatYears, mainsYears] = await Promise.all([
+      useQuestionBank
+        ? getQuestionBankYearCounts()
+        : prisma.pYQQuestion
+            .groupBy({
+              by: ["year"],
+              _count: { id: true },
+              where: { status: "approved" },
+              orderBy: { year: "desc" },
+            })
+            .then((rows: any[]) => rows.map((row) => ({ year: Number(row.year), count: Number(row._count?.id || 0) }))),
+      useQuestionBank
+        ? getQuestionBankCsatYearCounts()
+        : prisma.pYQQuestion
+            .groupBy({
+              by: ["year"],
+              _count: { id: true },
+              where: {
+                status: "approved",
+                OR: [
+                  { paper: { contains: "csat", mode: "insensitive" } },
+                  { subject: { contains: "csat", mode: "insensitive" } },
+                  { topic: { contains: "csat", mode: "insensitive" } },
+                ],
+              },
+              orderBy: { year: "desc" },
+            })
+            .then((rows: any[]) => rows.map((row) => ({ year: Number(row.year), count: Number(row._count?.id || 0) }))),
+      prisma.pYQMainsQuestion
+        .groupBy({
+          by: ["year"],
+          _count: { id: true },
+          where: { status: "approved" },
+          orderBy: { year: "desc" },
+        })
+        .then((rows: any[]) => rows.map((row) => ({ year: Number(row.year), count: Number(row._count?.id || 0) }))),
+    ]);
+
+    const modes = [
+      { key: "prelims", label: "Prelims", years: prelimsYears },
+      { key: "mains", label: "Mains", years: mainsYears },
+      { key: "csat", label: "CSAT", years: csatYears },
+    ].filter((mode) => mode.years.length > 0);
+
+    res.json({
+      status: "success",
+      data: {
+        modes,
+        years: prelimsYears,
+      },
+    });
+  } catch (error) {
+    console.error("[PYQ] Error fetching metadata:", error);
     next(error);
   }
 };
