@@ -217,8 +217,7 @@ export const getTodayRecommendations = async (req: Request, res: Response, next:
 
     if (attempt) {
       if (attempt.weakTopics.length > 0) {
-        const topicsParam = encodeURIComponent(attempt.weakTopics.join(","));
-        recommendations.push({ type: "study", title: "Review Weak Areas", description: `Focus on: ${attempt.weakTopics.join(", ")}`, action: "Practice Weak Areas", link: `/dashboard/daily-mcq/practice?topics=${topicsParam}` });
+        recommendations.push({ type: "study", title: "Review Weak Areas", description: `Focus on: ${attempt.weakTopics.join(", ")}`, action: "Do this first", link: `/dashboard/daily-mcq/review` });
       }
       if (attempt.accuracy < 60) {
         recommendations.push({ type: "practice", title: "Practice More MCQs", description: "Build your accuracy with subject-wise practice", action: "Start Mock Test", link: "/dashboard/mock-tests" });

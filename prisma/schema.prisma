@@ -1029,12 +1029,13 @@ model AiUsageLog {
 }
 
 model FlashcardDeck {
-  id        String      @id @default(cuid())
-  subject   String
-  subjectId String      @unique @map("subject_id")
-  icon      String      @default("📚")
-  createdAt DateTime    @default(now()) @map("created_at")
-  cards     Flashcard[]
+  id          String                     @id @default(cuid())
+  subject     String
+  subjectId   String                     @unique @map("subject_id")
+  icon        String                     @default("📚")
+  createdAt   DateTime                   @default(now()) @map("created_at")
+  cards       Flashcard[]
+  hiddenTopics UserHiddenFlashcardTopic[]
 
   @@map("flashcard_decks")
 }
@@ -1065,6 +1066,18 @@ model UserFlashcardProgress {
 
   @@unique([userId, cardId])
   @@map("user_flashcard_progress")
+}
+
+model UserHiddenFlashcardTopic {
+  id       String        @id @default(cuid())
+  userId   String        @map("user_id")
+  deckId   String        @map("deck_id")
+  topicId  String        @map("topic_id")
+  hiddenAt DateTime      @default(now()) @map("hidden_at")
+  deck     FlashcardDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deckId, topicId])
+  @@map("user_hidden_flashcard_topics")
 }
 
 model SpacedRepItem {

@@ -34,6 +34,7 @@ export interface PerformanceRaw {
     endTime: string | null;
   }>;
   todayActivitiesCount: number;
+  todayCompletedTasks: Array<{ actualDuration: number | null; duration: number | null; startTime: string | null; endTime: string | null }>;
   syllabusCoverage: { coveredTopics: number; totalTopics: number }[];
   seriesAttempts: { count: number; data: Array<{ score: number | null; total: number | null }> };
   mockAgg: { _sum: { correctCount: number | null; wrongCount: number | null; skippedCount: number | null } };

@@ -132,21 +132,32 @@ export const getTopics = async (
       topicMap[card.topicId].cardIds.push(card.id);
     }
 
+    let hiddenTopicIds = new Set<string>();
+    if (userId) {
+      const hidden = await prisma.userHiddenFlashcardTopic.findMany({
+        where: { userId, deckId: deck.id },
+        select: { topicId: true },
+      });
+      hiddenTopicIds = new Set(hidden.map((h) => h.topicId));
+    }
+
     const topics = await Promise.all(
-      Object.values(topicMap).map(async (t) => {
-        let mastered = 0;
-        if (userId && t.cardIds.length > 0) {
-          mastered = await prisma.userFlashcardProgress.count({
-            where: { userId, mastered: true, cardId: { in: t.cardIds } },
-          });
-        }
-        return {
-          id: t.topicId,
-          name: t.name,
-          cards: t.cardIds.length,
-          mastery: t.cardIds.length > 0 ? Math.round((mastered / t.cardIds.length) * 100) : 0,
-        };
-      })
+      Object.values(topicMap)
+        .filter((t) => !hiddenTopicIds.has(t.topicId))
+        .map(async (t) => {
+          let mastered = 0;
+          if (userId && t.cardIds.length > 0) {
+            mastered = await prisma.userFlashcardProgress.count({
+              where: { userId, mastered: true, cardId: { in: t.cardIds } },
+            });
+          }
+          return {
+            id: t.topicId,
+            name: t.name,
+            cards: t.cardIds.length,
+            mastery: t.cardIds.length > 0 ? Math.round((mastered / t.cardIds.length) * 100) : 0,
+          };
+        })
     );
 
     res.json({
@@ -400,6 +411,50 @@ export const adminDeleteCard = async (req: Request, res: Response, next: NextFun
     const id = param(req, "id");
     await prisma.flashcard.delete({ where: { id } });
     res.json({ status: "success", message: "Card deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/flashcards/:subjectId/:topicId
+ * Hides the given topic from the requesting user only. The underlying
+ * flashcards remain intact for other users.
+ */
+export const deleteTopic = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const subjectId = param(req, "subjectId");
+    const topicId = param(req, "topicId");
+    const userId = req.user?.id;
+
+    if (!userId) {
+      res.status(401).json({ status: "error", message: "Authentication required" });
+      return;
+    }
+
+    const deck = await prisma.flashcardDeck.findUnique({ where: { subjectId } });
+    if (!deck) {
+      res.status(404).json({ status: "error", message: "Deck not found" });
+      return;
+    }
+
+    const cardCount = await prisma.flashcard.count({ where: { deckId: deck.id, topicId } });
+    if (cardCount === 0) {
+      res.status(404).json({ status: "error", message: "Topic not found" });
+      return;
+    }
+
+    await prisma.userHiddenFlashcardTopic.upsert({
+      where: { userId_deckId_topicId: { userId, deckId: deck.id, topicId } },
+      update: {},
+      create: { userId, deckId: deck.id, topicId },
+    });
+
+    res.json({ status: "success", message: "Topic removed" });
   } catch (error) {
     next(error);
   }
