@@ -1,6 +1,5 @@
 import prisma from "../config/database";
 import { invokeModelJSON } from "../config/llm";
-import { generateMCQQuestions } from "../services/questionGenerator";
 import { isValidSubject, normalizeSubject, VALID_UPSC_SUBJECTS } from "../constants/subjects";
 
 /**
@@ -11,8 +10,10 @@ const UPSC_SUBJECTS = [...VALID_UPSC_SUBJECTS];
 const DAILY_MCQ_QUESTION_COUNT = 10;
 const DAILY_MCQ_TIME_LIMIT_MINUTES = 10;
 const DAILY_MCQ_MARKS_PER_QUESTION = 2;
+const APP_TIME_ZONE = "Asia/Kolkata";
 
 interface MCQItem {
+  sourceQuestionBankId: string;
   questionText: string;
   options: any;
   correctOption: string;
@@ -32,23 +33,36 @@ function shuffle<T>(arr: T[]): T[] {
   return arr;
 }
 
+function dateOnlyUTC(year: number, month: number, day: number): Date {
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+export function getTodayInAppTimeZone(now = new Date()): Date {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+  const day = Number(parts.find((part) => part.type === "day")?.value);
+  return dateOnlyUTC(year, month, day);
+}
+
 /**
  * Ensure today's MCQ exists. Called on-demand when a user visits Daily MCQ.
  */
 export async function ensureTodayMCQ(): Promise<void> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getTodayInAppTimeZone();
   return createDailyMCQForDate(today);
 }
 
 /**
- * Pre-generate tomorrow's MCQ (called by cron job)
+ * Generate the current IST day's MCQ set (called by cron job).
  */
 export async function rotateDailyMCQ(): Promise<void> {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
-  return createDailyMCQForDate(tomorrow);
+  return createDailyMCQForDate(getTodayInAppTimeZone());
 }
 
 /**
@@ -78,6 +92,7 @@ function hasValidOptions(options: any): boolean {
 }
 
 function toDailyMcqItem(q: {
+  id?: string;
   questionText: string;
   options: any;
   correctOption?: string | null;
@@ -91,6 +106,7 @@ function toDailyMcqItem(q: {
   if (!hasValidOptions(q.options)) return null;
 
   return {
+    sourceQuestionBankId: q.id || "",
     questionText: q.questionText,
     options: q.options,
     correctOption: q.correctOption || "A",
@@ -98,6 +114,51 @@ function toDailyMcqItem(q: {
     subject,
     difficulty: q.difficulty || "Medium",
   };
+}
+
+type Difficulty = "Easy" | "Medium" | "Hard";
+
+const DAILY_DIFFICULTY_COUNTS: Record<Difficulty, number> = {
+  Easy: 5,
+  Medium: 3,
+  Hard: 2,
+};
+
+async function findDailyQuestionBankRows(targetDate: Date, difficulty: Difficulty, limit: number, excludeIds: string[]) {
+  const seed = targetDate.toISOString().slice(0, 10);
+  const params: any[] = [difficulty, seed, limit];
+  const excludeClause = excludeIds.length > 0 ? `and id <> all($4::text[])` : "";
+  if (excludeIds.length > 0) params.push(excludeIds);
+
+  return prisma.$queryRawUnsafe<any[]>(
+    `select
+       id,
+       question_text as "questionText",
+       subject,
+       difficulty,
+       options,
+       correct_option as "correctOption",
+       explanation
+     from public.pyq_question_bank
+     where exam = 'prelims'
+       and status = 'approved'
+       and paper = 'GS-I'
+       and lower(difficulty) = lower($1)
+       and options is not null
+       and coalesce(correct_option, '') <> ''
+       ${excludeClause}
+       and id not in (
+         select q.source_question_bank_id
+         from public.mcq_questions q
+         join public.daily_mcqs d on d.id = q.daily_mcq_id
+         where q.source_question_bank_id is not null
+           and d.date >= ($2::date - interval '60 days')
+           and d.date < $2::date
+       )
+     order by md5(id || $2)
+     limit $3`,
+    ...params
+  );
 }
 
 async function createDailyMCQForDate(targetDate: Date): Promise<void> {
@@ -123,123 +184,32 @@ async function createDailyMCQForDate(targetDate: Date): Promise<void> {
     }
   }
 
-  const PYQ_COUNT = 5;
-  const AI_COUNT = DAILY_MCQ_QUESTION_COUNT - PYQ_COUNT;
+  const selectedIds: string[] = [];
+  const allQuestions: MCQItem[] = [];
 
-  // ── Step 1: Get 5 PYQ questions (diverse subjects) ──
-  const pyqQuestions = [];
-  const shuffledSubjects = shuffle([...UPSC_SUBJECTS]);
-
-  for (const subject of shuffledSubjects) {
-    if (pyqQuestions.length >= PYQ_COUNT) break;
-
-    const subjectQuestions = await prisma.pYQQuestion.findMany({
-      where: {
-        status: "approved",
-        subject: { contains: subject, mode: "insensitive" },
-      },
-      take: 1,
-      orderBy: { createdAt: "desc" },
-    });
-
-    pyqQuestions.push(...subjectQuestions);
+  for (const [difficulty, count] of Object.entries(DAILY_DIFFICULTY_COUNTS) as Array<[Difficulty, number]>) {
+    const rows = await findDailyQuestionBankRows(targetDate, difficulty, count, selectedIds);
+    const questions = rows
+      .map((q) =>
+        toDailyMcqItem({
+          id: q.id,
+          questionText: q.questionText,
+          options: q.options,
+          correctOption: q.correctOption || "A",
+          explanation: q.explanation,
+          subject: q.subject,
+          difficulty: q.difficulty,
+        })
+      )
+      .filter((q): q is MCQItem => q !== null)
+      .slice(0, count);
+    selectedIds.push(...questions.map((q) => q.sourceQuestionBankId));
+    allQuestions.push(...questions);
   }
-
-  // If we still need more PYQ, fill from any subject
-  if (pyqQuestions.length < PYQ_COUNT) {
-    const pyqIds = pyqQuestions.map((q) => q.id);
-    const extra = await prisma.pYQQuestion.findMany({
-      where: {
-        status: "approved",
-        id: { notIn: pyqIds },
-      },
-      take: PYQ_COUNT - pyqQuestions.length,
-      orderBy: { createdAt: "desc" },
-    });
-    pyqQuestions.push(...extra);
-  }
-
-  const validPyqQuestions = pyqQuestions
-    .map((q) =>
-      toDailyMcqItem({
-        questionText: q.questionText,
-        options: q.options as any,
-        correctOption: q.correctOption || "A",
-        explanation: q.explanation,
-        subject: q.subject,
-        difficulty: q.difficulty,
-      })
-    )
-    .filter((q): q is MCQItem => q !== null)
-    .slice(0, PYQ_COUNT);
-
-  // ── Step 2: Generate 5 AI questions (pick 2-3 random subjects) ──
-  const aiSubjects = shuffle([...UPSC_SUBJECTS]).slice(0, 3);
-  let aiQuestions: Array<{
-    questionText: string;
-    options: any;
-    correctOption: string;
-    explanation: string | null;
-    subject: string;
-    difficulty: string;
-  }> = [];
-
-  try {
-    // Generate questions spread across selected subjects
-    const questionsPerSubject = [2, 2, 1]; // 5 total across 3 subjects
-    for (let i = 0; i < aiSubjects.length && aiQuestions.length < AI_COUNT; i++) {
-      const needed = Math.min(questionsPerSubject[i], AI_COUNT - aiQuestions.length);
-      const generated = await generateMCQQuestions({
-        subject: aiSubjects[i],
-        difficulty: "Medium",
-        count: needed,
-      });
-      aiQuestions.push(
-        ...generated.map((g) => ({
-          questionText: g.questionText,
-          options: g.options,
-          correctOption: g.correctOption || "A",
-          explanation: g.explanation || null,
-          subject: g.subject || aiSubjects[i],
-          difficulty: g.difficulty || "Medium",
-        }))
-      );
-    }
-
-    while (validPyqQuestions.length + aiQuestions.length < DAILY_MCQ_QUESTION_COUNT) {
-      const subject = UPSC_SUBJECTS[aiQuestions.length % UPSC_SUBJECTS.length];
-      const needed = DAILY_MCQ_QUESTION_COUNT - validPyqQuestions.length - aiQuestions.length;
-      const generated = await generateMCQQuestions({
-        subject,
-        difficulty: "Medium",
-        count: Math.min(needed, 3),
-      });
-      if (generated.length === 0) break;
-      aiQuestions.push(
-        ...generated.map((g) => ({
-          questionText: g.questionText,
-          options: g.options,
-          correctOption: g.correctOption || "A",
-          explanation: g.explanation || null,
-          subject: g.subject || subject,
-          difficulty: g.difficulty || "Medium",
-        }))
-      );
-    }
-    console.log(`[DailyMCQ] AI generated ${aiQuestions.length} questions`);
-  } catch (error) {
-    console.error("[DailyMCQ] AI question generation failed:", error);
-  }
-
-  // ── Step 3: Combine and shuffle ──
-  const allQuestions: MCQItem[] = [
-    ...validPyqQuestions,
-    ...aiQuestions,
-  ].map(toDailyMcqItem).filter((q): q is MCQItem => q !== null).slice(0, DAILY_MCQ_QUESTION_COUNT);
 
   if (allQuestions.length < DAILY_MCQ_QUESTION_COUNT) {
     console.log(
-      `[DailyMCQ] Only ${allQuestions.length}/${DAILY_MCQ_QUESTION_COUNT} valid questions available. Skipping daily challenge creation.`
+      `[DailyMCQ] Only ${allQuestions.length}/${DAILY_MCQ_QUESTION_COUNT} valid bank questions available. Skipping daily challenge creation.`
     );
     return;
   }
@@ -275,6 +245,7 @@ async function createDailyMCQForDate(targetDate: Date): Promise<void> {
     await prisma.mCQQuestion.create({
       data: {
         dailyMcqId: dailyMcq.id,
+        sourceQuestionBankId: q.sourceQuestionBankId,
         questionNum: i + 1,
         questionText: q.questionText,
         category: q.subject,
@@ -287,24 +258,67 @@ async function createDailyMCQForDate(targetDate: Date): Promise<void> {
   }
 
   console.log(
-    `[DailyMCQ] Created for ${targetDate.toISOString().split("T")[0]} with ${allQuestions.length} questions (${pyqQuestions.length} PYQ + ${aiQuestions.length} AI)`
+    `[DailyMCQ] Created for ${targetDate.toISOString().split("T")[0]} with ${allQuestions.length} question-bank questions`
   );
+}
+
+/**
+ * Ensure today's mains question exists. Called on-demand when a user visits Daily Answer.
+ */
+export async function ensureTodayMainsQuestion(): Promise<void> {
+  return createDailyMainsQuestionForDate(getTodayInAppTimeZone());
 }
 
 /**
  * Create daily mains question using AI
  */
 export async function createDailyMainsQuestion(): Promise<void> {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
+  return createDailyMainsQuestionForDate(getTodayInAppTimeZone());
+}
 
+function isUniqueConstraintError(error: unknown): boolean {
+  const err = error as { code?: string; message?: string };
+  return err?.code === "P2002" || Boolean(err?.message?.includes("Unique constraint failed"));
+}
+
+async function createDailyMainsQuestionRecord(
+  targetDate: Date,
+  data: {
+    title: string;
+    questionText: string;
+    paper: string;
+    subject: string;
+    marks: number;
+    wordLimit: number;
+    timeLimit: number;
+    instructions: string;
+    isActive: boolean;
+  }
+): Promise<boolean> {
+  try {
+    await prisma.dailyMainsQuestion.create({
+      data: {
+        date: targetDate,
+        ...data,
+      },
+    });
+    return true;
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      console.log(`[DailyMains] Already created for ${targetDate.toISOString().split("T")[0]}`);
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function createDailyMainsQuestionForDate(targetDate: Date): Promise<void> {
   // Check if already created
   const existing = await prisma.dailyMainsQuestion.findUnique({
-    where: { date: tomorrow },
+    where: { date: targetDate },
   });
   if (existing) {
-    console.log("[DailyMains] Already created for tomorrow");
+    console.log(`[DailyMains] Already created for ${targetDate.toISOString().split("T")[0]}`);
     return;
   }
 
@@ -350,46 +364,46 @@ Make it a thought-provoking, analytical question typical of UPSC Mains. Focus on
       }
     );
 
-    await prisma.dailyMainsQuestion.create({
-      data: {
-        date: tomorrow,
-        title: result.title || `${selectedSubject} Analysis`,
-        questionText:
-          result.questionText ||
-          `Discuss the key challenges in ${selectedSubject} and suggest measures to address them.`,
-        paper: selectedPaper.paper,
-        subject: selectedSubject,
-        marks: 15,
-        wordLimit: 250,
-        timeLimit: 20,
-        instructions:
-          result.instructions ||
-          "Write a well-structured answer with introduction, body, and conclusion.",
-        isActive: true,
-      },
+    const created = await createDailyMainsQuestionRecord(targetDate, {
+      title: result.title || `${selectedSubject} Analysis`,
+      questionText:
+        result.questionText ||
+        `Discuss the key challenges in ${selectedSubject} and suggest measures to address them.`,
+      paper: selectedPaper.paper,
+      subject: selectedSubject,
+      marks: 15,
+      wordLimit: 250,
+      timeLimit: 20,
+      instructions:
+        result.instructions ||
+        "Write a well-structured answer with introduction, body, and conclusion.",
+      isActive: true,
     });
 
-    console.log(
-      `[DailyMains] Created for ${tomorrow.toISOString().split("T")[0]}: ${result.title}`
-    );
+    if (created) {
+      console.log(
+        `[DailyMains] Created for ${targetDate.toISOString().split("T")[0]}: ${result.title}`
+      );
+    }
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      console.log(`[DailyMains] Already created for ${targetDate.toISOString().split("T")[0]}`);
+      return;
+    }
     console.error("[DailyMains] AI generation failed, creating fallback:", error);
 
     // Fallback — create a generic question
-    await prisma.dailyMainsQuestion.create({
-      data: {
-        date: tomorrow,
-        title: `${selectedSubject} — Contemporary Analysis`,
-        questionText: `Critically examine the recent developments in ${selectedSubject.toLowerCase()} and their implications for India's development trajectory. Suggest a way forward.`,
-        paper: selectedPaper.paper,
-        subject: selectedSubject,
-        marks: 15,
-        wordLimit: 250,
-        timeLimit: 20,
-        instructions:
-          "Structure your answer with a clear introduction, balanced arguments, relevant examples, and a conclusion.",
-        isActive: true,
-      },
+    await createDailyMainsQuestionRecord(targetDate, {
+      title: `${selectedSubject} - Contemporary Analysis`,
+      questionText: `Critically examine the recent developments in ${selectedSubject.toLowerCase()} and their implications for India's development trajectory. Suggest a way forward.`,
+      paper: selectedPaper.paper,
+      subject: selectedSubject,
+      marks: 15,
+      wordLimit: 250,
+      timeLimit: 20,
+      instructions:
+        "Structure your answer with a clear introduction, balanced arguments, relevant examples, and a conclusion.",
+      isActive: true,
     });
   }
 }
