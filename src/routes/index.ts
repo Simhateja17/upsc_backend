@@ -5,6 +5,7 @@ import authRoutes from "./auth.routes";
 import aiRoutes from "./ai.routes";
 import dailyMcqRoutes from "./dailyMcq.routes";
 import dailyAnswerRoutes from "./dailyAnswer.routes";
+import mainsEvaluatorRoutes from "./mainsEvaluator.routes";
 import editorialRoutes from "./editorial.routes";
 import mockTestRoutes from "./mockTest.routes";
 import studyPlannerRoutes from "./studyPlanner.routes";
@@ -98,6 +99,9 @@ router.use("/daily-mcq", dailyMcqRoutes);
 
 // Daily Answer Writing routes
 router.use("/daily-answer", dailyAnswerRoutes);
+
+// Standalone Mains Answer Evaluator routes
+router.use("/mains-evaluator", mainsEvaluatorRoutes);
 
 // Editorial routes
 router.use("/editorials", editorialRoutes);

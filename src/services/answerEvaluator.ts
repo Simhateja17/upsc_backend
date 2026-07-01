@@ -74,7 +74,7 @@ export interface EvaluationUpdate {
   checkedCopyPages?: any;
   checkedCopyStatus?: string | null;
   ragDiagnostics?: any;
-  evaluationMode?: "daily" | "pyq" | "mock";
+  evaluationMode?: "daily" | "pyq" | "mock" | "custom";
   keyTerms?: any;
   nextAttemptFocus?: string | null;
   evaluatorConclusion?: string | null;
@@ -573,7 +573,7 @@ export async function evaluateAnswerGeneric(params: {
   fileUrl: string | null;
   question: QuestionContext;
   dbOps: EvaluationDbOps;
-  evaluationMode?: "daily" | "pyq" | "mock";
+  evaluationMode?: "daily" | "pyq" | "mock" | "custom";
 }): Promise<void> {
   const { attemptId, answerText, fileUrl, question, dbOps } = params;
   const evaluationStartedAt = Date.now();
