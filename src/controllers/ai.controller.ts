@@ -57,7 +57,7 @@ function detectResponseMode(message: string): ResponseMode {
 function getResponseLengthPolicy(mode: ResponseMode): string {
   const common = [
     "This response length policy overrides any earlier formatting or depth instruction when they conflict.",
-    "Use only standard Markdown. Do not use HTML or custom markup.",
+    "Use standard Markdown, plus the platform's special callout tags described in your system instructions (e.g. [!PRIORITY]...[/PRIORITY], [!TIP]...[/TIP], [!PYQ]...[/PYQ]) where relevant. Do not use raw HTML.",
     "The character number is a target, not a hard cutoff. Never end mid-sentence, mid-list, or mid-section.",
     "Do not force tables, sample questions, resources snapshots, or conclusion sections when they would make the answer much longer than the selected target.",
   ].join("\n");

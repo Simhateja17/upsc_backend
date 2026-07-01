@@ -1,8 +1,35 @@
 import Parser from "rss-parser";
+import axios from "axios";
+import * as cheerio from "cheerio";
 import { editorialRepo } from "../repositories/prisma-editorial.repository";
 import { categorize, extractTags, isDailyEditorialWorthy } from "./categorizer";
 
 const parser = new Parser({ timeout: 10000 });
+const MIN_CONTENT_LENGTH = 50; // matches editorialSummarizer.ts's NO_CONTENT threshold
+
+/**
+ * Best-effort fallback: scrape the full article body when the RSS feed's own
+ * snippet is too short to summarize. Only called for the rare short-snippet case.
+ */
+async function scrapeArticleContent(url: string): Promise<string | null> {
+  try {
+    const { data: html } = await axios.get(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
+      timeout: 10000,
+    });
+    const $ = cheerio.load(html);
+    const parts: string[] = [];
+    $("article p, .story-details p, .full-details p, .articlebodycontent p, .story_details p, main p").each((_, el) => {
+      const text = $(el).text().trim();
+      if (text.length > 20) parts.push(text);
+    });
+    const content = parts.join("\n\n");
+    return content.length >= MIN_CONTENT_LENGTH ? content : null;
+  } catch (err: any) {
+    console.warn(`[RSS] Content fallback scrape failed for ${url}: ${err.message}`);
+    return null;
+  }
+}
 
 // UPSC-relevant RSS sources
 const RSS_SOURCES = [
@@ -82,13 +109,17 @@ export async function saveArticlesToDb(articles: FetchedArticle[]): Promise<numb
     const exists = await editorialRepo.findBySourceUrl(article.sourceUrl);
     if (exists) continue;
 
+    const content = (!article.summary || article.summary.length < MIN_CONTENT_LENGTH)
+      ? await scrapeArticleContent(article.sourceUrl)
+      : null;
+
     await editorialRepo.create({
       title: article.title,
       source: article.source,
       sourceUrl: article.sourceUrl,
       category: article.category,
       summary: article.summary,
-      content: null,
+      content,
       tags: article.tags,
       aiSummary: null,
       publishedAt: article.publishedAt,
