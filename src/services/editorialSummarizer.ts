@@ -11,7 +11,10 @@ export async function summarizeEditorial(editorialId: string): Promise<string> {
   // Return cached summary if exists
   if (editorial.aiSummary) return editorial.aiSummary;
 
-  const content = editorial.content || editorial.summary || editorial.title;
+  const content = editorial.content || editorial.summary;
+  if (!content || content.trim().length < 50) {
+    throw new Error("NO_CONTENT");
+  }
 
   const system = `You are a UPSC preparation expert who analyzes newspaper editorials for IAS aspirants. Stay factual, non-partisan, exam-oriented, and concise. Focus on policy issues over isolated events. Apply a PYQ lens and highlight precise Prelims facts only when they are present in the source.`;
 
@@ -25,11 +28,11 @@ Content:
 ${content}
 
 Provide a structured summary with:
-1. **Key Arguments** (3-4 bullet points)
-2. **UPSC Relevance** — which GS papers/topics this maps to
-3. **Key Terms & Concepts** to remember
-4. **Potential Exam Questions** — 2-3 questions that could be framed from this editorial
-5. **Critical Analysis** — balanced perspective for answer writing
+1. **Key Arguments** (5-6 detailed bullet points — for each point, write 3-4 sentences covering: the core argument, its policy/constitutional significance, real-world implications, and why it matters for governance or society; make this section substantive and analytical, not just a headline list; each point should be a substantial paragraph)
+2. **Critical Analysis** — a balanced multi-perspective analysis in 4-5 sentences covering: the strengths of the approach, gaps or criticisms, what is at stake for institutions/citizens, and the key tension or trade-off an aspirant should address in a Mains answer
+3. **UPSC Relevance** — 3-5 lines mapping this editorial to GS papers/Essay; one mapping per line with no blank line between them, each formatted as "**GS Paper X**: topics/keywords" (or "**Essay**: ..." where relevant); do not merge multiple mappings into one paragraph
+4. **Key Terms & Concepts** — list 5-8 key terms with brief one-line definitions; format each as "**Term**: definition" with the first letter of each term capitalized; do not split a term's definition across multiple lines; do not include any "Key UPSC Takeaway" or concluding remarks
+5. **Potential Exam Questions** — 2-3 questions that could be framed from this editorial
 
 Analysis rules:
 - Prefer the underlying governance, constitutional, economic, social, environmental, ethical, technological, or international issue over the day-to-day event.
@@ -38,11 +41,11 @@ Analysis rules:
 - If the article is mostly rhetoric or has weak UPSC value, say so briefly and keep the output conservative.
 - Do not invent schemes, statistics, committee names, article numbers, or PYQ links not present in the content.
 
-Keep the summary concise (300-400 words).`;
+Target 550-700 words — Key Arguments and Critical Analysis sections should be the most substantial parts. Output sections in this exact order: 1. Key Arguments, 2. Critical Analysis, 3. UPSC Relevance, 4. Key Terms & Concepts, 5. Potential Exam Questions. Do not add any additional sections.`;
 
   const summary = await invokeModel(
     [{ role: "user", content: prompt }],
-    { system, maxTokens: 1024, temperature: 0.3, serviceName: "editorialSummarizer" }
+    { system, maxTokens: 1536, temperature: 0.3, serviceName: "editorialSummarizer" }
   );
 
   // Cache the summary

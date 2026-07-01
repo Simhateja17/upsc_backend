@@ -1,6 +1,28 @@
 import { Request, Response, NextFunction } from "express";
+import { randomInt } from "crypto";
 import { supabaseAdmin } from "../config/supabase";
-import { VALID_UPSC_SUBJECTS } from "../constants/subjects";
+import config from "../config";
+import { VALID_OPTIONAL_SUBJECTS } from "../constants/subjects";
+import { sendOtpEmail, sendPhoneOtpEmail } from "../services/emailService";
+
+const otpStore = new Map<string, { otp: string; expiresAt: number }>();
+
+async function sendSmsViaTwoFactor(phone: string, otp: string) {
+  if (!config.phoneAuth.twoFactorApiKey) {
+    throw new Error("2Factor API key is not configured. Set TWOFACTOR_API_KEY in .env");
+  }
+  const digits = phone.replace(/^\+/, "");
+  const templateName = config.phoneAuth.twoFactorOtpTemplateName || "OTP";
+  const url = `https://2factor.in/API/V1/${encodeURIComponent(config.phoneAuth.twoFactorApiKey)}/SMS/${encodeURIComponent(digits)}/${encodeURIComponent(otp)}/${encodeURIComponent(templateName)}`;
+  const response = await fetch(url, { method: "GET" });
+  const text = await response.text();
+  let payload: any = null;
+  try { payload = text ? JSON.parse(text) : null; } catch { payload = { raw: text }; }
+  if (!response.ok || payload?.Status === "Error") {
+    throw new Error(payload?.Details || payload?.raw || "2Factor SMS send failed");
+  }
+  return payload;
+}
 
 /**
  * GET /api/user/profile
@@ -65,8 +87,8 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
     if (state !== undefined) profileExtra.state = state;
     if (targetYear !== undefined) profileExtra.targetYear = targetYear;
     if (optionalSubject !== undefined) {
-      if (optionalSubject && !VALID_UPSC_SUBJECTS.includes(optionalSubject as any)) {
-        return res.status(400).json({ status: "error", message: `Invalid optionalSubject. Must be one of: ${VALID_UPSC_SUBJECTS.join(", ")}` });
+      if (optionalSubject && !VALID_OPTIONAL_SUBJECTS.includes(optionalSubject as any)) {
+        return res.status(400).json({ status: "error", message: `Invalid optionalSubject. Must be one of: ${VALID_OPTIONAL_SUBJECTS.join(", ")}` });
       }
       profileExtra.optionalSubject = optionalSubject;
     }
@@ -111,6 +133,133 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
         optionalSubject: returnedProfile.optionalSubject || "",
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/user/send-email-otp
+ */
+export const sendEmailOtpHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body;
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ status: "error", message: "Valid email is required" });
+    }
+
+    const otp = String(randomInt(100000, 999999));
+    const key = `${req.user!.id}:${email.toLowerCase()}`;
+    otpStore.set(key, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+
+    const sent = await sendOtpEmail(email, otp);
+    if (!sent) {
+      return res.status(500).json({ status: "error", message: "Failed to send OTP email" });
+    }
+
+    res.json({ status: "success", message: "OTP sent to email" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/user/verify-email-otp
+ */
+export const verifyEmailOtpHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ status: "error", message: "Email and OTP are required" });
+    }
+
+    const key = `${req.user!.id}:${email.toLowerCase()}`;
+    const entry = otpStore.get(key);
+
+    if (!entry || entry.otp !== otp) {
+      return res.status(400).json({ status: "error", message: "Invalid OTP" });
+    }
+    if (Date.now() > entry.expiresAt) {
+      otpStore.delete(key);
+      return res.status(400).json({ status: "error", message: "OTP has expired. Please request a new one." });
+    }
+
+    otpStore.delete(key);
+
+    // Update email in Supabase auth
+    const { data: userData } = await supabaseAdmin
+      .from("users")
+      .select("supabase_id")
+      .eq("id", req.user!.id)
+      .single();
+
+    if (userData?.supabase_id) {
+      await supabaseAdmin.auth.admin.updateUserById(userData.supabase_id, { email: email.toLowerCase() });
+    }
+
+    // Update email in users table
+    await supabaseAdmin
+      .from("users")
+      .update({ email: email.toLowerCase() })
+      .eq("id", req.user!.id);
+
+    res.json({ status: "success", message: "Email verified and updated" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/user/send-phone-otp
+ */
+export const sendPhoneOtpHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { phone } = req.body;
+    if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
+      return res.status(400).json({ status: "error", message: "Valid 10-digit Indian phone number is required" });
+    }
+
+    const otp = String(randomInt(100000, 999999));
+    const key = `phone:${req.user!.id}:${phone}`;
+    otpStore.set(key, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+
+    await sendSmsViaTwoFactor(`91${phone}`, otp);
+
+    res.json({ status: "success", message: "OTP sent to your phone" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/user/verify-phone-otp
+ */
+export const verifyPhoneOtpHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { phone, otp } = req.body;
+    if (!phone || !otp) {
+      return res.status(400).json({ status: "error", message: "Phone and OTP are required" });
+    }
+
+    const key = `phone:${req.user!.id}:${phone}`;
+    const entry = otpStore.get(key);
+
+    if (!entry || entry.otp !== otp) {
+      return res.status(400).json({ status: "error", message: "Invalid OTP" });
+    }
+    if (Date.now() > entry.expiresAt) {
+      otpStore.delete(key);
+      return res.status(400).json({ status: "error", message: "OTP has expired. Please request a new one." });
+    }
+
+    otpStore.delete(key);
+
+    await supabaseAdmin
+      .from("users")
+      .update({ phone })
+      .eq("id", req.user!.id);
+
+    res.json({ status: "success", message: "Phone number verified and updated" });
   } catch (error) {
     next(error);
   }

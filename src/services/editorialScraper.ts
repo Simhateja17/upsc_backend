@@ -120,7 +120,7 @@ export async function scrapeIndianExpress(): Promise<ScrapedEditorial[]> {
         href &&
         href.includes("opinion") &&
         !articleLinks.includes(href) &&
-        articleLinks.length < 5
+        articleLinks.length < 12
       ) {
         articleLinks.push(href);
       }
@@ -172,17 +172,95 @@ export async function scrapeIndianExpress(): Promise<ScrapedEditorial[]> {
 }
 
 /**
+ * Scrape India news section from Indian Express for broader coverage
+ */
+export async function scrapeIndianExpressIndia(): Promise<ScrapedEditorial[]> {
+  const editorials: ScrapedEditorial[] = [];
+
+  try {
+    const { data: html } = await axios.get(
+      "https://indianexpress.com/section/india/",
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        },
+        timeout: 15000,
+      }
+    );
+
+    const $ = cheerio.load(html);
+
+    const articleLinks: string[] = [];
+    $("a[href*='/article/']").each((_, el) => {
+      const href = $(el).attr("href");
+      if (
+        href &&
+        !articleLinks.includes(href) &&
+        articleLinks.length < 10
+      ) {
+        articleLinks.push(href);
+      }
+    });
+
+    for (const url of articleLinks) {
+      try {
+        const { data: articleHtml } = await axios.get(url, {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+          },
+          timeout: 10000,
+        });
+
+        const $article = cheerio.load(articleHtml);
+        const title = $article("h1").first().text().trim();
+        const author = $article(".editor, .author").first().text().trim();
+
+        const contentParts: string[] = [];
+        $article(".full-details p, article p, .story_details p, .ie-custom-p p").each(
+          (_, el) => {
+            const text = $article(el).text().trim();
+            if (text.length > 20) contentParts.push(text);
+          }
+        );
+
+        const content = contentParts.join("\n\n");
+
+        if (title && content.length > 100) {
+          editorials.push({
+            title,
+            content,
+            author: author || undefined,
+            sourceUrl: url,
+            source: "Indian Express",
+            publishedAt: new Date(),
+          });
+        }
+      } catch (err) {
+        console.error(`Failed to scrape IE India article: ${url}`, err);
+      }
+    }
+  } catch (error) {
+    console.error("Indian Express India scraper error:", error);
+  }
+
+  return editorials;
+}
+
+/**
  * Run the full scraping pipeline — scrape + deduplicate + categorize + store
  */
 export async function runEditorialScraper(): Promise<number> {
   console.log("[Scraper] Starting editorial scrape...");
 
-  const [hinduEditorials, ieEditorials] = await Promise.all([
+  const [hinduEditorials, ieEditorials, ieIndiaArticles] = await Promise.all([
     scrapeTheHindu(),
     scrapeIndianExpress(),
+    scrapeIndianExpressIndia(),
   ]);
 
-  const allEditorials = [...hinduEditorials, ...ieEditorials];
+  const allEditorials = [...hinduEditorials, ...ieEditorials, ...ieIndiaArticles];
   let savedCount = 0;
 
   for (const editorial of allEditorials) {

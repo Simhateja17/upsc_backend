@@ -35,6 +35,44 @@ async function sendEmail(options: EmailOptions): Promise<boolean> {
 
 // ==================== Email Templates ====================
 
+export async function sendPhoneOtpEmail(to: string, phone: string, otp: string): Promise<boolean> {
+  return sendEmail({
+    to,
+    subject: "Verify your phone number — RiseWithJeet",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; text-align: center; padding: 40px 24px;">
+        <h2 style="color: #1a365d; margin-bottom: 8px;">Verify your phone number</h2>
+        <p style="color: #667085; font-size: 14px; margin-bottom: 24px;">
+          Use the code below to verify your new phone number<br/><strong>+91 ${phone}</strong> on RiseWithJeet.
+        </p>
+        <div style="background: #FFF8ED; border: 2px solid #F5A623; border-radius: 12px; padding: 20px; display: inline-block; margin-bottom: 24px;">
+          <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1a365d;">${otp}</span>
+        </div>
+        <p style="color: #9CA3AF; font-size: 12px;">This code expires in 5 minutes. Do not share it with anyone.</p>
+      </div>
+    `,
+  });
+}
+
+export async function sendOtpEmail(to: string, otp: string): Promise<boolean> {
+  return sendEmail({
+    to,
+    subject: "Your RiseWithJeet Verification Code",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; text-align: center; padding: 40px 24px;">
+        <h2 style="color: #1a365d; margin-bottom: 8px;">Verify your email</h2>
+        <p style="color: #667085; font-size: 14px; margin-bottom: 24px;">
+          Use the code below to verify your email address on RiseWithJeet.
+        </p>
+        <div style="background: #FFF8ED; border: 2px solid #F5A623; border-radius: 12px; padding: 20px; display: inline-block; margin-bottom: 24px;">
+          <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1a365d;">${otp}</span>
+        </div>
+        <p style="color: #9CA3AF; font-size: 12px;">This code expires in 5 minutes. Do not share it with anyone.</p>
+      </div>
+    `,
+  });
+}
+
 export async function sendWelcomeEmail(
   to: string,
   firstName: string
@@ -54,6 +92,35 @@ export async function sendWelcomeEmail(
         </ul>
         <p>Start your preparation today!</p>
         <a href="${config.cors.origins[0]}/dashboard" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">Go to Dashboard</a>
+        <p style="color: #666; margin-top: 24px;">— Team Rise with Jeet</p>
+      </div>
+    `,
+  });
+}
+
+export async function sendMorningDigest(
+  to: string,
+  firstName: string,
+  editorials: { title: string; source: string }[]
+): Promise<boolean> {
+  const editorialList = editorials
+    .map(
+      (e) =>
+        `<li style="padding: 4px 0;">${e.title} <span style="color: #94A3B8;">(${e.source})</span></li>`
+    )
+    .join("");
+
+  return sendEmail({
+    to,
+    subject: "Today's Current Affairs Digest 📰",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Good morning, ${firstName || "Aspirant"}!</h2>
+        <p>Here are today's editorials for your current affairs preparation:</p>
+        <ul style="padding-left: 20px; margin: 16px 0;">
+          ${editorialList || "<li>No editorials published yet today — check back soon!</li>"}
+        </ul>
+        <a href="${config.cors.origins[0]}/dashboard/daily-editorial" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">Read Editorials</a>
         <p style="color: #666; margin-top: 24px;">— Team Rise with Jeet</p>
       </div>
     `,

@@ -137,7 +137,7 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
     if (startTime !== undefined) updateData.startTime = startTime;
     if (endTime !== undefined) updateData.endTime = endTime;
     if (duration !== undefined) updateData.duration = duration;
-    if (actualDuration !== undefined) updateData.actualDuration = actualDuration;
+    if (typeof actualDuration === 'number' && actualDuration >= 0) updateData.actualDuration = actualDuration;
     if (isCompleted !== undefined) {
       updateData.isCompleted = isCompleted;
       updateData.completedAt = isCompleted ? new Date() : null;

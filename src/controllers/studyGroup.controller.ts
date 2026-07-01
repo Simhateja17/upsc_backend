@@ -60,7 +60,7 @@ export const getGroups = async (req: Request, res: Response, next: NextFunction)
       where,
       include: {
         creator: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
-        _count: { select: { members: true } },
+        _count: { select: { members: { where: { isActive: true } } } },
         members: {
           where: { isActive: true },
           include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
@@ -114,7 +114,7 @@ export const getGroup = async (req: Request, res: Response, next: NextFunction) 
       where: { id },
       include: {
         creator: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
-        _count: { select: { members: true } },
+        _count: { select: { members: { where: { isActive: true } } } },
         members: {
           where: { isActive: true },
           include: {
@@ -221,7 +221,7 @@ export const joinGroup = async (req: Request, res: Response, next: NextFunction)
 
     const group = await prisma.studyGroup.findUnique({
       where: { id: groupId },
-      include: { _count: { select: { members: true } } },
+      include: { _count: { select: { members: { where: { isActive: true } } } } },
     });
 
     if (!group) {
@@ -234,17 +234,10 @@ export const joinGroup = async (req: Request, res: Response, next: NextFunction)
       return;
     }
 
-    const existing = await prisma.studyGroupMember.findUnique({
+    await prisma.studyGroupMember.upsert({
       where: { groupId_userId: { groupId, userId } },
-    });
-
-    if (existing) {
-      res.status(400).json({ status: "error", message: "Already a member" });
-      return;
-    }
-
-    await prisma.studyGroupMember.create({
-      data: { groupId, userId, isActive: true },
+      create: { groupId, userId, isActive: true },
+      update: { isActive: true },
     });
 
     res.json({ status: "success", message: "Joined group" });
@@ -270,8 +263,9 @@ export const leaveGroup = async (req: Request, res: Response, next: NextFunction
       return;
     }
 
-    await prisma.studyGroupMember.delete({
+    await prisma.studyGroupMember.update({
       where: { id: existing.id },
+      data: { isActive: false },
     });
 
     res.json({ status: "success", message: "Left group" });
@@ -362,7 +356,7 @@ export const getMyGroups = async (req: Request, res: Response, next: NextFunctio
         group: {
           include: {
             creator: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
-            _count: { select: { members: true } },
+            _count: { select: { members: { where: { isActive: true } } } },
             members: { where: { isActive: true }, include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } }, take: 10 },
           },
         },

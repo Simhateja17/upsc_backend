@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { supabaseAdmin } from "../config/supabase";
 import { evaluateAnswer } from "../services/answerEvaluator";
 import { sendEvaluationComplete } from "../services/emailService";
 import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
@@ -527,22 +528,42 @@ async function startEvaluation(
     paper: question.paper,
   }, fileUrl)
     .then(async () => {
-      // Send email notification on completion
       try {
         const attempt = await prisma.mainsAttempt.findUnique({
           where: { id: attemptId },
           include: { evaluation: true, user: true },
         });
-        if (attempt?.evaluation && attempt.user?.email) {
-          await sendEvaluationComplete(
-            attempt.user.email,
-            attempt.user.firstName || "Aspirant",
-            attempt.evaluation.score,
-            attempt.evaluation.maxScore
-          );
+        if (!attempt?.evaluation) return;
+
+        const user = attempt.user;
+        if (!user) return;
+
+        const { data: userData } = await supabaseAdmin
+          .from("users")
+          .select("settings")
+          .eq("id", user.id)
+          .single();
+        const answerPref = userData?.settings?.notifications?.answer ?? true;
+
+        const score = attempt.evaluation.score;
+        const maxScore = attempt.evaluation.maxScore;
+        const firstName = user.firstName || "Aspirant";
+
+        if (answerPref) {
+          await supabaseAdmin.from("notifications").insert({
+            user_id: user.id,
+            title: `Answer Evaluated — Score: ${score}/${maxScore} ✅`,
+            body: "Your mains answer has been evaluated. View detailed feedback, strengths, and suggestions.",
+            type: "answer_evaluated",
+            read: false,
+          });
+
+          if (user.email) {
+            await sendEvaluationComplete(user.email, firstName, score, maxScore);
+          }
         }
       } catch (err) {
-        // Email notification failure is non-critical; silently ignore
+        // Notification failure is non-critical
       }
     });
 }

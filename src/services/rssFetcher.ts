@@ -11,6 +11,9 @@ const RSS_SOURCES = [
   { url: "https://www.thehindu.com/business/Economy/feeder/default.rss",     source: "The Hindu",         section: "Economy" },
   { url: "https://indianexpress.com/section/india/feed/",                    source: "Indian Express",    section: "India" },
   { url: "https://indianexpress.com/section/opinion/editorials/feed/",       source: "Indian Express",    section: "Editorial" },
+  { url: "https://indianexpress.com/section/political-pulse/feed/",          source: "Indian Express",    section: "Politics" },
+  { url: "https://indianexpress.com/section/explained/feed/",                source: "Indian Express",    section: "Explained" },
+  { url: "https://indianexpress.com/section/business/economy/feed/",         source: "Indian Express",    section: "Economy" },
   { url: "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml",  source: "Hindustan Times",   section: "India" },
   { url: "https://www.livemint.com/rss/economy",                             source: "LiveMint",          section: "Economy" },
   { url: "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3",          source: "PIB",               section: "Government" },
@@ -36,7 +39,8 @@ export async function fetchRssArticles(): Promise<FetchedArticle[]> {
     RSS_SOURCES.map(async ({ url, source }) => {
       try {
         const feed = await parser.parseURL(url);
-        for (const item of feed.items.slice(0, 15)) {
+        const itemLimit = source === "Indian Express" ? 30 : 15;
+        for (const item of feed.items.slice(0, itemLimit)) {
           const title = item.title?.trim();
           if (!title) continue;
 

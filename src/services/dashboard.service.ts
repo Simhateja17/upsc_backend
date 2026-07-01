@@ -1,4 +1,5 @@
 import { dashboardRepo } from "../repositories/prisma-dashboard.repository";
+import { supabaseAdmin } from "../config/supabase";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const ORDERED_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -76,9 +77,14 @@ function getDailyDummyRank(): number {
   return Math.floor(670 + hash * (810 - 670 + 1));
 }
 
-/** Compute days remaining until UPSC Prelims 2026 (June 2). */
-export function computeDaysRemaining(): number {
-  const prelimsDate = new Date(2026, 5, 2);
+const PRELIMS_DATES: Record<string, Date> = {
+  "2026": new Date(2026, 5, 2),   // June 2, 2026
+  "2027": new Date(2027, 4, 25),  // May 25, 2027
+  "2028": new Date(2028, 4, 28),  // May 28, 2028
+};
+
+export function computeDaysRemaining(targetYear?: string): number {
+  const prelimsDate = PRELIMS_DATES[targetYear || "2026"] || PRELIMS_DATES["2026"];
   return Math.max(0, Math.ceil((prelimsDate.getTime() - Date.now()) / 86400000));
 }
 
@@ -87,8 +93,14 @@ export async function getDashboard(userId: string) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const snap = await dashboardRepo.getTodaySnapshot(userId, today);
-  const daysRemaining = computeDaysRemaining();
+  const [snap, userRes] = await Promise.all([
+    dashboardRepo.getTodaySnapshot(userId, today),
+    supabaseAdmin.from("users").select("settings").eq("id", userId).single(),
+  ]);
+
+  const settings = (userRes.data?.settings as Record<string, any>) || {};
+  const targetYear = settings.profile?.targetYear || "2026";
+  const daysRemaining = computeDaysRemaining(targetYear);
 
   const trio = {
     mcq: {
@@ -108,6 +120,7 @@ export async function getDashboard(userId: string) {
 
   return {
     daysRemaining,
+    targetYear,
     trio,
     todayTasksCount: snap.todayTasksCount,
     recentActivity: snap.recentActivity,
@@ -144,11 +157,21 @@ export async function getPerformance(userId: string) {
   const strongTopics = sortedTopics.slice(0, 5);
   const weakTopics = sortedTopics.slice(-5).reverse();
 
-  const studyMinutesToday = raw.todayCompletedStudyTasks.reduce(
-    (sum, task) => sum + getTaskDurationMinutes(task),
-    0
-  );
-  const studyTimeToday = formatStudyDuration(studyMinutesToday);
+  const totalStudySeconds = (raw.todayCompletedTasks ?? []).reduce((sum: number, task: any) => {
+    if (task.actualDuration != null && task.actualDuration > 0) {
+      return sum + task.actualDuration;
+    }
+    if (task.startTime && task.endTime) {
+      const [sh, sm] = task.startTime.split(':').map(Number);
+      const [eh, em] = task.endTime.split(':').map(Number);
+      const diffMin = (eh * 60 + em) - (sh * 60 + sm);
+      if (diffMin > 0) return sum + diffMin * 60;
+    }
+    return sum;
+  }, 0);
+  const studyHours = Math.floor(totalStudySeconds / 3600);
+  const studyMinutes = Math.floor((totalStudySeconds % 3600) / 60);
+  const studyTimeToday = `${studyHours}h ${studyMinutes}m`;
 
   const testsTaken =
     raw.mcqAgg._count.id + raw.mockCount + raw.mockMainsCount + raw.pyqMainsCount + raw.mainsCount + raw.seriesAttempts.count;
@@ -196,6 +219,50 @@ export async function getPerformance(userId: string) {
     streak: raw.streak || { currentStreak: 0, longestStreak: 0 },
     strongTopics,
     weakTopics,
+  };
+}
+
+export interface BadgeInfo {
+  key: string;
+  title: string;
+  note: string;
+  status: "earned" | "in-progress" | "locked";
+}
+
+/** Build the achievement-badges response, mirroring the thresholds the dashboard widget used to compute client-side. */
+export async function getBadges(userId: string): Promise<{ badges: BadgeInfo[] }> {
+  const perf = await getPerformance(userId);
+
+  const currentStreak = perf.streak?.currentStreak ?? 0;
+  const testsTaken = perf.testsTaken;
+  const syllabusCoverage = perf.syllabusCoverage;
+  const avgAccuracy = perf.mcq.avgAccuracy;
+  const jeetCoins = perf.jeetCoins;
+
+  const hasAnyProgress = currentStreak > 0 || testsTaken > 0 || syllabusCoverage > 0;
+  const isFirstTimeUser = !hasAnyProgress && jeetCoins === 0;
+
+  const badgeStatus = {
+    streak: { earned: currentStreak >= 30, progress: currentStreak > 0 },
+    learner: { earned: testsTaken >= 10, progress: testsTaken > 0 },
+    accuracy: { earned: testsTaken > 0 && avgAccuracy >= 95, progress: testsTaken > 0 },
+    polity: { earned: syllabusCoverage >= 60, progress: syllabusCoverage > 0 },
+    allRounder: { earned: currentStreak >= 7 && testsTaken >= 5 && syllabusCoverage >= 40, progress: hasAnyProgress },
+    centurion: { earned: jeetCoins >= 100, progress: jeetCoins > 0 },
+  };
+
+  const statusFor = (b: { earned: boolean; progress: boolean }): BadgeInfo["status"] =>
+    isFirstTimeUser ? "locked" : b.earned ? "earned" : b.progress ? "in-progress" : "locked";
+
+  return {
+    badges: [
+      { key: "streak", title: "30-Day Streak", note: `${currentStreak} day streak`, status: statusFor(badgeStatus.streak) },
+      { key: "learner", title: "Quick Learner", note: `${testsTaken} tests done`, status: statusFor(badgeStatus.learner) },
+      { key: "accuracy", title: "95% Accuracy", note: avgAccuracy > 0 ? `${avgAccuracy}% accuracy` : "Build accuracy", status: statusFor(badgeStatus.accuracy) },
+      { key: "polity", title: "Polity Pro", note: `${syllabusCoverage}% coverage`, status: statusFor(badgeStatus.polity) },
+      { key: "all-rounder", title: "All-Rounder", note: "Consistency badge", status: statusFor(badgeStatus.allRounder) },
+      { key: "centurion", title: "Centurion", note: `${jeetCoins}/100 coins`, status: statusFor(badgeStatus.centurion) },
+    ],
   };
 }
 

@@ -17,6 +17,43 @@ export type ValidUpscSubject = (typeof VALID_UPSC_SUBJECTS)[number];
 export const VALID_SUBJECT_SET = new Set(VALID_UPSC_SUBJECTS);
 
 /**
+ * UPSC Mains optional subjects — the full list candidates can choose from.
+ * Used to validate the optionalSubject field on user profiles.
+ */
+export const VALID_OPTIONAL_SUBJECTS = [
+  "Agriculture",
+  "Animal Husbandry and Veterinary Science",
+  "Anthropology",
+  "Botany",
+  "Chemistry",
+  "Civil Engineering",
+  "Commerce and Accountancy",
+  "Economics",
+  "Electrical Engineering",
+  "Geography",
+  "Geology",
+  "History",
+  "Law",
+  "Management",
+  "Mathematics",
+  "Mechanical Engineering",
+  "Medical Science",
+  "Philosophy",
+  "Physics",
+  "Political Science and International Relations",
+  "Psychology",
+  "Public Administration",
+  "Sociology",
+  "Statistics",
+  "Zoology",
+  "Literature",
+] as const;
+
+export type ValidOptionalSubject = (typeof VALID_OPTIONAL_SUBJECTS)[number];
+
+export const VALID_OPTIONAL_SUBJECT_SET = new Set<string>(VALID_OPTIONAL_SUBJECTS);
+
+/**
  * Study planner subject options (matches dashboard quick-add UX).
  * Keep this intentionally broader than VALID_UPSC_SUBJECTS.
  */
