@@ -1,23 +1,105 @@
 {
-  "generatedAt": "2026-06-11T15:41:47.554Z",
+  "generatedAt": "2026-06-30T07:18:15.427Z",
   "csvDirectory": "/Users/teja/Desktop/Projects/upsc/upsc_backend/data/imports/pyq/csv",
   "files": [
     {
-      "file": "PYQ - Ancient History and Art & Culture.csv",
-      "normalized": 126,
+      "file": "PYQ - Ancient History.csv",
+      "normalized": 66,
       "failed": 0,
+      "warned": 0
+    },
+    {
+      "file": "PYQ - Art & Culture.csv",
+      "normalized": 62,
+      "failed": 0,
+      "warned": 0
+    },
+    {
+      "file": "PYQ - Economy.csv",
+      "normalized": 308,
+      "failed": 1,
+      "warned": 0
+    },
+    {
+      "file": "PYQ - Environment.csv",
+      "normalized": 280,
+      "failed": 0,
+      "warned": 0
+    },
+    {
+      "file": "PYQ - Geography.csv",
+      "normalized": 199,
+      "failed": 0,
+      "warned": 0
+    },
+    {
+      "file": "PYQ - International Relation.csv",
+      "normalized": 94,
+      "failed": 0,
+      "warned": 0
+    },
+    {
+      "file": "PYQ - Medieval India.csv",
+      "normalized": 33,
+      "failed": 0,
+      "warned": 0
+    },
+    {
+      "file": "PYQ - Modern History.csv",
+      "normalized": 112,
+      "failed": 0,
+      "warned": 0
+    },
+    {
+      "file": "PYQ - Polity.csv",
+      "normalized": 209,
+      "failed": 0,
+      "warned": 0
+    },
+    {
+      "file": "PYQ - Science & Technology.csv",
+      "normalized": 235,
+      "failed": 2,
       "warned": 0
     }
   ],
   "totals": {
-    "files": 1,
-    "parsedRows": 126,
-    "imported": 126,
-    "skipped": 0,
+    "files": 10,
+    "parsedRows": 1601,
+    "imported": 1598,
+    "skipped": 3,
     "warned": 0,
-    "inserted": 0,
-    "updated": 126
+    "inserted": 1116,
+    "updated": 482
   },
-  "failures": [],
+  "failures": [
+    {
+      "fileName": "PYQ - Economy.csv",
+      "rowNumber": 8,
+      "questionNumber": 7,
+      "errors": [
+        "Invalid or missing year"
+      ],
+      "questionPreview": "Which of the following statements about insurance in aviation sector is/are correct ?\n1. 'Aviation Hull Insurance' covers the physical aircraft, including the body, engine, and on-"
+    },
+    {
+      "fileName": "PYQ - Science & Technology.csv",
+      "rowNumber": 46,
+      "questionNumber": 45,
+      "errors": [
+        "Invalid or missing year"
+      ],
+      "questionPreview": "Consider the following:\n1. Battery storage\n2. Biomass generators\n3. Fuel cells\n4. Rooftop solar photovoltaic units\n\nHow many of the above are considered \"Distributed Energy Resourc"
+    },
+    {
+      "fileName": "PYQ - Science & Technology.csv",
+      "rowNumber": 167,
+      "questionNumber": 166,
+      "errors": [
+        "Correct option cannot be mapped to A/B/C/D"
+      ],
+      "questionPreview": "Among the following which was frequently mentioned in the news for the outbreak of the Ebola virus recently?"
+    }
+  ],
   "warnings": []
 }

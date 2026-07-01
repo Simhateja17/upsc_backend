@@ -305,7 +305,18 @@ function normalizeHeader(header) {
     ["Option B", "Option 2"],
     ["Option C", "Option 3"],
     ["Option D", "Option 4"],
+    ["Option (a)", "Option 1"],
+    ["Option (b)", "Option 2"],
+    ["Option (c)", "Option 3"],
+    ["Option (d)", "Option 4"],
+    ["Option (A)", "Option 1"],
+    ["Option (B)", "Option 2"],
+    ["Option (C)", "Option 3"],
+    ["Option (D)", "Option 4"],
     ["Difficulty Level", "Difficulty"],
+    ["Theme", "Sub Subject"],
+    ["Sub - Subject", "Sub Subject"],
+    ["Explanation", "Detailed Explanation"],
   ]);
 
   return header.map((name) => aliases.get(name) || name);

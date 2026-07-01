@@ -14,4 +14,12 @@ export interface MockTestRepository {
   countUserAttemptsToday(userId: string): Promise<number>;
   findPYQMains(subject?: string, paperType?: string, limit?: number): Promise<any[]>;
   findPYQQuestions(subject?: string, excludeSubjects?: string[], limit?: number): Promise<any[]>;
+  findQuestionBankQuestions(params: {
+    source: string;
+    userId: string;
+    subject?: string;
+    difficulty: string;
+    count: number;
+    excludeAttempted?: boolean;
+  }): Promise<any[]>;
 }

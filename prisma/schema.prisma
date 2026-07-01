@@ -123,6 +123,7 @@ model DailyMCQ {
 model MCQQuestion {
   id            String        @id @default(uuid())
   dailyMcqId    String        @map("daily_mcq_id")
+  sourceQuestionBankId String? @map("source_question_bank_id")
   questionNum   Int           @map("question_num")
   questionText  String        @map("question_text")
   category      String
@@ -135,6 +136,7 @@ model MCQQuestion {
   responses     MCQResponse[]
 
   @@unique([dailyMcqId, questionNum])
+  @@index([sourceQuestionBankId])
   @@map("mcq_questions")
 }
 
@@ -313,6 +315,7 @@ model MockTest {
 model MockTestQuestion {
   id            String                 @id @default(uuid())
   mockTestId    String                 @map("mock_test_id")
+  sourceQuestionBankId String?         @map("source_question_bank_id")
   questionNum   Int                    @map("question_num")
   questionText  String                 @map("question_text")
   subject       String
@@ -326,6 +329,7 @@ model MockTestQuestion {
   mockTest      MockTest               @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
 
   @@unique([mockTestId, questionNum])
+  @@index([sourceQuestionBankId])
   @@map("mock_test_questions")
 }
 
