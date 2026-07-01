@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { userRepo } from "../repositories/prisma-user.repository";
-import { getDashboard, getPerformance, getTestAnalytics } from "../services/dashboard.service";
+import { getDashboard, getPerformance, getTestAnalytics, getBadges } from "../services/dashboard.service";
 
 /**
  * GET /api/user/dashboard
@@ -60,6 +60,19 @@ export const getPerformanceHandler = async (req: Request, res: Response, next: N
 export const getTestAnalyticsHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await getTestAnalytics(req.user!.id);
+    res.json({ status: "success", data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/user/badges
+ * Achievement badges — delegates to DashboardService.
+ */
+export const getBadgesHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await getBadges(req.user!.id);
     res.json({ status: "success", data });
   } catch (error) {
     next(error);

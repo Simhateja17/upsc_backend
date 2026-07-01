@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
-import { getDashboardHandler, getStreak, getActivity, getPerformanceHandler, getTestAnalyticsHandler } from "../controllers/dashboard.controller";
+import { getDashboardHandler, getStreak, getActivity, getPerformanceHandler, getTestAnalyticsHandler, getBadgesHandler } from "../controllers/dashboard.controller";
 import { getPracticeStats } from "../controllers/mockTest.controller";
 import { getProfile, updateProfile, updateSettings, getSessions, revokeSession, sendEmailOtpHandler, verifyEmailOtpHandler, sendPhoneOtpHandler, verifyPhoneOtpHandler } from "../controllers/user.controller";
 import { submitFeedback } from "../controllers/feedback.controller";
@@ -20,6 +20,7 @@ router.get("/activity", getActivity);
 router.get("/performance", getPerformanceHandler);
 router.get("/practice-stats", getPracticeStats);
 router.get("/test-analytics", getTestAnalyticsHandler);
+router.get("/badges", getBadgesHandler);
 
 // Profile & settings
 router.get("/profile", getProfile);

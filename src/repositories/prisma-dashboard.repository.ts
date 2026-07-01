@@ -59,7 +59,21 @@ export function createPrismaDashboardRepository(): DashboardRepository {
     },
 
     async getPerformanceRaw(userId, today) {
-      const [mcqAgg, recentMcq, mainsCount, mockCount, mockMainsCount, pyqMainsCount, streak, todayActivities, syllabusSubjects, trackerState, seriesRes, todayCompletedTasksRaw] =
+      const [
+        mcqAgg,
+        recentMcq,
+        mainsCount,
+        mockCount,
+        mockMainsCount,
+        pyqMainsCount,
+        streak,
+        todayCompletedStudyTasks,
+        todayActivities,
+        syllabusSubjects,
+        trackerState,
+        seriesRes,
+        todayCompletedTasksRaw,
+      ] =
         await Promise.all([
           prisma.mCQAttempt.aggregate({
             where: { userId },

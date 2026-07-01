@@ -222,6 +222,50 @@ export async function getPerformance(userId: string) {
   };
 }
 
+export interface BadgeInfo {
+  key: string;
+  title: string;
+  note: string;
+  status: "earned" | "in-progress" | "locked";
+}
+
+/** Build the achievement-badges response, mirroring the thresholds the dashboard widget used to compute client-side. */
+export async function getBadges(userId: string): Promise<{ badges: BadgeInfo[] }> {
+  const perf = await getPerformance(userId);
+
+  const currentStreak = perf.streak?.currentStreak ?? 0;
+  const testsTaken = perf.testsTaken;
+  const syllabusCoverage = perf.syllabusCoverage;
+  const avgAccuracy = perf.mcq.avgAccuracy;
+  const jeetCoins = perf.jeetCoins;
+
+  const hasAnyProgress = currentStreak > 0 || testsTaken > 0 || syllabusCoverage > 0;
+  const isFirstTimeUser = !hasAnyProgress && jeetCoins === 0;
+
+  const badgeStatus = {
+    streak: { earned: currentStreak >= 30, progress: currentStreak > 0 },
+    learner: { earned: testsTaken >= 10, progress: testsTaken > 0 },
+    accuracy: { earned: testsTaken > 0 && avgAccuracy >= 95, progress: testsTaken > 0 },
+    polity: { earned: syllabusCoverage >= 60, progress: syllabusCoverage > 0 },
+    allRounder: { earned: currentStreak >= 7 && testsTaken >= 5 && syllabusCoverage >= 40, progress: hasAnyProgress },
+    centurion: { earned: jeetCoins >= 100, progress: jeetCoins > 0 },
+  };
+
+  const statusFor = (b: { earned: boolean; progress: boolean }): BadgeInfo["status"] =>
+    isFirstTimeUser ? "locked" : b.earned ? "earned" : b.progress ? "in-progress" : "locked";
+
+  return {
+    badges: [
+      { key: "streak", title: "30-Day Streak", note: `${currentStreak} day streak`, status: statusFor(badgeStatus.streak) },
+      { key: "learner", title: "Quick Learner", note: `${testsTaken} tests done`, status: statusFor(badgeStatus.learner) },
+      { key: "accuracy", title: "95% Accuracy", note: avgAccuracy > 0 ? `${avgAccuracy}% accuracy` : "Build accuracy", status: statusFor(badgeStatus.accuracy) },
+      { key: "polity", title: "Polity Pro", note: `${syllabusCoverage}% coverage`, status: statusFor(badgeStatus.polity) },
+      { key: "all-rounder", title: "All-Rounder", note: "Consistency badge", status: statusFor(badgeStatus.allRounder) },
+      { key: "centurion", title: "Centurion", note: `${jeetCoins}/100 coins`, status: statusFor(badgeStatus.centurion) },
+    ],
+  };
+}
+
 /** Build the comprehensive test analytics response. */
 export async function getTestAnalytics(userId: string) {
   const raw = await dashboardRepo.getTestAnalyticsRaw(userId);
