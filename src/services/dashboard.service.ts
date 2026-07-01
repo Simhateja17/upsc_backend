@@ -83,8 +83,14 @@ const PRELIMS_DATES: Record<string, Date> = {
   "2028": new Date(2028, 4, 28),  // May 28, 2028
 };
 
+function getDefaultTargetYear(): string {
+  const now = Date.now();
+  const years = Object.keys(PRELIMS_DATES).sort();
+  return years.find((y) => PRELIMS_DATES[y].getTime() >= now) ?? years[years.length - 1];
+}
+
 export function computeDaysRemaining(targetYear?: string): number {
-  const prelimsDate = PRELIMS_DATES[targetYear || "2026"] || PRELIMS_DATES["2026"];
+  const prelimsDate = PRELIMS_DATES[targetYear || ""] || PRELIMS_DATES[getDefaultTargetYear()];
   return Math.max(0, Math.ceil((prelimsDate.getTime() - Date.now()) / 86400000));
 }
 
@@ -99,7 +105,7 @@ export async function getDashboard(userId: string) {
   ]);
 
   const settings = (userRes.data?.settings as Record<string, any>) || {};
-  const targetYear = settings.profile?.targetYear || "2026";
+  const targetYear = settings.profile?.targetYear || getDefaultTargetYear();
   const daysRemaining = computeDaysRemaining(targetYear);
 
   const trio = {
