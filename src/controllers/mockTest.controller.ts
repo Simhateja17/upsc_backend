@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
 import { mockTestRepo } from "../repositories/prisma-mock-test.repository";
-import { generateMCQQuestions, generateMainsQuestions } from "../services/questionGenerator";
-import { generateMockTestFromRAG, hasStudyMaterial } from "../services/mockTestRag.service";
+import { generateMainsQuestions } from "../services/questionGenerator";
 
 export const getSubjects = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -27,11 +26,11 @@ export const getConfig = async (_req: Request, res: Response, next: NextFunction
   try {
     res.json({ status: "success", data: {
       sources: [
-        { id: "daily_mcq", name: "Daily MCQ", description: "From daily practice" },
-        { id: "pyq", name: "Practice PYQ", description: "Previous year questions" },
-        { id: "subject_wise", name: "Subject-wise", description: "Topic-focused practice" },
-        { id: "mixed", name: "Mixed Bag", description: "Random mix" },
-        { id: "full_length", name: "Full Length Test", description: "Complete exam simulation", isPro: true },
+        { id: "daily_mcq", label: "Daily MCQ", name: "Daily MCQ", description: "From daily practice" },
+        { id: "pyq", label: "Practice PYQ", name: "Practice PYQ", description: "Previous year questions" },
+        { id: "subject_wise", label: "Subject-wise", name: "Subject-wise", description: "Topic-focused practice" },
+        { id: "mixed", label: "Mixed Bag", name: "Mixed Bag", description: "Random mix" },
+        { id: "full_length", label: "Full Length Test", name: "Full Length Test", description: "Complete GS Paper I simulation", isPro: true },
       ],
       examModes: [{ id: "prelims", name: "Prelims", duration: 120 }, { id: "mains", name: "Mains" }],
       paperTypes: ["GS Paper I", "GS Paper II", "GS Paper III", "GS Paper IV"],
@@ -43,6 +42,23 @@ export const getConfig = async (_req: Request, res: Response, next: NextFunction
   } catch (error) { next(error); }
 };
 
+function normalizeSource(source: string | undefined): string {
+  const normalized = String(source || "mixed").trim().toLowerCase().replace(/-/g, "_");
+  const aliases: Record<string, string> = {
+    practice_pyq: "pyq",
+    subjectwise: "subject_wise",
+    mixed_bag: "mixed",
+    full_length_test: "full_length",
+  };
+  return aliases[normalized] || normalized;
+}
+
+function normalizePaperType(value: unknown): string {
+  const raw = String(value || "gs1").trim().toLowerCase();
+  if (raw.includes("csat") || raw.includes("paper ii") || raw === "gs2") return "csat";
+  return "gs1";
+}
+
 function shuffle<T>(arr: T[]): T[] {
   for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
   return arr;
@@ -51,18 +67,38 @@ function shuffle<T>(arr: T[]): T[] {
 export const generateTest = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { source, subject, examMode, paperType, questionCount, difficulty } = req.body;
-    const count = Math.min(questionCount || 10, 100);
+    const { subject, examMode, paperType, questionCount, difficulty } = req.body;
+    const source = normalizeSource(req.body.source);
+    const isFullLength = source === "full_length";
+    const count = isFullLength ? 100 : Math.min(questionCount || 10, 100);
     const isMainsMode = (examMode || "prelims") === "mains";
     const duration = isMainsMode ? Math.max(10, count * 8) : count;
     const total_marks = isMainsMode ? count * 15 : count * 2;
+    const selectedSubject = subject === "All Subjects" ? null : subject;
+    const selectedDifficulty = isFullLength ? "mixed" : (difficulty || "mixed");
+
+    if (!isMainsMode) {
+      const normalizedPaper = normalizePaperType(paperType);
+      if (normalizedPaper === "csat") {
+        return res.status(400).json({
+          status: "error",
+          message: "CSAT question bank is coming soon. Currently available: GS Paper I.",
+        });
+      }
+      if (source === "subject_wise" && !selectedSubject) {
+        return res.status(400).json({
+          status: "error",
+          message: "Please select a focus subject for Subject-wise mock test.",
+        });
+      }
+    }
 
     const mockTest = await mockTestRepo.createTest({
       id: randomUUID(),
       title: `${subject || "Mixed"} - ${examMode || "Prelims"} Practice`,
-      source: source || "mixed", exam_mode: examMode || "prelims",
-      paper_type: paperType, subject: subject === "All Subjects" ? null : subject,
-      difficulty: difficulty || "mixed", question_count: count, duration, total_marks, is_generated: true,
+      source, exam_mode: examMode || "prelims",
+      paper_type: isMainsMode ? paperType : "GS Paper I", subject: selectedSubject,
+      difficulty: selectedDifficulty, question_count: count, duration, total_marks, is_generated: true,
     });
 
     const targetSubject = subject && subject !== "All Subjects" ? subject : "General Studies";
@@ -82,37 +118,27 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
         } catch {}
       }
     } else {
-      if (await hasStudyMaterial(targetSubject)) {
-        try { finalQuestions = await generateMockTestFromRAG({ subject: targetSubject, topic: req.body.topic, difficulty: difficulty || "mixed", questionCount: count, examMode: examMode || "prelims" }); } catch {}
-      }
-      if (finalQuestions.length < count) {
-        const remaining = count - finalQuestions.length;
-        const PRIORITY = ["Polity","Economy","Geography","Environment","History","Science","Current Affairs","International","Ethics","Society","Agriculture"];
-        const EXCLUDE = ["Sports","Entertainment","Lifestyle"];
-        const pyqPool = await mockTestRepo.findPYQQuestions(subject, !subject || subject === "All Subjects" ? EXCLUDE : undefined, Math.max(remaining * 3, 30));
-        let pyqQuestions: any[];
-        if (!subject || subject === "All Subjects") {
-          const buckets: Record<string, any[]> = {};
-          for (const q of pyqPool) { const key = PRIORITY.find(p => (q.subject || "").toLowerCase().includes(p.toLowerCase())) || "Other"; (buckets[key] = buckets[key] || []).push(q); }
-          const ordered: any[] = []; const keys = [...PRIORITY, "Other"];
-          while (ordered.length < Math.ceil(remaining / 2)) { for (const key of keys) { if (buckets[key]?.length > 0) { ordered.push(buckets[key].shift()); if (ordered.length >= Math.ceil(remaining / 2)) break; } } if (!ordered.length) break; }
-          pyqQuestions = ordered;
-        } else { pyqQuestions = pyqPool.slice(0, Math.ceil(remaining / 2)); }
-        const aiCount = remaining - pyqQuestions.length;
-        let aiQuestions: any[] = [];
-        if (aiCount > 0) try { aiQuestions = await generateMCQQuestions({ subject: targetSubject, difficulty: difficulty || "medium", count: aiCount, examMode: examMode || "prelims" }); } catch {}
-        finalQuestions = [...finalQuestions, ...pyqQuestions.map((q: any) => ({ questionText: q.question_text, options: q.options, correctOption: q.correct_option || "A", subject: q.subject, category: q.subject, difficulty: q.difficulty, explanation: q.explanation || "" })), ...aiQuestions];
-      }
+      finalQuestions = await mockTestRepo.findQuestionBankQuestions({
+        source,
+        userId,
+        subject: selectedSubject || undefined,
+        difficulty: selectedDifficulty,
+        count,
+      });
     }
 
-    if (finalQuestions.length === 0) {
+    if (finalQuestions.length < count) {
       await mockTestRepo.deleteTest(mockTest.id);
-      return res.status(500).json({ status: "error", message: "Unable to generate questions. Please retry." });
+      return res.status(400).json({
+        status: "error",
+        message: `Not enough questions available for these filters. Found ${finalQuestions.length}, need ${count}.`,
+      });
     }
 
     let questionNum = 1;
     const questionsToInsert = finalQuestions.slice(0, count).map((q: any) => ({
       id: randomUUID(), mock_test_id: mockTest.id, question_num: questionNum++,
+      source_question_bank_id: q.sourceQuestionBankId || null,
       question_text: q.questionText, subject: q.subject || targetSubject,
       category: q.category || q.subject || targetSubject, difficulty: q.difficulty || difficulty || "Medium",
       options: isMainsMode ? [] : (q.options || [{ id: "A", text: "A" }, { id: "B", text: "B" }, { id: "C", text: "C" }, { id: "D", text: "D" }]),

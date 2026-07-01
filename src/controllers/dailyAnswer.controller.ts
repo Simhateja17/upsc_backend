@@ -3,11 +3,10 @@ import prisma from "../config/database";
 import { evaluateAnswer } from "../services/answerEvaluator";
 import { sendEvaluationComplete } from "../services/emailService";
 import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { ensureTodayMainsQuestion, getTodayInAppTimeZone } from "../jobs/dailyContentJob";
 
 function getToday(): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+  return getTodayInAppTimeZone();
 }
 
 function parseDateParam(value: unknown): Date | null {
@@ -62,6 +61,7 @@ function getUploadedAnswerFiles(req: Request): Express.Multer.File[] {
 export const getTodayQuestion = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const today = getToday();
+    await ensureTodayMainsQuestion();
     const question = await prisma.dailyMainsQuestion.findUnique({
       where: { date: today },
       select: { id: true, title: true, paper: true, subject: true, marks: true, wordLimit: true, timeLimit: true },
@@ -97,6 +97,9 @@ export const getTodayFullQuestion = async (req: Request, res: Response, next: Ne
     const targetDate = resolveDate(req);
     if (!targetDate) {
       return res.status(400).json({ status: "error", message: "Invalid or future date" });
+    }
+    if (req.query.date === undefined) {
+      await ensureTodayMainsQuestion();
     }
 
     const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: targetDate } });
@@ -153,6 +156,9 @@ export const submitTextAnswer = async (req: Request, res: Response, next: NextFu
     if (!targetDate) {
       return res.status(400).json({ status: "error", message: "Invalid or future date" });
     }
+    if (req.query.date === undefined) {
+      await ensureTodayMainsQuestion();
+    }
 
     const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: targetDate } });
 
@@ -203,6 +209,9 @@ export const uploadAnswer = async (req: Request, res: Response, next: NextFuncti
     const targetDate = resolveDate(req);
     if (!targetDate) {
       return res.status(400).json({ status: "error", message: "Invalid or future date" });
+    }
+    if (req.query.date === undefined) {
+      await ensureTodayMainsQuestion();
     }
 
     const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: targetDate } });
@@ -281,6 +290,9 @@ export const getEvaluationStatus = async (req: Request, res: Response, next: Nex
       if (!targetDate) {
         return res.status(400).json({ status: "error", message: "Invalid or future date" });
       }
+      if (req.query.date === undefined) {
+        await ensureTodayMainsQuestion();
+      }
 
       const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: targetDate } });
       if (!question) {
@@ -334,6 +346,9 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
       const targetDate = resolveDate(req);
       if (!targetDate) {
         return res.status(400).json({ status: "error", message: "Invalid or future date" });
+      }
+      if (req.query.date === undefined) {
+        await ensureTodayMainsQuestion();
       }
 
       const question = await prisma.dailyMainsQuestion.findUnique({ where: { date: targetDate } });
