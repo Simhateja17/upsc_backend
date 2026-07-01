@@ -4,7 +4,7 @@ import { downloadFile, STORAGE_BUCKETS } from "../config/storage";
 import prisma from "../config/database";
 import { buildTopperContext, retrieveTopperMatches } from "./topperRag.service";
 import { CheckedCopyAnnotationPlan, EvaluatorCheckedCopyPlan, planCheckedCopyAnnotations } from "./checkedCopyPlanner";
-import { generateCheckedCopy } from "./checkedCopyGenerator";
+import { generateCheckedCopy, CheckedCopyAnswerHints } from "./checkedCopyGenerator";
 import { transcribeStudentAnswerFromUpload, TranscribedAnswerPage } from "./studentAnswerTranscriber";
 import { analyzeDocumentPageLayout, DocumentPageLayout } from "./documentLayout.service";
 
@@ -54,6 +54,7 @@ type CheckedCopyInput = {
   contentType: string;
   source: "image" | "pdf-page";
   layout?: DocumentPageLayout | null;
+  answerHints?: CheckedCopyAnswerHints;
 };
 
 export interface EvaluationUpdate {
@@ -302,11 +303,27 @@ function getCheckedCopyMaxPages(): number {
 
 async function buildCheckedCopyInputsFromUploads(
   attemptId: string,
-  uploads: OriginalUploadPage[]
+  uploads: OriginalUploadPage[],
+  answerPages?: TranscribedAnswerPage[]
 ): Promise<CheckedCopyInput[]> {
   const maxPages = getCheckedCopyMaxPages();
   const inputs: CheckedCopyInput[] = [];
   let truncated = false;
+
+  const hintsByPage = new Map<number, CheckedCopyAnswerHints>(
+    (answerPages || []).map((page) => [
+      page.pageNumber,
+      {
+        answerStartText: page.answerStartText,
+        answerLineHints: page.answerLineHints?.length
+          ? page.answerLineHints
+          : page.studentAnswerText.split(/\n+/).map((line) => line.trim()).filter(Boolean).slice(0, 30),
+        copiedQuestionText: page.copiedQuestionText,
+        ignoredPrintedText: page.ignoredPrintedText,
+      },
+    ])
+  );
+  const hintsForNextPage = () => hintsByPage.get(inputs.length + 1);
 
   for (const upload of uploads) {
     const remaining = maxPages - inputs.length;
@@ -321,6 +338,7 @@ async function buildCheckedCopyInputsFromUploads(
         buffer: upload.buffer,
         contentType: upload.contentType,
         source: "image",
+        answerHints: hintsForNextPage(),
       });
       continue;
     }
@@ -342,6 +360,7 @@ async function buildCheckedCopyInputsFromUploads(
           buffer,
           contentType: "image/png",
           source: "pdf-page",
+          answerHints: hintsForNextPage(),
         });
       });
       console.log("[eval] checked-copy PDF render completed", {
@@ -896,7 +915,7 @@ export async function evaluateAnswerGeneric(params: {
       });
     }
     let checkedCopyStatus: string | null = originalUploads.length > 0 ? "skipped" : null;
-    let checkedCopyInputs: CheckedCopyInput[] = await buildCheckedCopyInputsFromUploads(attemptId, originalUploads);
+    let checkedCopyInputs: CheckedCopyInput[] = await buildCheckedCopyInputsFromUploads(attemptId, originalUploads, transcriptionPages);
 
     if (checkedCopyInputs.length > 0) {
       if (process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT && process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY) {
@@ -951,6 +970,7 @@ export async function evaluateAnswerGeneric(params: {
           mimeType: input.contentType,
           annotationPlan,
           layout: input.layout,
+          answerHints: input.answerHints,
         });
         if (checked.status === "completed") {
           checkedCopyPages.push({

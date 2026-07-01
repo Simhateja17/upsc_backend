@@ -42,6 +42,13 @@ type PageRenderPlan = {
   bottomComment: string;
 };
 
+export type CheckedCopyAnswerHints = {
+  answerStartText?: string;
+  answerLineHints?: string[];
+  copiedQuestionText?: string;
+  ignoredPrintedText?: string[];
+};
+
 function isV2Plan(plan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan): plan is Extract<EvaluatorCheckedCopyPlan, { version: 2 }> {
   return Boolean(plan && typeof plan === "object" && !Array.isArray(plan) && "version" in plan && plan.version === 2);
 }
@@ -305,6 +312,21 @@ function similarity(a: string, b: string): number {
   return overlap / Math.max(aTokens.size, bTokens.size);
 }
 
+function meaningfulHint(text: string | null | undefined): string | null {
+  const normalized = normalizeForMatch(text || "");
+  return normalized.length >= 10 ? normalized : null;
+}
+
+function bestHintSimilarity(lineText: string, hints: string[]): number {
+  let best = 0;
+  for (const hint of hints) {
+    if (!hint) continue;
+    if (lineText.includes(hint) || hint.includes(lineText)) return 1;
+    best = Math.max(best, similarity(hint, lineText));
+  }
+  return best;
+}
+
 function boxToPixels(box: NormalizedBox, width: number, height: number) {
   return {
     x1: box.x1 * width,
@@ -314,13 +336,38 @@ function boxToPixels(box: NormalizedBox, width: number, height: number) {
   };
 }
 
-function inferZones(width: number, height: number, layout: DocumentPageLayout | null | undefined): PageZones {
+function inferZones(
+  width: number,
+  height: number,
+  layout: DocumentPageLayout | null | undefined,
+  answerHints?: CheckedCopyAnswerHints
+): PageZones {
   const lineBoxes = (layout?.lines || []).map((line) => boxToPixels(line.box, width, height));
   const xs = lineBoxes.flatMap((box) => [box.x1, box.x2]).filter((value) => Number.isFinite(value));
   const contentLeft = xs.length ? Math.max(width * 0.1, Math.min(...xs)) : width * 0.16;
   const contentRight = xs.length ? Math.min(width * 0.86, Math.max(...xs)) : width * 0.78;
-  const configuredTop = Number(process.env.CHECKED_COPY_ANSWER_TOP_RATIO || 0.28) * height;
-  const answerTop = Math.max(configuredTop, height * 0.22);
+  const configuredTop = Number(process.env.CHECKED_COPY_ANSWER_TOP_RATIO || 0.16) * height;
+  const normalizedAnswerHints = [
+    meaningfulHint(answerHints?.answerStartText),
+    ...(answerHints?.answerLineHints || []).map(meaningfulHint),
+  ].filter((hint): hint is string => Boolean(hint));
+  const excludedHints = [
+    meaningfulHint(answerHints?.copiedQuestionText),
+    ...(answerHints?.ignoredPrintedText || []).map(meaningfulHint),
+  ].filter((hint): hint is string => Boolean(hint));
+  const hintedAnswerTops = (layout?.lines || [])
+    .map((line) => {
+      const lineText = normalizeForMatch(line.text);
+      const px = boxToPixels(line.box, width, height);
+      if (px.y1 < height * 0.1) return null;
+      if (excludedHints.length && bestHintSimilarity(lineText, excludedHints) >= 0.7) return null;
+      if (!normalizedAnswerHints.length || bestHintSimilarity(lineText, normalizedAnswerHints) < 0.55) return null;
+      return px.y1;
+    })
+    .filter((value): value is number => value != null && Number.isFinite(value));
+  const answerTop = hintedAnswerTops.length
+    ? Math.max(height * 0.11, Math.min(...hintedAnswerTops) - height * 0.015)
+    : Math.max(height * 0.11, configuredTop);
   const answerBottom = height * Number(process.env.CHECKED_COPY_ANSWER_BOTTOM_RATIO || 0.86);
 
   return {
@@ -365,16 +412,35 @@ function isInsideAnswerZone(box: NormalizedBox, zones: PageZones, width: number,
   return px.y1 >= zones.answerTop && px.y2 <= zones.answerBottom && px.x1 >= zones.contentLeft - width * 0.08 && px.x2 <= zones.contentRight + width * 0.08;
 }
 
-function findTargetBox(annotation: OverlayAnnotation, layout: DocumentPageLayout | null | undefined, zones: PageZones, width: number, height: number): NormalizedBox | null {
+function findTargetBox(
+  annotation: OverlayAnnotation,
+  layout: DocumentPageLayout | null | undefined,
+  zones: PageZones,
+  width: number,
+  height: number,
+  answerHints?: CheckedCopyAnswerHints
+): NormalizedBox | null {
   if (!layout?.lines.length || !annotation.targetText?.trim()) return null;
 
   const target = normalizeForMatch(annotation.targetText);
   if (!target) return null;
+  const excludedHints = [
+    meaningfulHint(answerHints?.copiedQuestionText),
+    ...(answerHints?.ignoredPrintedText || []).map(meaningfulHint),
+  ].filter((hint): hint is string => Boolean(hint));
+  const answerLineHints = [
+    meaningfulHint(answerHints?.answerStartText),
+    ...(answerHints?.answerLineHints || []).map(meaningfulHint),
+  ].filter((hint): hint is string => Boolean(hint));
 
   let best: { score: number; box: NormalizedBox } | null = null;
   for (const line of layout.lines) {
-    if (!isInsideAnswerZone(line.box, zones, width, height)) continue;
     const lineText = normalizeForMatch(line.text);
+    if (excludedHints.length && bestHintSimilarity(lineText, excludedHints) >= 0.72) continue;
+    const insideAnswerZone = isInsideAnswerZone(line.box, zones, width, height);
+    const matchesAnswerHint = answerLineHints.length > 0 && bestHintSimilarity(lineText, answerLineHints) >= 0.55;
+    const matchesTarget = lineText.includes(target) || target.includes(lineText) || similarity(target, lineText) >= 0.34;
+    if (!insideAnswerZone && !(matchesAnswerHint || (answerLineHints.length > 0 && matchesTarget))) continue;
     const containsScore = lineText.includes(target) || target.includes(lineText);
     const score = containsScore ? 1 : similarity(target, lineText);
     if (!best || score > best.score) {
@@ -524,6 +590,7 @@ function renderOverlaySvg(params: {
   pageNumber: number;
   totalPages: number;
   layout?: DocumentPageLayout | null;
+  answerHints?: CheckedCopyAnswerHints;
 }): Buffer {
   const { width, height } = getImageSize(params.originalBuffer, params.mimeType);
   const canvas = inferCanvas(width, height);
@@ -531,7 +598,7 @@ function renderOverlaySvg(params: {
   const imageHref = `data:${params.mimeType};base64,${params.originalBuffer.toString("base64")}`;
 
   const red = "#A12418";
-  const pageZones = inferZones(width, height, params.layout);
+  const pageZones = inferZones(width, height, params.layout, params.answerHints);
   const zones = expandedZones(pageZones, canvas);
   const fontSize = Math.max(17, Math.round(width * 0.02));
   const smallFontSize = Math.max(15, Math.round(width * 0.017));
@@ -565,7 +632,7 @@ function renderOverlaySvg(params: {
   }
 
   tickMarks.forEach((annotation, index) => {
-    const targetBox = findTargetBox(annotation, params.layout, pageZones, width, height);
+    const targetBox = findTargetBox(annotation, params.layout, pageZones, width, height, params.answerHints);
     const targetPx = targetBox ? offsetBox(boxToPixels(targetBox, width, height), canvas) : null;
     const normalizedKey = annotation.targetText ? normalizeForMatch(annotation.targetText) : "";
     const targetKey = targetPx
@@ -584,7 +651,7 @@ function renderOverlaySvg(params: {
   });
 
   visualMarks.forEach((annotation, index) => {
-    const targetBox = findTargetBox(annotation, params.layout, pageZones, width, height);
+    const targetBox = findTargetBox(annotation, params.layout, pageZones, width, height, params.answerHints);
     if (hasLayoutLines && !targetBox) return;
     const targetPx = targetBox ? offsetBox(boxToPixels(targetBox, width, height), canvas) : null;
     const row = targetPx ? targetPx.y2 + smallFontSize * 0.25 : zones.answerTop + index * height * 0.075;
@@ -609,7 +676,7 @@ function renderOverlaySvg(params: {
 
   const deferredComments: string[] = [];
   marginComments.forEach((annotation, index) => {
-    const targetBox = findTargetBox(annotation, params.layout, pageZones, width, height);
+    const targetBox = findTargetBox(annotation, params.layout, pageZones, width, height, params.answerHints);
     const targetPx = targetBox ? offsetBox(boxToPixels(targetBox, width, height), canvas) : null;
 
     const side = commentLane(annotation, index, zones);
@@ -712,6 +779,7 @@ export async function generateCheckedCopy(params: {
   mimeType: string;
   annotationPlan: CheckedCopyAnnotationPlan | EvaluatorCheckedCopyPlan;
   layout?: DocumentPageLayout | null;
+  answerHints?: CheckedCopyAnswerHints;
 }): Promise<CheckedCopyResult> {
   const startedAt = Date.now();
   const pageNumber = params.pageNumber || 1;
@@ -729,6 +797,7 @@ export async function generateCheckedCopy(params: {
       pageNumber,
       totalPages,
       layout: params.layout,
+      answerHints: params.answerHints,
     });
 
     const storagePath = `${params.attemptId}/page_${pageNumber}_${Date.now()}_checked.svg`;

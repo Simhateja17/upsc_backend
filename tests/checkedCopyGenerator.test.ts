@@ -75,6 +75,71 @@ describe("generateCheckedCopy", () => {
     expect(uploadedSvg).not.toContain('y="196"');
   });
 
+  it("marks answer text that starts near the top while excluding copied question text", async () => {
+    const result = await generateCheckedCopy({
+      attemptId: "attempt-top-answer",
+      originalBuffer: pngBuffer(1000, 1400),
+      mimeType: "image/png",
+      answerHints: {
+        copiedQuestionText: "How far was the Industrial Revolution in England responsible for the decline of handicrafts and cottage industries in India?",
+        ignoredPrintedText: ["Q. No. 5", "Marks 15"],
+        answerStartText: "The Industrial Revolution in England during the 18th and 19th centuries",
+        answerLineHints: [
+          "The Industrial Revolution in England during the 18th and 19th centuries had a major impact",
+          "Machine made goods",
+        ],
+      },
+      annotationPlan: {
+        version: 2,
+        scoreText: "6/15",
+        pagePlans: [
+          {
+            pageNumber: 1,
+            visualMarks: [
+              {
+                type: "underline",
+                targetText: "The Industrial Revolution in England during the 18th and 19th centuries",
+                intent: "opening judgement should be marked even near the top",
+              },
+            ],
+            marginComments: [
+              {
+                targetText: "The Industrial Revolution in England during the 18th and 19th centuries",
+                severity: "major",
+                comment: "Opening is relevant, but sharpen the 'how far' judgement and compare Industrial Revolution with colonial policy.",
+                placementIntent: "right_margin",
+              },
+              {
+                targetText: "How far was the Industrial Revolution",
+                severity: "major",
+                comment: "Copied question text must not receive a connector.",
+                placementIntent: "right_margin",
+              },
+            ],
+          },
+        ],
+      },
+      layout: {
+        pageNumber: 1,
+        width: 1000,
+        height: 1400,
+        lines: [
+          { text: "How far was the Industrial Revolution in England responsible for the decline", box: { x1: 0.18, y1: 0.12, x2: 0.78, y2: 0.15 } },
+          { text: "The Industrial Revolution in England during the 18th and 19th centuries", box: { x1: 0.18, y1: 0.18, x2: 0.76, y2: 0.21 } },
+          { text: "Machine made goods helped England produce cheaply", box: { x1: 0.18, y1: 0.38, x2: 0.72, y2: 0.41 } },
+        ],
+      },
+    });
+
+    expect(result.status).toBe("completed");
+    expect(uploadedSvg).toContain("Opening is relevant");
+    expect(uploadedSvg).toContain("Copied question text");
+    const leaders = [...uploadedSvg.matchAll(/<path data-role="comment-leader"[^>]+d="M ([\d.]+) ([\d.]+) C ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+)" \/>/g)];
+    expect(leaders).toHaveLength(1);
+    expect(Number(leaders[0][8])).toBeGreaterThanOrEqual(240);
+    expect(Number(leaders[0][8])).toBeLessThanOrEqual(320);
+  });
+
   it("renders unmatched target comments in the margins instead of collapsing the page to a bottom note", async () => {
     await generateCheckedCopy({
       attemptId: "attempt-2",

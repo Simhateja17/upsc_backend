@@ -4,7 +4,10 @@ import { renderPdfPagesToImages } from "../config/gemini";
 export interface TranscribedAnswerPage {
   pageNumber: number;
   studentAnswerText: string;
+  copiedQuestionText?: string;
   ignoredPrintedText?: string[];
+  answerStartText?: string;
+  answerLineHints?: string[];
   confidence?: "high" | "medium" | "low";
 }
 
@@ -35,8 +38,13 @@ function normalizeTranscription(raw: unknown): TranscribedAnswer {
     ? obj.pages.map((page: any, index: number) => ({
         pageNumber: Number(page?.pageNumber || index + 1),
         studentAnswerText: String(page?.studentAnswerText || "").trim(),
+        copiedQuestionText: String(page?.copiedQuestionText || "").trim() || undefined,
         ignoredPrintedText: Array.isArray(page?.ignoredPrintedText)
           ? page.ignoredPrintedText.map((item: unknown) => String(item)).filter(Boolean)
+          : [],
+        answerStartText: String(page?.answerStartText || "").trim() || undefined,
+        answerLineHints: Array.isArray(page?.answerLineHints)
+          ? page.answerLineHints.map((item: unknown) => String(item).trim()).filter(Boolean).slice(0, 30)
           : [],
         confidence: ["high", "medium", "low"].includes(page?.confidence)
           ? page.confidence
@@ -170,6 +178,8 @@ Rules:
 - The image pages are the source of truth.
 - Return only the student's answer text, preserving the student's order and bullet/paragraph structure.
 - Ignore printed question text, Hindi translation, page headers, page numbers, watermarks, logos, institute branding, phone numbers, URLs, email IDs, margin instructions, and any pre-existing evaluator marks/comments.
+- If the student copied/wrote the question at the top of the answer sheet, put it in copiedQuestionText and do NOT include it in studentAnswerText.
+- If the student begins the actual answer near the top of the page, include it in studentAnswerText. Do not discard answer text just because it is above the first ruled answer line.
 - Ignore red-ink annotations if present. Do not include examiner comments in the transcription.
 - Do not correct the student's facts or grammar. Expand obvious abbreviations only when the handwriting clearly implies them.
 - If a word is unreadable, write [unclear] sparingly.
@@ -181,7 +191,10 @@ Return ONLY valid JSON:
     {
       "pageNumber": <page number>,
       "studentAnswerText": "student answer found on this page only",
+      "copiedQuestionText": "question text copied by the student, if present; otherwise empty string",
       "ignoredPrintedText": ["brief labels of ignored non-answer text"],
+      "answerStartText": "first distinctive phrase/line of the actual answer on this page",
+      "answerLineHints": ["distinctive answer lines or phrases in page order, excluding copied question/header text"],
       "confidence": "high|medium|low"
     }
   ],
@@ -312,7 +325,10 @@ Return ONLY valid JSON:
       : [{
           pageNumber: item.pageNumber,
           studentAnswerText: item.result!.transcribedAnswer,
+          copiedQuestionText: undefined,
           ignoredPrintedText: [],
+          answerStartText: item.result!.transcribedAnswer.split(/\n+/).map((line) => line.trim()).find(Boolean),
+          answerLineHints: item.result!.transcribedAnswer.split(/\n+/).map((line) => line.trim()).filter(Boolean).slice(0, 30),
           confidence: item.result!.confidence,
         }]);
   const readablePages = pages.filter((page) => page.studentAnswerText.trim().length > 0);
