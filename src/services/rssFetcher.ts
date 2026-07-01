@@ -39,7 +39,7 @@ export async function fetchRssArticles(): Promise<FetchedArticle[]> {
     RSS_SOURCES.map(async ({ url, source }) => {
       try {
         const feed = await parser.parseURL(url);
-        const itemLimit = source === "Indian Express" ? 20 : 15;
+        const itemLimit = source === "Indian Express" ? 30 : 15;
         for (const item of feed.items.slice(0, itemLimit)) {
           const title = item.title?.trim();
           if (!title) continue;

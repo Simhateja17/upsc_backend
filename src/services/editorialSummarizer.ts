@@ -28,10 +28,10 @@ Content:
 ${content}
 
 Provide a structured summary with:
-1. **Key Arguments** (5-6 detailed bullet points — for each point, write 2-3 sentences covering: the core argument, its policy/constitutional significance, and why it matters for governance or society; make this section substantive and analytical, not just a headline list)
+1. **Key Arguments** (5-6 detailed bullet points — for each point, write 3-4 sentences covering: the core argument, its policy/constitutional significance, real-world implications, and why it matters for governance or society; make this section substantive and analytical, not just a headline list; each point should be a substantial paragraph)
 2. **Critical Analysis** — a balanced multi-perspective analysis in 4-5 sentences covering: the strengths of the approach, gaps or criticisms, what is at stake for institutions/citizens, and the key tension or trade-off an aspirant should address in a Mains answer
-3. **UPSC Relevance** — which GS papers/topics this maps to
-4. **Key Terms & Concepts** to remember
+3. **UPSC Relevance** — 3-5 lines mapping this editorial to GS papers/Essay; one mapping per line with no blank line between them, each formatted as "**GS Paper X**: topics/keywords" (or "**Essay**: ..." where relevant); do not merge multiple mappings into one paragraph
+4. **Key Terms & Concepts** — list 5-8 key terms with brief one-line definitions; format each as "**Term**: definition" with the first letter of each term capitalized; do not split a term's definition across multiple lines; do not include any "Key UPSC Takeaway" or concluding remarks
 5. **Potential Exam Questions** — 2-3 questions that could be framed from this editorial
 
 Analysis rules:
@@ -41,7 +41,7 @@ Analysis rules:
 - If the article is mostly rhetoric or has weak UPSC value, say so briefly and keep the output conservative.
 - Do not invent schemes, statistics, committee names, article numbers, or PYQ links not present in the content.
 
-Target 450-550 words — Key Arguments and Critical Analysis sections should be the most substantial parts.`;
+Target 550-700 words — Key Arguments and Critical Analysis sections should be the most substantial parts. Output sections in this exact order: 1. Key Arguments, 2. Critical Analysis, 3. UPSC Relevance, 4. Key Terms & Concepts, 5. Potential Exam Questions. Do not add any additional sections.`;
 
   const summary = await invokeModel(
     [{ role: "user", content: prompt }],
