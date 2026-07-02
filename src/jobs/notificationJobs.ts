@@ -5,47 +5,14 @@ import {
   sendMorningDigest,
   sendWeeklyProgress,
 } from "../services/emailService";
-
-function todayStartIST(): Date {
-  const now = new Date();
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const istNow = new Date(now.getTime() + istOffset);
-  istNow.setHours(0, 0, 0, 0);
-  return new Date(istNow.getTime() - istOffset);
-}
-
-interface UserRow {
-  id: string;
-  email: string | null;
-  first_name: string | null;
-  settings: Record<string, any> | null;
-}
-
-function getNotifPref(user: UserRow, key: string): boolean {
-  return user.settings?.notifications?.[key] ?? true;
-}
-
-async function alreadyNotifiedToday(userId: string, type: string): Promise<boolean> {
-  const todayStart = todayStartIST();
-  const { data } = await supabaseAdmin
-    .from("notifications")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("type", type)
-    .gte("created_at", todayStart.toISOString())
-    .limit(1);
-  return (data?.length ?? 0) > 0;
-}
-
-async function insertNotification(userId: string, title: string, body: string, type: string) {
-  await supabaseAdmin.from("notifications").insert({
-    user_id: userId,
-    title,
-    body,
-    type,
-    read: false,
-  });
-}
+import {
+  UserRow,
+  todayStartIST,
+  getNotifPref,
+  alreadyNotifiedToday,
+  insertNotification,
+} from "../utils/notifications";
+import { dashboardRepo } from "../repositories/prisma-dashboard.repository";
 
 // ==================== Daily MCQ Reminder (8:00 AM IST) ====================
 
@@ -279,4 +246,82 @@ export async function sendWeeklyProgressEmails(): Promise<void> {
   }
 
   console.log(`[WeeklyProgress] Sent ${sent} weekly summaries.`);
+}
+
+// ==================== New Mock Test Available (12:00 PM IST) ====================
+
+export async function sendMockTestAvailableNotifications(): Promise<void> {
+  const todayStart = todayStartIST();
+
+  const { data: newTests } = await supabaseAdmin
+    .from("mock_tests")
+    .select("title")
+    .gte("created_at", todayStart.toISOString())
+    .order("created_at", { ascending: false });
+
+  if (!newTests?.length) {
+    console.log("[MockTestAvailable] No new mock tests today, skipping.");
+    return;
+  }
+
+  const { data: users } = await supabaseAdmin
+    .from("users")
+    .select("id, email, first_name, settings");
+  if (!users?.length) return;
+
+  const title =
+    newTests.length === 1
+      ? `New Mock Test Available — ${newTests[0].title} 📌`
+      : `${newTests.length} New Mock Tests Available 📌`;
+  const body =
+    newTests.length === 1
+      ? `"${newTests[0].title}" has just been added. Attempt it now to test your prep.`
+      : `${newTests.length} new mock tests were added today, including "${newTests[0].title}". Check them out.`;
+
+  let sent = 0;
+  for (const user of users as UserRow[]) {
+    if (!getNotifPref(user, "mockTest")) continue;
+    if (await alreadyNotifiedToday(user.id, "mock_test_available")) continue;
+
+    await insertNotification(user.id, title, body, "mock_test_available");
+    sent++;
+  }
+
+  console.log(`[MockTestAvailable] Sent ${sent} notifications.`);
+}
+
+// ==================== Daily Trio Reminder (8:10 AM IST) ====================
+
+export async function sendDailyTrioReminders(): Promise<void> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const { data: users } = await supabaseAdmin
+    .from("users")
+    .select("id, email, first_name, settings");
+  if (!users?.length) return;
+
+  let sent = 0;
+  for (const user of users as UserRow[]) {
+    if (!getNotifPref(user, "trio")) continue;
+    if (await alreadyNotifiedToday(user.id, "daily_trio_reminder")) continue;
+
+    const snap = await dashboardRepo.getTodaySnapshot(user.id, today);
+
+    const pending: string[] = [];
+    if (snap.todayMcq && !snap.todayMcqAttempted) pending.push("Daily MCQ");
+    if (snap.todayMains && !snap.todayMainsAttempted) pending.push("Mains Answer");
+    if (snap.todayEditorial && !snap.todayEditorialRead) pending.push("Editorial Reading");
+    if (!pending.length) continue; // nothing available today, or already all done
+
+    await insertNotification(
+      user.id,
+      "Your Daily Trio is waiting! 📚",
+      `Still pending today: ${pending.join(", ")}. Complete them to keep your prep on track.`,
+      "daily_trio_reminder"
+    );
+    sent++;
+  }
+
+  console.log(`[DailyTrioReminder] Sent ${sent} reminders.`);
 }

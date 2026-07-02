@@ -9,6 +9,8 @@ import {
   sendStreakAlerts,
   sendMorningDigestNotifications,
   sendWeeklyProgressEmails,
+  sendMockTestAvailableNotifications,
+  sendDailyTrioReminders,
 } from "./notificationJobs";
 import prisma from "../config/database";
 import { supabaseAdmin } from "../config/supabase";
@@ -51,14 +53,19 @@ export function initScheduler() {
     fireAndForget(() => sendSpacedRepReminders(), { name: "spaced-rep-reminders" });
   });
 
-  // 7:30 AM IST (02:00 UTC) — Morning editorial digest
-  cron.schedule("0 2 * * *", () => {
+  // 9:00 AM IST (03:30 UTC) — Morning editorial / current affairs digest
+  cron.schedule("30 3 * * *", () => {
     fireAndForget(() => sendMorningDigestNotifications(), { name: "morning-digest" });
   });
 
   // 8:05 AM IST (02:35 UTC) — Daily MCQ reminder (staggered after spaced-rep)
   cron.schedule("35 2 * * *", () => {
     fireAndForget(() => sendDailyMcqReminders(), { name: "daily-mcq-reminder" });
+  });
+
+  // 8:10 AM IST (02:40 UTC) — Daily Trio attempt reminder (staggered after spaced-rep/MCQ reminder)
+  cron.schedule("40 2 * * *", () => {
+    fireAndForget(() => sendDailyTrioReminders(), { name: "daily-trio-reminder" });
   });
 
   // 7:00 PM IST (13:30 UTC) — Streak at risk alert
@@ -69,6 +76,11 @@ export function initScheduler() {
   // Sunday 9:00 AM IST (03:30 UTC) — Weekly progress summary
   cron.schedule("30 3 * * 0", () => {
     fireAndForget(() => sendWeeklyProgressEmails(), { name: "weekly-progress" });
+  });
+
+  // 12:00 PM IST (06:30 UTC) — New mock test available
+  cron.schedule("30 6 * * *", () => {
+    fireAndForget(() => sendMockTestAvailableNotifications(), { name: "mock-test-available" });
   });
 
   console.log("[Scheduler] All cron jobs registered with retry + monitoring.");

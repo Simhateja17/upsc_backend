@@ -1,10 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
-import { supabaseAdmin } from "../config/supabase";
 import { evaluateAnswer } from "../services/answerEvaluator";
-import { sendEvaluationComplete } from "../services/emailService";
 import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
 import { ensureTodayMainsQuestion, getTodayInAppTimeZone } from "../jobs/dailyContentJob";
+import { notifyAnswerEvaluated } from "../utils/notifications";
 
 function getToday(): Date {
   return getTodayInAppTimeZone();
@@ -538,30 +537,11 @@ async function startEvaluation(
         const user = attempt.user;
         if (!user) return;
 
-        const { data: userData } = await supabaseAdmin
-          .from("users")
-          .select("settings")
-          .eq("id", user.id)
-          .single();
-        const answerPref = userData?.settings?.notifications?.answer ?? true;
-
-        const score = attempt.evaluation.score;
-        const maxScore = attempt.evaluation.maxScore;
-        const firstName = user.firstName || "Aspirant";
-
-        if (answerPref) {
-          await supabaseAdmin.from("notifications").insert({
-            user_id: user.id,
-            title: `Answer Evaluated — Score: ${score}/${maxScore} ✅`,
-            body: "Your mains answer has been evaluated. View detailed feedback, strengths, and suggestions.",
-            type: "answer_evaluated",
-            read: false,
-          });
-
-          if (user.email) {
-            await sendEvaluationComplete(user.email, firstName, score, maxScore);
-          }
-        }
+        await notifyAnswerEvaluated({
+          userId: user.id,
+          score: attempt.evaluation.score,
+          maxScore: attempt.evaluation.maxScore,
+        });
       } catch (err) {
         // Notification failure is non-critical
       }
