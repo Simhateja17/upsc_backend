@@ -40,6 +40,12 @@ function mapMessage(message: any) {
   };
 }
 
+function getToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 // ==================== PUBLIC / AUTHENTICATED ====================
 
 /**
@@ -381,6 +387,222 @@ export const getMyGroups = async (req: Request, res: Response, next: NextFunctio
     }));
 
     res.json({ status: "success", data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==================== ROOM GOALS ====================
+
+/**
+ * GET /api/study-groups/:id/goals
+ * Today's shared goals for the room, plus which ones the current user has completed.
+ */
+export const getGoals = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+    const groupId = param(req, "id");
+    const today = getToday();
+
+    const goals = await prisma.studyGroupGoal.findMany({
+      where: { groupId, date: today },
+      orderBy: { createdAt: "asc" },
+      include: { createdBy: { select: { id: true, firstName: true, lastName: true } } },
+    });
+
+    let myCompletedGoalIds: string[] = [];
+    if (userId && goals.length) {
+      const completions = await prisma.studyGroupGoalCompletion.findMany({
+        where: { userId, goalId: { in: goals.map((g) => g.id) } },
+        select: { goalId: true },
+      });
+      myCompletedGoalIds = completions.map((c) => c.goalId);
+    }
+
+    res.json({
+      status: "success",
+      data: {
+        goals: goals.map((g) => ({
+          id: g.id,
+          title: g.title,
+          createdById: g.createdById,
+          createdByName: displayName(g.createdBy),
+          createdAt: g.createdAt,
+        })),
+        myCompletedGoalIds,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/study-groups/:id/goals
+ * Add a shared goal for the room, for today.
+ */
+export const addGoal = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const groupId = param(req, "id");
+    const { title } = req.body;
+
+    if (!title || typeof title !== "string" || !title.trim()) {
+      res.status(400).json({ status: "error", message: "title is required" });
+      return;
+    }
+
+    const membership = await prisma.studyGroupMember.findUnique({
+      where: { groupId_userId: { groupId, userId } },
+    });
+    if (!membership || !membership.isActive) {
+      res.status(403).json({ status: "error", message: "You must join the group to add goals" });
+      return;
+    }
+
+    const goal = await prisma.studyGroupGoal.create({
+      data: { groupId, title: title.trim(), date: getToday(), createdById: userId },
+    });
+
+    res.status(201).json({
+      status: "success",
+      data: { id: goal.id, title: goal.title, createdById: goal.createdById, createdAt: goal.createdAt },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/study-groups/:id/goals/:goalId/toggle
+ * Toggle the current user's completion of a shared room goal. Completing it
+ * creates a matching task in that user's own Study Planner diary; un-completing
+ * removes it (the task exists solely to represent this goal's completion).
+ */
+export const toggleGoal = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const groupId = param(req, "id");
+    const goalId = param(req, "goalId");
+
+    const membership = await prisma.studyGroupMember.findUnique({
+      where: { groupId_userId: { groupId, userId } },
+    });
+    if (!membership || !membership.isActive) {
+      res.status(403).json({ status: "error", message: "You must join the group to update goals" });
+      return;
+    }
+
+    const goal = await prisma.studyGroupGoal.findFirst({ where: { id: goalId, groupId } });
+    if (!goal) {
+      res.status(404).json({ status: "error", message: "Goal not found" });
+      return;
+    }
+
+    const existing = await prisma.studyGroupGoalCompletion.findUnique({
+      where: { goalId_userId: { goalId, userId } },
+    });
+
+    if (existing) {
+      if (existing.taskId) {
+        await prisma.studyPlanTask.deleteMany({ where: { id: existing.taskId, userId } });
+      }
+      await prisma.studyGroupGoalCompletion.delete({ where: { id: existing.id } });
+      res.json({ status: "success", data: { completed: false } });
+      return;
+    }
+
+    const task = await prisma.studyPlanTask.create({
+      data: {
+        userId,
+        title: goal.title,
+        type: "study",
+        date: goal.date,
+        isCompleted: true,
+        completedAt: new Date(),
+      },
+    });
+
+    await prisma.studyGroupGoalCompletion.create({
+      data: { goalId, userId, taskId: task.id },
+    });
+
+    res.json({ status: "success", data: { completed: true } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/study-groups/:id/member-times
+ * Each active member's room-scoped focus time for today, plus the team total.
+ */
+export const getMemberTimes = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const groupId = param(req, "id");
+    const today = getToday();
+
+    const members = await prisma.studyGroupMember.findMany({
+      where: { groupId, isActive: true },
+      include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
+      take: 50,
+    });
+
+    const dailyRows = members.length
+      ? await prisma.studyGroupMemberDaily.findMany({
+          where: { groupId, date: today, userId: { in: members.map((m) => m.userId) } },
+        })
+      : [];
+    const secondsByUser = new Map<string, number>();
+    dailyRows.forEach((r) => secondsByUser.set(r.userId, r.focusSeconds));
+
+    const data = members.map((m) => ({
+      userId: m.userId,
+      name: displayName(m.user),
+      avatarUrl: m.user.avatarUrl ?? null,
+      focusSeconds: secondsByUser.get(m.userId) || 0,
+    }));
+
+    const teamTotalSeconds = data.reduce((sum, m) => sum + m.focusSeconds, 0);
+
+    res.json({ status: "success", data: { members: data, teamTotalSeconds } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/study-groups/:id/focus-time
+ * Upsert the current user's cumulative room-scoped focus seconds for today.
+ * Body: { seconds: number } — always the full cumulative total, not a delta.
+ */
+export const postFocusTime = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const groupId = param(req, "id");
+    const { seconds } = req.body;
+
+    if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
+      res.status(400).json({ status: "error", message: "seconds must be a non-negative number" });
+      return;
+    }
+
+    const membership = await prisma.studyGroupMember.findUnique({
+      where: { groupId_userId: { groupId, userId } },
+    });
+    if (!membership || !membership.isActive) {
+      res.status(403).json({ status: "error", message: "You must join the group to log focus time" });
+      return;
+    }
+
+    const today = getToday();
+    const row = await prisma.studyGroupMemberDaily.upsert({
+      where: { groupId_userId_date: { groupId, userId, date: today } },
+      create: { groupId, userId, date: today, focusSeconds: Math.round(seconds) },
+      update: { focusSeconds: Math.round(seconds) },
+    });
+
+    res.json({ status: "success", data: { focusSeconds: row.focusSeconds } });
   } catch (error) {
     next(error);
   }

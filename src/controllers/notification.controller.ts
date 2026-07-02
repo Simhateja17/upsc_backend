@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { supabaseAdmin } from "../config/supabase";
+import { checkAndSendLoginStreakNotification } from "../utils/notifications";
 
 export const getNotifications = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    await checkAndSendLoginStreakNotification(req.user!.id);
+
     const { data: notifications } = await supabaseAdmin
       .from("notifications")
       .select("id, title, body, type, read, created_at")
@@ -10,15 +13,7 @@ export const getNotifications = async (req: Request, res: Response, next: NextFu
       .order("created_at", { ascending: false })
       .limit(50);
 
-    // Filter out any test/mock notifications that might have slipped in
-    const filteredNotifications = (notifications || []).filter((n) => {
-      // Skip notifications that look like test data
-      if (n.title?.includes("test") || n.title?.includes("Test") || n.title?.includes("TEST")) return false;
-      if (n.body?.includes("test") || n.body?.includes("Test") || n.body?.includes("TEST")) return false;
-      return true;
-    });
-
-    res.json({ status: "success", data: filteredNotifications });
+    res.json({ status: "success", data: notifications || [] });
   } catch (error) {
     next(error);
   }

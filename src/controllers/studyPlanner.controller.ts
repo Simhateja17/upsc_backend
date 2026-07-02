@@ -9,6 +9,7 @@ import {
   deleteStudyPlanTaskFromGoogle,
   syncStudyPlanTaskToGoogle,
 } from "../services/googleCalendarSync.service";
+import { computeSyllabusCoverage } from "../utils/syllabusDedup";
 
 function getToday(): Date {
   const d = new Date();
@@ -286,19 +287,15 @@ export const getSyllabusCoverage = async (req: Request, res: Response, next: Nex
 
     const stateMap = (tracker?.states ?? {}) as Record<string, { status?: string }>;
 
+    // Dedup topics/sub-topics the same way the Syllabus Tracker page does
+    // before counting, so this matches what the tracker page shows for the
+    // same saved state (see src/utils/syllabusDedup.ts).
     const data = subjects.map((subject) => {
-      let totalTopics = 0;
-      let completedTopics = 0;
-
-      subject.topics.forEach((topic, topicIndex) => {
-        topic.subTopics.forEach((_, subTopicIndex) => {
-          totalTopics += 1;
-          const key = `${subject.id}__${topicIndex}__${subTopicIndex}`;
-          if (stateMap[key]?.status === "done") {
-            completedTopics += 1;
-          }
-        });
-      });
+      const { totalTopics, coveredTopics: completedTopics } = computeSyllabusCoverage(
+        subject.topics,
+        subject.id,
+        stateMap
+      );
 
       const percentage = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
 

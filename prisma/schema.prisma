@@ -36,6 +36,9 @@ model User {
   forumPosts              ForumPost[]
   forumVotes              ForumVote[]
   groupMessages           GroupMessage[]
+  createdGroupGoals       StudyGroupGoal[]
+  groupGoalCompletions    StudyGroupGoalCompletion[]
+  groupMemberDaily        StudyGroupMemberDaily[]
   journalEntries          JournalEntry[]
   mainsAttempts           MainsAttempt[]
   mcqAttempts             MCQAttempt[]
@@ -1393,6 +1396,8 @@ model StudyGroup {
   updatedAt   DateTime           @updatedAt @map("updated_at")
   messages    GroupMessage[]
   members     StudyGroupMember[]
+  goals       StudyGroupGoal[]
+  memberDaily StudyGroupMemberDaily[]
   creator     User               @relation("CreatedGroups", fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([subject])
@@ -1425,6 +1430,49 @@ model GroupMessage {
 
   @@index([groupId, createdAt])
   @@map("group_messages")
+}
+
+model StudyGroupGoal {
+  id          String   @id @default(uuid())
+  groupId     String   @map("group_id")
+  title       String
+  date        DateTime
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  group       StudyGroup                 @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy   User                       @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  completions StudyGroupGoalCompletion[]
+
+  @@index([groupId, date])
+  @@map("study_group_goals")
+}
+
+model StudyGroupGoalCompletion {
+  id        String   @id @default(uuid())
+  goalId    String   @map("goal_id")
+  userId    String   @map("user_id")
+  taskId    String?  @map("task_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  goal      StudyGroupGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([goalId, userId])
+  @@map("study_group_goal_completions")
+}
+
+model StudyGroupMemberDaily {
+  id           String   @id @default(uuid())
+  groupId      String   @map("group_id")
+  userId       String   @map("user_id")
+  date         DateTime
+  focusSeconds Int      @default(0) @map("focus_seconds")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  group        StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId, date])
+  @@index([groupId, date])
+  @@map("study_group_member_daily")
 }
 
 model Order {

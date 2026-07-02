@@ -5,6 +5,7 @@ import {
   EvaluationDbOps,
 } from "../services/answerEvaluator";
 import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { notifyAnswerEvaluated } from "../utils/notifications";
 
 // PYQMainsQuestion has no `marks` column, so use the UPSC Mains convention:
 // 15-mark answers ≈ 250 words, 10-mark answers ≈ 150 words. Default to 15.
@@ -64,6 +65,24 @@ function buildDbOps(attemptId: string): EvaluationDbOps {
         where: { attemptId },
         data: update,
       });
+
+      if (update.status === "completed") {
+        try {
+          const attempt = await prisma.pyqMainsAttempt.findUnique({
+            where: { id: attemptId },
+            include: { user: true },
+          });
+          if (attempt?.user) {
+            await notifyAnswerEvaluated({
+              userId: attempt.user.id,
+              score: update.score,
+              maxScore: update.maxScore,
+            });
+          }
+        } catch (err) {
+          // Notification failure is non-critical
+        }
+      }
     },
   };
 }

@@ -1,5 +1,6 @@
 import prisma from "../config/database";
 import { supabaseAdmin } from "../config/supabase";
+import { computeSyllabusCoverage } from "../utils/syllabusDedup";
 import type {
   DashboardRepository,
   DashboardSnapshot,
@@ -10,6 +11,14 @@ import type {
 export function createPrismaDashboardRepository(): DashboardRepository {
   return {
     async getTodaySnapshot(userId, today) {
+      // Study-plan task `date` values can be stored at local midnight (server
+      // default) or at noon UTC (when the client passes an explicit
+      // "YYYY-MM-DD" string, per studyPlanner.controller.ts's parsePlannerDate).
+      // An exact-equality match against local-midnight `today` misses the
+      // noon-UTC ones, so use a same-day range instead.
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
       const [
         todayTasks,
         recentActivity,
@@ -21,7 +30,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
         mainsAttemptToday,
         editorialReadToday,
       ] = await Promise.all([
-        prisma.studyPlanTask.count({ where: { userId, date: today, isCompleted: false } }),
+        prisma.studyPlanTask.count({ where: { userId, date: { gte: today, lt: tomorrow }, isCompleted: false } }),
         prisma.userActivity.findMany({
           where: { userId },
           orderBy: { createdAt: "desc" },
@@ -59,6 +68,11 @@ export function createPrismaDashboardRepository(): DashboardRepository {
     },
 
     async getPerformanceRaw(userId, today) {
+      // See getTodaySnapshot above — same-day range instead of exact match,
+      // to catch study-plan tasks dated at either local midnight or noon UTC.
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
       const [
         mcqAgg,
         recentMcq,
@@ -123,22 +137,17 @@ export function createPrismaDashboardRepository(): DashboardRepository {
             .select("id, score, total", { count: "exact" })
             .eq("user_id", userId),
           prisma.studyPlanTask.findMany({
-            where: { userId, date: today, isCompleted: true },
+            where: { userId, date: { gte: today, lt: tomorrow }, isCompleted: true },
             select: { actualDuration: true, duration: true, startTime: true, endTime: true },
           }),
         ]);
 
       const stateMap = (trackerState?.states ?? {}) as Record<string, { status?: string }>;
+      // Dedup topics/sub-topics the same way the Syllabus Tracker page does
+      // before counting, so this stat's percentage matches what the tracker
+      // page shows for the same saved state (see src/utils/syllabusDedup.ts).
       const syllabusCov = syllabusSubjects.map((subject) => {
-        let totalTopics = 0;
-        let coveredTopics = 0;
-        subject.topics.forEach((topic, topicIndex) => {
-          topic.subTopics.forEach((_, subTopicIndex) => {
-            totalTopics += 1;
-            const key = `${subject.id}__${topicIndex}__${subTopicIndex}`;
-            if (stateMap[key]?.status === "done") coveredTopics += 1;
-          });
-        });
+        const { totalTopics, coveredTopics } = computeSyllabusCoverage(subject.topics, subject.id, stateMap);
         return { coveredTopics, totalTopics };
       });
 
