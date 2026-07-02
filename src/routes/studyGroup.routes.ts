@@ -10,6 +10,11 @@ import {
   getMessages,
   postMessage,
   getMyGroups,
+  getGoals,
+  addGoal,
+  toggleGoal,
+  getMemberTimes,
+  postFocusTime,
 } from "../controllers/studyGroup.controller";
 
 const router = Router();
@@ -30,5 +35,14 @@ router.post("/:id/leave", leaveGroup);
 // Messages
 router.get("/:id/messages", getMessages);
 router.post("/:id/messages", postMessage);
+
+// Room goals
+router.get("/:id/goals", getGoals);
+router.post("/:id/goals", addGoal);
+router.post("/:id/goals/:goalId/toggle", toggleGoal);
+
+// Room-scoped focus time
+router.get("/:id/member-times", getMemberTimes);
+router.post("/:id/focus-time", postFocusTime);
 
 export default router;
