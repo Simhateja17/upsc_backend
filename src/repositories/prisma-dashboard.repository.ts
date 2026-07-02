@@ -1,5 +1,6 @@
 import prisma from "../config/database";
 import { supabaseAdmin } from "../config/supabase";
+import { computeSyllabusCoverage } from "../utils/syllabusDedup";
 import type {
   DashboardRepository,
   DashboardSnapshot,
@@ -142,16 +143,11 @@ export function createPrismaDashboardRepository(): DashboardRepository {
         ]);
 
       const stateMap = (trackerState?.states ?? {}) as Record<string, { status?: string }>;
+      // Dedup topics/sub-topics the same way the Syllabus Tracker page does
+      // before counting, so this stat's percentage matches what the tracker
+      // page shows for the same saved state (see src/utils/syllabusDedup.ts).
       const syllabusCov = syllabusSubjects.map((subject) => {
-        let totalTopics = 0;
-        let coveredTopics = 0;
-        subject.topics.forEach((topic, topicIndex) => {
-          topic.subTopics.forEach((_, subTopicIndex) => {
-            totalTopics += 1;
-            const key = `${subject.id}__${topicIndex}__${subTopicIndex}`;
-            if (stateMap[key]?.status === "done") coveredTopics += 1;
-          });
-        });
+        const { totalTopics, coveredTopics } = computeSyllabusCoverage(subject.topics, subject.id, stateMap);
         return { coveredTopics, totalTopics };
       });
 
