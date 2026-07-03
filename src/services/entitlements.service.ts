@@ -52,6 +52,8 @@ const TIER_RANK: Record<PlanTier, number> = {
   ascent: 3,
 };
 
+const ADMIN_PLAN_SIMULATION_REASON = "admin_plan_simulation";
+
 const FREE_POLICY: EntitlementPolicy = {
   tier: "free",
   limits: {
@@ -312,7 +314,7 @@ async function activeOverride(userId: string) {
 
 export async function getEffectiveEntitlements(userId: string) {
   const now = new Date();
-  const [subscriptions, override] = await Promise.all([
+  const [subscriptions, override, user] = await Promise.all([
     prisma.subscription.findMany({
       where: {
         userId,
@@ -322,6 +324,10 @@ export async function getEffectiveEntitlements(userId: string) {
       orderBy: { createdAt: "desc" },
     }),
     activeOverride(userId),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    }),
   ]);
 
   let tier: PlanTier = "free";
@@ -347,7 +353,8 @@ export async function getEffectiveEntitlements(userId: string) {
 
   if (override?.planTierOverride) {
     const overrideTier = normalizePlanTier(override.planTierOverride);
-    if (TIER_RANK[overrideTier] >= TIER_RANK[tier]) {
+    const isAdminPlanSimulation = user?.role === "admin" && override.reason === ADMIN_PLAN_SIMULATION_REASON;
+    if (isAdminPlanSimulation || TIER_RANK[overrideTier] >= TIER_RANK[tier]) {
       tier = overrideTier;
       plan = null;
     }
@@ -503,6 +510,15 @@ export async function getEntitlementSummary(userId: string) {
     features,
     access: effective.policy.access,
     preview: effective.policy.preview,
+    override: effective.override
+      ? {
+          id: effective.override.id,
+          planTierOverride: effective.override.planTierOverride,
+          reason: effective.override.reason,
+          expiresAt: effective.override.expiresAt,
+          isAdminPlanSimulation: effective.override.reason === ADMIN_PLAN_SIMULATION_REASON,
+        }
+      : null,
   };
 }
 

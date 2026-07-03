@@ -124,10 +124,39 @@ const DAILY_DIFFICULTY_COUNTS: Record<Difficulty, number> = {
   Hard: 2,
 };
 
+// Raw subject values in pyq_question_bank that normalize onto the 6 canonical
+// subjects. Filtering in SQL (rather than only in JS after the fact) ensures the
+// deterministic pick isn't starved by rows whose subject the app can't use —
+// e.g. "International Relation", which isn't one of the canonical Prelims subjects.
+const USABLE_BANK_SUBJECTS = [
+  "History",
+  "Modern History",
+  "Modern",
+  "Ancient History",
+  "Ancient India",
+  "Medieval India",
+  "Medieval History",
+  "Art & Culture",
+  "Art and Culture",
+  "Culture",
+  "Geography",
+  "Polity",
+  "Economy",
+  "Environment & Ecology",
+  "Environment",
+  "Science & Technology",
+  "Science & Tech",
+];
+
+// Over-fetch factor so JS-side validation (options shape, subject normalization)
+// dropping a few rows can't push a difficulty bucket below its target count.
+const DAILY_FETCH_BUFFER = 4;
+
 async function findDailyQuestionBankRows(targetDate: Date, difficulty: Difficulty, limit: number, excludeIds: string[]) {
   const seed = targetDate.toISOString().slice(0, 10);
-  const params: any[] = [difficulty, seed, limit];
-  const excludeClause = excludeIds.length > 0 ? `and id <> all($4::text[])` : "";
+  const fetchLimit = limit * DAILY_FETCH_BUFFER;
+  const params: any[] = [difficulty, seed, fetchLimit, USABLE_BANK_SUBJECTS];
+  const excludeClause = excludeIds.length > 0 ? `and id <> all($5::text[])` : "";
   if (excludeIds.length > 0) params.push(excludeIds);
 
   return prisma.$queryRawUnsafe<any[]>(
@@ -146,6 +175,7 @@ async function findDailyQuestionBankRows(targetDate: Date, difficulty: Difficult
        and lower(difficulty) = lower($1)
        and options is not null
        and coalesce(correct_option, '') <> ''
+       and subject = any($4::text[])
        ${excludeClause}
        and id not in (
          select q.source_question_bank_id

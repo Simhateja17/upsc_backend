@@ -98,6 +98,8 @@ router.delete("/syllabus/sub-topics/:id", syllabusCtrl.deleteSyllabusSubTopic);
 // ==================== User Management ====================
 router.get("/users", usersCtrl.getUsers);
 router.put("/users/:id", usersCtrl.updateUser);
+router.post("/me/plan-simulation", entitlementCtrl.setMyPlanSimulation);
+router.delete("/me/plan-simulation", entitlementCtrl.clearMyPlanSimulation);
 router.get("/users/:userId/entitlement-overrides", entitlementCtrl.getUserEntitlementOverrides);
 router.post("/users/:userId/entitlement-overrides", entitlementCtrl.createUserEntitlementOverride);
 router.delete("/entitlement-overrides/:id", entitlementCtrl.deleteUserEntitlementOverride);

@@ -17,43 +17,6 @@ export type ValidUpscSubject = (typeof VALID_UPSC_SUBJECTS)[number];
 export const VALID_SUBJECT_SET = new Set(VALID_UPSC_SUBJECTS);
 
 /**
- * UPSC Mains optional subjects — the full list candidates can choose from.
- * Used to validate the optionalSubject field on user profiles.
- */
-export const VALID_OPTIONAL_SUBJECTS = [
-  "Agriculture",
-  "Animal Husbandry and Veterinary Science",
-  "Anthropology",
-  "Botany",
-  "Chemistry",
-  "Civil Engineering",
-  "Commerce and Accountancy",
-  "Economics",
-  "Electrical Engineering",
-  "Geography",
-  "Geology",
-  "History",
-  "Law",
-  "Management",
-  "Mathematics",
-  "Mechanical Engineering",
-  "Medical Science",
-  "Philosophy",
-  "Physics",
-  "Political Science and International Relations",
-  "Psychology",
-  "Public Administration",
-  "Sociology",
-  "Statistics",
-  "Zoology",
-  "Literature",
-] as const;
-
-export type ValidOptionalSubject = (typeof VALID_OPTIONAL_SUBJECTS)[number];
-
-export const VALID_OPTIONAL_SUBJECT_SET = new Set<string>(VALID_OPTIONAL_SUBJECTS);
-
-/**
  * Study planner subject options (matches dashboard quick-add UX).
  * Keep this intentionally broader than VALID_UPSC_SUBJECTS.
  */
@@ -109,23 +72,6 @@ export function normalizeSubject(subject: string): string {
   // Science & Tech aliases
   if (lower === "science & tech" || lower === "science and tech" || lower === "science and technology" || lower === "s&t" || lower === "sci-tech") {
     return "Science & Technology";
-  }
-
-  // History aliases — per the Prelims syllabus, History is the parent subject
-  // for the Ancient/Medieval/Modern eras and Art & Culture. The question bank
-  // tags these as separate subjects, so roll them up to canonical "History".
-  if (
-    lower === "modern history" ||
-    lower === "modern" ||
-    lower === "ancient history" ||
-    lower === "ancient india" ||
-    lower === "medieval india" ||
-    lower === "medieval history" ||
-    lower === "art & culture" ||
-    lower === "art and culture" ||
-    lower === "culture"
-  ) {
-    return "History";
   }
 
   // Direct match
