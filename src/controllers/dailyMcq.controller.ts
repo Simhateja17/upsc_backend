@@ -86,7 +86,7 @@ export const getTodayQuestions = async (req: Request, res: Response, next: NextF
 export const submitMCQ = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { answers, timeTaken } = req.body;
+    const { answers, timeTaken, retake } = req.body;
 
     const mcq = await dailyMcqRepo.findTodayWithQuestions();
     if (!mcq) return res.status(404).json({ status: "error", message: "No MCQ challenge available for today" });
@@ -101,8 +101,11 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
       });
     }
 
+    // A retake intentionally overwrites the existing attempt (upsertAttempt /
+    // upsertResponse are keyed on the same user+MCQ, so the row is updated in
+    // place). Only block a duplicate submit when it is NOT a retake.
     const existing = await dailyMcqRepo.checkUserAttempt(userId, mcq.id);
-    if (existing?.completedAt) return res.status(400).json({ status: "error", message: "You have already submitted today's MCQ" });
+    if (existing?.completedAt && !retake) return res.status(400).json({ status: "error", message: "You have already submitted today's MCQ" });
 
     // Score answers
     let correctCount = 0, wrongCount = 0, skippedCount = 0;
@@ -144,10 +147,14 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
       await dailyMcqRepo.upsertResponse({ attemptId: attempt.id, ...r });
     }
 
-    await dailyMcqRepo.createActivity({
-      userId, type: "mcq", title: "Completed Daily MCQ",
-      description: `Scored ${correctCount}/${DAILY_MCQ_QUESTION_COUNT} (${Math.round(accuracy)}%)`,
-    });
+    // Only log the activity feed entry on the first completion; a retake updates
+    // the same attempt and shouldn't spawn a second "Completed Daily MCQ" entry.
+    if (!existing?.completedAt) {
+      await dailyMcqRepo.createActivity({
+        userId, type: "mcq", title: "Completed Daily MCQ",
+        description: `Scored ${correctCount}/${DAILY_MCQ_QUESTION_COUNT} (${Math.round(accuracy)}%)`,
+      });
+    }
 
     await dailyMcqRepo.getOrCreateStreak(userId, getWeekActivity(new Date()));
 
