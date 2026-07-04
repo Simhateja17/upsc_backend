@@ -87,8 +87,8 @@ const PRELIMS_TAXONOMY_LABELS = {
 
 const MAINS_TAXONOMY_LABELS = {
   level1: "Subject",
-  level2: "Theme / Area",
-  level3: "Topic / Micro-theme",
+  level2: "Theme",
+  level3: "Topic",
 };
 
 function buildQuestionBankWhere(req: Request): { clause: string; params: any[]; page: number; limit: number } {

@@ -27,6 +27,8 @@ declare global {
         firstName?: string | null;
         lastName?: string | null;
         role?: string;
+        // Supabase auth session_id claim from the current JWT (single-device gate)
+        sessionId?: string | null;
       };
     }
   }
@@ -36,6 +38,7 @@ interface SupabaseJwtPayload {
   sub: string;
   email?: string;
   phone?: string;
+  session_id?: string;
   user_metadata?: {
     first_name?: string;
     last_name?: string;
@@ -52,7 +55,7 @@ interface SupabaseJwtPayload {
 async function findUserBySupabaseId(supabaseId: string) {
   const { data, error } = await supabaseAdmin
     .from("users")
-    .select("id, supabase_id, email, first_name, last_name, role")
+    .select("id, supabase_id, email, first_name, last_name, role, active_session_id")
     .eq("supabase_id", supabaseId)
     .single();
 
@@ -68,6 +71,7 @@ async function findUserBySupabaseId(supabaseId: string) {
     firstName: data.first_name,
     lastName: data.last_name,
     role: data.role,
+    activeSessionId: (data as { active_session_id?: string | null }).active_session_id ?? null,
   };
 }
 
@@ -121,6 +125,7 @@ async function createUser(authUser: {
     firstName: data.first_name,
     lastName: data.last_name,
     role: data.role,
+    activeSessionId: null as string | null,
   };
 }
 
@@ -186,7 +191,27 @@ export const authenticate = async (
       });
     }
 
-    req.user = user;
+    // ── Single-device gate (last-login-wins) ──────────────────────────────
+    // Reject tokens whose Supabase session_id differs from the user's currently
+    // registered active session. Skipped for admins and when enforcement is off.
+    // Registration (POST /user/sessions/register) sets active_session_id, so a
+    // user with none registered yet is never blocked.
+    if (
+      process.env.ENFORCE_SINGLE_SESSION === "true" &&
+      user.role !== "admin" &&
+      user.activeSessionId &&
+      payload.session_id &&
+      payload.session_id !== user.activeSessionId
+    ) {
+      console.log(`[Auth] Session superseded for ${user.email} (${user.id})`);
+      return res.status(401).json({
+        status: "error",
+        code: "SESSION_SUPERSEDED",
+        message: "You were signed out because your account was signed in on another device.",
+      });
+    }
+
+    req.user = { ...user, sessionId: payload.session_id ?? null };
     console.log(`[Auth] Authenticated user: ${user.email} (${user.id})`);
     next();
   } catch (error) {
@@ -238,7 +263,7 @@ export const optionalAuth = async (
     }
 
     if (user) {
-      req.user = user;
+      req.user = { ...user, sessionId: payload.session_id ?? null };
     }
 
     next();

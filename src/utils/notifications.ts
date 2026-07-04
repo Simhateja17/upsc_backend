@@ -80,15 +80,37 @@ export async function notifyAnswerEvaluated(params: {
   }
 }
 
+// Streak milestones worth celebrating. Below 365 these are hand-picked;
+// at/after 365 we celebrate every 100th day (400, 500, ...) plus 365 itself.
+const STREAK_MILESTONES = [3, 7, 14, 30, 50, 100, 150, 200, 250, 300, 365];
+
+export function streakMilestoneCopy(streak: number): { title: string; body: string } | null {
+  const isMilestone = STREAK_MILESTONES.includes(streak) || (streak > 365 && streak % 100 === 0);
+  if (!isMilestone) return null;
+
+  const title = `${streak}-day streak! 🔥`;
+  let body: string;
+  if (streak >= 365) body = "A full year of consistency. You're in rare company — keep going.";
+  else if (streak >= 100) body = "You're in the top 1% of aspirants for consistency. Unstoppable.";
+  else if (streak >= 30) body = "A full month of daily prep. The habit is locked in.";
+  else if (streak >= 14) body = "Two weeks straight — consistency is compounding.";
+  else if (streak >= 7) body = "One week strong. Momentum is on your side.";
+  else body = "You're building the habit. Keep the chain alive.";
+  return { title, body };
+}
+
 /**
  * Called when the frontend fetches notifications (i.e. when the user opens the
- * site after logging in). Creates a once-per-day congratulatory streak
- * notification using the user's real current streak. Additive to — and
- * independent of — the evening "streak at risk" cron alert.
+ * site after logging in). Fires a congratulatory notification ONLY when the
+ * user's current streak hits a milestone (3, 7, 14, 30, 50, 100, ... then every
+ * 100). Because the streak increments by one per day, each milestone value
+ * occurs on exactly one calendar day, so a once-per-day dedup is sufficient.
+ * Additive to — and independent of — the evening "streak at risk" cron alert;
+ * both share the "streak" preference toggle.
  */
 export async function checkAndSendLoginStreakNotification(userId: string): Promise<void> {
   try {
-    if (await alreadyNotifiedToday(userId, "streak_daily")) return;
+    if (await alreadyNotifiedToday(userId, "streak_milestone")) return;
 
     const { data: userData } = await supabaseAdmin
       .from("users")
@@ -105,14 +127,11 @@ export async function checkAndSendLoginStreakNotification(userId: string): Promi
       .eq("user_id", userId)
       .single();
     const streak = streakRow?.current_streak ?? 0;
-    if (streak <= 0) return;
 
-    await insertNotification(
-      userId,
-      `${streak}-day streak! 🔥`,
-      "Keep up the momentum — you're on a roll.",
-      "streak_daily"
-    );
+    const copy = streakMilestoneCopy(streak);
+    if (!copy) return;
+
+    await insertNotification(userId, copy.title, copy.body, "streak_milestone");
   } catch (err) {
     // Notification failure is non-critical
   }

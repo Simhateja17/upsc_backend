@@ -23,6 +23,8 @@ model User {
   updatedAt               DateTime                       @default(now()) @updatedAt @map("updated_at")
   bio                     String?
   settings                Json?
+  activeSessionId         String?                        @map("active_session_id")
+  activeSessionMeta       Json?                          @map("active_session_meta")
   bookmarks               Bookmark[]
   questionFlags           QuestionFlag[]
   calendarSyncSetting     CalendarSyncSetting?

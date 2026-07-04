@@ -10,10 +10,11 @@ export const STORAGE_BUCKETS = {
   STUDY_MATERIALS: "study-materials",
   EDITORIAL_IMAGES: "editorial-images",
   CMS_MEDIA: "cms-media",
+  AVATARS: "avatars",
 } as const;
 
 // Buckets that should be publicly accessible (no signed URL needed)
-const PUBLIC_BUCKETS: Set<string> = new Set([STORAGE_BUCKETS.CMS_MEDIA]);
+const PUBLIC_BUCKETS: Set<string> = new Set([STORAGE_BUCKETS.CMS_MEDIA, STORAGE_BUCKETS.AVATARS]);
 
 const RETRYABLE_UPLOAD_ERROR_CODES = new Set([
   "ECONNRESET",
