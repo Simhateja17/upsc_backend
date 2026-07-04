@@ -56,6 +56,7 @@ model User {
   pyqPrelimsAttempts      PyqPrelimsAttempt[]
   pyqUploads              PYQUpload[]
   groupMemberships        StudyGroupMember[]
+  groupJoinRequests       StudyGroupJoinRequest[]
   createdGroups           StudyGroup[]                   @relation("CreatedGroups")
   studyMaterialUploads    StudyMaterialUpload[]
   studyPlanTasks          StudyPlanTask[]
@@ -797,6 +798,9 @@ model PYQMainsQuestionBank {
   subSubject     String?           @map("sub_subject")
   theme          String?
   topic          String?
+  taxonomyL1     String            @map("taxonomy_l1")
+  taxonomyL2     String?           @map("taxonomy_l2")
+  taxonomyL3     String?           @map("taxonomy_l3")
   difficulty     String            @default("Medium")
   structuredJson Json              @default("{}") @map("structured_json")
   sourceFile     String?           @map("source_file")
@@ -810,6 +814,9 @@ model PYQMainsQuestionBank {
   @@index([subSubject])
   @@index([theme])
   @@index([topic])
+  @@index([taxonomyL1])
+  @@index([taxonomyL2])
+  @@index([taxonomyL3])
   @@index([year, paper])
   @@map("pyq_mains_question_bank")
 }
@@ -1426,11 +1433,12 @@ model StudyGroup {
   createdById String                  @map("created_by_id")
   createdAt   DateTime                @default(now()) @map("created_at")
   updatedAt   DateTime                @updatedAt @map("updated_at")
-  messages    GroupMessage[]
-  members     StudyGroupMember[]
-  goals       StudyGroupGoal[]
-  memberDaily StudyGroupMemberDaily[]
-  creator     User                    @relation("CreatedGroups", fields: [createdById], references: [id], onDelete: Cascade)
+  messages     GroupMessage[]
+  members      StudyGroupMember[]
+  goals        StudyGroupGoal[]
+  memberDaily  StudyGroupMemberDaily[]
+  joinRequests StudyGroupJoinRequest[]
+  creator      User                    @relation("CreatedGroups", fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([subject])
   @@index([status])
@@ -1438,17 +1446,36 @@ model StudyGroup {
 }
 
 model StudyGroupMember {
-  id       String     @id @default(uuid())
-  groupId  String     @map("group_id")
-  userId   String     @map("user_id")
-  joinedAt DateTime   @default(now()) @map("joined_at")
-  isActive Boolean    @default(true) @map("is_active")
-  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String     @id @default(uuid())
+  groupId       String     @map("group_id")
+  userId        String     @map("user_id")
+  joinedAt      DateTime   @default(now()) @map("joined_at")
+  isActive      Boolean    @default(true) @map("is_active")
+  isStudyingNow Boolean    @default(false) @map("is_studying_now")
+  lastActiveAt  DateTime?  @map("last_active_at")
+  group         StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, userId])
   @@index([userId])
+  @@index([groupId, isStudyingNow])
   @@map("study_group_members")
+}
+
+model StudyGroupJoinRequest {
+  id          String     @id @default(uuid())
+  groupId     String     @map("group_id")
+  userId      String     @map("user_id")
+  status      String     @default("pending") // pending | approved | rejected
+  createdAt   DateTime   @default(now()) @map("created_at")
+  respondedAt DateTime?  @map("responded_at")
+  group       StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId, status])
+  @@index([userId])
+  @@map("study_group_join_requests")
 }
 
 model GroupMessage {

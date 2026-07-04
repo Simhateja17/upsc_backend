@@ -23,6 +23,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Decentralised Governance & Participatory Development",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Decentralised Governance & Participatory Development",
     "difficulty": "Hard"
   },
   {
@@ -49,6 +52,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "Pressure Groups",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "Pressure Groups",
     "difficulty": "Medium"
   },
   {
@@ -75,6 +81,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "Civil Society Organisations",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "Civil Society Organisations",
     "difficulty": "Medium"
   },
   {
@@ -101,6 +110,9 @@
     "subSubject": null,
     "theme": "E-Governance",
     "topic": "Challenges & Limitations",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "E-Governance",
+    "taxonomyL3": "Challenges & Limitations",
     "difficulty": "Medium"
   },
   {
@@ -127,6 +139,9 @@
     "subSubject": null,
     "theme": "E-Governance",
     "topic": "E-Governance Models",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "E-Governance",
+    "taxonomyL3": "E-Governance Models",
     "difficulty": "Hard"
   },
   {
@@ -153,6 +168,9 @@
     "subSubject": null,
     "theme": "Transparency & Accountability",
     "topic": "Citizen Charter",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Transparency & Accountability",
+    "taxonomyL3": "Citizen Charter",
     "difficulty": "Easy"
   },
   {
@@ -179,6 +197,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Government Policies & Interventions",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Government Policies & Interventions",
     "difficulty": "Medium"
   },
   {
@@ -205,6 +226,9 @@
     "subSubject": null,
     "theme": "Civil Services & Public Administration",
     "topic": "Bureaucratic Accountability",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Services & Public Administration",
+    "taxonomyL3": "Bureaucratic Accountability",
     "difficulty": "Medium"
   },
   {
@@ -231,6 +255,9 @@
     "subSubject": null,
     "theme": "Governance Basics",
     "topic": "Good Governance",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Governance Basics",
+    "taxonomyL3": "Good Governance",
     "difficulty": "Hard"
   },
   {
@@ -257,6 +284,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "Societies & Trusts",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "Societies & Trusts",
     "difficulty": "Medium"
   },
   {
@@ -283,6 +313,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Decentralised Governance & Participatory Development",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Decentralised Governance & Participatory Development",
     "difficulty": "Medium"
   },
   {
@@ -309,6 +342,9 @@
     "subSubject": null,
     "theme": "Governance Miscellaneous",
     "topic": "Governance Current Affairs",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Governance Miscellaneous",
+    "taxonomyL3": "Governance Current Affairs",
     "difficulty": "Hard"
   },
   {
@@ -335,6 +371,9 @@
     "subSubject": null,
     "theme": "E-Governance",
     "topic": "Challenges & Limitations",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "E-Governance",
+    "taxonomyL3": "Challenges & Limitations",
     "difficulty": "Medium"
   },
   {
@@ -361,6 +400,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Decentralised Governance & Participatory Development",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Decentralised Governance & Participatory Development",
     "difficulty": "Medium"
   },
   {
@@ -387,6 +429,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Government Initiatives & Welfare Schemes",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Government Initiatives & Welfare Schemes",
     "difficulty": "Medium"
   },
   {
@@ -413,6 +458,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Government Initiatives & Welfare Schemes",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Government Initiatives & Welfare Schemes",
     "difficulty": "Easy"
   },
   {
@@ -439,6 +487,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "Community Participation",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "Community Participation",
     "difficulty": "Hard"
   },
   {
@@ -465,6 +516,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "NGOs",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "NGOs",
     "difficulty": "Medium"
   },
   {
@@ -491,6 +545,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "Pressure Groups",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "Pressure Groups",
     "difficulty": "Medium"
   },
   {
@@ -517,6 +574,9 @@
     "subSubject": null,
     "theme": "Governance Basics",
     "topic": "Governance Reforms",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Governance Basics",
+    "taxonomyL3": "Governance Reforms",
     "difficulty": "Hard"
   },
   {
@@ -543,6 +603,9 @@
     "subSubject": null,
     "theme": "E-Governance",
     "topic": "Emerging Technologies in Governance",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "E-Governance",
+    "taxonomyL3": "Emerging Technologies in Governance",
     "difficulty": "Easy"
   },
   {
@@ -569,6 +632,9 @@
     "subSubject": null,
     "theme": "Civil Services & Public Administration",
     "topic": "Civil Service Reforms",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Services & Public Administration",
+    "taxonomyL3": "Civil Service Reforms",
     "difficulty": "Medium"
   },
   {
@@ -595,6 +661,9 @@
     "subSubject": null,
     "theme": "Transparency & Accountability",
     "topic": "Right to Information (RTI)",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Transparency & Accountability",
+    "taxonomyL3": "Right to Information (RTI)",
     "difficulty": "Medium"
   },
   {
@@ -621,6 +690,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "Development Processes",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "Development Processes",
     "difficulty": "Hard"
   },
   {
@@ -647,6 +719,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Policy Design, Implementation & Evaluation",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Policy Design, Implementation & Evaluation",
     "difficulty": "Hard"
   },
   {
@@ -673,6 +748,9 @@
     "subSubject": null,
     "theme": "E-Governance",
     "topic": "Challenges & Limitations",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "E-Governance",
+    "taxonomyL3": "Challenges & Limitations",
     "difficulty": "Medium"
   },
   {
@@ -699,6 +777,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "Pressure Groups",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "Pressure Groups",
     "difficulty": "Medium"
   },
   {
@@ -725,6 +806,9 @@
     "subSubject": null,
     "theme": "Transparency & Accountability",
     "topic": "Citizen Charter",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Transparency & Accountability",
+    "taxonomyL3": "Citizen Charter",
     "difficulty": "Easy"
   },
   {
@@ -751,6 +835,9 @@
     "subSubject": null,
     "theme": "E-Governance",
     "topic": "E-Governance Applications",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "E-Governance",
+    "taxonomyL3": "E-Governance Applications",
     "difficulty": "Medium"
   },
   {
@@ -777,6 +864,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Policy Design, Implementation & Evaluation",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Policy Design, Implementation & Evaluation",
     "difficulty": "Hard"
   },
   {
@@ -803,6 +893,9 @@
     "subSubject": null,
     "theme": "Civil Services & Public Administration",
     "topic": "Civil Service Reforms",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Services & Public Administration",
+    "taxonomyL3": "Civil Service Reforms",
     "difficulty": "Medium"
   },
   {
@@ -829,6 +922,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "Self Help Groups (SHGs)",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "Self Help Groups (SHGs)",
     "difficulty": "Medium"
   },
   {
@@ -855,6 +951,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Government Initiatives & Welfare Schemes",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Government Initiatives & Welfare Schemes",
     "difficulty": "Medium"
   },
   {
@@ -881,6 +980,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Decentralised Governance & Participatory Development",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Decentralised Governance & Participatory Development",
     "difficulty": "Medium"
   },
   {
@@ -907,6 +1009,9 @@
     "subSubject": null,
     "theme": "Civil Services & Public Administration",
     "topic": "Administrative Reforms",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Services & Public Administration",
+    "taxonomyL3": "Administrative Reforms",
     "difficulty": "Medium"
   },
   {
@@ -933,6 +1038,9 @@
     "subSubject": null,
     "theme": "Governance Basics",
     "topic": "Governance Reforms",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Governance Basics",
+    "taxonomyL3": "Governance Reforms",
     "difficulty": "Hard"
   },
   {
@@ -959,6 +1067,9 @@
     "subSubject": null,
     "theme": "Transparency & Accountability",
     "topic": "Transparency",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Transparency & Accountability",
+    "taxonomyL3": "Transparency",
     "difficulty": "Medium"
   },
   {
@@ -985,6 +1096,9 @@
     "subSubject": null,
     "theme": "Governance Basics",
     "topic": "Citizen-Centric Governance",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Governance Basics",
+    "taxonomyL3": "Citizen-Centric Governance",
     "difficulty": "Medium"
   },
   {
@@ -1011,6 +1125,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "Civil Society Organisations",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "Civil Society Organisations",
     "difficulty": "Medium"
   },
   {
@@ -1037,6 +1154,9 @@
     "subSubject": null,
     "theme": "Governance Basics",
     "topic": "Good Governance",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Governance Basics",
+    "taxonomyL3": "Good Governance",
     "difficulty": "Hard"
   },
   {
@@ -1063,6 +1183,9 @@
     "subSubject": null,
     "theme": "Transparency & Accountability",
     "topic": "Whistleblower Protection",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Transparency & Accountability",
+    "taxonomyL3": "Whistleblower Protection",
     "difficulty": "Medium"
   },
   {
@@ -1089,6 +1212,9 @@
     "subSubject": null,
     "theme": "Transparency & Accountability",
     "topic": "Accountability",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Transparency & Accountability",
+    "taxonomyL3": "Accountability",
     "difficulty": "Medium"
   },
   {
@@ -1115,6 +1241,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "NGOs",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "NGOs",
     "difficulty": "Medium"
   },
   {
@@ -1141,6 +1270,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "NGOs",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "NGOs",
     "difficulty": "Hard"
   },
   {
@@ -1167,6 +1299,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Decentralised Governance & Participatory Development",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Decentralised Governance & Participatory Development",
     "difficulty": "Hard"
   },
   {
@@ -1193,6 +1328,9 @@
     "subSubject": null,
     "theme": "E-Governance",
     "topic": "Digital Governance",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "E-Governance",
+    "taxonomyL3": "Digital Governance",
     "difficulty": "Hard"
   },
   {
@@ -1219,6 +1357,9 @@
     "subSubject": null,
     "theme": "Civil Services & Public Administration",
     "topic": "Civil Service Reforms",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Services & Public Administration",
+    "taxonomyL3": "Civil Service Reforms",
     "difficulty": "Hard"
   },
   {
@@ -1245,6 +1386,9 @@
     "subSubject": null,
     "theme": "Governance Basics",
     "topic": "Governance Reforms",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Governance Basics",
+    "taxonomyL3": "Governance Reforms",
     "difficulty": "Medium"
   },
   {
@@ -1271,6 +1415,9 @@
     "subSubject": null,
     "theme": "Civil Society & Development",
     "topic": "Self Help Groups (SHGs)",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Civil Society & Development",
+    "taxonomyL3": "Self Help Groups (SHGs)",
     "difficulty": "Medium"
   },
   {
@@ -1297,6 +1444,9 @@
     "subSubject": null,
     "theme": "Governance Basics",
     "topic": "Governance Reforms",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Governance Basics",
+    "taxonomyL3": "Governance Reforms",
     "difficulty": "Hard"
   },
   {
@@ -1323,6 +1473,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Policy Design, Implementation & Evaluation",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Policy Design, Implementation & Evaluation",
     "difficulty": "Hard"
   },
   {
@@ -1349,6 +1502,9 @@
     "subSubject": null,
     "theme": "Transparency & Accountability",
     "topic": "Lokpal & Lokayuktas",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Transparency & Accountability",
+    "taxonomyL3": "Lokpal & Lokayuktas",
     "difficulty": "Medium"
   },
   {
@@ -1375,6 +1531,9 @@
     "subSubject": null,
     "theme": "Transparency & Accountability",
     "topic": "Citizen Charter",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Transparency & Accountability",
+    "taxonomyL3": "Citizen Charter",
     "difficulty": "Easy"
   },
   {
@@ -1401,6 +1560,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Government Initiatives & Welfare Schemes",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Government Initiatives & Welfare Schemes",
     "difficulty": "Easy"
   },
   {
@@ -1427,6 +1589,9 @@
     "subSubject": null,
     "theme": "E-Governance",
     "topic": "E-Governance Applications",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "E-Governance",
+    "taxonomyL3": "E-Governance Applications",
     "difficulty": "Medium"
   },
   {
@@ -1453,6 +1618,9 @@
     "subSubject": null,
     "theme": "Government Policies & Programmes",
     "topic": "Centrally Sponsored Schemes (CSS)",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Government Policies & Programmes",
+    "taxonomyL3": "Centrally Sponsored Schemes (CSS)",
     "difficulty": "Hard"
   },
   {
@@ -1479,6 +1647,9 @@
     "subSubject": null,
     "theme": "Governance Basics",
     "topic": "Governance Reforms",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Governance Basics",
+    "taxonomyL3": "Governance Reforms",
     "difficulty": "Hard"
   },
   {
@@ -1505,6 +1676,9 @@
     "subSubject": null,
     "theme": "Governance Basics",
     "topic": "Governance Reforms",
+    "taxonomyL1": "Governance",
+    "taxonomyL2": "Governance Basics",
+    "taxonomyL3": "Governance Reforms",
     "difficulty": "Medium"
   },
   {
@@ -1531,6 +1705,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "United Nations System",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "United Nations System",
     "difficulty": "Hard"
   },
   {
@@ -1557,6 +1734,9 @@
     "subSubject": null,
     "theme": "Global Issues",
     "topic": "Energy Security",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Issues",
+    "taxonomyL3": "Energy Security",
     "difficulty": "Hard"
   },
   {
@@ -1583,6 +1763,9 @@
     "subSubject": null,
     "theme": "Global Issues",
     "topic": "Geopolitical Developments",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Issues",
+    "taxonomyL3": "Geopolitical Developments",
     "difficulty": "Medium"
   },
   {
@@ -1609,6 +1792,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Bilateral Relations",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Bilateral Relations",
     "difficulty": "Medium"
   },
   {
@@ -1635,6 +1821,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "United Nations System",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "United Nations System",
     "difficulty": "Hard"
   },
   {
@@ -1661,6 +1850,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Neighbourhood Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Neighbourhood Policy",
     "difficulty": "Hard"
   },
   {
@@ -1687,6 +1879,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Bilateral Relations",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Bilateral Relations",
     "difficulty": "Hard"
   },
   {
@@ -1713,6 +1908,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Relations with Major Powers",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Relations with Major Powers",
     "difficulty": "Hard"
   },
   {
@@ -1739,6 +1937,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "Regional Organizations (ASEAN, SAARC, BIMSTEC, SCO, AU, EU, etc.)",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "Regional Organizations (ASEAN, SAARC, BIMSTEC, SCO, AU, EU, etc.)",
     "difficulty": "Hard"
   },
   {
@@ -1765,6 +1966,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "Diaspora & Foreign Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "Diaspora & Foreign Policy",
     "difficulty": "Easy"
   },
   {
@@ -1791,6 +1995,9 @@
     "subSubject": null,
     "theme": "Global Groupings",
     "topic": "Military & Strategic Alliances (NATO, AUKUS, etc.)",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Groupings",
+    "taxonomyL3": "Military & Strategic Alliances (NATO, AUKUS, etc.)",
     "difficulty": "Hard"
   },
   {
@@ -1817,6 +2024,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "International Agencies & Bodies (WHO, UNESCO, IAEA, FATF, etc.)",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "International Agencies & Bodies (WHO, UNESCO, IAEA, FATF, etc.)",
     "difficulty": "Medium"
   },
   {
@@ -1843,6 +2053,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Neighbourhood Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Neighbourhood Policy",
     "difficulty": "Medium"
   },
   {
@@ -1869,6 +2082,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "Regional Organizations (ASEAN, SAARC, BIMSTEC, SCO, AU, EU, etc.)",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "Regional Organizations (ASEAN, SAARC, BIMSTEC, SCO, AU, EU, etc.)",
     "difficulty": "Hard"
   },
   {
@@ -1895,6 +2111,9 @@
     "subSubject": null,
     "theme": "Global Groupings",
     "topic": "BRICS, QUAD & I2U2",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Groupings",
+    "taxonomyL3": "BRICS, QUAD & I2U2",
     "difficulty": "Medium"
   },
   {
@@ -1921,6 +2140,9 @@
     "subSubject": null,
     "theme": "Global Issues",
     "topic": "Climate Diplomacy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Issues",
+    "taxonomyL3": "Climate Diplomacy",
     "difficulty": "Medium"
   },
   {
@@ -1947,6 +2169,9 @@
     "subSubject": null,
     "theme": "Global Groupings",
     "topic": "Military & Strategic Alliances (NATO, AUKUS, etc.)",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Groupings",
+    "taxonomyL3": "Military & Strategic Alliances (NATO, AUKUS, etc.)",
     "difficulty": "Hard"
   },
   {
@@ -1973,6 +2198,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "Regional Organizations (ASEAN, SAARC, BIMSTEC, SCO, AU, EU, etc.)",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "Regional Organizations (ASEAN, SAARC, BIMSTEC, SCO, AU, EU, etc.)",
     "difficulty": "Medium"
   },
   {
@@ -1999,6 +2227,9 @@
     "subSubject": null,
     "theme": "Global Issues",
     "topic": "Geopolitical Developments",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Issues",
+    "taxonomyL3": "Geopolitical Developments",
     "difficulty": "Hard"
   },
   {
@@ -2025,6 +2256,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Bilateral Relations",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Bilateral Relations",
     "difficulty": "Medium"
   },
   {
@@ -2051,6 +2285,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Relations with Major Powers",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Relations with Major Powers",
     "difficulty": "Hard"
   },
   {
@@ -2077,6 +2314,9 @@
     "subSubject": null,
     "theme": "Global Groupings",
     "topic": "BRICS, QUAD & I2U2",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Groupings",
+    "taxonomyL3": "BRICS, QUAD & I2U2",
     "difficulty": "Medium"
   },
   {
@@ -2103,6 +2343,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "Diaspora & Foreign Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "Diaspora & Foreign Policy",
     "difficulty": "Easy"
   },
   {
@@ -2129,6 +2372,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "International Agencies & Bodies (WHO, UNESCO, IAEA, FATF, etc.)",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "International Agencies & Bodies (WHO, UNESCO, IAEA, FATF, etc.)",
     "difficulty": "Medium"
   },
   {
@@ -2155,6 +2401,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Relations with Major Powers",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Relations with Major Powers",
     "difficulty": "Hard"
   },
   {
@@ -2181,6 +2430,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "Evolution & Principles of Indian Foreign Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "Evolution & Principles of Indian Foreign Policy",
     "difficulty": "Hard"
   },
   {
@@ -2207,6 +2459,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "International Agencies & Bodies (WHO, UNESCO, IAEA, FATF, etc.)",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "International Agencies & Bodies (WHO, UNESCO, IAEA, FATF, etc.)",
     "difficulty": "Hard"
   },
   {
@@ -2233,6 +2488,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Relations with Major Powers",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Relations with Major Powers",
     "difficulty": "Medium"
   },
   {
@@ -2259,6 +2517,9 @@
     "subSubject": null,
     "theme": "International Agreements",
     "topic": "Arms Control & Non-Proliferation",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Agreements",
+    "taxonomyL3": "Arms Control & Non-Proliferation",
     "difficulty": "Hard"
   },
   {
@@ -2285,6 +2546,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "WTO & Multilateral Economic Institutions",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "WTO & Multilateral Economic Institutions",
     "difficulty": "Hard"
   },
   {
@@ -2311,6 +2575,9 @@
     "subSubject": null,
     "theme": "International Agreements",
     "topic": "Treaties & Conventions",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Agreements",
+    "taxonomyL3": "Treaties & Conventions",
     "difficulty": "Hard"
   },
   {
@@ -2337,6 +2604,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Bilateral Relations",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Bilateral Relations",
     "difficulty": "Medium"
   },
   {
@@ -2363,6 +2633,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "Diaspora & Foreign Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "Diaspora & Foreign Policy",
     "difficulty": "Easy"
   },
   {
@@ -2389,6 +2662,9 @@
     "subSubject": null,
     "theme": "Global Issues",
     "topic": "Energy Security",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Issues",
+    "taxonomyL3": "Energy Security",
     "difficulty": "Medium"
   },
   {
@@ -2415,6 +2691,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "United Nations System",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "United Nations System",
     "difficulty": "Easy"
   },
   {
@@ -2441,6 +2720,9 @@
     "subSubject": null,
     "theme": "Global Issues",
     "topic": "Geopolitical Developments",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Issues",
+    "taxonomyL3": "Geopolitical Developments",
     "difficulty": "Medium"
   },
   {
@@ -2467,6 +2749,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "International Agencies & Bodies (WHO, UNESCO, IAEA, FATF, etc.)",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "International Agencies & Bodies (WHO, UNESCO, IAEA, FATF, etc.)",
     "difficulty": "Hard"
   },
   {
@@ -2493,6 +2778,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "Regional Organizations (ASEAN, SAARC, BIMSTEC, SCO, AU, EU, etc.)",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "Regional Organizations (ASEAN, SAARC, BIMSTEC, SCO, AU, EU, etc.)",
     "difficulty": "Medium"
   },
   {
@@ -2519,6 +2807,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "Act East, Indo-Pacific & Extended Neighbourhood",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "Act East, Indo-Pacific & Extended Neighbourhood",
     "difficulty": "Medium"
   },
   {
@@ -2545,6 +2836,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "WTO & Multilateral Economic Institutions",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "WTO & Multilateral Economic Institutions",
     "difficulty": "Hard"
   },
   {
@@ -2571,6 +2865,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Neighbourhood Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Neighbourhood Policy",
     "difficulty": "Medium"
   },
   {
@@ -2597,6 +2894,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Neighbourhood Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Neighbourhood Policy",
     "difficulty": "Medium"
   },
   {
@@ -2623,6 +2923,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "United Nations System",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "United Nations System",
     "difficulty": "Medium"
   },
   {
@@ -2649,6 +2952,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Bilateral Relations",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Bilateral Relations",
     "difficulty": "Medium"
   },
   {
@@ -2675,6 +2981,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "WTO & Multilateral Economic Institutions",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "WTO & Multilateral Economic Institutions",
     "difficulty": "Hard"
   },
   {
@@ -2701,6 +3010,9 @@
     "subSubject": null,
     "theme": "Global Groupings",
     "topic": "BRICS, QUAD & I2U2",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Groupings",
+    "taxonomyL3": "BRICS, QUAD & I2U2",
     "difficulty": "Hard"
   },
   {
@@ -2727,6 +3039,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "Bretton Woods Institutions (IMF, World Bank)",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "Bretton Woods Institutions (IMF, World Bank)",
     "difficulty": "Medium"
   },
   {
@@ -2753,6 +3068,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "WTO & Multilateral Economic Institutions",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "WTO & Multilateral Economic Institutions",
     "difficulty": "Medium"
   },
   {
@@ -2779,6 +3097,9 @@
     "subSubject": null,
     "theme": "Global Issues",
     "topic": "Geopolitical Developments",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Issues",
+    "taxonomyL3": "Geopolitical Developments",
     "difficulty": "Hard"
   },
   {
@@ -2805,6 +3126,9 @@
     "subSubject": null,
     "theme": "International Organizations",
     "topic": "Bretton Woods Institutions (IMF, World Bank)",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "International Organizations",
+    "taxonomyL3": "Bretton Woods Institutions (IMF, World Bank)",
     "difficulty": "Medium"
   },
   {
@@ -2831,6 +3155,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "Evolution & Principles of Indian Foreign Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "Evolution & Principles of Indian Foreign Policy",
     "difficulty": "Medium"
   },
   {
@@ -2857,6 +3184,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Neighbourhood Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Neighbourhood Policy",
     "difficulty": "Medium"
   },
   {
@@ -2883,6 +3213,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Neighbourhood Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Neighbourhood Policy",
     "difficulty": "Medium"
   },
   {
@@ -2909,6 +3242,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Neighbourhood Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Neighbourhood Policy",
     "difficulty": "Medium"
   },
   {
@@ -2935,6 +3271,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Relations with Major Powers",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Relations with Major Powers",
     "difficulty": "Medium"
   },
   {
@@ -2961,6 +3300,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Relations with Major Powers",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Relations with Major Powers",
     "difficulty": "Medium"
   },
   {
@@ -2987,6 +3329,9 @@
     "subSubject": null,
     "theme": "Global Issues",
     "topic": "Geopolitical Developments",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "Global Issues",
+    "taxonomyL3": "Geopolitical Developments",
     "difficulty": "Hard"
   },
   {
@@ -3013,6 +3358,9 @@
     "subSubject": null,
     "theme": "India & the World",
     "topic": "India's Neighbourhood Policy",
+    "taxonomyL1": "International Relations",
+    "taxonomyL2": "India & the World",
+    "taxonomyL3": "India's Neighbourhood Policy",
     "difficulty": "Hard"
   },
   {
@@ -3039,6 +3387,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Centre-State Relations",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Centre-State Relations",
     "difficulty": "Hard"
   },
   {
@@ -3065,6 +3416,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Judicial Independence",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Judicial Independence",
     "difficulty": "Hard"
   },
   {
@@ -3091,6 +3445,9 @@
     "subSubject": null,
     "theme": "Constitutional Framework",
     "topic": "Constitutional Amendments",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Framework",
+    "taxonomyL3": "Constitutional Amendments",
     "difficulty": "Hard"
   },
   {
@@ -3117,6 +3474,9 @@
     "subSubject": null,
     "theme": "Polity Miscellaneous",
     "topic": "Constitutional Doctrines",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Polity Miscellaneous",
+    "taxonomyL3": "Constitutional Doctrines",
     "difficulty": "Hard"
   },
   {
@@ -3143,6 +3503,9 @@
     "subSubject": null,
     "theme": "Executive",
     "topic": "Attorney General",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Executive",
+    "taxonomyL3": "Attorney General",
     "difficulty": "Medium"
   },
   {
@@ -3169,6 +3532,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "State Legislature",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "State Legislature",
     "difficulty": "Hard"
   },
   {
@@ -3195,6 +3561,9 @@
     "subSubject": null,
     "theme": "Constitutional Framework",
     "topic": "Comparison with Other Constitutions",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Framework",
+    "taxonomyL3": "Comparison with Other Constitutions",
     "difficulty": "Hard"
   },
   {
@@ -3221,6 +3590,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Tribunals",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Tribunals",
     "difficulty": "Medium"
   },
   {
@@ -3247,6 +3619,9 @@
     "subSubject": null,
     "theme": "Elections & Political Process",
     "topic": "Representation of the People Acts",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Elections & Political Process",
+    "taxonomyL3": "Representation of the People Acts",
     "difficulty": "Hard"
   },
   {
@@ -3273,6 +3648,9 @@
     "subSubject": null,
     "theme": "Constitutional Framework",
     "topic": "Comparison with Other Constitutions",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Framework",
+    "taxonomyL3": "Comparison with Other Constitutions",
     "difficulty": "Medium"
   },
   {
@@ -3299,6 +3677,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Centre-State Relations",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Centre-State Relations",
     "difficulty": "Medium"
   },
   {
@@ -3325,6 +3706,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Public Interest Litigation",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Public Interest Litigation",
     "difficulty": "Medium"
   },
   {
@@ -3351,6 +3735,9 @@
     "subSubject": null,
     "theme": "Fundamental Rights, DPSP & Fundamental Duties",
     "topic": "Fundamental Rights",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Fundamental Rights, DPSP & Fundamental Duties",
+    "taxonomyL3": "Fundamental Rights",
     "difficulty": "Hard"
   },
   {
@@ -3377,6 +3764,9 @@
     "subSubject": null,
     "theme": "Constitutional Bodies",
     "topic": "Comptroller & Auditor General",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Bodies",
+    "taxonomyL3": "Comptroller & Auditor General",
     "difficulty": "Medium"
   },
   {
@@ -3403,6 +3793,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Tribunals",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Tribunals",
     "difficulty": "Medium"
   },
   {
@@ -3429,6 +3822,9 @@
     "subSubject": null,
     "theme": "Executive",
     "topic": "Council of Ministers",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Executive",
+    "taxonomyL3": "Council of Ministers",
     "difficulty": "Hard"
   },
   {
@@ -3455,6 +3851,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Tribunals",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Tribunals",
     "difficulty": "Medium"
   },
   {
@@ -3481,6 +3880,9 @@
     "subSubject": null,
     "theme": "Elections & Political Process",
     "topic": "Electoral Reforms",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Elections & Political Process",
+    "taxonomyL3": "Electoral Reforms",
     "difficulty": "Hard"
   },
   {
@@ -3507,6 +3909,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Supreme Court",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Supreme Court",
     "difficulty": "Medium"
   },
   {
@@ -3533,6 +3938,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "State Legislature",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "State Legislature",
     "difficulty": "Medium"
   },
   {
@@ -3559,6 +3967,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Emergency Provisions",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Emergency Provisions",
     "difficulty": "Hard"
   },
   {
@@ -3585,6 +3996,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "GST Council",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "GST Council",
     "difficulty": "Medium"
   },
   {
@@ -3611,6 +4025,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "Parliamentary Committees",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "Parliamentary Committees",
     "difficulty": "Medium"
   },
   {
@@ -3637,6 +4054,9 @@
     "subSubject": null,
     "theme": "Constitutional Framework",
     "topic": "Comparison with Other Constitutions",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Framework",
+    "taxonomyL3": "Comparison with Other Constitutions",
     "difficulty": "Hard"
   },
   {
@@ -3663,6 +4083,9 @@
     "subSubject": null,
     "theme": "Fundamental Rights, DPSP & Fundamental Duties",
     "topic": "Fundamental Rights",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Fundamental Rights, DPSP & Fundamental Duties",
+    "taxonomyL3": "Fundamental Rights",
     "difficulty": "Hard"
   },
   {
@@ -3689,6 +4112,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Landmark Judgments",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Landmark Judgments",
     "difficulty": "Hard"
   },
   {
@@ -3715,6 +4141,9 @@
     "subSubject": null,
     "theme": "Fundamental Rights, DPSP & Fundamental Duties",
     "topic": "Fundamental Rights",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Fundamental Rights, DPSP & Fundamental Duties",
+    "taxonomyL3": "Fundamental Rights",
     "difficulty": "Medium"
   },
   {
@@ -3741,6 +4170,9 @@
     "subSubject": null,
     "theme": "Executive",
     "topic": "Vice-President",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Executive",
+    "taxonomyL3": "Vice-President",
     "difficulty": "Easy"
   },
   {
@@ -3767,6 +4199,9 @@
     "subSubject": null,
     "theme": "Constitutional Bodies",
     "topic": "National Commissions",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Bodies",
+    "taxonomyL3": "National Commissions",
     "difficulty": "Medium"
   },
   {
@@ -3793,6 +4228,9 @@
     "subSubject": null,
     "theme": "Elections & Political Process",
     "topic": "Representation of the People Acts",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Elections & Political Process",
+    "taxonomyL3": "Representation of the People Acts",
     "difficulty": "Hard"
   },
   {
@@ -3819,6 +4257,9 @@
     "subSubject": null,
     "theme": "Executive",
     "topic": "Governor",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Executive",
+    "taxonomyL3": "Governor",
     "difficulty": "Hard"
   },
   {
@@ -3845,6 +4286,9 @@
     "subSubject": null,
     "theme": "Elections & Political Process",
     "topic": "Political Parties",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Elections & Political Process",
+    "taxonomyL3": "Political Parties",
     "difficulty": "Medium"
   },
   {
@@ -3871,6 +4315,9 @@
     "subSubject": null,
     "theme": "Executive",
     "topic": "President",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Executive",
+    "taxonomyL3": "President",
     "difficulty": "Hard"
   },
   {
@@ -3897,6 +4344,9 @@
     "subSubject": null,
     "theme": "Constitutional Bodies",
     "topic": "Election Commission",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Bodies",
+    "taxonomyL3": "Election Commission",
     "difficulty": "Medium"
   },
   {
@@ -3923,6 +4373,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "Parliamentary Committees",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "Parliamentary Committees",
     "difficulty": "Hard"
   },
   {
@@ -3949,6 +4402,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "State Legislature",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "State Legislature",
     "difficulty": "Medium"
   },
   {
@@ -3975,6 +4431,9 @@
     "subSubject": null,
     "theme": "Constitutional Framework",
     "topic": "Comparison with Other Constitutions",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Framework",
+    "taxonomyL3": "Comparison with Other Constitutions",
     "difficulty": "Hard"
   },
   {
@@ -4001,6 +4460,9 @@
     "subSubject": null,
     "theme": "Statutory, Regulatory & Quasi-Judicial Bodies",
     "topic": "National Human Rights Commission",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Statutory, Regulatory & Quasi-Judicial Bodies",
+    "taxonomyL3": "National Human Rights Commission",
     "difficulty": "Hard"
   },
   {
@@ -4027,6 +4489,9 @@
     "subSubject": null,
     "theme": "Statutory, Regulatory & Quasi-Judicial Bodies",
     "topic": "CBI",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Statutory, Regulatory & Quasi-Judicial Bodies",
+    "taxonomyL3": "CBI",
     "difficulty": "Hard"
   },
   {
@@ -4053,6 +4518,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "Parliament",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "Parliament",
     "difficulty": "Medium"
   },
   {
@@ -4079,6 +4547,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Finance Commission",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Finance Commission",
     "difficulty": "Medium"
   },
   {
@@ -4105,6 +4576,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Judicial Independence",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Judicial Independence",
     "difficulty": "Medium"
   },
   {
@@ -4131,6 +4605,9 @@
     "subSubject": null,
     "theme": "Polity Miscellaneous",
     "topic": "Constitutional Doctrines",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Polity Miscellaneous",
+    "taxonomyL3": "Constitutional Doctrines",
     "difficulty": "Hard"
   },
   {
@@ -4157,6 +4634,9 @@
     "subSubject": null,
     "theme": "Statutory, Regulatory & Quasi-Judicial Bodies",
     "topic": "National Commission for Women",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Statutory, Regulatory & Quasi-Judicial Bodies",
+    "taxonomyL3": "National Commission for Women",
     "difficulty": "Hard"
   },
   {
@@ -4183,6 +4663,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "Rajya Sabha",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "Rajya Sabha",
     "difficulty": "Medium"
   },
   {
@@ -4209,6 +4692,9 @@
     "subSubject": null,
     "theme": "Constitutional Framework",
     "topic": "Separation of Powers & Checks and Balances",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Framework",
+    "taxonomyL3": "Separation of Powers & Checks and Balances",
     "difficulty": "Hard"
   },
   {
@@ -4235,6 +4721,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Centre-State Relations",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Centre-State Relations",
     "difficulty": "Hard"
   },
   {
@@ -4261,6 +4750,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "Lok Sabha",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "Lok Sabha",
     "difficulty": "Hard"
   },
   {
@@ -4287,6 +4779,9 @@
     "subSubject": null,
     "theme": "Constitutional Framework",
     "topic": "Comparison with Other Constitutions",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Framework",
+    "taxonomyL3": "Comparison with Other Constitutions",
     "difficulty": "Hard"
   },
   {
@@ -4313,6 +4808,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Centre-State Relations",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Centre-State Relations",
     "difficulty": "Hard"
   },
   {
@@ -4339,6 +4837,9 @@
     "subSubject": null,
     "theme": "Elections & Political Process",
     "topic": "Representation of the People Acts",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Elections & Political Process",
+    "taxonomyL3": "Representation of the People Acts",
     "difficulty": "Medium"
   },
   {
@@ -4365,6 +4866,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "Parliament",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "Parliament",
     "difficulty": "Medium"
   },
   {
@@ -4391,6 +4895,9 @@
     "subSubject": null,
     "theme": "Executive",
     "topic": "Attorney General",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Executive",
+    "taxonomyL3": "Attorney General",
     "difficulty": "Easy"
   },
   {
@@ -4417,6 +4924,9 @@
     "subSubject": null,
     "theme": "Constitutional Framework",
     "topic": "Basic Structure Doctrine",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Framework",
+    "taxonomyL3": "Basic Structure Doctrine",
     "difficulty": "Hard"
   },
   {
@@ -4443,6 +4953,9 @@
     "subSubject": null,
     "theme": "Elections & Political Process",
     "topic": "Representation of the People Acts",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Elections & Political Process",
+    "taxonomyL3": "Representation of the People Acts",
     "difficulty": "Hard"
   },
   {
@@ -4469,6 +4982,9 @@
     "subSubject": null,
     "theme": "Constitutional Framework",
     "topic": "Comparison with Other Constitutions",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Framework",
+    "taxonomyL3": "Comparison with Other Constitutions",
     "difficulty": "Medium"
   },
   {
@@ -4495,6 +5011,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Centre-State Relations",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Centre-State Relations",
     "difficulty": "Hard"
   },
   {
@@ -4521,6 +5040,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Tribunals",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Tribunals",
     "difficulty": "Medium"
   },
   {
@@ -4547,6 +5069,9 @@
     "subSubject": null,
     "theme": "Constitutional Framework",
     "topic": "Separation of Powers & Checks and Balances",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Framework",
+    "taxonomyL3": "Separation of Powers & Checks and Balances",
     "difficulty": "Medium"
   },
   {
@@ -4573,6 +5098,9 @@
     "subSubject": null,
     "theme": "Local Governance",
     "topic": "Panchayati Raj",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Local Governance",
+    "taxonomyL3": "Panchayati Raj",
     "difficulty": "Medium"
   },
   {
@@ -4599,6 +5127,9 @@
     "subSubject": null,
     "theme": "Constitutional Bodies",
     "topic": "Finance Commission",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Bodies",
+    "taxonomyL3": "Finance Commission",
     "difficulty": "Medium"
   },
   {
@@ -4625,6 +5156,9 @@
     "subSubject": null,
     "theme": "Constitutional Framework",
     "topic": "Comparison with Other Constitutions",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Framework",
+    "taxonomyL3": "Comparison with Other Constitutions",
     "difficulty": "Medium"
   },
   {
@@ -4651,6 +5185,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Tribunals",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Tribunals",
     "difficulty": "Hard"
   },
   {
@@ -4677,6 +5214,9 @@
     "subSubject": null,
     "theme": "Executive",
     "topic": "Lieutenant Governor",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Executive",
+    "taxonomyL3": "Lieutenant Governor",
     "difficulty": "Hard"
   },
   {
@@ -4703,6 +5243,9 @@
     "subSubject": null,
     "theme": "Constitutional Bodies",
     "topic": "Comptroller & Auditor General",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Bodies",
+    "taxonomyL3": "Comptroller & Auditor General",
     "difficulty": "Medium"
   },
   {
@@ -4729,6 +5272,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "Parliamentary Committees",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "Parliamentary Committees",
     "difficulty": "Medium"
   },
   {
@@ -4755,6 +5301,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Emergency Provisions",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Emergency Provisions",
     "difficulty": "Medium"
   },
   {
@@ -4781,6 +5330,9 @@
     "subSubject": null,
     "theme": "Constitutional Bodies",
     "topic": "Election Commission",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Bodies",
+    "taxonomyL3": "Election Commission",
     "difficulty": "Medium"
   },
   {
@@ -4807,6 +5359,9 @@
     "subSubject": null,
     "theme": "Elections & Political Process",
     "topic": "Electoral Reforms",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Elections & Political Process",
+    "taxonomyL3": "Electoral Reforms",
     "difficulty": "Hard"
   },
   {
@@ -4833,6 +5388,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "Legislative Procedure",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "Legislative Procedure",
     "difficulty": "Medium"
   },
   {
@@ -4859,6 +5417,9 @@
     "subSubject": null,
     "theme": "Fundamental Rights, DPSP & Fundamental Duties",
     "topic": "Fundamental Rights",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Fundamental Rights, DPSP & Fundamental Duties",
+    "taxonomyL3": "Fundamental Rights",
     "difficulty": "Medium"
   },
   {
@@ -4885,6 +5446,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "GST Council",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "GST Council",
     "difficulty": "Medium"
   },
   {
@@ -4911,6 +5475,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "Parliamentary Committees",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "Parliamentary Committees",
     "difficulty": "Medium"
   },
   {
@@ -4937,6 +5504,9 @@
     "subSubject": null,
     "theme": "Elections & Political Process",
     "topic": "Political Parties",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Elections & Political Process",
+    "taxonomyL3": "Political Parties",
     "difficulty": "Medium"
   },
   {
@@ -4963,6 +5533,9 @@
     "subSubject": null,
     "theme": "Elections & Political Process",
     "topic": "Electoral Reforms",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Elections & Political Process",
+    "taxonomyL3": "Electoral Reforms",
     "difficulty": "Hard"
   },
   {
@@ -4989,6 +5562,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Judicial Independence",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Judicial Independence",
     "difficulty": "Hard"
   },
   {
@@ -5015,6 +5591,9 @@
     "subSubject": null,
     "theme": "Statutory, Regulatory & Quasi-Judicial Bodies",
     "topic": "Quasi-Judicial Bodies",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Statutory, Regulatory & Quasi-Judicial Bodies",
+    "taxonomyL3": "Quasi-Judicial Bodies",
     "difficulty": "Easy"
   },
   {
@@ -5041,6 +5620,9 @@
     "subSubject": null,
     "theme": "Constitutional History",
     "topic": "Constitutional Development (1773–1947)",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional History",
+    "taxonomyL3": "Constitutional Development (1773–1947)",
     "difficulty": "Medium"
   },
   {
@@ -5067,6 +5649,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Judicial Review",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Judicial Review",
     "difficulty": "Hard"
   },
   {
@@ -5093,6 +5678,9 @@
     "subSubject": null,
     "theme": "Constitutional Framework",
     "topic": "Preamble",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Framework",
+    "taxonomyL3": "Preamble",
     "difficulty": "Medium"
   },
   {
@@ -5119,6 +5707,9 @@
     "subSubject": null,
     "theme": "Constitutional Bodies",
     "topic": "Comptroller & Auditor General",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Bodies",
+    "taxonomyL3": "Comptroller & Auditor General",
     "difficulty": "Hard"
   },
   {
@@ -5145,6 +5736,9 @@
     "subSubject": null,
     "theme": "Elections & Political Process",
     "topic": "Political Parties",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Elections & Political Process",
+    "taxonomyL3": "Political Parties",
     "difficulty": "Medium"
   },
   {
@@ -5171,6 +5765,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Special Provisions for States",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Special Provisions for States",
     "difficulty": "Hard"
   },
   {
@@ -5197,6 +5794,9 @@
     "subSubject": null,
     "theme": "Executive",
     "topic": "Lieutenant Governor",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Executive",
+    "taxonomyL3": "Lieutenant Governor",
     "difficulty": "Hard"
   },
   {
@@ -5223,6 +5823,9 @@
     "subSubject": null,
     "theme": "Fundamental Rights, DPSP & Fundamental Duties",
     "topic": "Landmark Judgments",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Fundamental Rights, DPSP & Fundamental Duties",
+    "taxonomyL3": "Landmark Judgments",
     "difficulty": "Hard"
   },
   {
@@ -5249,6 +5852,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Tribunals",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Tribunals",
     "difficulty": "Hard"
   },
   {
@@ -5275,6 +5881,9 @@
     "subSubject": null,
     "theme": "Executive",
     "topic": "President",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Executive",
+    "taxonomyL3": "President",
     "difficulty": "Hard"
   },
   {
@@ -5301,6 +5910,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Centre-State Relations",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Centre-State Relations",
     "difficulty": "Medium"
   },
   {
@@ -5327,6 +5939,9 @@
     "subSubject": null,
     "theme": "Fundamental Rights, DPSP & Fundamental Duties",
     "topic": "Directive Principles of State Policy",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Fundamental Rights, DPSP & Fundamental Duties",
+    "taxonomyL3": "Directive Principles of State Policy",
     "difficulty": "Hard"
   },
   {
@@ -5353,6 +5968,9 @@
     "subSubject": null,
     "theme": "Executive",
     "topic": "Council of Ministers",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Executive",
+    "taxonomyL3": "Council of Ministers",
     "difficulty": "Medium"
   },
   {
@@ -5379,6 +5997,9 @@
     "subSubject": null,
     "theme": "Executive",
     "topic": "President",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Executive",
+    "taxonomyL3": "President",
     "difficulty": "Medium"
   },
   {
@@ -5405,6 +6026,9 @@
     "subSubject": null,
     "theme": "Fundamental Rights, DPSP & Fundamental Duties",
     "topic": "Fundamental Rights",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Fundamental Rights, DPSP & Fundamental Duties",
+    "taxonomyL3": "Fundamental Rights",
     "difficulty": "Hard"
   },
   {
@@ -5431,6 +6055,9 @@
     "subSubject": null,
     "theme": "Legislature",
     "topic": "Parliamentary Privileges",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Legislature",
+    "taxonomyL3": "Parliamentary Privileges",
     "difficulty": "Hard"
   },
   {
@@ -5457,6 +6084,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Centre-State Relations",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Centre-State Relations",
     "difficulty": "Hard"
   },
   {
@@ -5483,6 +6113,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Judicial Activism",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Judicial Activism",
     "difficulty": "Hard"
   },
   {
@@ -5509,6 +6142,9 @@
     "subSubject": null,
     "theme": "Elections & Political Process",
     "topic": "Political Parties",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Elections & Political Process",
+    "taxonomyL3": "Political Parties",
     "difficulty": "Medium"
   },
   {
@@ -5535,6 +6171,9 @@
     "subSubject": null,
     "theme": "Constitutional Bodies",
     "topic": "Finance Commission",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Constitutional Bodies",
+    "taxonomyL3": "Finance Commission",
     "difficulty": "Medium"
   },
   {
@@ -5561,6 +6200,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Inter-State Relations",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Inter-State Relations",
     "difficulty": "Hard"
   },
   {
@@ -5587,6 +6229,9 @@
     "subSubject": null,
     "theme": "Judiciary",
     "topic": "Judicial Review",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Judiciary",
+    "taxonomyL3": "Judicial Review",
     "difficulty": "Hard"
   },
   {
@@ -5613,6 +6258,9 @@
     "subSubject": null,
     "theme": "Federalism",
     "topic": "Special Provisions for States",
+    "taxonomyL1": "Polity",
+    "taxonomyL2": "Federalism",
+    "taxonomyL3": "Special Provisions for States",
     "difficulty": "Hard"
   },
   {
@@ -5639,6 +6287,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Children",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Children",
     "difficulty": "Hard"
   },
   {
@@ -5665,6 +6316,9 @@
     "subSubject": null,
     "theme": "Poverty, Hunger & Livelihood",
     "topic": "Poverty",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Poverty, Hunger & Livelihood",
+    "taxonomyL3": "Poverty",
     "difficulty": "Medium"
   },
   {
@@ -5691,6 +6345,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Women",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Women",
     "difficulty": "Medium"
   },
   {
@@ -5717,6 +6374,9 @@
     "subSubject": null,
     "theme": "Health",
     "topic": "Public Health",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Health",
+    "taxonomyL3": "Public Health",
     "difficulty": "Hard"
   },
   {
@@ -5743,6 +6403,9 @@
     "subSubject": null,
     "theme": "Health",
     "topic": "Nutrition & Malnutrition",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Health",
+    "taxonomyL3": "Nutrition & Malnutrition",
     "difficulty": "Medium"
   },
   {
@@ -5769,6 +6432,9 @@
     "subSubject": null,
     "theme": "Welfare & Social Protection",
     "topic": "Laws, Institutions & Mechanisms",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Welfare & Social Protection",
+    "taxonomyL3": "Laws, Institutions & Mechanisms",
     "difficulty": "Medium"
   },
   {
@@ -5795,6 +6461,9 @@
     "subSubject": null,
     "theme": "Education & Human Resources",
     "topic": "Human Resource Development",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Education & Human Resources",
+    "taxonomyL3": "Human Resource Development",
     "difficulty": "Medium"
   },
   {
@@ -5821,6 +6490,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Women",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Women",
     "difficulty": "Medium"
   },
   {
@@ -5847,6 +6519,9 @@
     "subSubject": null,
     "theme": "Welfare & Social Protection",
     "topic": "Welfare Schemes",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Welfare & Social Protection",
+    "taxonomyL3": "Welfare Schemes",
     "difficulty": "Hard"
   },
   {
@@ -5873,6 +6548,9 @@
     "subSubject": null,
     "theme": "Education & Human Resources",
     "topic": "Skill Development",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Education & Human Resources",
+    "taxonomyL3": "Skill Development",
     "difficulty": "Medium"
   },
   {
@@ -5899,6 +6577,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Women",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Women",
     "difficulty": "Hard"
   },
   {
@@ -5925,6 +6606,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Persons with Disabilities",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Persons with Disabilities",
     "difficulty": "Medium"
   },
   {
@@ -5951,6 +6635,9 @@
     "subSubject": null,
     "theme": "Poverty, Hunger & Livelihood",
     "topic": "Unemployment",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Poverty, Hunger & Livelihood",
+    "taxonomyL3": "Unemployment",
     "difficulty": "Hard"
   },
   {
@@ -5977,6 +6664,9 @@
     "subSubject": null,
     "theme": "Education & Human Resources",
     "topic": "School Education",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Education & Human Resources",
+    "taxonomyL3": "School Education",
     "difficulty": "Hard"
   },
   {
@@ -6003,6 +6693,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Women",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Women",
     "difficulty": "Hard"
   },
   {
@@ -6029,6 +6722,9 @@
     "subSubject": null,
     "theme": "Education & Human Resources",
     "topic": "Digital Education",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Education & Human Resources",
+    "taxonomyL3": "Digital Education",
     "difficulty": "Medium"
   },
   {
@@ -6055,6 +6751,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Women",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Women",
     "difficulty": "Hard"
   },
   {
@@ -6081,6 +6780,9 @@
     "subSubject": null,
     "theme": "Education & Human Resources",
     "topic": "Skill Development",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Education & Human Resources",
+    "taxonomyL3": "Skill Development",
     "difficulty": "Medium"
   },
   {
@@ -6107,6 +6809,9 @@
     "subSubject": null,
     "theme": "Health",
     "topic": "Health Infrastructure",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Health",
+    "taxonomyL3": "Health Infrastructure",
     "difficulty": "Medium"
   },
   {
@@ -6133,6 +6838,9 @@
     "subSubject": null,
     "theme": "Education & Human Resources",
     "topic": "National Education Policy (NEP)",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Education & Human Resources",
+    "taxonomyL3": "National Education Policy (NEP)",
     "difficulty": "Hard"
   },
   {
@@ -6159,6 +6867,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Women",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Women",
     "difficulty": "Hard"
   },
   {
@@ -6185,6 +6896,9 @@
     "subSubject": null,
     "theme": "Poverty, Hunger & Livelihood",
     "topic": "Poverty",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Poverty, Hunger & Livelihood",
+    "taxonomyL3": "Poverty",
     "difficulty": "Hard"
   },
   {
@@ -6211,6 +6925,9 @@
     "subSubject": null,
     "theme": "Health",
     "topic": "Maternal & Child Health",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Health",
+    "taxonomyL3": "Maternal & Child Health",
     "difficulty": "Medium"
   },
   {
@@ -6237,6 +6954,9 @@
     "subSubject": null,
     "theme": "Welfare & Social Protection",
     "topic": "Scheme Performance & Evaluation",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Welfare & Social Protection",
+    "taxonomyL3": "Scheme Performance & Evaluation",
     "difficulty": "Medium"
   },
   {
@@ -6263,6 +6983,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Women",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Women",
     "difficulty": "Medium"
   },
   {
@@ -6289,6 +7012,9 @@
     "subSubject": null,
     "theme": "Poverty, Hunger & Livelihood",
     "topic": "Hunger",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Poverty, Hunger & Livelihood",
+    "taxonomyL3": "Hunger",
     "difficulty": "Hard"
   },
   {
@@ -6315,6 +7041,9 @@
     "subSubject": null,
     "theme": "Social Justice Fundamentals",
     "topic": "Human Development",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Social Justice Fundamentals",
+    "taxonomyL3": "Human Development",
     "difficulty": "Hard"
   },
   {
@@ -6341,6 +7070,9 @@
     "subSubject": null,
     "theme": "Poverty, Hunger & Livelihood",
     "topic": "Hunger",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Poverty, Hunger & Livelihood",
+    "taxonomyL3": "Hunger",
     "difficulty": "Hard"
   },
   {
@@ -6367,6 +7099,9 @@
     "subSubject": null,
     "theme": "Welfare & Social Protection",
     "topic": "Laws, Institutions & Mechanisms",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Welfare & Social Protection",
+    "taxonomyL3": "Laws, Institutions & Mechanisms",
     "difficulty": "Hard"
   },
   {
@@ -6393,6 +7128,9 @@
     "subSubject": null,
     "theme": "Health",
     "topic": "Public Health",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Health",
+    "taxonomyL3": "Public Health",
     "difficulty": "Medium"
   },
   {
@@ -6419,6 +7157,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Scheduled Castes",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Scheduled Castes",
     "difficulty": "Hard"
   },
   {
@@ -6445,6 +7186,9 @@
     "subSubject": null,
     "theme": "Welfare & Social Protection",
     "topic": "Scheme Performance & Evaluation",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Welfare & Social Protection",
+    "taxonomyL3": "Scheme Performance & Evaluation",
     "difficulty": "Hard"
   },
   {
@@ -6471,6 +7215,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Women",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Women",
     "difficulty": "Medium"
   },
   {
@@ -6497,6 +7244,9 @@
     "subSubject": null,
     "theme": "Poverty, Hunger & Livelihood",
     "topic": "Poverty",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Poverty, Hunger & Livelihood",
+    "taxonomyL3": "Poverty",
     "difficulty": "Hard"
   },
   {
@@ -6523,6 +7273,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Persons with Disabilities",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Persons with Disabilities",
     "difficulty": "Medium"
   },
   {
@@ -6549,6 +7302,9 @@
     "subSubject": null,
     "theme": "Education & Human Resources",
     "topic": "Human Resource Development",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Education & Human Resources",
+    "taxonomyL3": "Human Resource Development",
     "difficulty": "Hard"
   },
   {
@@ -6575,6 +7331,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Children",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Children",
     "difficulty": "Medium"
   },
   {
@@ -6601,6 +7360,9 @@
     "subSubject": null,
     "theme": "Education & Human Resources",
     "topic": "School Education",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Education & Human Resources",
+    "taxonomyL3": "School Education",
     "difficulty": "Hard"
   },
   {
@@ -6627,6 +7389,9 @@
     "subSubject": null,
     "theme": "Poverty, Hunger & Livelihood",
     "topic": "Poverty",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Poverty, Hunger & Livelihood",
+    "taxonomyL3": "Poverty",
     "difficulty": "Hard"
   },
   {
@@ -6653,6 +7418,9 @@
     "subSubject": null,
     "theme": "Health",
     "topic": "Universal Health Coverage",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Health",
+    "taxonomyL3": "Universal Health Coverage",
     "difficulty": "Hard"
   },
   {
@@ -6679,6 +7447,9 @@
     "subSubject": null,
     "theme": "Education & Human Resources",
     "topic": "Higher Education",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Education & Human Resources",
+    "taxonomyL3": "Higher Education",
     "difficulty": "Hard"
   },
   {
@@ -6705,6 +7476,9 @@
     "subSubject": null,
     "theme": "Vulnerable Sections",
     "topic": "Women",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Vulnerable Sections",
+    "taxonomyL3": "Women",
     "difficulty": "Medium"
   },
   {
@@ -6731,6 +7505,9 @@
     "subSubject": null,
     "theme": "Social Justice Miscellaneous",
     "topic": "Miscellaneous Social Justice Concepts",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Social Justice Miscellaneous",
+    "taxonomyL3": "Miscellaneous Social Justice Concepts",
     "difficulty": "Hard"
   },
   {
@@ -6757,6 +7534,9 @@
     "subSubject": null,
     "theme": "Social Justice Miscellaneous",
     "topic": "Miscellaneous Social Justice Concepts",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Social Justice Miscellaneous",
+    "taxonomyL3": "Miscellaneous Social Justice Concepts",
     "difficulty": "Hard"
   },
   {
@@ -6783,6 +7563,9 @@
     "subSubject": null,
     "theme": "Welfare & Social Protection",
     "topic": "Welfare Schemes",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Welfare & Social Protection",
+    "taxonomyL3": "Welfare Schemes",
     "difficulty": "Hard"
   },
   {
@@ -6809,6 +7592,9 @@
     "subSubject": null,
     "theme": "Welfare & Social Protection",
     "topic": "Laws, Institutions & Mechanisms",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Welfare & Social Protection",
+    "taxonomyL3": "Laws, Institutions & Mechanisms",
     "difficulty": "Hard"
   },
   {
@@ -6835,6 +7621,9 @@
     "subSubject": null,
     "theme": "Health",
     "topic": "National Health Programmes",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Health",
+    "taxonomyL3": "National Health Programmes",
     "difficulty": "Hard"
   },
   {
@@ -6861,6 +7650,9 @@
     "subSubject": null,
     "theme": "Welfare & Social Protection",
     "topic": "Scheme Performance & Evaluation",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Welfare & Social Protection",
+    "taxonomyL3": "Scheme Performance & Evaluation",
     "difficulty": "Hard"
   },
   {
@@ -6887,6 +7679,9 @@
     "subSubject": null,
     "theme": "Education & Human Resources",
     "topic": "School Education",
+    "taxonomyL1": "Social Justice",
+    "taxonomyL2": "Education & Human Resources",
+    "taxonomyL3": "School Education",
     "difficulty": "Hard"
   }
 ]

@@ -23,6 +23,9 @@
     "subSubject": "World Geography",
     "theme": "World Climate Regions",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "World Climate Regions",
     "difficulty": "Medium"
   },
   {
@@ -49,6 +52,9 @@
     "subSubject": "Economic Geography",
     "theme": "Resource Distribution & Economic Activities",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Resource Distribution & Economic Activities",
     "difficulty": "Medium"
   },
   {
@@ -75,6 +81,9 @@
     "subSubject": "Economic Geography",
     "theme": "Energy Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Energy Resources",
     "difficulty": "Easy"
   },
   {
@@ -101,6 +110,9 @@
     "subSubject": "Physical Geography",
     "theme": "Earthquakes, Volcanoes & Tsunamis",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Earthquakes, Volcanoes & Tsunamis",
     "difficulty": "Easy"
   },
   {
@@ -127,6 +139,9 @@
     "subSubject": "World Geography",
     "theme": "World Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "World Resources",
     "difficulty": "Hard"
   },
   {
@@ -153,6 +168,9 @@
     "subSubject": "Geography Miscellaneous",
     "theme": "Geography Current Affairs",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Geography Miscellaneous",
+    "taxonomyL3": "Geography Current Affairs",
     "difficulty": "Hard"
   },
   {
@@ -179,6 +197,9 @@
     "subSubject": "Physical Geography",
     "theme": "Plate Tectonics & Continental Drift",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Plate Tectonics & Continental Drift",
     "difficulty": "Medium"
   },
   {
@@ -205,6 +226,9 @@
     "subSubject": "Human Geography",
     "theme": "Population & Demography",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Human Geography",
+    "taxonomyL3": "Population & Demography",
     "difficulty": "Medium"
   },
   {
@@ -231,6 +255,9 @@
     "subSubject": "Physical Geography",
     "theme": "Oceanography",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Oceanography",
     "difficulty": "Medium"
   },
   {
@@ -257,6 +284,9 @@
     "subSubject": "Human Geography",
     "theme": "Migration",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Human Geography",
+    "taxonomyL3": "Migration",
     "difficulty": "Easy"
   },
   {
@@ -283,6 +313,9 @@
     "subSubject": "Physical Geography",
     "theme": "Atmospheric Circulation & Weather Systems",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Atmospheric Circulation & Weather Systems",
     "difficulty": "Easy"
   },
   {
@@ -309,6 +342,9 @@
     "subSubject": "Economic Geography",
     "theme": "Irrigation",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Irrigation",
     "difficulty": "Medium"
   },
   {
@@ -335,6 +371,9 @@
     "subSubject": "Physical Geography",
     "theme": "Atmosphere & Climatology",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Atmosphere & Climatology",
     "difficulty": "Medium"
   },
   {
@@ -361,6 +400,9 @@
     "subSubject": "Physical Geography",
     "theme": "Atmospheric Circulation & Weather Systems",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Atmospheric Circulation & Weather Systems",
     "difficulty": "Medium"
   },
   {
@@ -387,6 +429,9 @@
     "subSubject": "Human Geography",
     "theme": "Human Development",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Human Geography",
+    "taxonomyL3": "Human Development",
     "difficulty": "Medium"
   },
   {
@@ -413,6 +458,9 @@
     "subSubject": "World Geography",
     "theme": "World Climate Regions",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "World Climate Regions",
     "difficulty": "Medium"
   },
   {
@@ -439,6 +487,9 @@
     "subSubject": "World Geography",
     "theme": "World Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "World Resources",
     "difficulty": "Medium"
   },
   {
@@ -465,6 +516,9 @@
     "subSubject": "Physical Geography",
     "theme": "Geomorphic Processes & Landforms",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Geomorphic Processes & Landforms",
     "difficulty": "Medium"
   },
   {
@@ -491,6 +545,9 @@
     "subSubject": "Indian Geography",
     "theme": "Indian Climate & Monsoon",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Indian Climate & Monsoon",
     "difficulty": "Hard"
   },
   {
@@ -517,6 +574,9 @@
     "subSubject": "Indian Geography",
     "theme": "Soils & Natural Vegetation",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Soils & Natural Vegetation",
     "difficulty": "Medium"
   },
   {
@@ -543,6 +603,9 @@
     "subSubject": "Economic Geography",
     "theme": "Agriculture & Cropping Patterns",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Agriculture & Cropping Patterns",
     "difficulty": "Medium"
   },
   {
@@ -569,6 +632,9 @@
     "subSubject": "Indian Geography",
     "theme": "Physiography of India",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Physiography of India",
     "difficulty": "Hard"
   },
   {
@@ -595,6 +661,9 @@
     "subSubject": "Mapping",
     "theme": "Straits, Seas & Important Water Bodies",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Mapping",
+    "taxonomyL3": "Straits, Seas & Important Water Bodies",
     "difficulty": "Easy"
   },
   {
@@ -621,6 +690,9 @@
     "subSubject": "Physical Geography",
     "theme": "Atmosphere & Climatology",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Atmosphere & Climatology",
     "difficulty": "Easy"
   },
   {
@@ -647,6 +719,9 @@
     "subSubject": "World Geography",
     "theme": "World Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "World Resources",
     "difficulty": "Medium"
   },
   {
@@ -673,6 +748,9 @@
     "subSubject": "Physical Geography",
     "theme": "Oceanography",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Oceanography",
     "difficulty": "Medium"
   },
   {
@@ -699,6 +777,9 @@
     "subSubject": "Economic Geography",
     "theme": "Energy Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Energy Resources",
     "difficulty": "Medium"
   },
   {
@@ -725,6 +806,9 @@
     "subSubject": "Indian Geography",
     "theme": "Physiography of India",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Physiography of India",
     "difficulty": "Medium"
   },
   {
@@ -751,6 +835,9 @@
     "subSubject": "Geography Miscellaneous",
     "theme": "Geography Current Affairs",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Geography Miscellaneous",
+    "taxonomyL3": "Geography Current Affairs",
     "difficulty": "Easy"
   },
   {
@@ -777,6 +864,9 @@
     "subSubject": "Physical Geography",
     "theme": "Minerals & Rocks",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Minerals & Rocks",
     "difficulty": "Easy"
   },
   {
@@ -803,6 +893,9 @@
     "subSubject": "Physical Geography",
     "theme": "Geomorphic Processes & Landforms",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Geomorphic Processes & Landforms",
     "difficulty": "Medium"
   },
   {
@@ -829,6 +922,9 @@
     "subSubject": "Economic Geography",
     "theme": "Mineral Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Mineral Resources",
     "difficulty": "Hard"
   },
   {
@@ -855,6 +951,9 @@
     "subSubject": "Human Geography",
     "theme": "Settlements & Urbanisation",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Human Geography",
+    "taxonomyL3": "Settlements & Urbanisation",
     "difficulty": "Medium"
   },
   {
@@ -881,6 +980,9 @@
     "subSubject": "Geography Miscellaneous",
     "theme": "Geography Current Affairs",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Geography Miscellaneous",
+    "taxonomyL3": "Geography Current Affairs",
     "difficulty": "Medium"
   },
   {
@@ -907,6 +1009,9 @@
     "subSubject": "Indian Geography",
     "theme": "Physiography of India",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Physiography of India",
     "difficulty": "Easy"
   },
   {
@@ -933,6 +1038,9 @@
     "subSubject": "World Geography",
     "theme": "Continents & Major Physical Features",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "Continents & Major Physical Features",
     "difficulty": "Hard"
   },
   {
@@ -959,6 +1067,9 @@
     "subSubject": "World Geography",
     "theme": "World Climate Regions",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "World Climate Regions",
     "difficulty": "Hard"
   },
   {
@@ -985,6 +1096,9 @@
     "subSubject": "World Geography",
     "theme": "World Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "World Resources",
     "difficulty": "Hard"
   },
   {
@@ -1011,6 +1125,9 @@
     "subSubject": "Indian Geography",
     "theme": "Soils & Natural Vegetation",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Soils & Natural Vegetation",
     "difficulty": "Medium"
   },
   {
@@ -1037,6 +1154,9 @@
     "subSubject": "Economic Geography",
     "theme": "Energy Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Energy Resources",
     "difficulty": "Medium"
   },
   {
@@ -1063,6 +1183,9 @@
     "subSubject": "Human Geography",
     "theme": "Settlements & Urbanisation",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Human Geography",
+    "taxonomyL3": "Settlements & Urbanisation",
     "difficulty": "Medium"
   },
   {
@@ -1089,6 +1212,9 @@
     "subSubject": "Indian Geography",
     "theme": "Drainage Systems",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Drainage Systems",
     "difficulty": "Hard"
   },
   {
@@ -1115,6 +1241,9 @@
     "subSubject": "Economic Geography",
     "theme": "Industries",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Industries",
     "difficulty": "Medium"
   },
   {
@@ -1141,6 +1270,9 @@
     "subSubject": "Indian Geography",
     "theme": "Drainage Systems",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Drainage Systems",
     "difficulty": "Medium"
   },
   {
@@ -1167,6 +1299,9 @@
     "subSubject": "Physical Geography",
     "theme": "Biogeography (Soils & Vegetation)",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Biogeography (Soils & Vegetation)",
     "difficulty": "Medium"
   },
   {
@@ -1193,6 +1328,9 @@
     "subSubject": "Physical Geography",
     "theme": "Plate Tectonics & Continental Drift",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Plate Tectonics & Continental Drift",
     "difficulty": "Medium"
   },
   {
@@ -1219,6 +1357,9 @@
     "subSubject": "Physical Geography",
     "theme": "Oceanography",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Oceanography",
     "difficulty": "Hard"
   },
   {
@@ -1245,6 +1386,9 @@
     "subSubject": "Indian Geography",
     "theme": "Physiography of India",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Physiography of India",
     "difficulty": "Medium"
   },
   {
@@ -1271,6 +1415,9 @@
     "subSubject": "Economic Geography",
     "theme": "Irrigation",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Irrigation",
     "difficulty": "Medium"
   },
   {
@@ -1297,6 +1444,9 @@
     "subSubject": "Economic Geography",
     "theme": "Industries",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Industries",
     "difficulty": "Medium"
   },
   {
@@ -1323,6 +1473,9 @@
     "subSubject": "Economic Geography",
     "theme": "Industries",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Industries",
     "difficulty": "Hard"
   },
   {
@@ -1349,6 +1502,9 @@
     "subSubject": "Physical Geography",
     "theme": "Biogeography (Soils & Vegetation)",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Biogeography (Soils & Vegetation)",
     "difficulty": "Medium"
   },
   {
@@ -1375,6 +1531,9 @@
     "subSubject": "Physical Geography",
     "theme": "Oceanography",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Oceanography",
     "difficulty": "Medium"
   },
   {
@@ -1401,6 +1560,9 @@
     "subSubject": "Economic Geography",
     "theme": "Transport & Communication",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Transport & Communication",
     "difficulty": "Medium"
   },
   {
@@ -1427,6 +1589,9 @@
     "subSubject": "Economic Geography",
     "theme": "Resource Distribution & Economic Activities",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Resource Distribution & Economic Activities",
     "difficulty": "Medium"
   },
   {
@@ -1453,6 +1618,9 @@
     "subSubject": "Economic Geography",
     "theme": "Irrigation",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Irrigation",
     "difficulty": "Medium"
   },
   {
@@ -1479,6 +1647,9 @@
     "subSubject": "Physical Geography",
     "theme": "Oceanography",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Oceanography",
     "difficulty": "Medium"
   },
   {
@@ -1505,6 +1676,9 @@
     "subSubject": "Physical Geography",
     "theme": "Plate Tectonics & Continental Drift",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Plate Tectonics & Continental Drift",
     "difficulty": "Medium"
   },
   {
@@ -1531,6 +1705,9 @@
     "subSubject": "World Geography",
     "theme": "Important Geographical Regions",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "Important Geographical Regions",
     "difficulty": "Hard"
   },
   {
@@ -1557,6 +1734,9 @@
     "subSubject": "Geography Miscellaneous",
     "theme": "Geography Current Affairs",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Geography Miscellaneous",
+    "taxonomyL3": "Geography Current Affairs",
     "difficulty": "Medium"
   },
   {
@@ -1583,6 +1763,9 @@
     "subSubject": "World Geography",
     "theme": "World Climate Regions",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "World Climate Regions",
     "difficulty": "Hard"
   },
   {
@@ -1609,6 +1792,9 @@
     "subSubject": "Indian Geography",
     "theme": "Drainage Systems",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Drainage Systems",
     "difficulty": "Hard"
   },
   {
@@ -1635,6 +1821,9 @@
     "subSubject": "Economic Geography",
     "theme": "Industries",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Industries",
     "difficulty": "Medium"
   },
   {
@@ -1661,6 +1850,9 @@
     "subSubject": "Physical Geography",
     "theme": "Oceanography",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Oceanography",
     "difficulty": "Medium"
   },
   {
@@ -1687,6 +1879,9 @@
     "subSubject": "Physical Geography",
     "theme": "Atmosphere & Climatology",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Atmosphere & Climatology",
     "difficulty": "Medium"
   },
   {
@@ -1713,6 +1908,9 @@
     "subSubject": "Economic Geography",
     "theme": "Agriculture & Cropping Patterns",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Agriculture & Cropping Patterns",
     "difficulty": "Easy"
   },
   {
@@ -1739,6 +1937,9 @@
     "subSubject": "Economic Geography",
     "theme": "Mineral Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Mineral Resources",
     "difficulty": "Medium"
   },
   {
@@ -1765,6 +1966,9 @@
     "subSubject": "Physical Geography",
     "theme": "Earth & Solar System",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Earth & Solar System",
     "difficulty": "Hard"
   },
   {
@@ -1791,6 +1995,9 @@
     "subSubject": "Economic Geography",
     "theme": "Irrigation",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Irrigation",
     "difficulty": "Medium"
   },
   {
@@ -1817,6 +2024,9 @@
     "subSubject": "Economic Geography",
     "theme": "Transport & Communication",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Transport & Communication",
     "difficulty": "Medium"
   },
   {
@@ -1843,6 +2053,9 @@
     "subSubject": "Indian Geography",
     "theme": "Drainage Systems",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Drainage Systems",
     "difficulty": "Hard"
   },
   {
@@ -1869,6 +2082,9 @@
     "subSubject": "Human Geography",
     "theme": "Settlements & Urbanisation",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Human Geography",
+    "taxonomyL3": "Settlements & Urbanisation",
     "difficulty": "Medium"
   },
   {
@@ -1895,6 +2111,9 @@
     "subSubject": "World Geography",
     "theme": "Important Geographical Regions",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "Important Geographical Regions",
     "difficulty": "Hard"
   },
   {
@@ -1921,6 +2140,9 @@
     "subSubject": "Economic Geography",
     "theme": "Resource Distribution & Economic Activities",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Resource Distribution & Economic Activities",
     "difficulty": "Medium"
   },
   {
@@ -1947,6 +2169,9 @@
     "subSubject": "Physical Geography",
     "theme": "Geomorphic Processes & Landforms",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Geomorphic Processes & Landforms",
     "difficulty": "Medium"
   },
   {
@@ -1973,6 +2198,9 @@
     "subSubject": "Physical Geography",
     "theme": "Atmospheric Circulation & Weather Systems",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Atmospheric Circulation & Weather Systems",
     "difficulty": "Medium"
   },
   {
@@ -1999,6 +2227,9 @@
     "subSubject": "World Geography",
     "theme": "World Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "World Resources",
     "difficulty": "Hard"
   },
   {
@@ -2025,6 +2256,9 @@
     "subSubject": "Indian Geography",
     "theme": "Indian Climate & Monsoon",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Indian Climate & Monsoon",
     "difficulty": "Hard"
   },
   {
@@ -2051,6 +2285,9 @@
     "subSubject": "Indian Geography",
     "theme": "Physiography of India",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Physiography of India",
     "difficulty": "Hard"
   },
   {
@@ -2077,6 +2314,9 @@
     "subSubject": "Economic Geography",
     "theme": "Irrigation",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Irrigation",
     "difficulty": "Medium"
   },
   {
@@ -2103,6 +2343,9 @@
     "subSubject": "Human Geography",
     "theme": "Settlements & Urbanisation",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Human Geography",
+    "taxonomyL3": "Settlements & Urbanisation",
     "difficulty": "Medium"
   },
   {
@@ -2129,6 +2372,9 @@
     "subSubject": "Physical Geography",
     "theme": "Oceanography",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Oceanography",
     "difficulty": "Medium"
   },
   {
@@ -2155,6 +2401,9 @@
     "subSubject": "World Geography",
     "theme": "World Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "World Resources",
     "difficulty": "Hard"
   },
   {
@@ -2181,6 +2430,9 @@
     "subSubject": "Physical Geography",
     "theme": "Oceanography",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Oceanography",
     "difficulty": "Hard"
   },
   {
@@ -2207,6 +2459,9 @@
     "subSubject": "Economic Geography",
     "theme": "Industries",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Industries",
     "difficulty": "Hard"
   },
   {
@@ -2233,6 +2488,9 @@
     "subSubject": "Economic Geography",
     "theme": "Agriculture & Cropping Patterns",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Agriculture & Cropping Patterns",
     "difficulty": "Medium"
   },
   {
@@ -2259,6 +2517,9 @@
     "subSubject": "Economic Geography",
     "theme": "Agriculture & Cropping Patterns",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Agriculture & Cropping Patterns",
     "difficulty": "Hard"
   },
   {
@@ -2285,6 +2546,9 @@
     "subSubject": "Indian Geography",
     "theme": "Physiography of India",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Physiography of India",
     "difficulty": "Medium"
   },
   {
@@ -2311,6 +2575,9 @@
     "subSubject": "Physical Geography",
     "theme": "Atmospheric Circulation & Weather Systems",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Atmospheric Circulation & Weather Systems",
     "difficulty": "Medium"
   },
   {
@@ -2337,6 +2604,9 @@
     "subSubject": "Physical Geography",
     "theme": "Plate Tectonics & Continental Drift",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Plate Tectonics & Continental Drift",
     "difficulty": "Medium"
   },
   {
@@ -2363,6 +2633,9 @@
     "subSubject": "Physical Geography",
     "theme": "Plate Tectonics & Continental Drift",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Plate Tectonics & Continental Drift",
     "difficulty": "Hard"
   },
   {
@@ -2389,6 +2662,9 @@
     "subSubject": "Physical Geography",
     "theme": "Atmospheric Circulation & Weather Systems",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Atmospheric Circulation & Weather Systems",
     "difficulty": "Medium"
   },
   {
@@ -2415,6 +2691,9 @@
     "subSubject": "Economic Geography",
     "theme": "Energy Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Energy Resources",
     "difficulty": "Hard"
   },
   {
@@ -2441,6 +2720,9 @@
     "subSubject": "Economic Geography",
     "theme": "Energy Resources",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Energy Resources",
     "difficulty": "Hard"
   },
   {
@@ -2467,6 +2749,9 @@
     "subSubject": "Economic Geography",
     "theme": "Industries",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Industries",
     "difficulty": "Medium"
   },
   {
@@ -2493,6 +2778,9 @@
     "subSubject": "Economic Geography",
     "theme": "Industries",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Economic Geography",
+    "taxonomyL3": "Industries",
     "difficulty": "Medium"
   },
   {
@@ -2519,6 +2807,9 @@
     "subSubject": "Indian Geography",
     "theme": "Drainage Systems",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Indian Geography",
+    "taxonomyL3": "Drainage Systems",
     "difficulty": "Medium"
   },
   {
@@ -2545,6 +2836,9 @@
     "subSubject": "Physical Geography",
     "theme": "Geomorphic Processes & Landforms",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Geomorphic Processes & Landforms",
     "difficulty": "Medium"
   },
   {
@@ -2571,6 +2865,9 @@
     "subSubject": "World Geography",
     "theme": "World Climate Regions",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "World Geography",
+    "taxonomyL3": "World Climate Regions",
     "difficulty": "Hard"
   },
   {
@@ -2597,6 +2894,9 @@
     "subSubject": "Physical Geography",
     "theme": "Atmosphere & Climatology",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Atmosphere & Climatology",
     "difficulty": "Medium"
   },
   {
@@ -2623,6 +2923,9 @@
     "subSubject": "Human Geography",
     "theme": "Settlements & Urbanisation",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Human Geography",
+    "taxonomyL3": "Settlements & Urbanisation",
     "difficulty": "Medium"
   },
   {
@@ -2649,6 +2952,9 @@
     "subSubject": "Geography Miscellaneous",
     "theme": "Geography Current Affairs",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Geography Miscellaneous",
+    "taxonomyL3": "Geography Current Affairs",
     "difficulty": "Easy"
   },
   {
@@ -2675,6 +2981,9 @@
     "subSubject": "Physical Geography",
     "theme": "Plate Tectonics & Continental Drift",
     "topic": null,
+    "taxonomyL1": "Geography",
+    "taxonomyL2": "Physical Geography",
+    "taxonomyL3": "Plate Tectonics & Continental Drift",
     "difficulty": "Medium"
   },
   {
@@ -2701,6 +3010,9 @@
     "subSubject": "Art & Culture",
     "theme": "Architecture and Sculpture",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Architecture and Sculpture",
     "difficulty": "Easy"
   },
   {
@@ -2727,6 +3039,9 @@
     "subSubject": "Art & Culture",
     "theme": "Religions in India",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Religions in India",
     "difficulty": "Medium"
   },
   {
@@ -2753,6 +3068,9 @@
     "subSubject": "Art & Culture",
     "theme": "Architecture and Sculpture",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Architecture and Sculpture",
     "difficulty": "Hard"
   },
   {
@@ -2779,6 +3097,9 @@
     "subSubject": "Modern History",
     "theme": "Important Personalities",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Important Personalities",
     "difficulty": "Medium"
   },
   {
@@ -2805,6 +3126,9 @@
     "subSubject": "Post Independence India",
     "theme": "Post-Independence Miscellaneous",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Post Independence India",
+    "taxonomyL3": "Post-Independence Miscellaneous",
     "difficulty": "Hard"
   },
   {
@@ -2831,6 +3155,9 @@
     "subSubject": "World History",
     "theme": "French Revolution",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "French Revolution",
     "difficulty": "Easy"
   },
   {
@@ -2857,6 +3184,9 @@
     "subSubject": "Art & Culture",
     "theme": "Art & Culture Miscellaneous & Contemporary Issues",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Art & Culture Miscellaneous & Contemporary Issues",
     "difficulty": "Medium"
   },
   {
@@ -2883,6 +3213,9 @@
     "subSubject": "Art & Culture",
     "theme": "Literature and language",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Literature and language",
     "difficulty": "Medium"
   },
   {
@@ -2909,6 +3242,9 @@
     "subSubject": "Modern History",
     "theme": "Freedom & Partition (1939–1947)",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Freedom & Partition (1939–1947)",
     "difficulty": "Easy"
   },
   {
@@ -2935,6 +3271,9 @@
     "subSubject": "Art & Culture",
     "theme": "Architecture and Sculpture",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Architecture and Sculpture",
     "difficulty": "Easy"
   },
   {
@@ -2961,6 +3300,9 @@
     "subSubject": "World History",
     "theme": "World War I",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "World War I",
     "difficulty": "Medium"
   },
   {
@@ -2987,6 +3329,9 @@
     "subSubject": "Modern History",
     "theme": "British Administration & Economic Policies",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "British Administration & Economic Policies",
     "difficulty": "Medium"
   },
   {
@@ -3013,6 +3358,9 @@
     "subSubject": "Art & Culture",
     "theme": "Art & Culture Miscellaneous & Contemporary Issues",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Art & Culture Miscellaneous & Contemporary Issues",
     "difficulty": "Hard"
   },
   {
@@ -3039,6 +3387,9 @@
     "subSubject": "Modern History",
     "theme": "Important Personalities",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Important Personalities",
     "difficulty": "Medium"
   },
   {
@@ -3065,6 +3416,9 @@
     "subSubject": "World History",
     "theme": "Industrial Revolution",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "Industrial Revolution",
     "difficulty": "Hard"
   },
   {
@@ -3091,6 +3445,9 @@
     "subSubject": "Art & Culture",
     "theme": "Religions in India",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Religions in India",
     "difficulty": "Medium"
   },
   {
@@ -3117,6 +3474,9 @@
     "subSubject": "Art & Culture",
     "theme": "Art & Culture Miscellaneous & Contemporary Issues",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Art & Culture Miscellaneous & Contemporary Issues",
     "difficulty": "Hard"
   },
   {
@@ -3143,6 +3503,9 @@
     "subSubject": "Modern History",
     "theme": "Peasant, Tribal & Civil Resistance",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Peasant, Tribal & Civil Resistance",
     "difficulty": "Easy"
   },
   {
@@ -3169,6 +3532,9 @@
     "subSubject": "Art & Culture",
     "theme": "Architecture and Sculpture",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Architecture and Sculpture",
     "difficulty": "Hard"
   },
   {
@@ -3195,6 +3561,9 @@
     "subSubject": "Art & Culture",
     "theme": "Cultural Heritage & Conservation",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Cultural Heritage & Conservation",
     "difficulty": "Medium"
   },
   {
@@ -3221,6 +3590,9 @@
     "subSubject": "Post Independence India",
     "theme": "States Reorganisation",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Post Independence India",
+    "taxonomyL3": "States Reorganisation",
     "difficulty": "Hard"
   },
   {
@@ -3247,6 +3619,9 @@
     "subSubject": "Modern History",
     "theme": "British Administration & Economic Policies",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "British Administration & Economic Policies",
     "difficulty": "Medium"
   },
   {
@@ -3273,6 +3648,9 @@
     "subSubject": "Modern History",
     "theme": "Advent of Europeans & British Expansion",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Advent of Europeans & British Expansion",
     "difficulty": "Medium"
   },
   {
@@ -3299,6 +3677,9 @@
     "subSubject": "Art & Culture",
     "theme": "Architecture and Sculpture",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Architecture and Sculpture",
     "difficulty": "Medium"
   },
   {
@@ -3325,6 +3706,9 @@
     "subSubject": "Art & Culture",
     "theme": "Literature and language",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Literature and language",
     "difficulty": "Easy"
   },
   {
@@ -3351,6 +3735,9 @@
     "subSubject": "Modern History",
     "theme": "Socio-Religious Reforms",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Socio-Religious Reforms",
     "difficulty": "Easy"
   },
   {
@@ -3377,6 +3764,9 @@
     "subSubject": "Post Independence India",
     "theme": "Integration of Princely States",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Post Independence India",
+    "taxonomyL3": "Integration of Princely States",
     "difficulty": "Medium"
   },
   {
@@ -3403,6 +3793,9 @@
     "subSubject": "Modern History",
     "theme": "INC: Moderate Phase (1885–1905)",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "INC: Moderate Phase (1885–1905)",
     "difficulty": "Easy"
   },
   {
@@ -3429,6 +3822,9 @@
     "subSubject": "Modern History",
     "theme": "National Movement (1919–1939)",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "National Movement (1919–1939)",
     "difficulty": "Easy"
   },
   {
@@ -3455,6 +3851,9 @@
     "subSubject": "World History",
     "theme": "Inter-War Period (1919–1939)",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "Inter-War Period (1919–1939)",
     "difficulty": "Medium"
   },
   {
@@ -3481,6 +3880,9 @@
     "subSubject": "Modern History",
     "theme": "National Movement (1919–1939)",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "National Movement (1919–1939)",
     "difficulty": "Medium"
   },
   {
@@ -3507,6 +3909,9 @@
     "subSubject": "Art & Culture",
     "theme": "Literature and language",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Literature and language",
     "difficulty": "Medium"
   },
   {
@@ -3533,6 +3938,9 @@
     "subSubject": "Art & Culture",
     "theme": "Architecture and Sculpture",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Architecture and Sculpture",
     "difficulty": "Hard"
   },
   {
@@ -3559,6 +3967,9 @@
     "subSubject": "Modern History",
     "theme": "Governor-Generals & Viceroys",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Governor-Generals & Viceroys",
     "difficulty": "Easy"
   },
   {
@@ -3585,6 +3996,9 @@
     "subSubject": "Art & Culture",
     "theme": "Religions in India",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Religions in India",
     "difficulty": "Medium"
   },
   {
@@ -3611,6 +4025,9 @@
     "subSubject": "Art & Culture",
     "theme": "Architecture and Sculpture",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Architecture and Sculpture",
     "difficulty": "Easy"
   },
   {
@@ -3637,6 +4054,9 @@
     "subSubject": "World History",
     "theme": "Beginning of the Modern World",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "Beginning of the Modern World",
     "difficulty": "Easy"
   },
   {
@@ -3663,6 +4083,9 @@
     "subSubject": "Modern History",
     "theme": "Freedom & Partition (1939–1947)",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Freedom & Partition (1939–1947)",
     "difficulty": "Medium"
   },
   {
@@ -3689,6 +4112,9 @@
     "subSubject": "Modern History",
     "theme": "National Movement (1919–1939)",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "National Movement (1919–1939)",
     "difficulty": "Medium"
   },
   {
@@ -3715,6 +4141,9 @@
     "subSubject": "Modern History",
     "theme": "Socio-Religious Reforms",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Socio-Religious Reforms",
     "difficulty": "Medium"
   },
   {
@@ -3741,6 +4170,9 @@
     "subSubject": "Modern History",
     "theme": "Revolt of 1857",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Revolt of 1857",
     "difficulty": "Medium"
   },
   {
@@ -3767,6 +4199,9 @@
     "subSubject": "Art & Culture",
     "theme": "Architecture and Sculpture",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Architecture and Sculpture",
     "difficulty": "Easy"
   },
   {
@@ -3793,6 +4228,9 @@
     "subSubject": "Modern History",
     "theme": "Modern India Miscellaneous",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Modern India Miscellaneous",
     "difficulty": "Hard"
   },
   {
@@ -3819,6 +4257,9 @@
     "subSubject": "Art & Culture",
     "theme": "Religions in India",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Religions in India",
     "difficulty": "Medium"
   },
   {
@@ -3845,6 +4286,9 @@
     "subSubject": "Modern History",
     "theme": "Important Personalities",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Important Personalities",
     "difficulty": "Easy"
   },
   {
@@ -3871,6 +4315,9 @@
     "subSubject": "Art & Culture",
     "theme": "Literature and language",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Literature and language",
     "difficulty": "Medium"
   },
   {
@@ -3897,6 +4344,9 @@
     "subSubject": "Art & Culture",
     "theme": "Cultural Heritage & Conservation",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Cultural Heritage & Conservation",
     "difficulty": "Easy"
   },
   {
@@ -3923,6 +4373,9 @@
     "subSubject": "Modern History",
     "theme": "Women & Social Change",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Women & Social Change",
     "difficulty": "Easy"
   },
   {
@@ -3949,6 +4402,9 @@
     "subSubject": "Modern History",
     "theme": "National Movement (1919–1939)",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "National Movement (1919–1939)",
     "difficulty": "Hard"
   },
   {
@@ -3975,6 +4431,9 @@
     "subSubject": "Modern History",
     "theme": "British Administration & Economic Policies",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "British Administration & Economic Policies",
     "difficulty": "Easy"
   },
   {
@@ -4001,6 +4460,9 @@
     "subSubject": "Modern History",
     "theme": "INC: Moderate Phase (1885–1905)",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "INC: Moderate Phase (1885–1905)",
     "difficulty": "Easy"
   },
   {
@@ -4027,6 +4489,9 @@
     "subSubject": "World History",
     "theme": "Decolonization",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "Decolonization",
     "difficulty": "Hard"
   },
   {
@@ -4053,6 +4518,9 @@
     "subSubject": "Modern History",
     "theme": "Later Mughals & Regional States",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Later Mughals & Regional States",
     "difficulty": "Medium"
   },
   {
@@ -4079,6 +4547,9 @@
     "subSubject": "Art & Culture",
     "theme": "Architecture and Sculpture",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Architecture and Sculpture",
     "difficulty": "Hard"
   },
   {
@@ -4105,6 +4576,9 @@
     "subSubject": "World History",
     "theme": "Decolonization",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "Decolonization",
     "difficulty": "Hard"
   },
   {
@@ -4131,6 +4605,9 @@
     "subSubject": "Modern History",
     "theme": "Important Personalities",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Important Personalities",
     "difficulty": "Easy"
   },
   {
@@ -4157,6 +4634,9 @@
     "subSubject": "Modern History",
     "theme": "Women & Social Change",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Women & Social Change",
     "difficulty": "Easy"
   },
   {
@@ -4183,6 +4663,9 @@
     "subSubject": "Modern History",
     "theme": "Revolt of 1857",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Revolt of 1857",
     "difficulty": "Medium"
   },
   {
@@ -4209,6 +4692,9 @@
     "subSubject": "Art & Culture",
     "theme": "Literature and language",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Literature and language",
     "difficulty": "Medium"
   },
   {
@@ -4235,6 +4721,9 @@
     "subSubject": "Art & Culture",
     "theme": "Architecture and Sculpture",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Architecture and Sculpture",
     "difficulty": "Medium"
   },
   {
@@ -4261,6 +4750,9 @@
     "subSubject": "World History",
     "theme": "World War II",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "World War II",
     "difficulty": "Hard"
   },
   {
@@ -4287,6 +4779,9 @@
     "subSubject": "World History",
     "theme": "Industrial Revolution",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "Industrial Revolution",
     "difficulty": "Hard"
   },
   {
@@ -4313,6 +4808,9 @@
     "subSubject": "Modern History",
     "theme": "Acts & Constitutional Developments",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Acts & Constitutional Developments",
     "difficulty": "Medium"
   },
   {
@@ -4339,6 +4837,9 @@
     "subSubject": "Modern History",
     "theme": "Important Personalities",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Important Personalities",
     "difficulty": "Medium"
   },
   {
@@ -4365,6 +4866,9 @@
     "subSubject": "Modern History",
     "theme": "Emergence of Gandhi (1915–1919)",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Emergence of Gandhi (1915–1919)",
     "difficulty": "Hard"
   },
   {
@@ -4391,6 +4895,9 @@
     "subSubject": "Art & Culture",
     "theme": "Architecture and Sculpture",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Architecture and Sculpture",
     "difficulty": "Hard"
   },
   {
@@ -4417,6 +4924,9 @@
     "subSubject": "Art & Culture",
     "theme": "Cultural Heritage & Conservation",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Cultural Heritage & Conservation",
     "difficulty": "Medium"
   },
   {
@@ -4443,6 +4953,9 @@
     "subSubject": "Post Independence India",
     "theme": "Economic Planning & Development",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Post Independence India",
+    "taxonomyL3": "Economic Planning & Development",
     "difficulty": "Medium"
   },
   {
@@ -4469,6 +4982,9 @@
     "subSubject": "World History",
     "theme": "Cold War",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "Cold War",
     "difficulty": "Hard"
   },
   {
@@ -4495,6 +5011,9 @@
     "subSubject": "Modern History",
     "theme": "Early Nationalism",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Early Nationalism",
     "difficulty": "Hard"
   },
   {
@@ -4521,6 +5040,9 @@
     "subSubject": "Modern History",
     "theme": "Freedom & Partition (1939–1947)",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Freedom & Partition (1939–1947)",
     "difficulty": "Easy"
   },
   {
@@ -4547,6 +5069,9 @@
     "subSubject": "Modern History",
     "theme": "British Administration & Economic Policies",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "British Administration & Economic Policies",
     "difficulty": "Easy"
   },
   {
@@ -4573,6 +5098,9 @@
     "subSubject": "Art & Culture",
     "theme": "Religions in India",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Religions in India",
     "difficulty": "Medium"
   },
   {
@@ -4599,6 +5127,9 @@
     "subSubject": "Modern History",
     "theme": "Later Mughals & Regional States",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Later Mughals & Regional States",
     "difficulty": "Easy"
   },
   {
@@ -4625,6 +5156,9 @@
     "subSubject": "Art & Culture",
     "theme": "Literature and language",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Literature and language",
     "difficulty": "Medium"
   },
   {
@@ -4651,6 +5185,9 @@
     "subSubject": "Art & Culture",
     "theme": "Architecture and Sculpture",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Architecture and Sculpture",
     "difficulty": "Easy"
   },
   {
@@ -4677,6 +5214,9 @@
     "subSubject": "Art & Culture",
     "theme": "Art & Culture Miscellaneous & Contemporary Issues",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Art & Culture",
+    "taxonomyL3": "Art & Culture Miscellaneous & Contemporary Issues",
     "difficulty": "Medium"
   },
   {
@@ -4703,6 +5243,9 @@
     "subSubject": "World History",
     "theme": "Inter-War Period (1919–1939)",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "Inter-War Period (1919–1939)",
     "difficulty": "Medium"
   },
   {
@@ -4729,6 +5272,9 @@
     "subSubject": "World History",
     "theme": "American Revolution",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "American Revolution",
     "difficulty": "Medium"
   },
   {
@@ -4755,6 +5301,9 @@
     "subSubject": "World History",
     "theme": "Colonialism & Imperialism",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "Colonialism & Imperialism",
     "difficulty": "Hard"
   },
   {
@@ -4781,6 +5330,9 @@
     "subSubject": "World History",
     "theme": "Industrial Revolution",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "World History",
+    "taxonomyL3": "Industrial Revolution",
     "difficulty": "Hard"
   },
   {
@@ -4807,6 +5359,9 @@
     "subSubject": "Post Independence India",
     "theme": "Foreign Policy & External Relations",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Post Independence India",
+    "taxonomyL3": "Foreign Policy & External Relations",
     "difficulty": "Easy"
   },
   {
@@ -4833,6 +5388,9 @@
     "subSubject": "Post Independence India",
     "theme": "Foreign Policy & External Relations",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Post Independence India",
+    "taxonomyL3": "Foreign Policy & External Relations",
     "difficulty": "Easy"
   },
   {
@@ -4859,6 +5417,9 @@
     "subSubject": "Modern History",
     "theme": "Important Personalities",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Important Personalities",
     "difficulty": "Medium"
   },
   {
@@ -4885,6 +5446,9 @@
     "subSubject": "Post Independence India",
     "theme": "Governance & Political Developments",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Post Independence India",
+    "taxonomyL3": "Governance & Political Developments",
     "difficulty": "Easy"
   },
   {
@@ -4911,6 +5475,9 @@
     "subSubject": "Post Independence India",
     "theme": "Land Reforms & Agrarian Transformation",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Post Independence India",
+    "taxonomyL3": "Land Reforms & Agrarian Transformation",
     "difficulty": "Medium"
   },
   {
@@ -4937,6 +5504,9 @@
     "subSubject": "Modern History",
     "theme": "Governor-Generals & Viceroys",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Governor-Generals & Viceroys",
     "difficulty": "Easy"
   },
   {
@@ -4963,6 +5533,9 @@
     "subSubject": "Modern History",
     "theme": "Modern India Miscellaneous",
     "topic": null,
+    "taxonomyL1": "History",
+    "taxonomyL2": "Modern History",
+    "taxonomyL3": "Modern India Miscellaneous",
     "difficulty": "Medium"
   },
   {
@@ -4989,6 +5562,9 @@
     "subSubject": "Poverty & Development Issues",
     "theme": "Urban Poverty, Smart Cities & Distributive Justice",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Poverty & Development Issues",
+    "taxonomyL3": "Urban Poverty, Smart Cities & Distributive Justice",
     "difficulty": "Medium"
   },
   {
@@ -5015,6 +5591,9 @@
     "subSubject": "Society Miscellaneous",
     "theme": "Civil Service Ethos & National Consciousness",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Society Miscellaneous",
+    "taxonomyL3": "Civil Service Ethos & National Consciousness",
     "difficulty": "Hard"
   },
   {
@@ -5041,6 +5620,9 @@
     "subSubject": "Effects of Globalization on Indian Society",
     "theme": "Globalization & Consumer Culture",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Effects of Globalization on Indian Society",
+    "taxonomyL3": "Globalization & Consumer Culture",
     "difficulty": "Medium"
   },
   {
@@ -5067,6 +5649,9 @@
     "subSubject": "Society Miscellaneous",
     "theme": "Lifestyle Change, Consumerism & Health",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Society Miscellaneous",
+    "taxonomyL3": "Lifestyle Change, Consumerism & Health",
     "difficulty": "Medium"
   },
   {
@@ -5093,6 +5678,9 @@
     "subSubject": "Poverty & Development Issues",
     "theme": "Sustainable Development & Poverty",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Poverty & Development Issues",
+    "taxonomyL3": "Sustainable Development & Poverty",
     "difficulty": "Hard"
   },
   {
@@ -5119,6 +5707,9 @@
     "subSubject": "Tribes & Tribal Issues",
     "theme": "Tribal Development, Displacement & Rehabilitation",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Tribes & Tribal Issues",
+    "taxonomyL3": "Tribal Development, Displacement & Rehabilitation",
     "difficulty": "Medium"
   },
   {
@@ -5145,6 +5736,9 @@
     "subSubject": "Population & Urbanization",
     "theme": "Population Ageing & Demographic Transition",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Population & Urbanization",
+    "taxonomyL3": "Population Ageing & Demographic Transition",
     "difficulty": "Hard"
   },
   {
@@ -5171,6 +5765,9 @@
     "subSubject": "Women & Gender Issues",
     "theme": "Gender Equality, Equity & Women's Empowerment",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Women & Gender Issues",
+    "taxonomyL3": "Gender Equality, Equity & Women's Empowerment",
     "difficulty": "Easy"
   },
   {
@@ -5197,6 +5794,9 @@
     "subSubject": "Scheduled Castes & Social Justice",
     "theme": "Caste, Marriage & Social Change",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Scheduled Castes & Social Justice",
+    "taxonomyL3": "Caste, Marriage & Social Change",
     "difficulty": "Hard"
   },
   {
@@ -5223,6 +5823,9 @@
     "subSubject": "Poverty & Development Issues",
     "theme": "Collaborative Governance & Inclusive Development",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Poverty & Development Issues",
+    "taxonomyL3": "Collaborative Governance & Inclusive Development",
     "difficulty": "Medium"
   },
   {
@@ -5249,6 +5852,9 @@
     "subSubject": "Scheduled Castes & Social Justice",
     "theme": "Social Justice & Affirmative Action",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Scheduled Castes & Social Justice",
+    "taxonomyL3": "Social Justice & Affirmative Action",
     "difficulty": "Hard"
   },
   {
@@ -5275,6 +5881,9 @@
     "subSubject": "Women & Gender Issues",
     "theme": "Globalization, Migration & Women",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Women & Gender Issues",
+    "taxonomyL3": "Globalization, Migration & Women",
     "difficulty": "Hard"
   },
   {
@@ -5301,6 +5910,9 @@
     "subSubject": "Salient Features of Indian Society",
     "theme": "Diversity & Social Marginalization",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Salient Features of Indian Society",
+    "taxonomyL3": "Diversity & Social Marginalization",
     "difficulty": "Hard"
   },
   {
@@ -5327,6 +5939,9 @@
     "subSubject": "Society Miscellaneous",
     "theme": "Marriage, Family & Social Change",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Society Miscellaneous",
+    "taxonomyL3": "Marriage, Family & Social Change",
     "difficulty": "Medium"
   },
   {
@@ -5353,6 +5968,9 @@
     "subSubject": "Women & Gender Issues",
     "theme": "Women's Mental Health & Social Pressures",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Women & Gender Issues",
+    "taxonomyL3": "Women's Mental Health & Social Pressures",
     "difficulty": "Medium"
   },
   {
@@ -5379,6 +5997,9 @@
     "subSubject": "Society Miscellaneous",
     "theme": "Digital Society & Child Socialization",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Society Miscellaneous",
+    "taxonomyL3": "Digital Society & Child Socialization",
     "difficulty": "Easy"
   },
   {
@@ -5405,6 +6026,9 @@
     "subSubject": "Poverty & Development Issues",
     "theme": "Human Development & Economic Growth",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Poverty & Development Issues",
+    "taxonomyL3": "Human Development & Economic Growth",
     "difficulty": "Medium"
   },
   {
@@ -5431,6 +6055,9 @@
     "subSubject": "Population & Urbanization",
     "theme": "Urbanization, Segregation & Poverty",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Population & Urbanization",
+    "taxonomyL3": "Urbanization, Segregation & Poverty",
     "difficulty": "Medium"
   },
   {
@@ -5457,6 +6084,9 @@
     "subSubject": "Scheduled Castes & Social Justice",
     "theme": "Caste Identity & Social Change",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Scheduled Castes & Social Justice",
+    "taxonomyL3": "Caste Identity & Social Change",
     "difficulty": "Hard"
   },
   {
@@ -5483,6 +6113,9 @@
     "subSubject": "Communalism, Regionalism & Secularism",
     "theme": "Liberalization, Ethnicity & Communalism",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Communalism, Regionalism & Secularism",
+    "taxonomyL3": "Liberalization, Ethnicity & Communalism",
     "difficulty": "Hard"
   },
   {
@@ -5509,6 +6142,9 @@
     "subSubject": "Effects of Globalization on Indian Society",
     "theme": "Globalization, Technology & Resource Scarcity",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Effects of Globalization on Indian Society",
+    "taxonomyL3": "Globalization, Technology & Resource Scarcity",
     "difficulty": "Hard"
   },
   {
@@ -5535,6 +6171,9 @@
     "subSubject": "Communalism, Regionalism & Secularism",
     "theme": "Indian Secularism & Pluralism",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Communalism, Regionalism & Secularism",
+    "taxonomyL3": "Indian Secularism & Pluralism",
     "difficulty": "Medium"
   },
   {
@@ -5561,6 +6200,9 @@
     "subSubject": "Salient Features of Indian Society",
     "theme": "Sect, Caste & Social Identity",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Salient Features of Indian Society",
+    "taxonomyL3": "Sect, Caste & Social Identity",
     "difficulty": "Hard"
   },
   {
@@ -5587,6 +6229,9 @@
     "subSubject": "Tribes & Tribal Issues",
     "theme": "Tribal Diversity & Common Identity",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Tribes & Tribal Issues",
+    "taxonomyL3": "Tribal Diversity & Common Identity",
     "difficulty": "Hard"
   },
   {
@@ -5613,6 +6258,9 @@
     "subSubject": "Population & Urbanization",
     "theme": "Urbanization, Middle Class & Consumerism",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Population & Urbanization",
+    "taxonomyL3": "Urbanization, Middle Class & Consumerism",
     "difficulty": "Medium"
   },
   {
@@ -5639,6 +6287,9 @@
     "subSubject": "Society Miscellaneous",
     "theme": "Family, Work Culture & Social Change",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Society Miscellaneous",
+    "taxonomyL3": "Family, Work Culture & Social Change",
     "difficulty": "Easy"
   },
   {
@@ -5665,6 +6316,9 @@
     "subSubject": "Tribes & Tribal Issues",
     "theme": "Tribal Knowledge Systems",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Tribes & Tribal Issues",
+    "taxonomyL3": "Tribal Knowledge Systems",
     "difficulty": "Medium"
   },
   {
@@ -5691,6 +6345,9 @@
     "subSubject": "Women & Gender Issues",
     "theme": "Gig Economy & Women's Empowerment",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Women & Gender Issues",
+    "taxonomyL3": "Gig Economy & Women's Empowerment",
     "difficulty": "Medium"
   },
   {
@@ -5717,6 +6374,9 @@
     "subSubject": "Population & Urbanization",
     "theme": "Urbanization, IT Industry & Social Change",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Population & Urbanization",
+    "taxonomyL3": "Urbanization, IT Industry & Social Change",
     "difficulty": "Medium"
   },
   {
@@ -5743,6 +6403,9 @@
     "subSubject": "Population & Urbanization",
     "theme": "Population Education",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Population & Urbanization",
+    "taxonomyL3": "Population Education",
     "difficulty": "Easy"
   },
   {
@@ -5769,6 +6432,9 @@
     "subSubject": "Society Miscellaneous",
     "theme": "Cryptocurrency & Society",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Society Miscellaneous",
+    "taxonomyL3": "Cryptocurrency & Society",
     "difficulty": "Medium"
   },
   {
@@ -5795,6 +6461,9 @@
     "subSubject": "Salient Features of Indian Society",
     "theme": "Continuity & Change in Indian Society",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Salient Features of Indian Society",
+    "taxonomyL3": "Continuity & Change in Indian Society",
     "difficulty": "Medium"
   },
   {
@@ -5821,6 +6490,9 @@
     "subSubject": "Society Miscellaneous",
     "theme": "Digital Society & Education",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Society Miscellaneous",
+    "taxonomyL3": "Digital Society & Education",
     "difficulty": "Easy"
   },
   {
@@ -5847,6 +6519,9 @@
     "subSubject": "Salient Features of Indian Society",
     "theme": "Customs, Tradition & Rationality",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Salient Features of Indian Society",
+    "taxonomyL3": "Customs, Tradition & Rationality",
     "difficulty": "Medium"
   },
   {
@@ -5873,6 +6548,9 @@
     "subSubject": "Effects of Globalization on Indian Society",
     "theme": "Globalization, Diversity & Pluralism",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Effects of Globalization on Indian Society",
+    "taxonomyL3": "Globalization, Diversity & Pluralism",
     "difficulty": "Medium"
   },
   {
@@ -5899,6 +6577,9 @@
     "subSubject": "Communalism, Regionalism & Secularism",
     "theme": "Regionalism & Cultural Identity",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Communalism, Regionalism & Secularism",
+    "taxonomyL3": "Regionalism & Cultural Identity",
     "difficulty": "Medium"
   },
   {
@@ -5925,6 +6606,9 @@
     "subSubject": "Poverty & Development Issues",
     "theme": "COVID-19, Poverty & Inequality",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Poverty & Development Issues",
+    "taxonomyL3": "COVID-19, Poverty & Inequality",
     "difficulty": "Easy"
   },
   {
@@ -5951,6 +6635,9 @@
     "subSubject": "Scheduled Castes & Social Justice",
     "theme": "Caste in Contemporary India",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Scheduled Castes & Social Justice",
+    "taxonomyL3": "Caste in Contemporary India",
     "difficulty": "Hard"
   },
   {
@@ -5977,6 +6664,9 @@
     "subSubject": "Effects of Globalization on Indian Society",
     "theme": "Global vs Local Identity",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Effects of Globalization on Indian Society",
+    "taxonomyL3": "Global vs Local Identity",
     "difficulty": "Medium"
   },
   {
@@ -6003,6 +6693,9 @@
     "subSubject": "Women & Gender Issues",
     "theme": "Contemporary Challenges for Women",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Women & Gender Issues",
+    "taxonomyL3": "Contemporary Challenges for Women",
     "difficulty": "Medium"
   },
   {
@@ -6029,6 +6722,9 @@
     "subSubject": "Salient Features of Indian Society",
     "theme": "Cultural Diversity & Mini India",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Salient Features of Indian Society",
+    "taxonomyL3": "Cultural Diversity & Mini India",
     "difficulty": "Medium"
   },
   {
@@ -6055,6 +6751,9 @@
     "subSubject": "Population & Urbanization",
     "theme": "Urban Transport & Economic Development",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Population & Urbanization",
+    "taxonomyL3": "Urban Transport & Economic Development",
     "difficulty": "Medium"
   },
   {
@@ -6081,6 +6780,9 @@
     "subSubject": "Communalism, Regionalism & Secularism",
     "theme": "Secularism & Cultural Practices",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Communalism, Regionalism & Secularism",
+    "taxonomyL3": "Secularism & Cultural Practices",
     "difficulty": "Hard"
   },
   {
@@ -6107,6 +6809,9 @@
     "subSubject": "Women & Gender Issues",
     "theme": "Women Empowerment & Population Control",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Women & Gender Issues",
+    "taxonomyL3": "Women Empowerment & Population Control",
     "difficulty": "Medium"
   },
   {
@@ -6133,6 +6838,9 @@
     "subSubject": "Salient Features of Indian Society",
     "theme": "Continuity of Indian Culture",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Salient Features of Indian Society",
+    "taxonomyL3": "Continuity of Indian Culture",
     "difficulty": "Easy"
   },
   {
@@ -6159,6 +6867,9 @@
     "subSubject": "Communalism, Regionalism & Secularism",
     "theme": "Causes of Communalism",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Communalism, Regionalism & Secularism",
+    "taxonomyL3": "Causes of Communalism",
     "difficulty": "Hard"
   },
   {
@@ -6185,6 +6896,9 @@
     "subSubject": "Effects of Globalization on Indian Society",
     "theme": "Globalization & Cultural Diversity",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Effects of Globalization on Indian Society",
+    "taxonomyL3": "Globalization & Cultural Diversity",
     "difficulty": "Hard"
   },
   {
@@ -6211,6 +6925,9 @@
     "subSubject": "Women & Gender Issues",
     "theme": "Women's Movements & Intersectionality",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Women & Gender Issues",
+    "taxonomyL3": "Women's Movements & Intersectionality",
     "difficulty": "Hard"
   },
   {
@@ -6237,6 +6954,9 @@
     "subSubject": "Poverty & Development Issues",
     "theme": "Aspirational Districts & Inclusive Development",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Poverty & Development Issues",
+    "taxonomyL3": "Aspirational Districts & Inclusive Development",
     "difficulty": "Medium"
   },
   {
@@ -6263,6 +6983,9 @@
     "subSubject": "Communalism, Regionalism & Secularism",
     "theme": "Formation of New States & Regional Development",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Communalism, Regionalism & Secularism",
+    "taxonomyL3": "Formation of New States & Regional Development",
     "difficulty": "Medium"
   },
   {
@@ -6289,6 +7012,9 @@
     "subSubject": "Communalism, Regionalism & Secularism",
     "theme": "Indian vs Western Secularism",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Communalism, Regionalism & Secularism",
+    "taxonomyL3": "Indian vs Western Secularism",
     "difficulty": "Medium"
   },
   {
@@ -6315,6 +7041,9 @@
     "subSubject": "Poverty & Development Issues",
     "theme": "Poverty Alleviation",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Poverty & Development Issues",
+    "taxonomyL3": "Poverty Alleviation",
     "difficulty": "Easy"
   },
   {
@@ -6341,6 +7070,9 @@
     "subSubject": "Scheduled Castes & Social Justice",
     "theme": "Changing Nature of Caste",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Scheduled Castes & Social Justice",
+    "taxonomyL3": "Changing Nature of Caste",
     "difficulty": "Hard"
   },
   {
@@ -6367,6 +7099,9 @@
     "subSubject": "Population & Urbanization",
     "theme": "IT Cities & Urban Challenges",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Population & Urbanization",
+    "taxonomyL3": "IT Cities & Urban Challenges",
     "difficulty": "Medium"
   },
   {
@@ -6393,6 +7128,9 @@
     "subSubject": "Communalism, Regionalism & Secularism",
     "theme": "Religion vs Communalism",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Communalism, Regionalism & Secularism",
+    "taxonomyL3": "Religion vs Communalism",
     "difficulty": "Hard"
   },
   {
@@ -6419,6 +7157,9 @@
     "subSubject": "Diversity & National Integration",
     "theme": "Tolerance, Pluralism & National Integration",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Diversity & National Integration",
+    "taxonomyL3": "Tolerance, Pluralism & National Integration",
     "difficulty": "Easy"
   },
   {
@@ -6445,6 +7186,9 @@
     "subSubject": "Tribes & Tribal Issues",
     "theme": "Constitutional & Legal Safeguards for STs",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Tribes & Tribal Issues",
+    "taxonomyL3": "Constitutional & Legal Safeguards for STs",
     "difficulty": "Medium"
   },
   {
@@ -6471,6 +7215,9 @@
     "subSubject": "Salient Features of Indian Society",
     "theme": "Regional Cultural Diversity",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Salient Features of Indian Society",
+    "taxonomyL3": "Regional Cultural Diversity",
     "difficulty": "Medium"
   },
   {
@@ -6497,6 +7244,9 @@
     "subSubject": "Communalism, Regionalism & Secularism",
     "theme": "Regionalism & Regional Imbalance",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Communalism, Regionalism & Secularism",
+    "taxonomyL3": "Regionalism & Regional Imbalance",
     "difficulty": "Hard"
   },
   {
@@ -6523,6 +7273,9 @@
     "subSubject": "Population & Urbanization",
     "theme": "Smart Cities & Urban Development",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Population & Urbanization",
+    "taxonomyL3": "Smart Cities & Urban Development",
     "difficulty": "Easy"
   },
   {
@@ -6549,6 +7302,9 @@
     "subSubject": "Tribes & Tribal Issues",
     "theme": "Constitutional Provisions for STs",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Tribes & Tribal Issues",
+    "taxonomyL3": "Constitutional Provisions for STs",
     "difficulty": "Medium"
   },
   {
@@ -6575,6 +7331,9 @@
     "subSubject": "Poverty & Development Issues",
     "theme": "Poverty & Deprivation",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Poverty & Development Issues",
+    "taxonomyL3": "Poverty & Deprivation",
     "difficulty": "Medium"
   },
   {
@@ -6601,6 +7360,9 @@
     "subSubject": "Effects of Globalization on Indian Society",
     "theme": "Globalization & Cultural Diversity",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Effects of Globalization on Indian Society",
+    "taxonomyL3": "Globalization & Cultural Diversity",
     "difficulty": "Medium"
   },
   {
@@ -6627,6 +7389,9 @@
     "subSubject": "Diversity & National Integration",
     "theme": "Linguistic States & National Integration",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Diversity & National Integration",
+    "taxonomyL3": "Linguistic States & National Integration",
     "difficulty": "Medium"
   },
   {
@@ -6653,6 +7418,9 @@
     "subSubject": "Population & Urbanization",
     "theme": "Rural-Urban Integration",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Population & Urbanization",
+    "taxonomyL3": "Rural-Urban Integration",
     "difficulty": "Medium"
   },
   {
@@ -6679,6 +7447,9 @@
     "subSubject": "Scheduled Castes & Social Justice",
     "theme": "Dalit Movements & Caste Annihilation",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Scheduled Castes & Social Justice",
+    "taxonomyL3": "Dalit Movements & Caste Annihilation",
     "difficulty": "Hard"
   },
   {
@@ -6705,6 +7476,9 @@
     "subSubject": "Women & Gender Issues",
     "theme": "Globalization & Women",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Women & Gender Issues",
+    "taxonomyL3": "Globalization & Women",
     "difficulty": "Medium"
   },
   {
@@ -6731,6 +7505,9 @@
     "subSubject": "Population & Urbanization",
     "theme": "Labour Migration",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Population & Urbanization",
+    "taxonomyL3": "Labour Migration",
     "difficulty": "Medium"
   },
   {
@@ -6757,6 +7534,9 @@
     "subSubject": "Tribes & Tribal Issues",
     "theme": "Tribal Society & Gender",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Tribes & Tribal Issues",
+    "taxonomyL3": "Tribal Society & Gender",
     "difficulty": "Hard"
   },
   {
@@ -6783,6 +7563,9 @@
     "subSubject": "Population & Urbanization",
     "theme": "Population & Poverty",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Population & Urbanization",
+    "taxonomyL3": "Population & Poverty",
     "difficulty": "Hard"
   },
   {
@@ -6809,6 +7592,9 @@
     "subSubject": "Diversity & National Integration",
     "theme": "Cultural Diversity & National Identity",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Diversity & National Integration",
+    "taxonomyL3": "Cultural Diversity & National Identity",
     "difficulty": "Medium"
   },
   {
@@ -6835,6 +7621,9 @@
     "subSubject": "Communalism, Regionalism & Secularism",
     "theme": "Indian vs Western Secularism",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Communalism, Regionalism & Secularism",
+    "taxonomyL3": "Indian vs Western Secularism",
     "difficulty": "Medium"
   },
   {
@@ -6861,6 +7650,9 @@
     "subSubject": "Women & Gender Issues",
     "theme": "Feminization of Agriculture",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Women & Gender Issues",
+    "taxonomyL3": "Feminization of Agriculture",
     "difficulty": "Hard"
   },
   {
@@ -6887,6 +7679,9 @@
     "subSubject": "Society Miscellaneous",
     "theme": "Joint Family & Social Change",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Society Miscellaneous",
+    "taxonomyL3": "Joint Family & Social Change",
     "difficulty": "Medium"
   },
   {
@@ -6913,6 +7708,9 @@
     "subSubject": "Women & Gender Issues",
     "theme": "Adverse Sex Ratio",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Women & Gender Issues",
+    "taxonomyL3": "Adverse Sex Ratio",
     "difficulty": "Medium"
   },
   {
@@ -6939,6 +7737,9 @@
     "subSubject": "Women & Gender Issues",
     "theme": "Patriarchy & Working Women",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Women & Gender Issues",
+    "taxonomyL3": "Patriarchy & Working Women",
     "difficulty": "Medium"
   },
   {
@@ -6965,6 +7766,9 @@
     "subSubject": "Communalism, Regionalism & Secularism",
     "theme": "Regionalism & Demand for Separate States",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Communalism, Regionalism & Secularism",
+    "taxonomyL3": "Regionalism & Demand for Separate States",
     "difficulty": "Medium"
   },
   {
@@ -6991,6 +7795,9 @@
     "subSubject": "Social Empowerment",
     "theme": "Senior Citizens & Globalization",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Social Empowerment",
+    "taxonomyL3": "Senior Citizens & Globalization",
     "difficulty": "Hard"
   },
   {
@@ -7017,6 +7824,9 @@
     "subSubject": "Women & Gender Issues",
     "theme": "Role of Women's Organisations",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Women & Gender Issues",
+    "taxonomyL3": "Role of Women's Organisations",
     "difficulty": "Hard"
   },
   {
@@ -7043,6 +7853,9 @@
     "subSubject": "Population & Urbanization",
     "theme": "Problems of Urbanization",
     "topic": null,
+    "taxonomyL1": "Indian Society",
+    "taxonomyL2": "Population & Urbanization",
+    "taxonomyL3": "Problems of Urbanization",
     "difficulty": "Easy"
   }
 ]

@@ -61,26 +61,57 @@ function pushParam(params: any[], value: any): string {
   return `$${params.length}`;
 }
 
+// Build an OR-combined `ilike` clause for a multi-select filter (e.g. several
+// subjects or sub-subjects). Returns null when there is nothing to filter on.
+function multiIlikeClause(params: any[], column: string, values: string[]): string | null {
+  const clean = values.filter((v) => v && v !== "All Papers");
+  if (clean.length === 0) return null;
+  const clauses = clean.map((v) => `${column} ilike ${pushParam(params, v)}`);
+  return clauses.length === 1 ? clauses[0] : `(${clauses.join(" or ")})`;
+}
+
+// Build a paper clause that expands each selected paper to its aliases and
+// matches any of them. Returns null when no paper is selected.
+function multiPaperClause(params: any[], papers: string[]): string | null {
+  const clean = papers.filter(Boolean);
+  if (clean.length === 0) return null;
+  const aliases = Array.from(new Set(clean.flatMap((p) => paperAliases(p))));
+  return `paper = any(${pushParam(params, aliases)}::text[])`;
+}
+
+const PRELIMS_TAXONOMY_LABELS = {
+  level1: "Subject",
+  level2: "Sub-Subject",
+  level3: "Topic",
+};
+
+const MAINS_TAXONOMY_LABELS = {
+  level1: "Subject",
+  level2: "Theme / Area",
+  level3: "Topic / Micro-theme",
+};
+
 function buildQuestionBankWhere(req: Request): { clause: string; params: any[]; page: number; limit: number } {
-  const subject = qs(req.query.subject as string);
-  const subSubject = qs(req.query.subSubject as string) || qs(req.query.sub_subject as string);
+  const subjects = qsList(req.query.subject as string | string[]);
+  const subSubjects = [
+    ...qsList(req.query.subSubject as string | string[]),
+    ...qsList(req.query.sub_subject as string | string[]),
+  ];
   const topics = qsList(req.query.topic as string | string[]);
   const year = qs(req.query.year as string);
   const years = qsList(req.query.years as string | string[]);
   const yearFrom = qs(req.query.yearFrom as string);
   const yearTo = qs(req.query.yearTo as string);
-  const paper = qs(req.query.paper as string);
+  const papers = qsList(req.query.paper as string | string[]);
   const page = parseInt(qs(req.query.page as string) || "1");
   const limit = parseInt(qs(req.query.limit as string) || "20");
   const params: any[] = [];
   const where = ["exam = 'prelims'", "status = 'approved'"];
 
-  if (subject && subject !== "All Papers") {
-    where.push(`subject ilike ${pushParam(params, subject)}`);
-  }
-  if (subSubject) {
-    where.push(`sub_subject ilike ${pushParam(params, subSubject)}`);
-  }
+  const subjectClause = multiIlikeClause(params, "subject", subjects);
+  if (subjectClause) where.push(subjectClause);
+  const subSubjectClause = multiIlikeClause(params, "sub_subject", subSubjects);
+  if (subSubjectClause) where.push(subSubjectClause);
   if (topics.length === 1) {
     where.push(`topic ilike ${pushParam(params, `%${topics[0]}%`)}`);
   } else if (topics.length > 1) {
@@ -96,9 +127,8 @@ function buildQuestionBankWhere(req: Request): { clause: string; params: any[]; 
     if (yearFrom) where.push(`year >= ${pushParam(params, parseInt(yearFrom, 10))}`);
     if (yearTo) where.push(`year <= ${pushParam(params, parseInt(yearTo, 10))}`);
   }
-  if (paper) {
-    where.push(`paper = any(${pushParam(params, paperAliases(paper))}::text[])`);
-  }
+  const paperClause = multiPaperClause(params, papers);
+  if (paperClause) where.push(paperClause);
 
   return {
     clause: where.join(" and "),
@@ -109,30 +139,33 @@ function buildQuestionBankWhere(req: Request): { clause: string; params: any[]; 
 }
 
 function buildMainsQuestionBankWhere(req: Request): { clause: string; params: any[]; page: number; limit: number } {
-  const subject = qs(req.query.subject as string);
-  const subSubject = qs(req.query.subSubject as string) || qs(req.query.sub_subject as string);
+  const subjects = qsList(req.query.subject as string | string[]);
+  const subSubjects = [
+    ...qsList(req.query.subSubject as string | string[]),
+    ...qsList(req.query.sub_subject as string | string[]),
+  ];
   const topics = qsList(req.query.topic as string | string[]);
   const year = qs(req.query.year as string);
   const years = qsList(req.query.years as string | string[]);
   const yearFrom = qs(req.query.yearFrom as string);
   const yearTo = qs(req.query.yearTo as string);
-  const paper = qs(req.query.paper as string);
+  const papers = qsList(req.query.paper as string | string[]);
   const page = parseInt(qs(req.query.page as string) || "1");
   const limit = parseInt(qs(req.query.limit as string) || "20");
   const params: any[] = [];
   const where = ["status = 'approved'"];
 
-  if (subject && subject !== "All Papers") {
-    where.push(`subject ilike ${pushParam(params, subject)}`);
-  }
-  if (subSubject) {
-    const valueParam = pushParam(params, subSubject);
-    where.push(`(sub_subject ilike ${valueParam} or theme ilike ${valueParam} or topic ilike ${valueParam})`);
+  const subjectClause = multiIlikeClause(params, "taxonomy_l1", subjects);
+  if (subjectClause) where.push(subjectClause);
+  const cleanSubSubjects = subSubjects.filter(Boolean);
+  if (cleanSubSubjects.length > 0) {
+    const taxonomyL2Clause = multiIlikeClause(params, "taxonomy_l2", cleanSubSubjects);
+    if (taxonomyL2Clause) where.push(taxonomyL2Clause);
   }
   if (topics.length === 1) {
-    where.push(`topic ilike ${pushParam(params, `%${topics[0]}%`)}`);
+    where.push(`taxonomy_l3 ilike ${pushParam(params, `%${topics[0]}%`)}`);
   } else if (topics.length > 1) {
-    const topicClauses = topics.map((topic) => `topic ilike ${pushParam(params, `%${topic}%`)}`);
+    const topicClauses = topics.map((topic) => `taxonomy_l3 ilike ${pushParam(params, `%${topic}%`)}`);
     where.push(`(${topicClauses.join(" or ")})`);
   }
   if (years.length > 0) {
@@ -144,9 +177,8 @@ function buildMainsQuestionBankWhere(req: Request): { clause: string; params: an
     if (yearFrom) where.push(`year >= ${pushParam(params, parseInt(yearFrom, 10))}`);
     if (yearTo) where.push(`year <= ${pushParam(params, parseInt(yearTo, 10))}`);
   }
-  if (paper) {
-    where.push(`paper = any(${pushParam(params, paperAliases(paper))}::text[])`);
-  }
+  const paperClause = multiPaperClause(params, papers);
+  if (paperClause) where.push(paperClause);
 
   return {
     clause: where.join(" and "),
@@ -169,6 +201,9 @@ async function getQuestionBankQuestions(req: Request, res: Response) {
        subject,
        sub_subject as "subSubject",
        topic,
+       subject as "taxonomyL1",
+       sub_subject as "taxonomyL2",
+       topic as "taxonomyL3",
        difficulty,
        options,
        correct_option as "correctOption",
@@ -194,7 +229,7 @@ async function getQuestionBankQuestions(req: Request, res: Response) {
   res.json({
     status: "success",
     data: {
-      questions: rows,
+      questions: rows.map((row) => ({ ...row, taxonomyLabels: PRELIMS_TAXONOMY_LABELS })),
       pagination: {
         total,
         page,
@@ -217,10 +252,15 @@ async function getMainsQuestionBankQuestions(req: Request, res: Response) {
        question_num as "questionNum",
        question_text as "questionText",
        model_answer as "modelAnswer",
-       subject,
-       coalesce(nullif(sub_subject, ''), nullif(theme, '')) as "subSubject",
+       taxonomy_l1 as subject,
+       taxonomy_l2 as "subSubject",
+       taxonomy_l3 as topic,
+       taxonomy_l1 as "taxonomyL1",
+       taxonomy_l2 as "taxonomyL2",
+       taxonomy_l3 as "taxonomyL3",
+       sub_subject as "sourceSubSubject",
        theme,
-       topic,
+       topic as "sourceTopic",
        difficulty,
        structured_json as "structuredJson",
        source_file as "sourceFile",
@@ -242,7 +282,7 @@ async function getMainsQuestionBankQuestions(req: Request, res: Response) {
   res.json({
     status: "success",
     data: {
-      questions: rows,
+      questions: rows.map((row) => ({ ...row, taxonomyLabels: MAINS_TAXONOMY_LABELS })),
       pagination: {
         total,
         page,
@@ -265,6 +305,9 @@ async function findQuestionBankQuestionById(id: string) {
        subject,
        sub_subject as "subSubject",
        topic,
+       subject as "taxonomyL1",
+       sub_subject as "taxonomyL2",
+       topic as "taxonomyL3",
        difficulty,
        options,
        correct_option as "correctOption",
@@ -279,7 +322,7 @@ async function findQuestionBankQuestionById(id: string) {
      limit 1`,
     id
   );
-  return rows[0] || null;
+  return rows[0] ? { ...rows[0], taxonomyLabels: PRELIMS_TAXONOMY_LABELS } : null;
 }
 
 async function findMainsQuestionBankQuestionById(id: string) {
@@ -292,10 +335,15 @@ async function findMainsQuestionBankQuestionById(id: string) {
        question_num as "questionNum",
        question_text as "questionText",
        model_answer as "modelAnswer",
-       subject,
-       coalesce(nullif(sub_subject, ''), nullif(theme, '')) as "subSubject",
+       taxonomy_l1 as subject,
+       taxonomy_l2 as "subSubject",
+       taxonomy_l3 as topic,
+       taxonomy_l1 as "taxonomyL1",
+       taxonomy_l2 as "taxonomyL2",
+       taxonomy_l3 as "taxonomyL3",
+       sub_subject as "sourceSubSubject",
        theme,
-       topic,
+       topic as "sourceTopic",
        difficulty,
        structured_json as "structuredJson",
        source_file as "sourceFile",
@@ -306,7 +354,7 @@ async function findMainsQuestionBankQuestionById(id: string) {
      limit 1`,
     id
   );
-  return rows[0] || null;
+  return rows[0] ? { ...rows[0], taxonomyLabels: MAINS_TAXONOMY_LABELS } : null;
 }
 
 async function getQuestionBankYearCounts() {
@@ -378,6 +426,7 @@ async function getQuestionBankCounts(req: Request, res: Response) {
     status: "success",
     data: {
       mode: "prelims",
+      taxonomyLabels: PRELIMS_TAXONOMY_LABELS,
       total: Number(totalRows[0]?.count || 0),
       bySubject: bySubject.map((s: any) => ({ subject: s.subject, count: s.count })),
       byPaper: byPaper.map((p: any) => ({ paper: p.paper, count: p.count })),
@@ -398,14 +447,15 @@ async function getQuestionBankCounts(req: Request, res: Response) {
 
 async function getMainsQuestionBankCounts(req: Request, res: Response) {
   const { clause, params } = buildMainsQuestionBankWhere(req);
-  const subSubjectExpr = `coalesce(nullif(sub_subject, ''), nullif(theme, ''), topic)`;
   const [totalRows, bySubject, byPaper, bySubSubject, byTopic] = await Promise.all([
     prisma.$queryRawUnsafe<Array<{ count: string }>>(
       `select count(*)::text as count from public.pyq_mains_question_bank where ${clause}`,
       ...params
     ),
     prisma.$queryRawUnsafe<any[]>(
-      `select subject, count(*)::int as count from public.pyq_mains_question_bank where ${clause} group by subject order by subject`,
+      `select taxonomy_l1 as subject, count(*)::int as count
+       from public.pyq_mains_question_bank where ${clause}
+       group by taxonomy_l1 order by taxonomy_l1`,
       ...params
     ),
     prisma.$queryRawUnsafe<any[]>(
@@ -413,15 +463,15 @@ async function getMainsQuestionBankCounts(req: Request, res: Response) {
       ...params
     ),
     prisma.$queryRawUnsafe<any[]>(
-      `select subject, ${subSubjectExpr} as "subSubject", count(*)::int as count
+      `select taxonomy_l1 as subject, taxonomy_l2 as "subSubject", count(*)::int as count
        from public.pyq_mains_question_bank where ${clause}
-       group by subject, ${subSubjectExpr} order by subject, ${subSubjectExpr}`,
+       group by taxonomy_l1, taxonomy_l2 order by taxonomy_l1, taxonomy_l2`,
       ...params
     ),
     prisma.$queryRawUnsafe<any[]>(
-      `select subject, ${subSubjectExpr} as "subSubject", topic, count(*)::int as count
+      `select taxonomy_l1 as subject, taxonomy_l2 as "subSubject", taxonomy_l3 as topic, count(*)::int as count
        from public.pyq_mains_question_bank where ${clause}
-       group by subject, ${subSubjectExpr}, topic order by subject, ${subSubjectExpr}, topic`,
+       group by taxonomy_l1, taxonomy_l2, taxonomy_l3 order by taxonomy_l1, taxonomy_l2, taxonomy_l3`,
       ...params
     ),
   ]);
@@ -430,6 +480,7 @@ async function getMainsQuestionBankCounts(req: Request, res: Response) {
     status: "success",
     data: {
       mode: "mains",
+      taxonomyLabels: MAINS_TAXONOMY_LABELS,
       total: Number(totalRows[0]?.count || 0),
       bySubject: bySubject.map((s: any) => ({ subject: s.subject, count: s.count })),
       byPaper: byPaper.map((p: any) => ({ paper: p.paper, count: p.count })),
@@ -468,43 +519,50 @@ export const getPublicPYQQuestions = async (
       return getQuestionBankQuestions(req, res);
     }
 
-    const subject = qs(req.query.subject as string);
-    const subSubject = qs(req.query.subSubject as string) || qs(req.query.sub_subject as string);
+    const subjects = qsList(req.query.subject as string | string[]).filter((s) => s !== "All Papers");
+    const subSubjects = [
+      ...qsList(req.query.subSubject as string | string[]),
+      ...qsList(req.query.sub_subject as string | string[]),
+    ];
     const topics = qsList(req.query.topic as string | string[]);
     const year = qs(req.query.year as string);
     const yearFrom = qs(req.query.yearFrom as string);
     const yearTo = qs(req.query.yearTo as string);
-    const paper = qs(req.query.paper as string);
+    const papers = qsList(req.query.paper as string | string[]);
     const page = parseInt(qs(req.query.page as string) || "1");
     const limit = parseInt(qs(req.query.limit as string) || "20");
     const skip = (page - 1) * limit;
     const effectiveTopics = [...topics];
 
-    const where: any = { status: "approved" };
+    // Each entry is a group of alternatives that are OR-ed internally and
+    // AND-ed against the other groups (multi-select semantics).
+    const andGroups: any[] = [];
+    const where: any = { status: "approved", AND: andGroups };
 
-    if (subject && subject !== "All Papers") {
-      where.subject = { equals: subject, mode: "insensitive" };
+    if (subjects.length > 0) {
+      andGroups.push({
+        OR: subjects.map((s) => ({ subject: { equals: s, mode: "insensitive" } })),
+      });
     }
-    if (mode === "mains" && subSubject && effectiveTopics.length === 0) {
+    if (mode === "mains" && subSubjects.length > 0 && effectiveTopics.length === 0) {
       // Backward compatibility: older mains clients send the hierarchy label as `subSubject`.
       // Mains questions only have `topic`, so translate it before building the Prisma filter.
-      effectiveTopics.push(subSubject);
-    } else if (subSubject) {
-      where.subSubject = { equals: subSubject, mode: "insensitive" };
+      effectiveTopics.push(...subSubjects);
+    } else if (subSubjects.length > 0) {
+      andGroups.push({
+        OR: subSubjects.map((s) => ({ subSubject: { equals: s, mode: "insensitive" } })),
+      });
     }
-    if (effectiveTopics.length === 1) {
+    if (effectiveTopics.length > 0) {
       // Topic strings in dataset can be a comma-separated list; use contains so
-      // selecting one topic still matches those rows.
-      where.topic = { contains: effectiveTopics[0], mode: "insensitive" };
-    } else if (effectiveTopics.length > 1) {
-      // Multi-topic selection should return questions matching ANY selected topic.
-      where.OR = effectiveTopics.map((topic) => ({
-        topic: { contains: topic, mode: "insensitive" },
-      }));
+      // selecting a topic still matches those rows. Any selected topic matches.
+      andGroups.push({
+        OR: effectiveTopics.map((topic) => ({ topic: { contains: topic, mode: "insensitive" } })),
+      });
     }
-    
+
     console.log(
-      `[PYQ] Query params: mode=${mode}, subject=${subject}, subSubject=${subSubject}, topics=${effectiveTopics.join("|")}, year=${year}, paper=${paper}, page=${page}, limit=${limit}`
+      `[PYQ] Query params: mode=${mode}, subjects=${subjects.join("|")}, subSubjects=${subSubjects.join("|")}, topics=${effectiveTopics.join("|")}, year=${year}, papers=${papers.join("|")}, page=${page}, limit=${limit}`
     );
 
     if (year) where.year = parseInt(year);
@@ -513,7 +571,11 @@ export const getPublicPYQQuestions = async (
       if (yearFrom) where.year.gte = parseInt(yearFrom);
       if (yearTo) where.year.lte = parseInt(yearTo);
     }
-    if (paper) where.paper = { in: paperAliases(paper), mode: "insensitive" };
+    if (papers.length > 0) {
+      const paperAliasList = Array.from(new Set(papers.flatMap((p) => paperAliases(p))));
+      where.paper = { in: paperAliasList, mode: "insensitive" };
+    }
+    if (andGroups.length === 0) delete where.AND;
 
     // UPSC priority subject order for "All Papers" default sort.
     const PRIORITY = [
@@ -554,7 +616,7 @@ export const getPublicPYQQuestions = async (
     });
 
     let questions = filtered;
-    if (!subject || subject === "All Papers") {
+    if (subjects.length === 0) {
       const rank = (subj: string) => {
         const s = (subj || "").toLowerCase();
         const idx = PRIORITY.findIndex((p) => s.includes(p));

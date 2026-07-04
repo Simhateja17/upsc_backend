@@ -23,6 +23,9 @@
     "subSubject": null,
     "theme": "Natural Disasters",
     "topic": "Floods",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Natural Disasters",
+    "taxonomyL3": "Floods",
     "difficulty": "Hard"
   },
   {
@@ -49,6 +52,9 @@
     "subSubject": null,
     "theme": "Disaster Governance",
     "topic": "Sendai Framework",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Disaster Governance",
+    "taxonomyL3": "Sendai Framework",
     "difficulty": "Hard"
   },
   {
@@ -75,6 +81,9 @@
     "subSubject": null,
     "theme": "Man-made Disasters",
     "topic": "Industrial Disasters",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Man-made Disasters",
+    "taxonomyL3": "Industrial Disasters",
     "difficulty": "Medium"
   },
   {
@@ -101,6 +110,9 @@
     "subSubject": null,
     "theme": "Disaster Management Miscellaneous",
     "topic": "Miscellaneous Disaster Management Concepts",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Disaster Management Miscellaneous",
+    "taxonomyL3": "Miscellaneous Disaster Management Concepts",
     "difficulty": "Medium"
   },
   {
@@ -127,6 +139,9 @@
     "subSubject": null,
     "theme": "Disaster Management Miscellaneous",
     "topic": "Disaster Management Current Affairs",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Disaster Management Miscellaneous",
+    "taxonomyL3": "Disaster Management Current Affairs",
     "difficulty": "Medium"
   },
   {
@@ -153,6 +168,9 @@
     "subSubject": null,
     "theme": "Natural Disasters",
     "topic": "Landslides",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Natural Disasters",
+    "taxonomyL3": "Landslides",
     "difficulty": "Medium"
   },
   {
@@ -179,6 +197,9 @@
     "subSubject": null,
     "theme": "Natural Disasters",
     "topic": "Earthquakes",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Natural Disasters",
+    "taxonomyL3": "Earthquakes",
     "difficulty": "Hard"
   },
   {
@@ -205,6 +226,9 @@
     "subSubject": null,
     "theme": "Disaster Management, Preparedness & Mitigation",
     "topic": "Mitigation",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Disaster Management, Preparedness & Mitigation",
+    "taxonomyL3": "Mitigation",
     "difficulty": "Medium"
   },
   {
@@ -231,6 +255,9 @@
     "subSubject": null,
     "theme": "Disaster Management, Preparedness & Mitigation",
     "topic": "Preparedness",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Disaster Management, Preparedness & Mitigation",
+    "taxonomyL3": "Preparedness",
     "difficulty": "Medium"
   },
   {
@@ -257,6 +284,9 @@
     "subSubject": null,
     "theme": "Disaster Fundamentals",
     "topic": "Hazard, Vulnerability & Capacity Assessment",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Disaster Fundamentals",
+    "taxonomyL3": "Hazard, Vulnerability & Capacity Assessment",
     "difficulty": "Medium"
   },
   {
@@ -283,6 +313,9 @@
     "subSubject": null,
     "theme": "Disaster Governance",
     "topic": "Sendai Framework",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Disaster Governance",
+    "taxonomyL3": "Sendai Framework",
     "difficulty": "Hard"
   },
   {
@@ -309,6 +342,9 @@
     "subSubject": null,
     "theme": "Natural Disasters",
     "topic": "Tsunamis",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Natural Disasters",
+    "taxonomyL3": "Tsunamis",
     "difficulty": "Hard"
   },
   {
@@ -335,6 +371,9 @@
     "subSubject": null,
     "theme": "Disaster Governance",
     "topic": "National Disaster Management Authority (NDMA)",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Disaster Governance",
+    "taxonomyL3": "National Disaster Management Authority (NDMA)",
     "difficulty": "Medium"
   },
   {
@@ -361,6 +400,9 @@
     "subSubject": null,
     "theme": "Natural Disasters",
     "topic": "Floods",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Natural Disasters",
+    "taxonomyL3": "Floods",
     "difficulty": "Medium"
   },
   {
@@ -387,6 +429,9 @@
     "subSubject": null,
     "theme": "Natural Disasters",
     "topic": "Earthquakes",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Natural Disasters",
+    "taxonomyL3": "Earthquakes",
     "difficulty": "Hard"
   },
   {
@@ -413,6 +458,9 @@
     "subSubject": null,
     "theme": "Natural Disasters",
     "topic": "Droughts",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Natural Disasters",
+    "taxonomyL3": "Droughts",
     "difficulty": "Hard"
   },
   {
@@ -439,6 +487,9 @@
     "subSubject": null,
     "theme": "Disaster Fundamentals",
     "topic": "Hazard, Vulnerability & Capacity Assessment",
+    "taxonomyL1": "Disaster Management",
+    "taxonomyL2": "Disaster Fundamentals",
+    "taxonomyL3": "Hazard, Vulnerability & Capacity Assessment",
     "difficulty": "Hard"
   },
   {
@@ -465,6 +516,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Medium"
   },
   {
@@ -491,6 +545,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -517,6 +574,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Food Security & Buffer Stock",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Food Security & Buffer Stock",
     "difficulty": "Medium"
   },
   {
@@ -543,6 +603,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -569,6 +632,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Hunger & Malnutrition",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Hunger & Malnutrition",
     "difficulty": "Easy"
   },
   {
@@ -595,6 +661,9 @@
     "subSubject": null,
     "theme": "External Sector",
     "topic": "WTO & Trade Agreements",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "External Sector",
+    "taxonomyL3": "WTO & Trade Agreements",
     "difficulty": "Hard"
   },
   {
@@ -621,6 +690,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -647,6 +719,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Medium"
   },
   {
@@ -673,6 +748,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -699,6 +777,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Medium"
   },
   {
@@ -725,6 +806,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Medium"
   },
   {
@@ -751,6 +835,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Food Security & Buffer Stock",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Food Security & Buffer Stock",
     "difficulty": "Medium"
   },
   {
@@ -777,6 +864,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Hard"
   },
   {
@@ -803,6 +893,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Food Security & Buffer Stock",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Food Security & Buffer Stock",
     "difficulty": "Medium"
   },
   {
@@ -829,6 +922,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -855,6 +951,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -881,6 +980,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Hard"
   },
   {
@@ -907,6 +1009,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Medium"
   },
   {
@@ -933,6 +1038,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Medium"
   },
   {
@@ -959,6 +1067,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Hard"
   },
   {
@@ -985,6 +1096,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Medium"
   },
   {
@@ -1011,6 +1125,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Food Security & Buffer Stock",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Food Security & Buffer Stock",
     "difficulty": "Medium"
   },
   {
@@ -1037,6 +1154,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -1063,6 +1183,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -1089,6 +1212,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -1115,6 +1241,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -1141,6 +1270,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Medium"
   },
   {
@@ -1167,6 +1299,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Credit, Insurance & MSP",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Credit, Insurance & MSP",
     "difficulty": "Easy"
   },
   {
@@ -1193,6 +1328,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Credit, Insurance & MSP",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Credit, Insurance & MSP",
     "difficulty": "Hard"
   },
   {
@@ -1219,6 +1357,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Hard"
   },
   {
@@ -1245,6 +1386,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Medium"
   },
   {
@@ -1271,6 +1415,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -1297,6 +1444,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Credit, Insurance & MSP",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Credit, Insurance & MSP",
     "difficulty": "Easy"
   },
   {
@@ -1323,6 +1473,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Land Reforms",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Land Reforms",
     "difficulty": "Medium"
   },
   {
@@ -1349,6 +1502,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Hard"
   },
   {
@@ -1375,6 +1531,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -1401,6 +1560,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Hard"
   },
   {
@@ -1427,6 +1589,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -1453,6 +1618,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Land Reforms",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Land Reforms",
     "difficulty": "Hard"
   },
   {
@@ -1479,6 +1647,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agriculture in the Indian Economy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agriculture in the Indian Economy",
     "difficulty": "Medium"
   },
   {
@@ -1505,6 +1676,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Credit, Insurance & MSP",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Credit, Insurance & MSP",
     "difficulty": "Hard"
   },
   {
@@ -1531,6 +1705,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Hard"
   },
   {
@@ -1557,6 +1734,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Land Reforms",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Land Reforms",
     "difficulty": "Hard"
   },
   {
@@ -1583,6 +1763,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Medium"
   },
   {
@@ -1609,6 +1792,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Expenditure, Subsidies & Disinvestment",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Expenditure, Subsidies & Disinvestment",
     "difficulty": "Hard"
   },
   {
@@ -1635,6 +1821,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Food Security & Buffer Stock",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Food Security & Buffer Stock",
     "difficulty": "Hard"
   },
   {
@@ -1661,6 +1850,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Agricultural Marketing & Food Processing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Agricultural Marketing & Food Processing",
     "difficulty": "Medium"
   },
   {
@@ -1687,6 +1879,9 @@
     "subSubject": null,
     "theme": "Industry & Services",
     "topic": "Manufacturing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Industry & Services",
+    "taxonomyL3": "Manufacturing",
     "difficulty": "Medium"
   },
   {
@@ -1713,6 +1908,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Fiscal Responsibility (FRBM)",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Fiscal Responsibility (FRBM)",
     "difficulty": "Hard"
   },
   {
@@ -1739,6 +1937,9 @@
     "subSubject": null,
     "theme": "External Sector",
     "topic": "Foreign Trade",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "External Sector",
+    "taxonomyL3": "Foreign Trade",
     "difficulty": "Hard"
   },
   {
@@ -1765,6 +1966,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Inclusive Growth & Weaker Sections",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Inclusive Growth & Weaker Sections",
     "difficulty": "Medium"
   },
   {
@@ -1791,6 +1995,9 @@
     "subSubject": null,
     "theme": "Infrastructure",
     "topic": "Transport & Logistics",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Infrastructure",
+    "taxonomyL3": "Transport & Logistics",
     "difficulty": "Medium"
   },
   {
@@ -1817,6 +2024,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Employment & Skill Development",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Employment & Skill Development",
     "difficulty": "Hard"
   },
   {
@@ -1843,6 +2053,9 @@
     "subSubject": null,
     "theme": "Industry & Services",
     "topic": "Startup, Innovation & Entrepreneurship",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Industry & Services",
+    "taxonomyL3": "Startup, Innovation & Entrepreneurship",
     "difficulty": "Hard"
   },
   {
@@ -1869,6 +2082,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Land Reforms",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Land Reforms",
     "difficulty": "Medium"
   },
   {
@@ -1895,6 +2111,9 @@
     "subSubject": null,
     "theme": "Financial System",
     "topic": "RBI & Monetary Policy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Financial System",
+    "taxonomyL3": "RBI & Monetary Policy",
     "difficulty": "Hard"
   },
   {
@@ -1921,6 +2140,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Expenditure, Subsidies & Disinvestment",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Expenditure, Subsidies & Disinvestment",
     "difficulty": "Hard"
   },
   {
@@ -1947,6 +2169,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Inclusive Growth & Weaker Sections",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Inclusive Growth & Weaker Sections",
     "difficulty": "Hard"
   },
   {
@@ -1973,6 +2198,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Employment & Skill Development",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Employment & Skill Development",
     "difficulty": "Hard"
   },
   {
@@ -1999,6 +2227,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Land Reforms",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Land Reforms",
     "difficulty": "Medium"
   },
   {
@@ -2025,6 +2256,9 @@
     "subSubject": null,
     "theme": "Infrastructure",
     "topic": "Communication & Digital Infrastructure",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Infrastructure",
+    "taxonomyL3": "Communication & Digital Infrastructure",
     "difficulty": "Medium"
   },
   {
@@ -2051,6 +2285,9 @@
     "subSubject": null,
     "theme": "Industry & Services",
     "topic": "MSMEs",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Industry & Services",
+    "taxonomyL3": "MSMEs",
     "difficulty": "Medium"
   },
   {
@@ -2077,6 +2314,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Employment & Skill Development",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Employment & Skill Development",
     "difficulty": "Hard"
   },
   {
@@ -2103,6 +2343,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Health",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Health",
     "difficulty": "Medium"
   },
   {
@@ -2129,6 +2372,9 @@
     "subSubject": null,
     "theme": "Financial System",
     "topic": "Financial Inclusion & Digital Payments",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Financial System",
+    "taxonomyL3": "Financial Inclusion & Digital Payments",
     "difficulty": "Medium"
   },
   {
@@ -2155,6 +2401,9 @@
     "subSubject": null,
     "theme": "Infrastructure",
     "topic": "Infrastructure Financing & PPP",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Infrastructure",
+    "taxonomyL3": "Infrastructure Financing & PPP",
     "difficulty": "Medium"
   },
   {
@@ -2181,6 +2430,9 @@
     "subSubject": null,
     "theme": "Infrastructure",
     "topic": "Infrastructure Financing & PPP",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Infrastructure",
+    "taxonomyL3": "Infrastructure Financing & PPP",
     "difficulty": "Medium"
   },
   {
@@ -2207,6 +2459,9 @@
     "subSubject": null,
     "theme": "Economic Fundamentals",
     "topic": "Economic Growth & Development",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Economic Fundamentals",
+    "taxonomyL3": "Economic Growth & Development",
     "difficulty": "Medium"
   },
   {
@@ -2233,6 +2488,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Land Reforms",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Land Reforms",
     "difficulty": "Medium"
   },
   {
@@ -2259,6 +2517,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Government Budget",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Government Budget",
     "difficulty": "Easy"
   },
   {
@@ -2285,6 +2546,9 @@
     "subSubject": null,
     "theme": "Economic Fundamentals",
     "topic": "National Income (GDP, GVA, GNP, NNP)",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Economic Fundamentals",
+    "taxonomyL3": "National Income (GDP, GVA, GNP, NNP)",
     "difficulty": "Medium"
   },
   {
@@ -2311,6 +2575,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Taxation",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Taxation",
     "difficulty": "Hard"
   },
   {
@@ -2337,6 +2604,9 @@
     "subSubject": null,
     "theme": "Infrastructure",
     "topic": "Infrastructure Financing & PPP",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Infrastructure",
+    "taxonomyL3": "Infrastructure Financing & PPP",
     "difficulty": "Hard"
   },
   {
@@ -2363,6 +2633,9 @@
     "subSubject": null,
     "theme": "Economic Fundamentals",
     "topic": "Economic Growth & Development",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Economic Fundamentals",
+    "taxonomyL3": "Economic Growth & Development",
     "difficulty": "Hard"
   },
   {
@@ -2389,6 +2662,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Sustainable Development Goals",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Sustainable Development Goals",
     "difficulty": "Hard"
   },
   {
@@ -2415,6 +2691,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Government Budget",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Government Budget",
     "difficulty": "Hard"
   },
   {
@@ -2441,6 +2720,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Inclusive Growth & Weaker Sections",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Inclusive Growth & Weaker Sections",
     "difficulty": "Medium"
   },
   {
@@ -2467,6 +2749,9 @@
     "subSubject": null,
     "theme": "Economic Fundamentals",
     "topic": "Economic Growth & Development",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Economic Fundamentals",
+    "taxonomyL3": "Economic Growth & Development",
     "difficulty": "Hard"
   },
   {
@@ -2493,6 +2778,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Taxation",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Taxation",
     "difficulty": "Medium"
   },
   {
@@ -2519,6 +2807,9 @@
     "subSubject": null,
     "theme": "External Sector",
     "topic": "Foreign Trade",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "External Sector",
+    "taxonomyL3": "Foreign Trade",
     "difficulty": "Hard"
   },
   {
@@ -2545,6 +2836,9 @@
     "subSubject": null,
     "theme": "Economic Fundamentals",
     "topic": "Economic Planning & NITI Aayog",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Economic Fundamentals",
+    "taxonomyL3": "Economic Planning & NITI Aayog",
     "difficulty": "Easy"
   },
   {
@@ -2571,6 +2865,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Taxation",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Taxation",
     "difficulty": "Medium"
   },
   {
@@ -2597,6 +2894,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Inclusive Growth & Weaker Sections",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Inclusive Growth & Weaker Sections",
     "difficulty": "Medium"
   },
   {
@@ -2623,6 +2923,9 @@
     "subSubject": null,
     "theme": "Industry & Services",
     "topic": "Industrial Policy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Industry & Services",
+    "taxonomyL3": "Industrial Policy",
     "difficulty": "Hard"
   },
   {
@@ -2649,6 +2952,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Government Budget",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Government Budget",
     "difficulty": "Medium"
   },
   {
@@ -2675,6 +2981,9 @@
     "subSubject": null,
     "theme": "Infrastructure",
     "topic": "Infrastructure Financing & PPP",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Infrastructure",
+    "taxonomyL3": "Infrastructure Financing & PPP",
     "difficulty": "Medium"
   },
   {
@@ -2701,6 +3010,9 @@
     "subSubject": null,
     "theme": "Industry & Services",
     "topic": "Manufacturing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Industry & Services",
+    "taxonomyL3": "Manufacturing",
     "difficulty": "Hard"
   },
   {
@@ -2727,6 +3039,9 @@
     "subSubject": null,
     "theme": "Economic Fundamentals",
     "topic": "Economic Growth & Development",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Economic Fundamentals",
+    "taxonomyL3": "Economic Growth & Development",
     "difficulty": "Hard"
   },
   {
@@ -2753,6 +3068,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Inclusive Growth & Weaker Sections",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Inclusive Growth & Weaker Sections",
     "difficulty": "Hard"
   },
   {
@@ -2779,6 +3097,9 @@
     "subSubject": null,
     "theme": "External Sector",
     "topic": "Foreign Trade",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "External Sector",
+    "taxonomyL3": "Foreign Trade",
     "difficulty": "Medium"
   },
   {
@@ -2805,6 +3126,9 @@
     "subSubject": null,
     "theme": "Infrastructure",
     "topic": "Urban Infrastructure",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Infrastructure",
+    "taxonomyL3": "Urban Infrastructure",
     "difficulty": "Hard"
   },
   {
@@ -2831,6 +3155,9 @@
     "subSubject": null,
     "theme": "Financial System",
     "topic": "Financial Inclusion & Digital Payments",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Financial System",
+    "taxonomyL3": "Financial Inclusion & Digital Payments",
     "difficulty": "Easy"
   },
   {
@@ -2857,6 +3184,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Government Budget",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Government Budget",
     "difficulty": "Medium"
   },
   {
@@ -2883,6 +3213,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Employment & Skill Development",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Employment & Skill Development",
     "difficulty": "Hard"
   },
   {
@@ -2909,6 +3242,9 @@
     "subSubject": null,
     "theme": "External Sector",
     "topic": "Foreign Trade",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "External Sector",
+    "taxonomyL3": "Foreign Trade",
     "difficulty": "Hard"
   },
   {
@@ -2935,6 +3271,9 @@
     "subSubject": null,
     "theme": "Industry & Services",
     "topic": "Manufacturing",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Industry & Services",
+    "taxonomyL3": "Manufacturing",
     "difficulty": "Medium"
   },
   {
@@ -2961,6 +3300,9 @@
     "subSubject": null,
     "theme": "External Sector",
     "topic": "Balance of Payments",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "External Sector",
+    "taxonomyL3": "Balance of Payments",
     "difficulty": "Hard"
   },
   {
@@ -2987,6 +3329,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Expenditure, Subsidies & Disinvestment",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Expenditure, Subsidies & Disinvestment",
     "difficulty": "Medium"
   },
   {
@@ -3013,6 +3358,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Employment & Skill Development",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Employment & Skill Development",
     "difficulty": "Medium"
   },
   {
@@ -3039,6 +3387,9 @@
     "subSubject": null,
     "theme": "Industry & Services",
     "topic": "Startup, Innovation & Entrepreneurship",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Industry & Services",
+    "taxonomyL3": "Startup, Innovation & Entrepreneurship",
     "difficulty": "Medium"
   },
   {
@@ -3065,6 +3416,9 @@
     "subSubject": null,
     "theme": "External Sector",
     "topic": "Foreign Trade",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "External Sector",
+    "taxonomyL3": "Foreign Trade",
     "difficulty": "Medium"
   },
   {
@@ -3091,6 +3445,9 @@
     "subSubject": null,
     "theme": "Infrastructure",
     "topic": "Urban Infrastructure",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Infrastructure",
+    "taxonomyL3": "Urban Infrastructure",
     "difficulty": "Medium"
   },
   {
@@ -3117,6 +3474,9 @@
     "subSubject": null,
     "theme": "Infrastructure",
     "topic": "Infrastructure Financing & PPP",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Infrastructure",
+    "taxonomyL3": "Infrastructure Financing & PPP",
     "difficulty": "Hard"
   },
   {
@@ -3143,6 +3503,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Inclusive Growth & Weaker Sections",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Inclusive Growth & Weaker Sections",
     "difficulty": "Hard"
   },
   {
@@ -3169,6 +3532,9 @@
     "subSubject": null,
     "theme": "Agriculture",
     "topic": "Land Reforms",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Agriculture",
+    "taxonomyL3": "Land Reforms",
     "difficulty": "Hard"
   },
   {
@@ -3195,6 +3561,9 @@
     "subSubject": null,
     "theme": "Human Resource Development",
     "topic": "Employment & Skill Development",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Human Resource Development",
+    "taxonomyL3": "Employment & Skill Development",
     "difficulty": "Hard"
   },
   {
@@ -3221,6 +3590,9 @@
     "subSubject": null,
     "theme": "Industry & Services",
     "topic": "Service Sector",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Industry & Services",
+    "taxonomyL3": "Service Sector",
     "difficulty": "Hard"
   },
   {
@@ -3247,6 +3619,9 @@
     "subSubject": null,
     "theme": "Infrastructure",
     "topic": "Infrastructure Financing & PPP",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Infrastructure",
+    "taxonomyL3": "Infrastructure Financing & PPP",
     "difficulty": "Medium"
   },
   {
@@ -3273,6 +3648,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Taxation",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Taxation",
     "difficulty": "Medium"
   },
   {
@@ -3299,6 +3677,9 @@
     "subSubject": null,
     "theme": "External Sector",
     "topic": "Foreign Trade",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "External Sector",
+    "taxonomyL3": "Foreign Trade",
     "difficulty": "Medium"
   },
   {
@@ -3325,6 +3706,9 @@
     "subSubject": null,
     "theme": "External Sector",
     "topic": "Foreign Trade",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "External Sector",
+    "taxonomyL3": "Foreign Trade",
     "difficulty": "Hard"
   },
   {
@@ -3351,6 +3735,9 @@
     "subSubject": null,
     "theme": "Economic Fundamentals",
     "topic": "Economic Reforms (1991 onwards)",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Economic Fundamentals",
+    "taxonomyL3": "Economic Reforms (1991 onwards)",
     "difficulty": "Hard"
   },
   {
@@ -3377,6 +3764,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Taxation",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Taxation",
     "difficulty": "Hard"
   },
   {
@@ -3403,6 +3793,9 @@
     "subSubject": null,
     "theme": "Public Finance",
     "topic": "Fiscal Responsibility (FRBM)",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Public Finance",
+    "taxonomyL3": "Fiscal Responsibility (FRBM)",
     "difficulty": "Medium"
   },
   {
@@ -3429,6 +3822,9 @@
     "subSubject": null,
     "theme": "Industry & Services",
     "topic": "Industrial Policy",
+    "taxonomyL1": "Economy",
+    "taxonomyL2": "Industry & Services",
+    "taxonomyL3": "Industrial Policy",
     "difficulty": "Hard"
   },
   {
@@ -3455,6 +3851,9 @@
     "subSubject": null,
     "theme": "Climate Change",
     "topic": "Climate Mitigation & Adaptation",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Climate Change",
+    "taxonomyL3": "Climate Mitigation & Adaptation",
     "difficulty": "Hard"
   },
   {
@@ -3481,6 +3880,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Natural Resource Management",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Natural Resource Management",
     "difficulty": "Medium"
   },
   {
@@ -3507,6 +3909,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Natural Resource Management",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Natural Resource Management",
     "difficulty": "Medium"
   },
   {
@@ -3533,6 +3938,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Natural Resource Management",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Natural Resource Management",
     "difficulty": "Hard"
   },
   {
@@ -3559,6 +3967,9 @@
     "subSubject": null,
     "theme": "Climate Change",
     "topic": "Carbon Management & Green Technologies",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Climate Change",
+    "taxonomyL3": "Carbon Management & Green Technologies",
     "difficulty": "Medium"
   },
   {
@@ -3585,6 +3996,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Natural Resource Management",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Natural Resource Management",
     "difficulty": "Hard"
   },
   {
@@ -3611,6 +4025,9 @@
     "subSubject": null,
     "theme": "Environmental Governance & Institutions",
     "topic": "Environmental Organisations",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Environmental Governance & Institutions",
+    "taxonomyL3": "Environmental Organisations",
     "difficulty": "Hard"
   },
   {
@@ -3637,6 +4054,9 @@
     "subSubject": null,
     "theme": "Pollution & Waste Management",
     "topic": "Water Pollution",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Pollution & Waste Management",
+    "taxonomyL3": "Water Pollution",
     "difficulty": "Medium"
   },
   {
@@ -3663,6 +4083,9 @@
     "subSubject": null,
     "theme": "Conservation & Protected Areas",
     "topic": "Ramsar Sites",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Conservation & Protected Areas",
+    "taxonomyL3": "Ramsar Sites",
     "difficulty": "Medium"
   },
   {
@@ -3689,6 +4112,9 @@
     "subSubject": null,
     "theme": "Climate Change",
     "topic": "Climate Mitigation & Adaptation",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Climate Change",
+    "taxonomyL3": "Climate Mitigation & Adaptation",
     "difficulty": "Medium"
   },
   {
@@ -3715,6 +4141,9 @@
     "subSubject": null,
     "theme": "Climate Change",
     "topic": "Carbon Management & Green Technologies",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Climate Change",
+    "taxonomyL3": "Carbon Management & Green Technologies",
     "difficulty": "Easy"
   },
   {
@@ -3741,6 +4170,9 @@
     "subSubject": null,
     "theme": "Pollution & Waste Management",
     "topic": "Marine Pollution",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Pollution & Waste Management",
+    "taxonomyL3": "Marine Pollution",
     "difficulty": "Medium"
   },
   {
@@ -3767,6 +4199,9 @@
     "subSubject": null,
     "theme": "Climate Change",
     "topic": "Greenhouse Effect & Global Warming",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Climate Change",
+    "taxonomyL3": "Greenhouse Effect & Global Warming",
     "difficulty": "Medium"
   },
   {
@@ -3793,6 +4228,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Renewable Energy",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Renewable Energy",
     "difficulty": "Hard"
   },
   {
@@ -3819,6 +4257,9 @@
     "subSubject": null,
     "theme": "Pollution & Waste Management",
     "topic": "Air Pollution",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Pollution & Waste Management",
+    "taxonomyL3": "Air Pollution",
     "difficulty": "Hard"
   },
   {
@@ -3845,6 +4286,9 @@
     "subSubject": null,
     "theme": "Ecology & Ecosystems",
     "topic": "Biogeochemical Cycles",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Ecology & Ecosystems",
+    "taxonomyL3": "Biogeochemical Cycles",
     "difficulty": "Medium"
   },
   {
@@ -3871,6 +4315,9 @@
     "subSubject": null,
     "theme": "Environmental Governance & Institutions",
     "topic": "International Conferences",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Environmental Governance & Institutions",
+    "taxonomyL3": "International Conferences",
     "difficulty": "Medium"
   },
   {
@@ -3897,6 +4344,9 @@
     "subSubject": null,
     "theme": "Pollution & Waste Management",
     "topic": "Air Pollution",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Pollution & Waste Management",
+    "taxonomyL3": "Air Pollution",
     "difficulty": "Hard"
   },
   {
@@ -3923,6 +4373,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Renewable Energy",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Renewable Energy",
     "difficulty": "Medium"
   },
   {
@@ -3949,6 +4402,9 @@
     "subSubject": null,
     "theme": "Environmental Governance & Institutions",
     "topic": "Government Schemes & Institutions",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Environmental Governance & Institutions",
+    "taxonomyL3": "Government Schemes & Institutions",
     "difficulty": "Easy"
   },
   {
@@ -3975,6 +4431,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Renewable Energy",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Renewable Energy",
     "difficulty": "Easy"
   },
   {
@@ -4001,6 +4460,9 @@
     "subSubject": null,
     "theme": "Environmental Governance & Institutions",
     "topic": "Government Schemes & Institutions",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Environmental Governance & Institutions",
+    "taxonomyL3": "Government Schemes & Institutions",
     "difficulty": "Easy"
   },
   {
@@ -4027,6 +4489,9 @@
     "subSubject": null,
     "theme": "Pollution & Waste Management",
     "topic": "Environmental Impact Assessment (EIA)",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Pollution & Waste Management",
+    "taxonomyL3": "Environmental Impact Assessment (EIA)",
     "difficulty": "Medium"
   },
   {
@@ -4053,6 +4518,9 @@
     "subSubject": null,
     "theme": "Ecology & Ecosystems",
     "topic": "Ecology Basics",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Ecology & Ecosystems",
+    "taxonomyL3": "Ecology Basics",
     "difficulty": "Medium"
   },
   {
@@ -4079,6 +4547,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Natural Resource Management",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Natural Resource Management",
     "difficulty": "Medium"
   },
   {
@@ -4105,6 +4576,9 @@
     "subSubject": null,
     "theme": "Biodiversity",
     "topic": "Biodiversity Basics",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Biodiversity",
+    "taxonomyL3": "Biodiversity Basics",
     "difficulty": "Medium"
   },
   {
@@ -4131,6 +4605,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Sustainable Development",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Sustainable Development",
     "difficulty": "Medium"
   },
   {
@@ -4157,6 +4634,9 @@
     "subSubject": null,
     "theme": "Conservation & Protected Areas",
     "topic": "Ramsar Sites",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Conservation & Protected Areas",
+    "taxonomyL3": "Ramsar Sites",
     "difficulty": "Medium"
   },
   {
@@ -4183,6 +4663,9 @@
     "subSubject": null,
     "theme": "Pollution & Waste Management",
     "topic": "Solid Waste",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Pollution & Waste Management",
+    "taxonomyL3": "Solid Waste",
     "difficulty": "Hard"
   },
   {
@@ -4209,6 +4692,9 @@
     "subSubject": null,
     "theme": "Climate Change",
     "topic": "Climate Mitigation & Adaptation",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Climate Change",
+    "taxonomyL3": "Climate Mitigation & Adaptation",
     "difficulty": "Medium"
   },
   {
@@ -4235,6 +4721,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Natural Resource Management",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Natural Resource Management",
     "difficulty": "Hard"
   },
   {
@@ -4261,6 +4750,9 @@
     "subSubject": null,
     "theme": "Pollution & Waste Management",
     "topic": "Environmental Impact Assessment (EIA)",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Pollution & Waste Management",
+    "taxonomyL3": "Environmental Impact Assessment (EIA)",
     "difficulty": "Hard"
   },
   {
@@ -4287,6 +4779,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Renewable Energy",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Renewable Energy",
     "difficulty": "Medium"
   },
   {
@@ -4313,6 +4808,9 @@
     "subSubject": null,
     "theme": "Environmental Governance & Institutions",
     "topic": "Government Schemes & Institutions",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Environmental Governance & Institutions",
+    "taxonomyL3": "Government Schemes & Institutions",
     "difficulty": "Hard"
   },
   {
@@ -4339,6 +4837,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Renewable Energy",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Renewable Energy",
     "difficulty": "Hard"
   },
   {
@@ -4365,6 +4866,9 @@
     "subSubject": null,
     "theme": "Pollution & Waste Management",
     "topic": "Environmental Impact Assessment (EIA)",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Pollution & Waste Management",
+    "taxonomyL3": "Environmental Impact Assessment (EIA)",
     "difficulty": "Medium"
   },
   {
@@ -4391,6 +4895,9 @@
     "subSubject": null,
     "theme": "Climate Change",
     "topic": "Carbon Management & Green Technologies",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Climate Change",
+    "taxonomyL3": "Carbon Management & Green Technologies",
     "difficulty": "Hard"
   },
   {
@@ -4417,6 +4924,9 @@
     "subSubject": null,
     "theme": "Pollution & Waste Management",
     "topic": "Hazardous Waste",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Pollution & Waste Management",
+    "taxonomyL3": "Hazardous Waste",
     "difficulty": "Hard"
   },
   {
@@ -4443,6 +4953,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Natural Resource Management",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Natural Resource Management",
     "difficulty": "Hard"
   },
   {
@@ -4469,6 +4982,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Renewable Energy",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Renewable Energy",
     "difficulty": "Medium"
   },
   {
@@ -4495,6 +5011,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "Renewable Energy",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "Renewable Energy",
     "difficulty": "Easy"
   },
   {
@@ -4521,6 +5040,9 @@
     "subSubject": null,
     "theme": "Sustainable Development",
     "topic": "SDGs & Circular Economy",
+    "taxonomyL1": "Environment",
+    "taxonomyL2": "Sustainable Development",
+    "taxonomyL3": "SDGs & Circular Economy",
     "difficulty": "Medium"
   },
   {
@@ -4547,6 +5069,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Coastal & Offshore Security",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Coastal & Offshore Security",
     "difficulty": "Medium"
   },
   {
@@ -4573,6 +5098,9 @@
     "subSubject": null,
     "theme": "Insurgency & Separatism",
     "topic": "Insurgency in North-East India",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Insurgency & Separatism",
+    "taxonomyL3": "Insurgency in North-East India",
     "difficulty": "Hard"
   },
   {
@@ -4599,6 +5127,9 @@
     "subSubject": null,
     "theme": "Terrorism & Extremism",
     "topic": "Left Wing Extremism (Naxalism)",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Terrorism & Extremism",
+    "taxonomyL3": "Left Wing Extremism (Naxalism)",
     "difficulty": "Easy"
   },
   {
@@ -4625,6 +5156,9 @@
     "subSubject": null,
     "theme": "Terrorism & Extremism",
     "topic": "Terrorism in India",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Terrorism & Extremism",
+    "taxonomyL3": "Terrorism in India",
     "difficulty": "Medium"
   },
   {
@@ -4651,6 +5185,9 @@
     "subSubject": null,
     "theme": "Media & Communication Networks",
     "topic": "Social Media & Internal Security",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Media & Communication Networks",
+    "taxonomyL3": "Social Media & Internal Security",
     "difficulty": "Medium"
   },
   {
@@ -4677,6 +5214,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Border Infrastructure & Smart Fencing",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Border Infrastructure & Smart Fencing",
     "difficulty": "Hard"
   },
   {
@@ -4703,6 +5243,9 @@
     "subSubject": null,
     "theme": "Organised Crime & Illegal Networks",
     "topic": "Linkages Between Organised Crime & Terrorism",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Organised Crime & Illegal Networks",
+    "taxonomyL3": "Linkages Between Organised Crime & Terrorism",
     "difficulty": "Medium"
   },
   {
@@ -4729,6 +5272,9 @@
     "subSubject": null,
     "theme": "Cyber Security & Financial Security",
     "topic": "Terror Financing",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Cyber Security & Financial Security",
+    "taxonomyL3": "Terror Financing",
     "difficulty": "Medium"
   },
   {
@@ -4755,6 +5301,9 @@
     "subSubject": null,
     "theme": "Security Forces & National Security Architecture",
     "topic": "Intelligence Agencies",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Security Forces & National Security Architecture",
+    "taxonomyL3": "Intelligence Agencies",
     "difficulty": "Medium"
   },
   {
@@ -4781,6 +5330,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Cross-Border Infiltration & Smuggling",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Cross-Border Infiltration & Smuggling",
     "difficulty": "Medium"
   },
   {
@@ -4807,6 +5359,9 @@
     "subSubject": null,
     "theme": "Insurgency & Separatism",
     "topic": "Jammu & Kashmir Security Issues",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Insurgency & Separatism",
+    "taxonomyL3": "Jammu & Kashmir Security Issues",
     "difficulty": "Medium"
   },
   {
@@ -4833,6 +5388,9 @@
     "subSubject": null,
     "theme": "Terrorism & Extremism",
     "topic": "Linkages Between Development & Spread of Extremism",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Terrorism & Extremism",
+    "taxonomyL3": "Linkages Between Development & Spread of Extremism",
     "difficulty": "Hard"
   },
   {
@@ -4859,6 +5417,9 @@
     "subSubject": null,
     "theme": "Cyber Security & Financial Security",
     "topic": "Cyber Security",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Cyber Security & Financial Security",
+    "taxonomyL3": "Cyber Security",
     "difficulty": "Hard"
   },
   {
@@ -4885,6 +5446,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Coastal & Offshore Security",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Coastal & Offshore Security",
     "difficulty": "Medium"
   },
   {
@@ -4911,6 +5475,9 @@
     "subSubject": null,
     "theme": "Organised Crime & Illegal Networks",
     "topic": "Linkages Between Organised Crime & Terrorism",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Organised Crime & Illegal Networks",
+    "taxonomyL3": "Linkages Between Organised Crime & Terrorism",
     "difficulty": "Hard"
   },
   {
@@ -4937,6 +5504,9 @@
     "subSubject": null,
     "theme": "Terrorism & Extremism",
     "topic": "Terrorism in India",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Terrorism & Extremism",
+    "taxonomyL3": "Terrorism in India",
     "difficulty": "Hard"
   },
   {
@@ -4963,6 +5533,9 @@
     "subSubject": null,
     "theme": "Internal Security Challenges",
     "topic": "External State Actors",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Internal Security Challenges",
+    "taxonomyL3": "External State Actors",
     "difficulty": "Hard"
   },
   {
@@ -4989,6 +5562,9 @@
     "subSubject": null,
     "theme": "Cyber Security & Financial Security",
     "topic": "Cyber Terrorism",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Cyber Security & Financial Security",
+    "taxonomyL3": "Cyber Terrorism",
     "difficulty": "Hard"
   },
   {
@@ -5015,6 +5591,9 @@
     "subSubject": null,
     "theme": "Cyber Security & Financial Security",
     "topic": "Money Laundering",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Cyber Security & Financial Security",
+    "taxonomyL3": "Money Laundering",
     "difficulty": "Hard"
   },
   {
@@ -5041,6 +5620,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Border Area Security Challenges",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Border Area Security Challenges",
     "difficulty": "Hard"
   },
   {
@@ -5067,6 +5649,9 @@
     "subSubject": null,
     "theme": "Terrorism & Extremism",
     "topic": "Left Wing Extremism (Naxalism)",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Terrorism & Extremism",
+    "taxonomyL3": "Left Wing Extremism (Naxalism)",
     "difficulty": "Hard"
   },
   {
@@ -5093,6 +5678,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Border Management",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Border Management",
     "difficulty": "Hard"
   },
   {
@@ -5119,6 +5707,9 @@
     "subSubject": null,
     "theme": "Cyber Security & Financial Security",
     "topic": "Cyber Crimes",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Cyber Security & Financial Security",
+    "taxonomyL3": "Cyber Crimes",
     "difficulty": "Easy"
   },
   {
@@ -5145,6 +5736,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Border Area Security Challenges",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Border Area Security Challenges",
     "difficulty": "Hard"
   },
   {
@@ -5171,6 +5765,9 @@
     "subSubject": null,
     "theme": "Security Forces & National Security Architecture",
     "topic": "National Investigation Agency (NIA)",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Security Forces & National Security Architecture",
+    "taxonomyL3": "National Investigation Agency (NIA)",
     "difficulty": "Hard"
   },
   {
@@ -5197,6 +5794,9 @@
     "subSubject": null,
     "theme": "Cyber Security & Financial Security",
     "topic": "Cyber Crimes",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Cyber Security & Financial Security",
+    "taxonomyL3": "Cyber Crimes",
     "difficulty": "Medium"
   },
   {
@@ -5223,6 +5823,9 @@
     "subSubject": null,
     "theme": "Terrorism & Extremism",
     "topic": "Counter-Terrorism Measures",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Terrorism & Extremism",
+    "taxonomyL3": "Counter-Terrorism Measures",
     "difficulty": "Hard"
   },
   {
@@ -5249,6 +5852,9 @@
     "subSubject": null,
     "theme": "Organised Crime & Illegal Networks",
     "topic": "Drug Trafficking",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Organised Crime & Illegal Networks",
+    "taxonomyL3": "Drug Trafficking",
     "difficulty": "Hard"
   },
   {
@@ -5275,6 +5881,9 @@
     "subSubject": null,
     "theme": "Terrorism & Extremism",
     "topic": "Left Wing Extremism (Naxalism)",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Terrorism & Extremism",
+    "taxonomyL3": "Left Wing Extremism (Naxalism)",
     "difficulty": "Easy"
   },
   {
@@ -5301,6 +5910,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Border Area Security Challenges",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Border Area Security Challenges",
     "difficulty": "Medium"
   },
   {
@@ -5327,6 +5939,9 @@
     "subSubject": null,
     "theme": "Cyber Security & Financial Security",
     "topic": "Terror Financing",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Cyber Security & Financial Security",
+    "taxonomyL3": "Terror Financing",
     "difficulty": "Medium"
   },
   {
@@ -5353,6 +5968,9 @@
     "subSubject": null,
     "theme": "Governance & Internal Security",
     "topic": "Governance & Internal Security",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Governance & Internal Security",
+    "taxonomyL3": "Governance & Internal Security",
     "difficulty": "Medium"
   },
   {
@@ -5379,6 +5997,9 @@
     "subSubject": null,
     "theme": "Insurgency & Separatism",
     "topic": "Insurgency in North-East India",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Insurgency & Separatism",
+    "taxonomyL3": "Insurgency in North-East India",
     "difficulty": "Medium"
   },
   {
@@ -5405,6 +6026,9 @@
     "subSubject": null,
     "theme": "Cyber Security & Financial Security",
     "topic": "Cyber Security",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Cyber Security & Financial Security",
+    "taxonomyL3": "Cyber Security",
     "difficulty": "Medium"
   },
   {
@@ -5431,6 +6055,9 @@
     "subSubject": null,
     "theme": "Media & Communication Networks",
     "topic": "Social Media & Internal Security",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Media & Communication Networks",
+    "taxonomyL3": "Social Media & Internal Security",
     "difficulty": "Medium"
   },
   {
@@ -5457,6 +6084,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Border Management",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Border Management",
     "difficulty": "Medium"
   },
   {
@@ -5483,6 +6113,9 @@
     "subSubject": null,
     "theme": "Terrorism & Extremism",
     "topic": "Terrorism in India",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Terrorism & Extremism",
+    "taxonomyL3": "Terrorism in India",
     "difficulty": "Hard"
   },
   {
@@ -5509,6 +6142,9 @@
     "subSubject": null,
     "theme": "Terrorism & Extremism",
     "topic": "Counter-Terrorism Measures",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Terrorism & Extremism",
+    "taxonomyL3": "Counter-Terrorism Measures",
     "difficulty": "Hard"
   },
   {
@@ -5535,6 +6171,9 @@
     "subSubject": null,
     "theme": "Cyber Security & Financial Security",
     "topic": "Cyber Security",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Cyber Security & Financial Security",
+    "taxonomyL3": "Cyber Security",
     "difficulty": "Hard"
   },
   {
@@ -5561,6 +6200,9 @@
     "subSubject": null,
     "theme": "Organised Crime & Illegal Networks",
     "topic": "Linkages Between Development & Spread of Extremism",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Organised Crime & Illegal Networks",
+    "taxonomyL3": "Linkages Between Development & Spread of Extremism",
     "difficulty": "Hard"
   },
   {
@@ -5587,6 +6229,9 @@
     "subSubject": null,
     "theme": "Terrorism & Extremism",
     "topic": "Terrorism in India",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Terrorism & Extremism",
+    "taxonomyL3": "Terrorism in India",
     "difficulty": "Hard"
   },
   {
@@ -5613,6 +6258,9 @@
     "subSubject": null,
     "theme": "Governance & Internal Security",
     "topic": "Criminal Justice System",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Governance & Internal Security",
+    "taxonomyL3": "Criminal Justice System",
     "difficulty": "Hard"
   },
   {
@@ -5639,6 +6287,9 @@
     "subSubject": null,
     "theme": "Cyber Security & Financial Security",
     "topic": "Critical Information Infrastructure Protection",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Cyber Security & Financial Security",
+    "taxonomyL3": "Critical Information Infrastructure Protection",
     "difficulty": "Medium"
   },
   {
@@ -5665,6 +6316,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Border Area Security Challenges",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Border Area Security Challenges",
     "difficulty": "Medium"
   },
   {
@@ -5691,6 +6345,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Coastal & Offshore Security",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Coastal & Offshore Security",
     "difficulty": "Hard"
   },
   {
@@ -5717,6 +6374,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Cross-Border Infiltration & Smuggling",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Cross-Border Infiltration & Smuggling",
     "difficulty": "Medium"
   },
   {
@@ -5743,6 +6403,9 @@
     "subSubject": null,
     "theme": "Internal Security Miscellaneous",
     "topic": "Miscellaneous Internal Security Concepts",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Internal Security Miscellaneous",
+    "taxonomyL3": "Miscellaneous Internal Security Concepts",
     "difficulty": "Hard"
   },
   {
@@ -5769,6 +6432,9 @@
     "subSubject": null,
     "theme": "Terrorism & Extremism",
     "topic": "Radicalisation",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Terrorism & Extremism",
+    "taxonomyL3": "Radicalisation",
     "difficulty": "Hard"
   },
   {
@@ -5795,6 +6461,9 @@
     "subSubject": null,
     "theme": "Border Management & Coastal Security",
     "topic": "Border Management",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Border Management & Coastal Security",
+    "taxonomyL3": "Border Management",
     "difficulty": "Hard"
   },
   {
@@ -5821,6 +6490,9 @@
     "subSubject": null,
     "theme": "Cyber Security & Financial Security",
     "topic": "Cyber Terrorism",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Cyber Security & Financial Security",
+    "taxonomyL3": "Cyber Terrorism",
     "difficulty": "Hard"
   },
   {
@@ -5847,6 +6519,9 @@
     "subSubject": null,
     "theme": "Media & Communication Networks",
     "topic": "Social Media & Internal Security",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Media & Communication Networks",
+    "taxonomyL3": "Social Media & Internal Security",
     "difficulty": "Easy"
   },
   {
@@ -5873,6 +6548,9 @@
     "subSubject": null,
     "theme": "Cyber Security & Financial Security",
     "topic": "Money Laundering",
+    "taxonomyL1": "Internal Security",
+    "taxonomyL2": "Cyber Security & Financial Security",
+    "taxonomyL3": "Money Laundering",
     "difficulty": "Medium"
   },
   {
@@ -5899,6 +6577,9 @@
     "subSubject": null,
     "theme": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
     "topic": "Achievements of Indians in Science & Technology",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
+    "taxonomyL3": "Achievements of Indians in Science & Technology",
     "difficulty": "Easy"
   },
   {
@@ -5925,6 +6606,9 @@
     "subSubject": null,
     "theme": "Nuclear Technology",
     "topic": "Nuclear Energy & Reactors",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Nuclear Technology",
+    "taxonomyL3": "Nuclear Energy & Reactors",
     "difficulty": "Medium"
   },
   {
@@ -5951,6 +6635,9 @@
     "subSubject": null,
     "theme": "Information & Communication Technology (ICT)",
     "topic": "Semiconductor Technology",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Information & Communication Technology (ICT)",
+    "taxonomyL3": "Semiconductor Technology",
     "difficulty": "Medium"
   },
   {
@@ -5977,6 +6664,9 @@
     "subSubject": null,
     "theme": "Nanotechnology",
     "topic": "Applications of Nanotechnology",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Nanotechnology",
+    "taxonomyL3": "Applications of Nanotechnology",
     "difficulty": "Medium"
   },
   {
@@ -6003,6 +6693,9 @@
     "subSubject": null,
     "theme": "Energy Technology",
     "topic": "Emerging Energy Technologies",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Energy Technology",
+    "taxonomyL3": "Emerging Energy Technologies",
     "difficulty": "Hard"
   },
   {
@@ -6029,6 +6722,9 @@
     "subSubject": null,
     "theme": "Energy Technology",
     "topic": "Emerging Energy Technologies",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Energy Technology",
+    "taxonomyL3": "Emerging Energy Technologies",
     "difficulty": "Hard"
   },
   {
@@ -6055,6 +6751,9 @@
     "subSubject": null,
     "theme": "Space Technology",
     "topic": "Space Missions & Observatories",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Space Technology",
+    "taxonomyL3": "Space Missions & Observatories",
     "difficulty": "Medium"
   },
   {
@@ -6081,6 +6780,9 @@
     "subSubject": null,
     "theme": "Information & Communication Technology (ICT)",
     "topic": "Cyber Security & Data Protection",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Information & Communication Technology (ICT)",
+    "taxonomyL3": "Cyber Security & Data Protection",
     "difficulty": "Medium"
   },
   {
@@ -6107,6 +6809,9 @@
     "subSubject": null,
     "theme": "Information & Communication Technology (ICT)",
     "topic": "Digital India & e-Governance Technologies",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Information & Communication Technology (ICT)",
+    "taxonomyL3": "Digital India & e-Governance Technologies",
     "difficulty": "Medium"
   },
   {
@@ -6133,6 +6838,9 @@
     "subSubject": null,
     "theme": "Space Technology",
     "topic": "ISRO & Indian Space Programme",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Space Technology",
+    "taxonomyL3": "ISRO & Indian Space Programme",
     "difficulty": "Hard"
   },
   {
@@ -6159,6 +6867,9 @@
     "subSubject": null,
     "theme": "Energy Technology",
     "topic": "Biofuels & Alternative Fuels",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Energy Technology",
+    "taxonomyL3": "Biofuels & Alternative Fuels",
     "difficulty": "Medium"
   },
   {
@@ -6185,6 +6896,9 @@
     "subSubject": null,
     "theme": "Information & Communication Technology (ICT)",
     "topic": "Artificial Intelligence & Machine Learning",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Information & Communication Technology (ICT)",
+    "taxonomyL3": "Artificial Intelligence & Machine Learning",
     "difficulty": "Medium"
   },
   {
@@ -6211,6 +6925,9 @@
     "subSubject": null,
     "theme": "Human Health & Diseases",
     "topic": "Immunity, Vaccines & Immunisation",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Human Health & Diseases",
+    "taxonomyL3": "Immunity, Vaccines & Immunisation",
     "difficulty": "Medium"
   },
   {
@@ -6237,6 +6954,9 @@
     "subSubject": null,
     "theme": "Space Technology",
     "topic": "Space Missions & Observatories",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Space Technology",
+    "taxonomyL3": "Space Missions & Observatories",
     "difficulty": "Medium"
   },
   {
@@ -6263,6 +6983,9 @@
     "subSubject": null,
     "theme": "Nanotechnology",
     "topic": "Advanced Materials",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Nanotechnology",
+    "taxonomyL3": "Advanced Materials",
     "difficulty": "Medium"
   },
   {
@@ -6289,6 +7012,9 @@
     "subSubject": null,
     "theme": "Biotechnology",
     "topic": "Agricultural & Industrial Biotechnology",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Biotechnology",
+    "taxonomyL3": "Agricultural & Industrial Biotechnology",
     "difficulty": "Medium"
   },
   {
@@ -6315,6 +7041,9 @@
     "subSubject": null,
     "theme": "Defence Technology",
     "topic": "Missile Systems & Missile Defence",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Defence Technology",
+    "taxonomyL3": "Missile Systems & Missile Defence",
     "difficulty": "Medium"
   },
   {
@@ -6341,6 +7070,9 @@
     "subSubject": null,
     "theme": "Human Health & Diseases",
     "topic": "Public Health Technologies",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Human Health & Diseases",
+    "taxonomyL3": "Public Health Technologies",
     "difficulty": "Medium"
   },
   {
@@ -6367,6 +7099,9 @@
     "subSubject": null,
     "theme": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
     "topic": "Development of New Technology",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
+    "taxonomyL3": "Development of New Technology",
     "difficulty": "Easy"
   },
   {
@@ -6393,6 +7128,9 @@
     "subSubject": null,
     "theme": "Nanotechnology",
     "topic": "Applications of Nanotechnology",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Nanotechnology",
+    "taxonomyL3": "Applications of Nanotechnology",
     "difficulty": "Easy"
   },
   {
@@ -6419,6 +7157,9 @@
     "subSubject": null,
     "theme": "Biotechnology",
     "topic": "Biosafety, Bioethics & Biopiracy",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Biotechnology",
+    "taxonomyL3": "Biosafety, Bioethics & Biopiracy",
     "difficulty": "Medium"
   },
   {
@@ -6445,6 +7186,9 @@
     "subSubject": null,
     "theme": "Space Technology",
     "topic": "ISRO & Indian Space Programme",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Space Technology",
+    "taxonomyL3": "ISRO & Indian Space Programme",
     "difficulty": "Medium"
   },
   {
@@ -6471,6 +7215,9 @@
     "subSubject": null,
     "theme": "Information & Communication Technology (ICT)",
     "topic": "Cyber Security & Data Protection",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Information & Communication Technology (ICT)",
+    "taxonomyL3": "Cyber Security & Data Protection",
     "difficulty": "Hard"
   },
   {
@@ -6497,6 +7244,9 @@
     "subSubject": null,
     "theme": "Biotechnology",
     "topic": "Biotechnology in Medicine",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Biotechnology",
+    "taxonomyL3": "Biotechnology in Medicine",
     "difficulty": "Medium"
   },
   {
@@ -6523,6 +7273,9 @@
     "subSubject": null,
     "theme": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
     "topic": "Achievements of Indians in Science & Technology",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
+    "taxonomyL3": "Achievements of Indians in Science & Technology",
     "difficulty": "Hard"
   },
   {
@@ -6549,6 +7302,9 @@
     "subSubject": null,
     "theme": "Nuclear Technology",
     "topic": "Nuclear Energy & Reactors",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Nuclear Technology",
+    "taxonomyL3": "Nuclear Energy & Reactors",
     "difficulty": "Hard"
   },
   {
@@ -6575,6 +7331,9 @@
     "subSubject": null,
     "theme": "Space Technology",
     "topic": "ISRO & Indian Space Programme",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Space Technology",
+    "taxonomyL3": "ISRO & Indian Space Programme",
     "difficulty": "Hard"
   },
   {
@@ -6601,6 +7360,9 @@
     "subSubject": null,
     "theme": "Human Health & Diseases",
     "topic": "Emerging Medical Technologies",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Human Health & Diseases",
+    "taxonomyL3": "Emerging Medical Technologies",
     "difficulty": "Medium"
   },
   {
@@ -6627,6 +7389,9 @@
     "subSubject": null,
     "theme": "Nanotechnology",
     "topic": "Nanotechnology in India",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Nanotechnology",
+    "taxonomyL3": "Nanotechnology in India",
     "difficulty": "Medium"
   },
   {
@@ -6653,6 +7418,9 @@
     "subSubject": null,
     "theme": "Space Technology",
     "topic": "Satellite Applications",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Space Technology",
+    "taxonomyL3": "Satellite Applications",
     "difficulty": "Medium"
   },
   {
@@ -6679,6 +7447,9 @@
     "subSubject": null,
     "theme": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
     "topic": "Intellectual Property Rights (IPR)",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
+    "taxonomyL3": "Intellectual Property Rights (IPR)",
     "difficulty": "Hard"
   },
   {
@@ -6705,6 +7476,9 @@
     "subSubject": null,
     "theme": "Information & Communication Technology (ICT)",
     "topic": "Robotics & Automation",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Information & Communication Technology (ICT)",
+    "taxonomyL3": "Robotics & Automation",
     "difficulty": "Medium"
   },
   {
@@ -6731,6 +7505,9 @@
     "subSubject": null,
     "theme": "Space Technology",
     "topic": "Navigation & Communication Systems",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Space Technology",
+    "taxonomyL3": "Navigation & Communication Systems",
     "difficulty": "Hard"
   },
   {
@@ -6757,6 +7534,9 @@
     "subSubject": null,
     "theme": "Human Health & Diseases",
     "topic": "Medicines & Drug Development",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Human Health & Diseases",
+    "taxonomyL3": "Medicines & Drug Development",
     "difficulty": "Hard"
   },
   {
@@ -6783,6 +7563,9 @@
     "subSubject": null,
     "theme": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
     "topic": "Science Policy & Innovation",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
+    "taxonomyL3": "Science Policy & Innovation",
     "difficulty": "Hard"
   },
   {
@@ -6809,6 +7592,9 @@
     "subSubject": null,
     "theme": "Nanotechnology",
     "topic": "Advanced Materials",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Nanotechnology",
+    "taxonomyL3": "Advanced Materials",
     "difficulty": "Medium"
   },
   {
@@ -6835,6 +7621,9 @@
     "subSubject": null,
     "theme": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
     "topic": "Development of New Technology",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
+    "taxonomyL3": "Development of New Technology",
     "difficulty": "Medium"
   },
   {
@@ -6861,6 +7650,9 @@
     "subSubject": null,
     "theme": "Information & Communication Technology (ICT)",
     "topic": "Cyber Security & Data Protection",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Information & Communication Technology (ICT)",
+    "taxonomyL3": "Cyber Security & Data Protection",
     "difficulty": "Easy"
   },
   {
@@ -6887,6 +7679,9 @@
     "subSubject": null,
     "theme": "Science & Technology Miscellaneous",
     "topic": "Miscellaneous Science & Tech Concepts",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Science & Technology Miscellaneous",
+    "taxonomyL3": "Miscellaneous Science & Tech Concepts",
     "difficulty": "Medium"
   },
   {
@@ -6913,6 +7708,9 @@
     "subSubject": null,
     "theme": "Human Health & Diseases",
     "topic": "Medicines & Drug Development",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Human Health & Diseases",
+    "taxonomyL3": "Medicines & Drug Development",
     "difficulty": "Medium"
   },
   {
@@ -6939,6 +7737,9 @@
     "subSubject": null,
     "theme": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
     "topic": "Intellectual Property Rights (IPR)",
+    "taxonomyL1": "Science & Technology",
+    "taxonomyL2": "Science Policy, Innovation & Intellectual Property Rights (IPR)",
+    "taxonomyL3": "Intellectual Property Rights (IPR)",
     "difficulty": "Hard"
   }
 ]

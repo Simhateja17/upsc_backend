@@ -35,16 +35,42 @@ export interface CommunityStats {
   avgAccuracy: number;
 }
 
-const FIRST_NAMES = [
-  "Aarav", "Aditi", "Akash", "Ananya", "Arjun", "Bhavya", "Charu", "Dev", "Diya", "Isha",
-  "Karan", "Kavya", "Manasa", "Meera", "Nikhil", "Pranav", "Priya", "Rahul", "Riya", "Rohan",
-  "Saanvi", "Sakshi", "Samar", "Sanya", "Suri", "Tanvi", "Varun", "Vidya", "Yash", "Zoya",
+const FIRST_NAME_SEEDS = [
+  "Aarav", "Aditi", "Akash", "Amrita", "Ananya", "Anirudh", "Aparna", "Arjun", "Ashwin", "Avani",
+  "Bhavya", "Charu", "Devika", "Dhruv", "Diya", "Eshaan", "Fatima", "Gaurav", "Gayatri", "Harsh",
+  "Ibrahim", "Ira", "Isha", "Jasleen", "Kabir", "Kalyani", "Karan", "Kavya", "Krishna", "Lakshmi",
+  "Leela", "Madhav", "Manasa", "Meera", "Mihir", "Nandini", "Neel", "Nikhil", "Nivedita", "Ojas",
+  "Parth", "Pranav", "Prisha", "Rahul", "Rehan", "Rhea", "Riya", "Rohan", "Rudra", "Saanvi",
+  "Sakshi", "Samar", "Sanya", "Shaurya", "Shreya", "Siddharth", "Simran", "Suhani", "Tanvi", "Tara",
+  "Uday", "Uma", "Vaibhav", "Varun", "Vedant", "Vidya", "Vihaan", "Yash", "Zara", "Zoya",
+  "Aabha", "Aahan", "Aakriti", "Aaliya", "Abhay", "Abhinav", "Adarsh", "Aditya", "Advait", "Ahaan",
+  "Aishwarya", "Ajay", "Alisha", "Aman", "Amaya", "Amit", "Anika", "Anjali", "Anmol", "Ansh",
+  "Anushka", "Arnav", "Arpita", "Arya", "Asha", "Atharv", "Ayush", "Bharat", "Chaitanya", "Chirag",
+  "Damini", "Darshan", "Deepak", "Deepika", "Dev", "Divya", "Farhan", "Gitanjali", "Himanshu", "Hriday",
+  "Ishan", "Jatin", "Juhi", "Kartik", "Khushi", "Lavanya", "Mansi", "Mayank", "Mohit", "Namrata",
+  "Naveen", "Neha", "Niranjan", "Pallavi", "Pooja", "Rachit", "Raghav", "Rashmi", "Ritika", "Sahil",
+  "Sameer", "Sanjana", "Satvik", "Shivani", "Sneha", "Sourav", "Suraj", "Swati", "Trisha", "Vani",
 ];
 
-const LAST_NAMES = [
-  "Sharma", "Verma", "Patel", "Singh", "Kumar", "Gupta", "Joshi", "Mishra", "Iyer", "Reddy",
-  "Rao", "Nair", "Menon", "Mehta", "Das", "Sen", "Jain", "Kapoor", "Bose", "Chandra",
+const LAST_NAME_SEEDS = [
+  "Acharya", "Agarwal", "Banerjee", "Baruah", "Basu", "Bhatia", "Bora", "Chakma", "Chatterjee", "D'Souza",
+  "Devi", "Dubey", "Fernandes", "Gill", "Gogoi", "Gowda", "Hazarika", "Iyengar", "Jadhav", "Kapadia",
+  "Kashyap", "Kaur", "Khan", "Kulkarni", "Lal", "Lama", "Mahato", "Malhotra", "Mann", "Marandi",
+  "Mathew", "Meitei", "Naik", "Nambiar", "Narayanan", "Oraon", "Pandian", "Pillai", "Qureshi", "Rajput",
+  "Rathore", "Roy", "Saxena", "Sethi", "Sheikh", "Subramaniam", "Tamang", "Toppo", "Tripathi", "Venkataraman",
+  "Abraham", "Adhikari", "Ambedkar", "Anand", "Ansari", "Apte", "Arora", "Awasthi", "Bagchi", "Bajaj",
+  "Balakrishnan", "Barman", "Barua", "Bedi", "Bhagat", "Bhattacharya", "Biswas", "Borkar", "Chauhan", "Chawla",
+  "Cherian", "Dahiya", "Deka", "Desai", "Deshmukh", "Dhawan", "Dixit", "Dutta", "Ekka", "Ganguly",
+  "Ghosh", "Gokhale", "Goswami", "Grover", "Handa", "Hegde", "Hussain", "Jain", "Jha", "Joseph",
+  "Kadam", "Kalita", "Kamble", "Kannan", "Kapur", "Kataria", "Kaul", "Kohli", "Konwar", "Krishnan",
+  "Lahiri", "Mahajan", "Majumdar", "Mandal", "Menon", "Mishra", "Mukherjee", "Murmu", "Nair", "Nath",
+  "Nayak", "Pandey", "Parmar", "Paswan", "Patel", "Patnaik", "Pradhan", "Rai", "Rajan", "Rao",
+  "Reddy", "Saha", "Saikia", "Sarin", "Shah", "Sharma", "Shukla", "Sidhu", "Singh", "Sinha",
+  "Solanki", "Soren", "Srivastava", "Tiwari", "Vaidya", "Varma", "Verma", "Yadav", "Zachariah", "Zutsi",
 ];
+
+const DISTINCT_FIRST_NAMES = FIRST_NAME_SEEDS;
+const DISTINCT_LAST_NAMES = LAST_NAME_SEEDS;
 
 function seededRand(seed: number) {
   let s = seed >>> 0;
@@ -79,14 +105,21 @@ function avg(values: number[]) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 }
 
+function syntheticNameForIndex(index: number) {
+  const firstName = DISTINCT_FIRST_NAMES[index % DISTINCT_FIRST_NAMES.length];
+  const lastName = DISTINCT_LAST_NAMES[
+    (Math.floor(index / DISTINCT_FIRST_NAMES.length) + index * 7) % DISTINCT_LAST_NAMES.length
+  ];
+  return { firstName, lastName };
+}
+
 export function buildSyntheticLeaderboardRows(range = "all", count = 937, now = new Date()): SyntheticLeaderboardRow[] {
   const bucket = currentBucket(now);
   const seedBase = hashSeed(`${todayKey(now)}:${bucket}:${range}`);
 
   return Array.from({ length: count }, (_, index) => {
     const rnd = seededRand(seedBase + index * 7919 + 31337);
-    const firstName = FIRST_NAMES[Math.floor(rnd() * FIRST_NAMES.length)];
-    const lastName = LAST_NAMES[Math.floor(rnd() * LAST_NAMES.length)];
+    const { firstName, lastName } = syntheticNameForIndex(index);
     const tier = rnd();
 
     let dailyMcqScore: number;
@@ -218,4 +251,3 @@ export function buildCommunityStats(params: {
     avgAccuracy,
   };
 }
-

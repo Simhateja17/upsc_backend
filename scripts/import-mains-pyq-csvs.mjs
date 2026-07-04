@@ -181,6 +181,7 @@ function normalizeRow(row, header, fileName, csvRowNumber) {
   const subSubject = normalizeWhitespace(get("Sub Subject")) || null;
   const theme = normalizeWhitespace(get("Theme")) || null;
   const topic = normalizeWhitespace(get("Topic")) || null;
+  const taxonomy = buildMainsTaxonomy({ paper, subject, subSubject, theme, topic });
   const difficulty = titleCaseDifficulty(get("Difficulty"));
   const importKey = ["mains", year, paper, questionNumber].join(":").toLowerCase();
 
@@ -208,7 +209,27 @@ function normalizeRow(row, header, fileName, csvRowNumber) {
     subSubject,
     theme,
     topic,
+    taxonomyL1: taxonomy.l1,
+    taxonomyL2: taxonomy.l2,
+    taxonomyL3: taxonomy.l3,
     difficulty,
+  };
+}
+
+function buildMainsTaxonomy({ paper, subject, subSubject, theme, topic }) {
+  const normalizedPaper = String(paper || "").toUpperCase();
+  if (normalizedPaper === "GS-I") {
+    return {
+      l1: subject,
+      l2: subSubject || theme || null,
+      l3: theme || null,
+    };
+  }
+
+  return {
+    l1: subject,
+    l2: theme || subSubject || null,
+    l3: topic || null,
   };
 }
 
@@ -291,6 +312,9 @@ function dbRowFromQuestion(q) {
     subSubject: q.subSubject,
     theme: q.theme,
     topic: q.topic,
+    taxonomyL1: q.taxonomyL1,
+    taxonomyL2: q.taxonomyL2,
+    taxonomyL3: q.taxonomyL3,
     difficulty: q.difficulty,
     structuredJson: q,
     sourceFile: q.source.file,
@@ -313,6 +337,9 @@ async function ensureImportTable(client) {
       sub_subject text,
       theme text,
       topic text,
+      taxonomy_l1 text,
+      taxonomy_l2 text,
+      taxonomy_l3 text,
       difficulty text not null default 'Medium',
       structured_json jsonb not null default '{}'::jsonb,
       source_file text,
@@ -323,10 +350,16 @@ async function ensureImportTable(client) {
     )
   `);
   await client.query(`alter table ${TARGET_TABLE} enable row level security`);
+  await client.query(`alter table ${TARGET_TABLE} add column if not exists taxonomy_l1 text`);
+  await client.query(`alter table ${TARGET_TABLE} add column if not exists taxonomy_l2 text`);
+  await client.query(`alter table ${TARGET_TABLE} add column if not exists taxonomy_l3 text`);
   await client.query(`create index if not exists pyq_mains_question_bank_subject_status_idx on ${TARGET_TABLE} (subject, status)`);
   await client.query(`create index if not exists pyq_mains_question_bank_sub_subject_idx on ${TARGET_TABLE} (sub_subject)`);
   await client.query(`create index if not exists pyq_mains_question_bank_theme_idx on ${TARGET_TABLE} (theme)`);
   await client.query(`create index if not exists pyq_mains_question_bank_topic_idx on ${TARGET_TABLE} (topic)`);
+  await client.query(`create index if not exists pyq_mains_question_bank_taxonomy_l1_idx on ${TARGET_TABLE} (taxonomy_l1)`);
+  await client.query(`create index if not exists pyq_mains_question_bank_taxonomy_l2_idx on ${TARGET_TABLE} (taxonomy_l2)`);
+  await client.query(`create index if not exists pyq_mains_question_bank_taxonomy_l3_idx on ${TARGET_TABLE} (taxonomy_l3)`);
   await client.query(`create index if not exists pyq_mains_question_bank_year_paper_idx on ${TARGET_TABLE} (year, paper)`);
 }
 
@@ -362,17 +395,21 @@ async function importQuestions(questions) {
                sub_subject = $8,
                theme = $9,
                topic = $10,
-               difficulty = $11,
-               structured_json = $12::jsonb,
-               source_file = $13,
-               source_row = $14,
-               status = $15,
+               taxonomy_l1 = $11,
+               taxonomy_l2 = $12,
+               taxonomy_l3 = $13,
+               difficulty = $14,
+               structured_json = $15::jsonb,
+               source_file = $16,
+               source_row = $17,
+               status = $18,
                updated_at = now()
            where id = $1`,
           [
             existing.rows[0].id,
             row.year, row.paper, row.questionNum, row.questionText, row.modelAnswer,
-            row.subject, row.subSubject, row.theme, row.topic, row.difficulty,
+            row.subject, row.subSubject, row.theme, row.topic,
+            row.taxonomyL1, row.taxonomyL2, row.taxonomyL3, row.difficulty,
             JSON.stringify(row.structuredJson), row.sourceFile, row.sourceRow, row.status,
           ]
         );
@@ -380,12 +417,13 @@ async function importQuestions(questions) {
       } else {
         await client.query(
           `insert into ${TARGET_TABLE}
-            (id, import_key, year, paper, question_num, question_text, model_answer, subject, sub_subject, theme, topic, difficulty, structured_json, source_file, source_row, status)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15,$16)`,
+            (id, import_key, year, paper, question_num, question_text, model_answer, subject, sub_subject, theme, topic, taxonomy_l1, taxonomy_l2, taxonomy_l3, difficulty, structured_json, source_file, source_row, status)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,$17,$18,$19)`,
           [
             crypto.randomUUID(),
             row.importKey, row.year, row.paper, row.questionNum, row.questionText, row.modelAnswer,
-            row.subject, row.subSubject, row.theme, row.topic, row.difficulty,
+            row.subject, row.subSubject, row.theme, row.topic,
+            row.taxonomyL1, row.taxonomyL2, row.taxonomyL3, row.difficulty,
             JSON.stringify(row.structuredJson), row.sourceFile, row.sourceRow, row.status,
           ]
         );
@@ -429,6 +467,9 @@ async function importQuestionsViaSupabase(questions) {
       sub_subject: row.subSubject,
       theme: row.theme,
       topic: row.topic,
+      taxonomy_l1: row.taxonomyL1,
+      taxonomy_l2: row.taxonomyL2,
+      taxonomy_l3: row.taxonomyL3,
       difficulty: row.difficulty,
       structured_json: row.structuredJson,
       source_file: row.sourceFile,

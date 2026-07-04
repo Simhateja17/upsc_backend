@@ -23,6 +23,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Utilization of Public Funds",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Utilization of Public Funds",
     "difficulty": "Medium"
   },
   {
@@ -49,6 +52,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Codes of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Codes of Ethics",
     "difficulty": "Easy"
   },
   {
@@ -75,6 +81,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Strengthening Ethical & Moral Values in Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Strengthening Ethical & Moral Values in Governance",
     "difficulty": "Medium"
   },
   {
@@ -101,6 +110,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Dedication to Public Service",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Dedication to Public Service",
     "difficulty": "Medium"
   },
   {
@@ -127,6 +139,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Easy"
   },
   {
@@ -153,6 +168,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Ethics in Public Administration",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Ethics in Public Administration",
     "difficulty": "Medium"
   },
   {
@@ -179,6 +197,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -205,6 +226,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Western Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Western Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -231,6 +255,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -257,6 +284,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Ethical Issues in International Relations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Ethical Issues in International Relations",
     "difficulty": "Hard"
   },
   {
@@ -283,6 +313,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Western Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Western Moral Thinkers",
     "difficulty": "Hard"
   },
   {
@@ -309,6 +342,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Accountability & Ethical Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Accountability & Ethical Governance",
     "difficulty": "Medium"
   },
   {
@@ -335,6 +371,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Dimensions of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Dimensions of Ethics",
     "difficulty": "Medium"
   },
   {
@@ -361,6 +400,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -387,6 +429,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -413,6 +458,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Medium"
   },
   {
@@ -439,6 +487,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -465,6 +516,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Strengthening Ethical & Moral Values in Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Strengthening Ethical & Moral Values in Governance",
     "difficulty": "Hard"
   },
   {
@@ -491,6 +545,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -517,6 +574,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Strengthening Ethical & Moral Values in Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Strengthening Ethical & Moral Values in Governance",
     "difficulty": "Medium"
   },
   {
@@ -543,6 +603,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Dimensions of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Dimensions of Ethics",
     "difficulty": "Easy"
   },
   {
@@ -569,6 +632,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Ethical Issues in International Relations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Ethical Issues in International Relations",
     "difficulty": "Medium"
   },
   {
@@ -595,6 +661,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Essence, Determinants & Consequences of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Essence, Determinants & Consequences of Ethics",
     "difficulty": "Medium"
   },
   {
@@ -621,6 +690,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -647,6 +719,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -673,6 +748,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Western Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Western Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -699,6 +777,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Ethical Ideas & Philosophies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Ethical Ideas & Philosophies",
     "difficulty": "Hard"
   },
   {
@@ -725,6 +806,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Conscience as a Source of Ethical Guidance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Conscience as a Source of Ethical Guidance",
     "difficulty": "Hard"
   },
   {
@@ -751,6 +835,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Codes of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Codes of Ethics",
     "difficulty": "Medium"
   },
   {
@@ -777,6 +864,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Laws, Rules & Regulations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Laws, Rules & Regulations",
     "difficulty": "Hard"
   },
   {
@@ -803,6 +893,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Integrity",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Integrity",
     "difficulty": "Medium"
   },
   {
@@ -829,6 +922,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Strengthening Ethical & Moral Values in Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Strengthening Ethical & Moral Values in Governance",
     "difficulty": "Easy"
   },
   {
@@ -855,6 +951,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -881,6 +980,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -907,6 +1009,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -933,6 +1038,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Case Studies",
     "difficulty": "Medium"
   },
   {
@@ -959,6 +1067,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -985,6 +1096,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -1011,6 +1125,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Corporate Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Corporate Governance",
     "difficulty": "Medium"
   },
   {
@@ -1037,6 +1154,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Ethical Issues in International Funding",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Ethical Issues in International Funding",
     "difficulty": "Medium"
   },
   {
@@ -1063,6 +1183,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Human Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Human Values",
     "difficulty": "Medium"
   },
   {
@@ -1089,6 +1212,9 @@
     "subSubject": null,
     "theme": "Attitude",
     "topic": "Social Influence",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Attitude",
+    "taxonomyL3": "Social Influence",
     "difficulty": "Medium"
   },
   {
@@ -1115,6 +1241,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Easy"
   },
   {
@@ -1141,6 +1270,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -1167,6 +1299,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Easy"
   },
   {
@@ -1193,6 +1328,9 @@
     "subSubject": null,
     "theme": "Emotional Intelligence",
     "topic": "Utility of Emotional Intelligence",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Emotional Intelligence",
+    "taxonomyL3": "Utility of Emotional Intelligence",
     "difficulty": "Medium"
   },
   {
@@ -1219,6 +1357,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Dimensions of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Dimensions of Ethics",
     "difficulty": "Hard"
   },
   {
@@ -1245,6 +1386,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Conscience as a Source of Ethical Guidance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Conscience as a Source of Ethical Guidance",
     "difficulty": "Medium"
   },
   {
@@ -1271,6 +1415,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Philosophical Basis of Governance & Probity",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Philosophical Basis of Governance & Probity",
     "difficulty": "Easy"
   },
   {
@@ -1297,6 +1444,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -1323,6 +1473,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Accountability & Ethical Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Accountability & Ethical Governance",
     "difficulty": "Medium"
   },
   {
@@ -1349,6 +1502,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -1375,6 +1531,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -1401,6 +1560,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Dedication to Public Service",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Dedication to Public Service",
     "difficulty": "Hard"
   },
   {
@@ -1427,6 +1589,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -1453,6 +1618,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -1479,6 +1647,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Ethical Concerns in Government Institutions",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Ethical Concerns in Government Institutions",
     "difficulty": "Medium"
   },
   {
@@ -1505,6 +1676,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -1531,6 +1705,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -1557,6 +1734,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -1583,6 +1763,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -1609,6 +1792,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -1635,6 +1821,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -1661,6 +1850,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Corporate Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Corporate Governance",
     "difficulty": "Medium"
   },
   {
@@ -1687,6 +1879,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Challenges of Corruption",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Challenges of Corruption",
     "difficulty": "Medium"
   },
   {
@@ -1713,6 +1908,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Ethics in Public Administration",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Ethics in Public Administration",
     "difficulty": "Easy"
   },
   {
@@ -1739,6 +1937,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Ethical Issues in International Relations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Ethical Issues in International Relations",
     "difficulty": "Medium"
   },
   {
@@ -1765,6 +1966,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Accountability & Ethical Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Accountability & Ethical Governance",
     "difficulty": "Medium"
   },
   {
@@ -1791,6 +1995,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Accountability & Ethical Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Accountability & Ethical Governance",
     "difficulty": "Easy"
   },
   {
@@ -1817,6 +2024,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Ethical Ideas & Philosophies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Ethical Ideas & Philosophies",
     "difficulty": "Medium"
   },
   {
@@ -1843,6 +2053,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Role of Family in Inculcating Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Role of Family in Inculcating Values",
     "difficulty": "Easy"
   },
   {
@@ -1869,6 +2082,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Western Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Western Moral Thinkers",
     "difficulty": "Easy"
   },
   {
@@ -1895,6 +2111,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Ethics & Human Interface",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Ethics & Human Interface",
     "difficulty": "Easy"
   },
   {
@@ -1921,6 +2140,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Laws, Rules & Regulations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Laws, Rules & Regulations",
     "difficulty": "Medium"
   },
   {
@@ -1947,6 +2169,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Empathy",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Empathy",
     "difficulty": "Easy"
   },
   {
@@ -1973,6 +2198,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Quality of Service Delivery",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Quality of Service Delivery",
     "difficulty": "Medium"
   },
   {
@@ -1999,6 +2227,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -2025,6 +2256,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Corporate Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Corporate Governance",
     "difficulty": "Hard"
   },
   {
@@ -2051,6 +2285,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -2077,6 +2314,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -2103,6 +2343,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -2129,6 +2372,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -2155,6 +2401,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Integrity",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Integrity",
     "difficulty": "Easy"
   },
   {
@@ -2181,6 +2430,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Accountability & Ethical Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Accountability & Ethical Governance",
     "difficulty": "Medium"
   },
   {
@@ -2207,6 +2459,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Impartiality",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Impartiality",
     "difficulty": "Medium"
   },
   {
@@ -2233,6 +2488,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Ethical Issues in International Relations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Ethical Issues in International Relations",
     "difficulty": "Hard"
   },
   {
@@ -2259,6 +2517,9 @@
     "subSubject": null,
     "theme": "Emotional Intelligence",
     "topic": "Applications in Administration & Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Emotional Intelligence",
+    "taxonomyL3": "Applications in Administration & Governance",
     "difficulty": "Hard"
   },
   {
@@ -2285,6 +2546,9 @@
     "subSubject": null,
     "theme": "Attitude",
     "topic": "Moral Attitudes",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Attitude",
+    "taxonomyL3": "Moral Attitudes",
     "difficulty": "Medium"
   },
   {
@@ -2311,6 +2575,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Human Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Human Values",
     "difficulty": "Medium"
   },
   {
@@ -2337,6 +2604,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Ethical Ideas & Philosophies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Ethical Ideas & Philosophies",
     "difficulty": "Medium"
   },
   {
@@ -2363,6 +2633,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -2389,6 +2662,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Ethical Dilemmas",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Ethical Dilemmas",
     "difficulty": "Medium"
   },
   {
@@ -2415,6 +2691,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Ethics in Public Administration",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Ethics in Public Administration",
     "difficulty": "Hard"
   },
   {
@@ -2441,6 +2720,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Public Service Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Public Service Values",
     "difficulty": "Medium"
   },
   {
@@ -2467,6 +2749,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Public Service Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Public Service Values",
     "difficulty": "Medium"
   },
   {
@@ -2493,6 +2778,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -2519,6 +2807,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -2545,6 +2836,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -2571,6 +2865,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -2597,6 +2894,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Ethical Issues in International Relations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Ethical Issues in International Relations",
     "difficulty": "Medium"
   },
   {
@@ -2623,6 +2923,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -2649,6 +2952,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Western Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Western Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -2675,6 +2981,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Easy"
   },
   {
@@ -2701,6 +3010,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Easy"
   },
   {
@@ -2727,6 +3039,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Role of Society in Inculcating Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Role of Society in Inculcating Values",
     "difficulty": "Medium"
   },
   {
@@ -2753,6 +3068,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Lessons from Great Leaders, Reformers & Administrators",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Lessons from Great Leaders, Reformers & Administrators",
     "difficulty": "Medium"
   },
   {
@@ -2779,6 +3097,9 @@
     "subSubject": null,
     "theme": "Attitude",
     "topic": "Attitude & Behaviour",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Attitude",
+    "taxonomyL3": "Attitude & Behaviour",
     "difficulty": "Easy"
   },
   {
@@ -2805,6 +3126,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Laws, Rules & Regulations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Laws, Rules & Regulations",
     "difficulty": "Medium"
   },
   {
@@ -2831,6 +3155,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Ethical Issues in International Relations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Ethical Issues in International Relations",
     "difficulty": "Hard"
   },
   {
@@ -2857,6 +3184,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -2883,6 +3213,9 @@
     "subSubject": null,
     "theme": "Emotional Intelligence",
     "topic": "Emotional Intelligence",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Emotional Intelligence",
+    "taxonomyL3": "Emotional Intelligence",
     "difficulty": "Easy"
   },
   {
@@ -2909,6 +3242,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Conscience as a Source of Ethical Guidance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Conscience as a Source of Ethical Guidance",
     "difficulty": "Medium"
   },
   {
@@ -2935,6 +3271,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Role of Educational Institutions in Inculcating Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Role of Educational Institutions in Inculcating Values",
     "difficulty": "Medium"
   },
   {
@@ -2961,6 +3300,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Human Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Human Values",
     "difficulty": "Hard"
   },
   {
@@ -2987,6 +3329,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Codes of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Codes of Ethics",
     "difficulty": "Hard"
   },
   {
@@ -3013,6 +3358,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -3039,6 +3387,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Ethics in Public Administration",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Ethics in Public Administration",
     "difficulty": "Hard"
   },
   {
@@ -3065,6 +3416,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -3091,6 +3445,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Integrity",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Integrity",
     "difficulty": "Hard"
   },
   {
@@ -3117,6 +3474,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -3143,6 +3503,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Conscience as a Source of Ethical Guidance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Conscience as a Source of Ethical Guidance",
     "difficulty": "Medium"
   },
   {
@@ -3169,6 +3532,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -3195,6 +3561,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -3221,6 +3590,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Western Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Western Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -3247,6 +3619,9 @@
     "subSubject": null,
     "theme": "Emotional Intelligence",
     "topic": "Utility of Emotional Intelligence",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Emotional Intelligence",
+    "taxonomyL3": "Utility of Emotional Intelligence",
     "difficulty": "Easy"
   },
   {
@@ -3273,6 +3648,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Philosophical Basis of Governance & Probity",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Philosophical Basis of Governance & Probity",
     "difficulty": "Easy"
   },
   {
@@ -3299,6 +3677,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Right to Information (RTI)",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Right to Information (RTI)",
     "difficulty": "Medium"
   },
   {
@@ -3325,6 +3706,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Citizen's Charter",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Citizen's Charter",
     "difficulty": "Easy"
   },
   {
@@ -3351,6 +3735,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Constitutional Morality",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Constitutional Morality",
     "difficulty": "Easy"
   },
   {
@@ -3377,6 +3764,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Challenges of Corruption",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Challenges of Corruption",
     "difficulty": "Medium"
   },
   {
@@ -3403,6 +3793,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Utilization of Public Funds",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Utilization of Public Funds",
     "difficulty": "Medium"
   },
   {
@@ -3429,6 +3822,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Concept of Public Service",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Concept of Public Service",
     "difficulty": "Easy"
   },
   {
@@ -3455,6 +3851,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Concept of Public Service",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Concept of Public Service",
     "difficulty": "Easy"
   },
   {
@@ -3481,6 +3880,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Conscience as a Source of Ethical Guidance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Conscience as a Source of Ethical Guidance",
     "difficulty": "Hard"
   },
   {
@@ -3507,6 +3909,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -3533,6 +3938,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -3559,6 +3967,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -3585,6 +3996,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -3611,6 +4025,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -3637,6 +4054,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Hard"
   },
   {
@@ -3663,6 +4083,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -3689,6 +4112,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Western Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Western Moral Thinkers",
     "difficulty": "Hard"
   },
   {
@@ -3715,6 +4141,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Ethical Dilemmas",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Ethical Dilemmas",
     "difficulty": "Medium"
   },
   {
@@ -3741,6 +4170,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Ethical Issues in International Relations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Ethical Issues in International Relations",
     "difficulty": "Hard"
   },
   {
@@ -3767,6 +4199,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Dimensions of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Dimensions of Ethics",
     "difficulty": "Hard"
   },
   {
@@ -3793,6 +4228,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Laws, Rules & Regulations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Laws, Rules & Regulations",
     "difficulty": "Hard"
   },
   {
@@ -3819,6 +4257,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Integrity",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Integrity",
     "difficulty": "Medium"
   },
   {
@@ -3845,6 +4286,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Ethical Dilemmas",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Ethical Dilemmas",
     "difficulty": "Medium"
   },
   {
@@ -3871,6 +4315,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Right to Information (RTI)",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Right to Information (RTI)",
     "difficulty": "Medium"
   },
   {
@@ -3897,6 +4344,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Concept of Public Service",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Concept of Public Service",
     "difficulty": "Medium"
   },
   {
@@ -3923,6 +4373,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Codes of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Codes of Ethics",
     "difficulty": "Easy"
   },
   {
@@ -3949,6 +4402,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Public Service Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Public Service Values",
     "difficulty": "Easy"
   },
   {
@@ -3975,6 +4431,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -4001,6 +4460,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Accountability & Ethical Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Accountability & Ethical Governance",
     "difficulty": "Hard"
   },
   {
@@ -4027,6 +4489,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -4053,6 +4518,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -4079,6 +4547,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Medium"
   },
   {
@@ -4105,6 +4576,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Integrity",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Integrity",
     "difficulty": "Medium"
   },
   {
@@ -4131,6 +4605,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Human Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Human Values",
     "difficulty": "Medium"
   },
   {
@@ -4157,6 +4634,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Work Culture",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Work Culture",
     "difficulty": "Medium"
   },
   {
@@ -4183,6 +4663,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Human Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Human Values",
     "difficulty": "Medium"
   },
   {
@@ -4209,6 +4692,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Human Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Human Values",
     "difficulty": "Medium"
   },
   {
@@ -4235,6 +4721,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Ethical Issues in International Relations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Ethical Issues in International Relations",
     "difficulty": "Medium"
   },
   {
@@ -4261,6 +4750,9 @@
     "subSubject": null,
     "theme": "Emotional Intelligence",
     "topic": "Applications in Administration & Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Emotional Intelligence",
+    "taxonomyL3": "Applications in Administration & Governance",
     "difficulty": "Easy"
   },
   {
@@ -4287,6 +4779,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Role of Family in Inculcating Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Role of Family in Inculcating Values",
     "difficulty": "Easy"
   },
   {
@@ -4313,6 +4808,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Lessons from Great Leaders, Reformers & Administrators",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Lessons from Great Leaders, Reformers & Administrators",
     "difficulty": "Medium"
   },
   {
@@ -4339,6 +4837,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Corporate Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Corporate Governance",
     "difficulty": "Medium"
   },
   {
@@ -4365,6 +4866,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Integrity",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Integrity",
     "difficulty": "Easy"
   },
   {
@@ -4391,6 +4895,9 @@
     "subSubject": null,
     "theme": "Attitude",
     "topic": "Political Attitudes",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Attitude",
+    "taxonomyL3": "Political Attitudes",
     "difficulty": "Medium"
   },
   {
@@ -4417,6 +4924,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Public Service Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Public Service Values",
     "difficulty": "Easy"
   },
   {
@@ -4443,6 +4953,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Ethical Dilemmas",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Ethical Dilemmas",
     "difficulty": "Medium"
   },
   {
@@ -4469,6 +4982,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Challenges of Corruption",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Challenges of Corruption",
     "difficulty": "Hard"
   },
   {
@@ -4495,6 +5011,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -4521,6 +5040,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -4547,6 +5069,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -4573,6 +5098,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Accountability & Ethical Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Accountability & Ethical Governance",
     "difficulty": "Hard"
   },
   {
@@ -4599,6 +5127,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -4625,6 +5156,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Ethics in Public Administration",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Ethics in Public Administration",
     "difficulty": "Hard"
   },
   {
@@ -4651,6 +5185,9 @@
     "subSubject": null,
     "theme": "Emotional Intelligence",
     "topic": "Utility of Emotional Intelligence",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Emotional Intelligence",
+    "taxonomyL3": "Utility of Emotional Intelligence",
     "difficulty": "Medium"
   },
   {
@@ -4677,6 +5214,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Role of Family in Inculcating Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Role of Family in Inculcating Values",
     "difficulty": "Hard"
   },
   {
@@ -4703,6 +5243,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Dimensions of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Dimensions of Ethics",
     "difficulty": "Medium"
   },
   {
@@ -4729,6 +5272,9 @@
     "subSubject": null,
     "theme": "Attitude",
     "topic": "Social Influence",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Attitude",
+    "taxonomyL3": "Social Influence",
     "difficulty": "Easy"
   },
   {
@@ -4755,6 +5301,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -4781,6 +5330,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Codes of Conduct",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Codes of Conduct",
     "difficulty": "Medium"
   },
   {
@@ -4807,6 +5359,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Western Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Western Moral Thinkers",
     "difficulty": "Hard"
   },
   {
@@ -4833,6 +5388,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -4859,6 +5417,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Accountability & Ethical Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Accountability & Ethical Governance",
     "difficulty": "Easy"
   },
   {
@@ -4885,6 +5446,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Impartiality",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Impartiality",
     "difficulty": "Medium"
   },
   {
@@ -4911,6 +5475,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Essence, Determinants & Consequences of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Essence, Determinants & Consequences of Ethics",
     "difficulty": "Easy"
   },
   {
@@ -4937,6 +5504,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -4963,6 +5533,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -4989,6 +5562,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Governance Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Governance Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -5015,6 +5591,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -5041,6 +5620,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -5067,6 +5649,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -5093,6 +5678,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Ethical Dilemmas",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Ethical Dilemmas",
     "difficulty": "Medium"
   },
   {
@@ -5119,6 +5707,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Ethical Issues in International Relations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Ethical Issues in International Relations",
     "difficulty": "Medium"
   },
   {
@@ -5145,6 +5736,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Challenges of Corruption",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Challenges of Corruption",
     "difficulty": "Hard"
   },
   {
@@ -5171,6 +5765,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Public Service Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Public Service Values",
     "difficulty": "Medium"
   },
   {
@@ -5197,6 +5794,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Right to Information (RTI)",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Right to Information (RTI)",
     "difficulty": "Hard"
   },
   {
@@ -5223,6 +5823,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Human Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Human Values",
     "difficulty": "Medium"
   },
   {
@@ -5249,6 +5852,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Integrity",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Integrity",
     "difficulty": "Easy"
   },
   {
@@ -5275,6 +5881,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Laws, Rules & Regulations",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Laws, Rules & Regulations",
     "difficulty": "Medium"
   },
   {
@@ -5301,6 +5910,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Ethical Ideas & Philosophies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Ethical Ideas & Philosophies",
     "difficulty": "Medium"
   },
   {
@@ -5327,6 +5939,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Dimensions of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Dimensions of Ethics",
     "difficulty": "Easy"
   },
   {
@@ -5353,6 +5968,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Dimensions of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Dimensions of Ethics",
     "difficulty": "Medium"
   },
   {
@@ -5379,6 +5997,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Ethical Ideas & Philosophies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Ethical Ideas & Philosophies",
     "difficulty": "Medium"
   },
   {
@@ -5405,6 +6026,9 @@
     "subSubject": null,
     "theme": "Attitude",
     "topic": "Attitude & Behaviour",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Attitude",
+    "taxonomyL3": "Attitude & Behaviour",
     "difficulty": "Hard"
   },
   {
@@ -5431,6 +6055,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -5457,6 +6084,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -5483,6 +6113,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -5509,6 +6142,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Decision-Making Frameworks",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Decision-Making Frameworks",
     "difficulty": "Hard"
   },
   {
@@ -5535,6 +6171,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Dimensions of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Dimensions of Ethics",
     "difficulty": "Medium"
   },
   {
@@ -5561,6 +6200,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Role of Society in Inculcating Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Role of Society in Inculcating Values",
     "difficulty": "Medium"
   },
   {
@@ -5587,6 +6229,9 @@
     "subSubject": null,
     "theme": "Ethics in Public Administration & Governance",
     "topic": "Accountability & Ethical Governance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics in Public Administration & Governance",
+    "taxonomyL3": "Accountability & Ethical Governance",
     "difficulty": "Easy"
   },
   {
@@ -5613,6 +6258,9 @@
     "subSubject": null,
     "theme": "Attitude",
     "topic": "Attitude (Content, Structure & Function)",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Attitude",
+    "taxonomyL3": "Attitude (Content, Structure & Function)",
     "difficulty": "Medium"
   },
   {
@@ -5639,6 +6287,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Challenges of Corruption",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Challenges of Corruption",
     "difficulty": "Medium"
   },
   {
@@ -5665,6 +6316,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Ethics in Public & Private Relationships",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Ethics in Public & Private Relationships",
     "difficulty": "Easy"
   },
   {
@@ -5691,6 +6345,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Ethics in Public Administration",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Ethics in Public Administration",
     "difficulty": "Medium"
   },
   {
@@ -5717,6 +6374,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Lessons from Great Leaders, Reformers & Administrators",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Lessons from Great Leaders, Reformers & Administrators",
     "difficulty": "Easy"
   },
   {
@@ -5743,6 +6403,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Western Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Western Moral Thinkers",
     "difficulty": "Hard"
   },
   {
@@ -5769,6 +6432,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Integrity",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Integrity",
     "difficulty": "Medium"
   },
   {
@@ -5795,6 +6461,9 @@
     "subSubject": null,
     "theme": "Probity in Governance",
     "topic": "Philosophical Basis of Governance & Probity",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Probity in Governance",
+    "taxonomyL3": "Philosophical Basis of Governance & Probity",
     "difficulty": "Easy"
   },
   {
@@ -5821,6 +6490,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Dedication to Public Service",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Dedication to Public Service",
     "difficulty": "Medium"
   },
   {
@@ -5847,6 +6519,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Essence, Determinants & Consequences of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Essence, Determinants & Consequences of Ethics",
     "difficulty": "Easy"
   },
   {
@@ -5873,6 +6548,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Human Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Human Values",
     "difficulty": "Medium"
   },
   {
@@ -5899,6 +6577,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -5925,6 +6606,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -5951,6 +6635,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -5977,6 +6664,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Ethical Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Ethical Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -6003,6 +6693,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -6029,6 +6722,9 @@
     "subSubject": null,
     "theme": "Case Studies",
     "topic": "Administrative Case Studies",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Case Studies",
+    "taxonomyL3": "Administrative Case Studies",
     "difficulty": "Hard"
   },
   {
@@ -6055,6 +6751,9 @@
     "subSubject": null,
     "theme": "Attitude",
     "topic": "Political Attitudes",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Attitude",
+    "taxonomyL3": "Political Attitudes",
     "difficulty": "Medium"
   },
   {
@@ -6081,6 +6780,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Human Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Human Values",
     "difficulty": "Medium"
   },
   {
@@ -6107,6 +6809,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Western Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Western Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -6133,6 +6838,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Lessons from Great Leaders, Reformers & Administrators",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Lessons from Great Leaders, Reformers & Administrators",
     "difficulty": "Medium"
   },
   {
@@ -6159,6 +6867,9 @@
     "subSubject": null,
     "theme": "Contributions of Moral Thinkers & Philosophers",
     "topic": "Indian Moral Thinkers",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Contributions of Moral Thinkers & Philosophers",
+    "taxonomyL3": "Indian Moral Thinkers",
     "difficulty": "Medium"
   },
   {
@@ -6185,6 +6896,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Conscience as a Source of Ethical Guidance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Conscience as a Source of Ethical Guidance",
     "difficulty": "Medium"
   },
   {
@@ -6211,6 +6925,9 @@
     "subSubject": null,
     "theme": "Public/Civil Service Values",
     "topic": "Conscience as a Source of Ethical Guidance",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Public/Civil Service Values",
+    "taxonomyL3": "Conscience as a Source of Ethical Guidance",
     "difficulty": "Easy"
   },
   {
@@ -6237,6 +6954,9 @@
     "subSubject": null,
     "theme": "Emotional Intelligence",
     "topic": "Emotional Intelligence",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Emotional Intelligence",
+    "taxonomyL3": "Emotional Intelligence",
     "difficulty": "Easy"
   },
   {
@@ -6263,6 +6983,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Human Values",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Human Values",
     "difficulty": "Medium"
   },
   {
@@ -6289,6 +7012,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Civil Services Aptitude",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Civil Services Aptitude",
     "difficulty": "Easy"
   },
   {
@@ -6315,6 +7041,9 @@
     "subSubject": null,
     "theme": "Aptitude & Foundational Values for Civil Services",
     "topic": "Civil Services Aptitude",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Aptitude & Foundational Values for Civil Services",
+    "taxonomyL3": "Civil Services Aptitude",
     "difficulty": "Easy"
   },
   {
@@ -6341,6 +7070,9 @@
     "subSubject": null,
     "theme": "Ethics & Human Interface",
     "topic": "Essence, Determinants & Consequences of Ethics",
+    "taxonomyL1": "Ethics",
+    "taxonomyL2": "Ethics & Human Interface",
+    "taxonomyL3": "Essence, Determinants & Consequences of Ethics",
     "difficulty": "Easy"
   }
 ]
