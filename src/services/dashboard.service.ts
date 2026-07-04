@@ -94,6 +94,86 @@ export function computeDaysRemaining(targetYear?: string): number {
   return Math.max(0, Math.ceil((prelimsDate.getTime() - Date.now()) / 86400000));
 }
 
+/** Build a real, per-day activity calendar for the current month (no synthetic days). */
+export async function getStreakCalendar(userId: string) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 1);
+
+  const [raw, streak] = await Promise.all([
+    dashboardRepo.getMonthlyActivityRaw(userId, monthStart, monthEnd),
+    dashboardRepo.getPerformanceRaw(userId, new Date(new Date().setHours(0, 0, 0, 0))).then((r) => r.streak),
+  ]);
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const perDay = Array.from({ length: daysInMonth }, () => ({
+    activityCount: 0,
+    mcqAttempts: 0,
+    mainsAttempts: 0,
+    mockAttempts: 0,
+    editorialsRead: 0,
+    editorialsTotal: 0,
+    studyMinutes: 0,
+  }));
+
+  const bump = (dates: Date[], key: "activityCount" | "mcqAttempts" | "mainsAttempts" | "mockAttempts") => {
+    for (const d of dates) {
+      const entry = perDay[new Date(d).getDate() - 1];
+      if (entry) entry[key]++;
+    }
+  };
+
+  bump(raw.activityDates, "activityCount");
+  bump(raw.mcqDates, "mcqAttempts");
+  bump(raw.mainsDates, "mainsAttempts");
+  bump(raw.mockDates, "mockAttempts");
+  bump(raw.mockMainsDates, "mainsAttempts");
+  bump(raw.pyqMainsDates, "mainsAttempts");
+
+  for (const editorial of raw.editorials) {
+    const entry = perDay[new Date(editorial.publishedAt).getDate() - 1];
+    if (!entry) continue;
+    entry.editorialsTotal++;
+    if (editorial.readByUser) entry.editorialsRead++;
+  }
+
+  for (const task of raw.completedTasks) {
+    if (!task.completedAt) continue;
+    const entry = perDay[new Date(task.completedAt).getDate() - 1];
+    if (!entry) continue;
+    entry.studyMinutes += getTaskDurationMinutes(task);
+  }
+
+  const days = perDay.map((entry, i) => {
+    const day = i + 1;
+    const signalCount = entry.activityCount + entry.mcqAttempts + entry.mainsAttempts + entry.mockAttempts +
+      entry.editorialsRead + (entry.studyMinutes > 0 ? 1 : 0);
+    const intensity = signalCount === 0 ? 0 : signalCount <= 1 ? 1 : signalCount <= 3 ? 2 : 3;
+    return {
+      day,
+      intensity,
+      studyTime: formatStudyDuration(entry.studyMinutes),
+      mcqAttempts: entry.mcqAttempts,
+      mainsAttempts: entry.mainsAttempts,
+      mockAttempts: entry.mockAttempts,
+      editorialsRead: entry.editorialsRead,
+      editorialsTotal: entry.editorialsTotal,
+    };
+  });
+
+  return {
+    year,
+    month: month + 1,
+    monthLabel: monthStart.toLocaleString("en-US", { month: "long" }),
+    today: now.getDate(),
+    currentStreak: streak?.currentStreak ?? 0,
+    longestStreak: streak?.longestStreak ?? 0,
+    days,
+  };
+}
+
 /** Build the dashboard today snapshot response. */
 export async function getDashboard(userId: string) {
   const today = new Date();
@@ -589,5 +669,6 @@ export async function getTestAnalytics(userId: string) {
     mainsStats,
     timePerQuestion,
     testHistory,
+    editorialDaysThisWeek: new Set(raw.editorialReadDatesLast7Days.map((d) => new Date(d).toDateString())).size,
   };
 }

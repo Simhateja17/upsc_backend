@@ -1,0 +1,583 @@
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import pg from "pg";
+import { createClient } from "@supabase/supabase-js";
+
+const BACKEND_ROOT = path.resolve(import.meta.dirname, "..");
+const REPO_ROOT = path.resolve(BACKEND_ROOT, "..");
+const ENV_PATH = path.join(BACKEND_ROOT, ".env");
+const CSV_DIR = path.join(REPO_ROOT, "mains_pyq");
+const NORMALIZED_DIR = path.join(BACKEND_ROOT, "data", "imports", "pyq-mains", "normalized");
+const REPORTS_DIR = path.join(BACKEND_ROOT, "data", "imports", "pyq-mains", "reports");
+const TARGET_TABLE = "public.pyq_mains_question_bank";
+
+const VALID_DIFFICULTIES = new Set(["Easy", "Medium", "Hard"]);
+
+function loadEnv(file) {
+  if (!fs.existsSync(file)) return;
+  for (const raw of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const idx = line.indexOf("=");
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim();
+    let value = line.slice(idx + 1).trim();
+    const comment = value.indexOf(" #");
+    if (comment !== -1) value = value.slice(0, comment).trim();
+    value = value.replace(/^['"]|['"]$/g, "");
+    if (!(key in process.env)) process.env[key] = value;
+  }
+}
+
+function ensureDirs() {
+  for (const dir of [NORMALIZED_DIR, REPORTS_DIR]) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (quoted) {
+      if (char === '"' && next === '"') {
+        cell += '"';
+        i++;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        cell += char;
+      }
+      continue;
+    }
+
+    if (char === '"') quoted = true;
+    else if (char === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (char === "\n") {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else if (char !== "\r") {
+      cell += char;
+    }
+  }
+
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    rows.push(row);
+  }
+
+  return rows.filter((r) => r.some((c) => String(c || "").trim()));
+}
+
+function csvEscape(value) {
+  const text = String(value ?? "");
+  if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+  return text;
+}
+
+function slugName(fileName) {
+  return path.basename(fileName, path.extname(fileName)).replace(/[^\w.-]+/g, "_");
+}
+
+function normalizeWhitespace(value) {
+  return String(value || "")
+    .replace(/\r/g, "")
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+function normalizeMarkdown(value) {
+  return String(value || "")
+    .replace(/\r/g, "")
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{4,}/g, "\n\n\n")
+    .trim();
+}
+
+function titleCaseDifficulty(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "easy") return "Easy";
+  if (normalized === "hard") return "Hard";
+  return "Medium";
+}
+
+function inferPaperFromFile(fileName) {
+  const normalized = fileName.toLowerCase().replace(/\s+/g, "");
+  if (normalized.includes("gs1")) return "GS-I";
+  if (normalized.includes("gs2")) return "GS-II";
+  if (normalized.includes("gs3")) return "GS-III";
+  if (normalized.includes("gs4")) return "GS-IV";
+  return "GS";
+}
+
+function normalizeHeader(header) {
+  const aliases = new Map([
+    ["Sub-Subject", "Sub Subject"],
+    ["Sub - Subject", "Sub Subject"],
+    ["Model answer", "Model Answer"],
+    ["Answer", "Model Answer"],
+  ]);
+
+  return header.map((name) => aliases.get(name) || name);
+}
+
+function getHeaderValue(row, header, names) {
+  const candidates = Array.isArray(names) ? names : [names];
+  for (const name of candidates) {
+    const index = header.indexOf(name);
+    if (index !== -1) return row[index] ?? "";
+  }
+  return "";
+}
+
+function shapeRowToHeader(row, header) {
+  if (row.length === header.length) return { row, warnings: [] };
+  if (row.length > header.length) {
+    const extra = row.slice(header.length);
+    if (extra.every((cell) => !String(cell || "").trim())) {
+      return {
+        row: row.slice(0, header.length),
+        warnings: [`Ignored ${extra.length} trailing blank column${extra.length === 1 ? "" : "s"}`],
+      };
+    }
+  }
+  if (row.length < header.length) {
+    return {
+      row: [...row, ...Array.from({ length: header.length - row.length }, () => "")],
+      warnings: [`Padded ${header.length - row.length} missing trailing column${header.length - row.length === 1 ? "" : "s"}`],
+    };
+  }
+  return {
+    row,
+    warnings: [`Expected ${header.length} columns, found ${row.length}`],
+  };
+}
+
+function normalizeRow(row, header, fileName, csvRowNumber) {
+  const get = (name) => getHeaderValue(row, header, name);
+  const paper = inferPaperFromFile(fileName);
+  const year = Number.parseInt(get("Year"), 10);
+  const questionNumber = Number.parseInt(get("Question Number"), 10);
+  const questionText = normalizeMarkdown(get("Question"));
+  const modelAnswer = normalizeMarkdown(get("Model Answer"));
+  const subject = normalizeWhitespace(get("Subject")) || "General Studies";
+  const subSubject = normalizeWhitespace(get("Sub Subject")) || null;
+  const theme = normalizeWhitespace(get("Theme")) || null;
+  const topic = normalizeWhitespace(get("Topic")) || null;
+  const difficulty = titleCaseDifficulty(get("Difficulty"));
+  const importKey = ["mains", year, paper, questionNumber].join(":").toLowerCase();
+
+  return {
+    source: {
+      file: fileName,
+      rowNumber: csvRowNumber,
+      questionNumber,
+    },
+    importKey,
+    exam: "mains",
+    year,
+    paper,
+    questionNumber,
+    question: {
+      rawText: questionText,
+      displayText: questionText,
+    },
+    modelAnswer: {
+      rawText: modelAnswer,
+      displayText: modelAnswer,
+      format: "markdown",
+    },
+    subject,
+    subSubject,
+    theme,
+    topic,
+    difficulty,
+  };
+}
+
+function validateQuestion(q) {
+  const errors = [];
+  if (!Number.isInteger(q.year) || q.year < 1900 || q.year > 2100) errors.push("Invalid or missing year");
+  if (!Number.isInteger(q.questionNumber) || q.questionNumber < 1) errors.push("Invalid or missing question number");
+  if (!q.question.displayText || q.question.displayText.length < 10) errors.push("Missing question text");
+  if (!q.modelAnswer.displayText || q.modelAnswer.displayText.length < 10) errors.push("Missing model answer");
+  if (!q.subject) errors.push("Missing subject");
+  if (!VALID_DIFFICULTIES.has(q.difficulty)) errors.push("Invalid difficulty");
+  if (!["GS-I", "GS-II", "GS-III", "GS-IV"].includes(q.paper)) errors.push("Paper cannot be mapped to GS-I/II/III/IV");
+  return errors;
+}
+
+function parseFile(filePath) {
+  const fileName = path.basename(filePath);
+  const rows = parseCSV(fs.readFileSync(filePath, "utf8"));
+  if (rows.length < 2) return { fileName, questions: [], failures: [{ fileName, rowNumber: 0, errors: ["CSV has no data rows"] }] };
+
+  const header = normalizeHeader(rows[0].map((h) => String(h || "").trim()));
+  const required = ["Question Number", "Year", "Question", "Model Answer", "Difficulty", "Subject", "Theme"];
+  const missing = required.filter((name) => !header.includes(name));
+  if (missing.length > 0) {
+    return {
+      fileName,
+      questions: [],
+      failures: [{ fileName, rowNumber: 0, errors: [`Missing columns: ${missing.join(", ")}`] }],
+    };
+  }
+
+  const questions = [];
+  const failures = [];
+  const warnings = [];
+  for (let i = 1; i < rows.length; i++) {
+    const csvRowNumber = i + 1;
+    const shaped = shapeRowToHeader(rows[i], header);
+    if (shaped.warnings.length > 0) {
+      const isHardColumnFailure = shaped.row.length !== header.length;
+      const warning = {
+        fileName,
+        rowNumber: csvRowNumber,
+        questionNumber: shaped.row[0] || "",
+        warnings: shaped.warnings,
+      };
+      if (isHardColumnFailure) {
+        failures.push({ ...warning, errors: shaped.warnings });
+        continue;
+      }
+      warnings.push(warning);
+    }
+
+    const normalized = normalizeRow(shaped.row, header, fileName, csvRowNumber);
+    const errors = validateQuestion(normalized);
+    if (errors.length > 0) {
+      failures.push({
+        fileName,
+        rowNumber: csvRowNumber,
+        questionNumber: normalized.questionNumber || "",
+        errors,
+        questionPreview: normalized.question.displayText.slice(0, 180),
+      });
+    } else {
+      questions.push(normalized);
+    }
+  }
+
+  return { fileName, questions, failures, warnings };
+}
+
+function dbRowFromQuestion(q) {
+  return {
+    importKey: q.importKey,
+    year: q.year,
+    paper: q.paper,
+    questionNum: q.questionNumber,
+    questionText: q.question.displayText,
+    modelAnswer: q.modelAnswer.displayText,
+    subject: q.subject,
+    subSubject: q.subSubject,
+    theme: q.theme,
+    topic: q.topic,
+    difficulty: q.difficulty,
+    structuredJson: q,
+    sourceFile: q.source.file,
+    sourceRow: q.source.rowNumber,
+    status: "approved",
+  };
+}
+
+async function ensureImportTable(client) {
+  await client.query(`
+    create table if not exists ${TARGET_TABLE} (
+      id text primary key default (gen_random_uuid())::text,
+      import_key text not null unique,
+      year integer not null,
+      paper text not null,
+      question_num integer not null,
+      question_text text not null,
+      model_answer text,
+      subject text not null,
+      sub_subject text,
+      theme text,
+      topic text,
+      difficulty text not null default 'Medium',
+      structured_json jsonb not null default '{}'::jsonb,
+      source_file text,
+      source_row integer,
+      status text not null default 'approved',
+      created_at timestamp with time zone not null default now(),
+      updated_at timestamp with time zone not null default now()
+    )
+  `);
+  await client.query(`alter table ${TARGET_TABLE} enable row level security`);
+  await client.query(`create index if not exists pyq_mains_question_bank_subject_status_idx on ${TARGET_TABLE} (subject, status)`);
+  await client.query(`create index if not exists pyq_mains_question_bank_sub_subject_idx on ${TARGET_TABLE} (sub_subject)`);
+  await client.query(`create index if not exists pyq_mains_question_bank_theme_idx on ${TARGET_TABLE} (theme)`);
+  await client.query(`create index if not exists pyq_mains_question_bank_topic_idx on ${TARGET_TABLE} (topic)`);
+  await client.query(`create index if not exists pyq_mains_question_bank_year_paper_idx on ${TARGET_TABLE} (year, paper)`);
+}
+
+async function importQuestions(questions) {
+  loadEnv(ENV_PATH);
+  const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL;
+  if (!connectionString) throw new Error("DIRECT_URL or DATABASE_URL is required in upsc_backend/.env");
+
+  const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } });
+  await client.connect();
+
+  let inserted = 0;
+  let updated = 0;
+  try {
+    await client.query("begin");
+    await ensureImportTable(client);
+    for (const question of questions) {
+      const row = dbRowFromQuestion(question);
+      const existing = await client.query(
+        `select id from ${TARGET_TABLE} where import_key = $1 limit 1`,
+        [row.importKey]
+      );
+
+      if (existing.rowCount > 0) {
+        await client.query(
+          `update ${TARGET_TABLE}
+           set year = $2,
+               paper = $3,
+               question_num = $4,
+               question_text = $5,
+               model_answer = $6,
+               subject = $7,
+               sub_subject = $8,
+               theme = $9,
+               topic = $10,
+               difficulty = $11,
+               structured_json = $12::jsonb,
+               source_file = $13,
+               source_row = $14,
+               status = $15,
+               updated_at = now()
+           where id = $1`,
+          [
+            existing.rows[0].id,
+            row.year, row.paper, row.questionNum, row.questionText, row.modelAnswer,
+            row.subject, row.subSubject, row.theme, row.topic, row.difficulty,
+            JSON.stringify(row.structuredJson), row.sourceFile, row.sourceRow, row.status,
+          ]
+        );
+        updated++;
+      } else {
+        await client.query(
+          `insert into ${TARGET_TABLE}
+            (id, import_key, year, paper, question_num, question_text, model_answer, subject, sub_subject, theme, topic, difficulty, structured_json, source_file, source_row, status)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15,$16)`,
+          [
+            crypto.randomUUID(),
+            row.importKey, row.year, row.paper, row.questionNum, row.questionText, row.modelAnswer,
+            row.subject, row.subSubject, row.theme, row.topic, row.difficulty,
+            JSON.stringify(row.structuredJson), row.sourceFile, row.sourceRow, row.status,
+          ]
+        );
+        inserted++;
+      }
+    }
+    await client.query("commit");
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    await client.end();
+  }
+
+  return { inserted, updated };
+}
+
+async function importQuestionsViaSupabase(questions) {
+  loadEnv(ENV_PATH);
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for HTTPS import fallback");
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  let inserted = 0;
+  let updated = 0;
+
+  for (const question of questions) {
+    const row = dbRowFromQuestion(question);
+    const payload = {
+      year: row.year,
+      paper: row.paper,
+      question_num: row.questionNum,
+      question_text: row.questionText,
+      model_answer: row.modelAnswer,
+      subject: row.subject,
+      sub_subject: row.subSubject,
+      theme: row.theme,
+      topic: row.topic,
+      difficulty: row.difficulty,
+      structured_json: row.structuredJson,
+      source_file: row.sourceFile,
+      source_row: row.sourceRow,
+      status: row.status,
+      updated_at: new Date().toISOString(),
+    };
+
+    const existing = await supabase
+      .from("pyq_mains_question_bank")
+      .select("id")
+      .eq("import_key", row.importKey)
+      .limit(1)
+      .maybeSingle();
+    if (existing.error) throw existing.error;
+
+    if (existing.data?.id) {
+      const { error } = await supabase
+        .from("pyq_mains_question_bank")
+        .update(payload)
+        .eq("id", existing.data.id);
+      if (error) throw error;
+      updated++;
+    } else {
+      const { error } = await supabase
+        .from("pyq_mains_question_bank")
+        .insert({ id: crypto.randomUUID(), import_key: row.importKey, ...payload });
+      if (error) throw error;
+      inserted++;
+    }
+  }
+
+  return { inserted, updated };
+}
+
+async function importQuestionsWithFallback(questions) {
+  try {
+    return await importQuestions(questions);
+  } catch (error) {
+    if (!["ETIMEDOUT", "ECONNREFUSED", "ENETUNREACH", "EHOSTUNREACH"].includes(error?.code)) {
+      throw error;
+    }
+    console.warn(`[pyq:mains:import-csvs] Postgres import failed (${error.code}); retrying via Supabase HTTPS API.`);
+    return importQuestionsViaSupabase(questions);
+  }
+}
+
+function writeArtifacts(fileResults, importStats) {
+  const allQuestions = fileResults.flatMap((result) => result.questions);
+  const allFailures = fileResults.flatMap((result) => result.failures);
+  const allWarnings = fileResults.flatMap((result) => result.warnings || []);
+
+  for (const result of fileResults) {
+    const outPath = path.join(NORMALIZED_DIR, `${slugName(result.fileName)}.normalized.json`);
+    fs.writeFileSync(outPath, JSON.stringify(result.questions, null, 2) + "\n");
+  }
+
+  const report = {
+    generatedAt: new Date().toISOString(),
+    csvDirectory: CSV_DIR,
+    files: fileResults.map((result) => ({
+      file: result.fileName,
+      normalized: result.questions.length,
+      failed: result.failures.length,
+      warned: (result.warnings || []).length,
+    })),
+    totals: {
+      files: fileResults.length,
+      parsedRows: allQuestions.length + allFailures.filter((f) => f.rowNumber !== 0).length,
+      imported: allQuestions.length,
+      skipped: allFailures.length,
+      warned: allWarnings.length,
+      inserted: importStats.inserted,
+      updated: importStats.updated,
+    },
+    failures: allFailures,
+    warnings: allWarnings,
+  };
+
+  fs.writeFileSync(path.join(REPORTS_DIR, "import-report.json"), JSON.stringify(report, null, 2) + "\n");
+
+  const failedCsv = [
+    ["file", "rowNumber", "questionNumber", "errors", "questionPreview"].map(csvEscape).join(","),
+    ...allFailures.map((failure) =>
+      [
+        failure.fileName,
+        failure.rowNumber,
+        failure.questionNumber || "",
+        (failure.errors || []).join("; "),
+        failure.questionPreview || "",
+      ]
+        .map(csvEscape)
+        .join(",")
+    ),
+  ].join("\n");
+  fs.writeFileSync(path.join(REPORTS_DIR, "failed-rows.csv"), failedCsv + "\n");
+
+  const warningsCsv = [
+    ["file", "rowNumber", "questionNumber", "warnings"].map(csvEscape).join(","),
+    ...allWarnings.map((warning) =>
+      [
+        warning.fileName,
+        warning.rowNumber,
+        warning.questionNumber || "",
+        (warning.warnings || []).join("; "),
+      ]
+        .map(csvEscape)
+        .join(",")
+    ),
+  ].join("\n");
+  fs.writeFileSync(path.join(REPORTS_DIR, "warning-rows.csv"), warningsCsv + "\n");
+
+  return report;
+}
+
+async function main() {
+  ensureDirs();
+  const parseOnly = process.argv.includes("--parse-only");
+  const csvFiles = fs
+    .readdirSync(CSV_DIR)
+    .filter((name) => name.toLowerCase().endsWith(".csv"))
+    .sort();
+
+  if (csvFiles.length === 0) {
+    console.log(`No CSV files found in ${CSV_DIR}`);
+    return;
+  }
+
+  const fileResults = csvFiles.map((name) => parseFile(path.join(CSV_DIR, name)));
+  const validQuestions = fileResults.flatMap((result) => result.questions);
+  const importStats = parseOnly ? { inserted: 0, updated: 0 } : await importQuestionsWithFallback(validQuestions);
+  const report = writeArtifacts(fileResults, importStats);
+
+  console.log(`CSV files: ${report.totals.files}`);
+  console.log(`Rows parsed: ${report.totals.parsedRows}`);
+  console.log(
+    parseOnly
+      ? `Parsed valid rows: ${report.totals.imported} (database import skipped)`
+      : `Imported: ${report.totals.imported} (${report.totals.inserted} inserted, ${report.totals.updated} updated)`
+  );
+  console.log(`Warnings: ${report.totals.warned}`);
+  console.log(`Skipped: ${report.totals.skipped}`);
+  console.log(`Normalized: ${NORMALIZED_DIR}`);
+  console.log(`Report: ${path.join(REPORTS_DIR, "import-report.json")}`);
+  console.log(`Failed rows: ${path.join(REPORTS_DIR, "failed-rows.csv")}`);
+  console.log(`Warning rows: ${path.join(REPORTS_DIR, "warning-rows.csv")}`);
+}
+
+main().catch((error) => {
+  console.error("[pyq:mains:import-csvs] Failed:", error);
+  process.exitCode = 1;
+});

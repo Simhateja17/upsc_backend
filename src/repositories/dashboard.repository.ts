@@ -60,12 +60,32 @@ export interface TestAnalyticsRaw {
   }>;
   streak: any;
   seriesAttempts: { data: any[] };
+  editorialReadDatesLast7Days: Date[];
+}
+
+export interface MonthlyActivityRaw {
+  activityDates: Date[];
+  mcqDates: Date[];
+  mainsDates: Date[];
+  mockDates: Date[];
+  mockMainsDates: Date[];
+  pyqMainsDates: Date[];
+  /** Editorials published within the month, each flagged with whether this user has read it. */
+  editorials: Array<{ publishedAt: Date; readByUser: boolean }>;
+  completedTasks: Array<{
+    completedAt: Date | null;
+    duration: number | null;
+    actualDuration: number | null;
+    startTime: string | null;
+    endTime: string | null;
+  }>;
 }
 
 export interface DashboardRepository {
   getTodaySnapshot(userId: string, today: Date): Promise<DashboardSnapshot>;
   getPerformanceRaw(userId: string, today: Date): Promise<PerformanceRaw>;
   getTestAnalyticsRaw(userId: string): Promise<TestAnalyticsRaw>;
+  getMonthlyActivityRaw(userId: string, monthStart: Date, monthEnd: Date): Promise<MonthlyActivityRaw>;
   getSeriesTestMetadata(testIds: string[]): Promise<{
     testMap: Record<string, { title: string; seriesTitle: string; seriesId?: string }>;
   }>;

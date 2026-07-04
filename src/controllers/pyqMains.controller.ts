@@ -11,6 +11,38 @@ import { notifyAnswerEvaluated } from "../utils/notifications";
 // 15-mark answers ≈ 250 words, 10-mark answers ≈ 150 words. Default to 15.
 const DEFAULT_MARKS = 15;
 
+async function findMainsBankQuestion(questionId: string) {
+  const rows = await prisma.$queryRawUnsafe<Array<{
+    id: string;
+    year: number;
+    paper: string;
+    questionText: string;
+    modelAnswer: string | null;
+    subject: string;
+    subSubject: string | null;
+    theme: string | null;
+    topic: string | null;
+    difficulty: string;
+  }>>(
+    `select
+       id,
+       year,
+       paper,
+       question_text as "questionText",
+       model_answer as "modelAnswer",
+       subject,
+       coalesce(nullif(sub_subject, ''), nullif(theme, '')) as "subSubject",
+       theme,
+       topic,
+       difficulty
+     from public.pyq_mains_question_bank
+     where id = $1 and status = 'approved'
+     limit 1`,
+    questionId
+  );
+  return rows[0] || null;
+}
+
 async function signedCheckedCopyUrl(path: string | null | undefined): Promise<string | null> {
   if (!path) return null;
   return getSignedUrl(STORAGE_BUCKETS.CHECKED_COPIES, path, 3600);
@@ -132,9 +164,11 @@ export const submitPyqMainsAnswer = async (
       answerTextChars: typeof req.body?.answerText === "string" ? req.body.answerText.length : 0,
     });
 
-    const question = await prisma.pYQMainsQuestion.findUnique({
+    const bankQuestion = await findMainsBankQuestion(questionId);
+    const legacyQuestion = bankQuestion ? null : await prisma.pYQMainsQuestion.findUnique({
       where: { id: questionId },
     });
+    const question = bankQuestion || legacyQuestion;
     if (!question) {
       return res
         .status(404)
@@ -202,7 +236,8 @@ export const submitPyqMainsAnswer = async (
     const attempt = await prisma.pyqMainsAttempt.create({
       data: {
         userId,
-        pyqMainsQuestionId: questionId,
+        pyqMainsQuestionId: bankQuestion ? null : questionId,
+        pyqMainsBankQuestionId: bankQuestion ? questionId : null,
         answerText: answerText || null,
         fileUrl,
         wordCount,
@@ -322,6 +357,28 @@ export const getPyqMainsResults = async (
 
     const checkedCopyUrl = await signedCheckedCopyUrl(attempt.evaluation.checkedCopyUrl);
     const checkedCopyPages = await signedCheckedCopyPages(attempt.evaluation.checkedCopyPages);
+    const bankQuestion = attempt.pyqMainsBankQuestionId
+      ? await findMainsBankQuestion(attempt.pyqMainsBankQuestionId)
+      : null;
+    const responseQuestion = bankQuestion
+      ? {
+          id: bankQuestion.id,
+          questionText: bankQuestion.questionText,
+          paper: bankQuestion.paper,
+          subject: bankQuestion.subject,
+          subSubject: bankQuestion.subSubject,
+          theme: bankQuestion.theme,
+          topic: bankQuestion.topic,
+          year: bankQuestion.year,
+          modelAnswer: bankQuestion.modelAnswer,
+        }
+      : attempt.mainsQuestion ? {
+          id: attempt.mainsQuestion.id,
+          questionText: attempt.mainsQuestion.questionText,
+          paper: attempt.mainsQuestion.paper,
+          subject: attempt.mainsQuestion.subject,
+          year: attempt.mainsQuestion.year,
+        } : null;
 
     res.json({
       status: "success",
@@ -344,13 +401,7 @@ export const getPyqMainsResults = async (
         wordCount: attempt.wordCount,
         submittedAt: attempt.submittedAt,
         answerText: attempt.answerText,
-        question: attempt.mainsQuestion ? {
-          id: attempt.mainsQuestion!.id,
-          questionText: attempt.mainsQuestion!.questionText,
-          paper: attempt.mainsQuestion!.paper,
-          subject: attempt.mainsQuestion!.subject,
-          year: attempt.mainsQuestion!.year,
-        } : null,
+        question: responseQuestion,
       },
     });
   } catch (error) {
