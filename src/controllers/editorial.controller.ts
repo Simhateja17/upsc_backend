@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { editorialRepo } from "../repositories/prisma-editorial.repository";
-import { summarizeEditorial } from "../services/editorialSummarizer";
+import { summarizeEditorialStructured } from "../services/editorialSummarizer";
 import { getNewsArticlesBySource, syncNewsToEditorials } from "../services/newsApi";
 import { runRssFetch } from "../services/rssFetcher";
 import { categorize, extractTags, relevanceScore, isValidCategory, isDailyEditorialWorthy } from "../services/categorizer";
@@ -199,8 +199,8 @@ export const summarize = async (req: Request, res: Response, next: NextFunction)
       return res.status(404).json({ status: "error", message: "Editorial not found" });
     }
 
-    const summary = await summarizeEditorial(editorial.id);
-    res.json({ status: "success", data: { summary } });
+    const result = await summarizeEditorialStructured(editorial.id);
+    res.json({ status: "success", data: result });
   } catch (error: any) {
     if (error?.message === "NO_CONTENT") {
       return res.status(422).json({

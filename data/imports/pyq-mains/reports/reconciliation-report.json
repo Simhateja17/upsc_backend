@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-07-06T04:07:40.520Z",
+  "csvRows": 1046,
+  "existingRows": 1047,
+  "matched": 1043,
+  "unmatchedCsv": 0,
+  "ambiguousCsv": 3,
+  "existingNotInCsv": 0,
+  "duplicateCsvFingerprints": 2,
+  "duplicateDbFingerprints": 4,
+  "paths": {
+    "matched": "/Users/teja/Desktop/Projects/upsc/upsc_backend/data/imports/pyq-mains/reports/reconciliation-matched.csv",
+    "unmatchedCsv": "/Users/teja/Desktop/Projects/upsc/upsc_backend/data/imports/pyq-mains/reports/reconciliation-unmatched-csv.csv",
+    "ambiguousCsv": "/Users/teja/Desktop/Projects/upsc/upsc_backend/data/imports/pyq-mains/reports/reconciliation-ambiguous-csv.csv",
+    "existingNotInCsv": "/Users/teja/Desktop/Projects/upsc/upsc_backend/data/imports/pyq-mains/reports/reconciliation-existing-not-in-csv.csv",
+    "duplicates": "/Users/teja/Desktop/Projects/upsc/upsc_backend/data/imports/pyq-mains/reports/reconciliation-duplicates.csv"
+  }
+}

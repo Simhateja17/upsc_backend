@@ -804,6 +804,8 @@ model PYQMainsQuestionBank {
   taxonomyL2     String?           @map("taxonomy_l2")
   taxonomyL3     String?           @map("taxonomy_l3")
   difficulty     String            @default("Medium")
+  marks          Int               @default(15)
+  questionFingerprint String?      @map("question_fingerprint")
   structuredJson Json              @default("{}") @map("structured_json")
   sourceFile     String?           @map("source_file")
   sourceRow      Int?              @map("source_row")
@@ -819,6 +821,7 @@ model PYQMainsQuestionBank {
   @@index([taxonomyL1])
   @@index([taxonomyL2])
   @@index([taxonomyL3])
+  @@index([questionFingerprint])
   @@index([year, paper])
   @@map("pyq_mains_question_bank")
 }

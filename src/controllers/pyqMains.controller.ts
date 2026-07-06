@@ -7,8 +7,6 @@ import {
 import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
 import { notifyAnswerEvaluated } from "../utils/notifications";
 
-// PYQMainsQuestion has no `marks` column, so use the UPSC Mains convention:
-// 15-mark answers ≈ 250 words, 10-mark answers ≈ 150 words. Default to 15.
 const DEFAULT_MARKS = 15;
 
 async function findMainsBankQuestion(questionId: string) {
@@ -23,6 +21,7 @@ async function findMainsBankQuestion(questionId: string) {
     theme: string | null;
     topic: string | null;
     difficulty: string;
+    marks: number | null;
   }>>(
     `select
        id,
@@ -34,7 +33,8 @@ async function findMainsBankQuestion(questionId: string) {
        coalesce(nullif(sub_subject, ''), nullif(theme, '')) as "subSubject",
        theme,
        topic,
-       difficulty
+       difficulty,
+       marks
      from public.pyq_mains_question_bank
      where id = $1 and status = 'approved'
      limit 1`,
@@ -123,8 +123,9 @@ async function kickoffEvaluation(
   attemptId: string,
   answerText: string | null,
   fileUrl: string | null,
-  question: { questionText: string; subject: string; paper: string }
+  question: { questionText: string; subject: string; paper: string; marks?: number | null }
 ) {
+  const marks = Number.isInteger(question.marks) && Number(question.marks) > 0 ? Number(question.marks) : DEFAULT_MARKS;
   evaluateAnswerGeneric({
     attemptId,
     answerText,
@@ -133,7 +134,7 @@ async function kickoffEvaluation(
       questionText: question.questionText,
       subject: question.subject,
       paper: question.paper,
-      marks: DEFAULT_MARKS,
+      marks,
     },
     dbOps: buildDbOps(attemptId),
     evaluationMode: "pyq",
@@ -257,6 +258,7 @@ export const submitPyqMainsAnswer = async (
       questionText: question.questionText,
       subject: question.subject,
       paper: question.paper,
+      marks: bankQuestion?.marks ?? DEFAULT_MARKS,
     });
 
     await prisma.userActivity.create({

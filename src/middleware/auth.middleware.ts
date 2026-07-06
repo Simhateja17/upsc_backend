@@ -2,6 +2,39 @@ import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { supabaseAdmin } from "../config/supabase";
+import prisma from "../config/database";
+
+type SessionRecency = "newer" | "older" | "unknown";
+
+/**
+ * Compares two Supabase auth sessions by creation time to resolve last-login-wins.
+ * "newer"  → the incoming session logged in more recently and should take over.
+ * "older"  → the incoming session is superseded (or revoked) and must be rejected.
+ * "unknown"→ could not determine (DB error); caller should fail open, not lock out.
+ */
+async function sessionRecency(
+  incomingId: string,
+  activeId: string,
+  supabaseUserId: string
+): Promise<SessionRecency> {
+  try {
+    const rows = await prisma.$queryRaw<{ id: string; created_at: Date }[]>`
+      SELECT id::text AS id, created_at
+      FROM auth.sessions
+      WHERE user_id = ${supabaseUserId}::uuid
+        AND id IN (${incomingId}::uuid, ${activeId}::uuid)`;
+    const inc = rows.find((r) => r.id === incomingId);
+    const act = rows.find((r) => r.id === activeId);
+    if (!inc) return "older"; // incoming session revoked/unknown → superseded
+    if (!act) return "newer"; // active session gone → incoming takes over
+    return new Date(inc.created_at).getTime() > new Date(act.created_at).getTime()
+      ? "newer"
+      : "older";
+  } catch (err) {
+    console.warn("[Auth] session recency check failed:", err);
+    return "unknown";
+  }
+}
 
 // ── Dynamic JWKS — fetches keys from Supabase, cached in-memory ────────────
 // Survives key rotation: on kid mismatch, re-fetches automatically.
@@ -191,11 +224,14 @@ export const authenticate = async (
       });
     }
 
-    // ── Single-device gate (last-login-wins) ──────────────────────────────
-    // Reject tokens whose Supabase session_id differs from the user's currently
-    // registered active session. Skipped for admins and when enforcement is off.
-    // Registration (POST /user/sessions/register) sets active_session_id, so a
-    // user with none registered yet is never blocked.
+    // ── Single-device gate (last-login-wins, order-independent) ────────────
+    // On a session mismatch, decide by recency: the more recently created
+    // Supabase session wins. A newer login takes over the active slot; an older
+    // (superseded) session is rejected. Because the decision is based on
+    // auth.sessions.created_at — not on which request happens to arrive first —
+    // the device that just logged in is never the one that gets barred.
+    // Skipped for admins and when enforcement is off. A user with no active
+    // session registered yet is never blocked (bootstrap case).
     if (
       process.env.ENFORCE_SINGLE_SESSION === "true" &&
       user.role !== "admin" &&
@@ -203,12 +239,23 @@ export const authenticate = async (
       payload.session_id &&
       payload.session_id !== user.activeSessionId
     ) {
-      console.log(`[Auth] Session superseded for ${user.email} (${user.id})`);
-      return res.status(401).json({
-        status: "error",
-        code: "SESSION_SUPERSEDED",
-        message: "You were signed out because your account was signed in on another device.",
-      });
+      const recency = await sessionRecency(payload.session_id, user.activeSessionId, user.supabaseId);
+      if (recency === "newer") {
+        // This device logged in more recently — hand it the active slot.
+        await supabaseAdmin
+          .from("users")
+          .update({ active_session_id: payload.session_id })
+          .eq("id", user.id);
+        user.activeSessionId = payload.session_id;
+      } else if (recency === "older") {
+        console.log(`[Auth] Session superseded for ${user.email} (${user.id})`);
+        return res.status(401).json({
+          status: "error",
+          code: "SESSION_SUPERSEDED",
+          message: "You were signed out because your account was signed in on another device.",
+        });
+      }
+      // "unknown" → fail open: allow this request through without changing the slot.
     }
 
     req.user = { ...user, sessionId: payload.session_id ?? null };

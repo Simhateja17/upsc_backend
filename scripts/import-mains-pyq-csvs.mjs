@@ -118,6 +118,27 @@ function titleCaseDifficulty(value) {
   return "Medium";
 }
 
+function parseMarks(value) {
+  const match = String(value || "").match(/\d+/);
+  return match ? Number.parseInt(match[0], 10) : 15;
+}
+
+function normalizeQuestionForFingerprint(value) {
+  return normalizeWhitespace(value)
+    .toLowerCase()
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function questionFingerprint(value) {
+  return crypto
+    .createHash("sha256")
+    .update(normalizeQuestionForFingerprint(value))
+    .digest("hex");
+}
+
 function inferPaperFromFile(fileName) {
   const normalized = fileName.toLowerCase().replace(/\s+/g, "");
   if (normalized.includes("gs1")) return "GS-I";
@@ -170,11 +191,12 @@ function shapeRowToHeader(row, header) {
   };
 }
 
-function normalizeRow(row, header, fileName, csvRowNumber) {
+function normalizeRow(row, header, fileName, csvRowNumber, fallbackQuestionNumber) {
   const get = (name) => getHeaderValue(row, header, name);
   const paper = inferPaperFromFile(fileName);
   const year = Number.parseInt(get("Year"), 10);
-  const questionNumber = Number.parseInt(get("Question Number"), 10);
+  const parsedQuestionNumber = Number.parseInt(get("Question Number"), 10);
+  const questionNumber = Number.isInteger(parsedQuestionNumber) ? parsedQuestionNumber : fallbackQuestionNumber;
   const questionText = normalizeMarkdown(get("Question"));
   const modelAnswer = normalizeMarkdown(get("Model Answer"));
   const subject = normalizeWhitespace(get("Subject")) || "General Studies";
@@ -183,6 +205,8 @@ function normalizeRow(row, header, fileName, csvRowNumber) {
   const topic = normalizeWhitespace(get("Topic")) || null;
   const taxonomy = buildMainsTaxonomy({ paper, subject, subSubject, theme, topic });
   const difficulty = titleCaseDifficulty(get("Difficulty"));
+  const marks = parseMarks(get("Marks"));
+  const fingerprint = questionFingerprint(questionText);
   const importKey = ["mains", year, paper, questionNumber].join(":").toLowerCase();
 
   return {
@@ -196,6 +220,8 @@ function normalizeRow(row, header, fileName, csvRowNumber) {
     year,
     paper,
     questionNumber,
+    marks,
+    questionFingerprint: fingerprint,
     question: {
       rawText: questionText,
       displayText: questionText,
@@ -217,15 +243,6 @@ function normalizeRow(row, header, fileName, csvRowNumber) {
 }
 
 function buildMainsTaxonomy({ paper, subject, subSubject, theme, topic }) {
-  const normalizedPaper = String(paper || "").toUpperCase();
-  if (normalizedPaper === "GS-I") {
-    return {
-      l1: subject,
-      l2: subSubject || theme || null,
-      l3: theme || null,
-    };
-  }
-
   return {
     l1: subject,
     l2: theme || subSubject || null,
@@ -240,6 +257,8 @@ function validateQuestion(q) {
   if (!q.question.displayText || q.question.displayText.length < 10) errors.push("Missing question text");
   if (!q.modelAnswer.displayText || q.modelAnswer.displayText.length < 10) errors.push("Missing model answer");
   if (!q.subject) errors.push("Missing subject");
+  if (!Number.isInteger(q.marks) || q.marks < 1 || q.marks > 50) errors.push("Invalid or missing marks");
+  if (!q.questionFingerprint || q.questionFingerprint.length !== 64) errors.push("Invalid question fingerprint");
   if (!VALID_DIFFICULTIES.has(q.difficulty)) errors.push("Invalid difficulty");
   if (!["GS-I", "GS-II", "GS-III", "GS-IV"].includes(q.paper)) errors.push("Paper cannot be mapped to GS-I/II/III/IV");
   return errors;
@@ -251,7 +270,7 @@ function parseFile(filePath) {
   if (rows.length < 2) return { fileName, questions: [], failures: [{ fileName, rowNumber: 0, errors: ["CSV has no data rows"] }] };
 
   const header = normalizeHeader(rows[0].map((h) => String(h || "").trim()));
-  const required = ["Question Number", "Year", "Question", "Model Answer", "Difficulty", "Subject", "Theme"];
+  const required = ["Year", "Marks", "Question", "Model Answer", "Difficulty", "Subject", "Theme"];
   const missing = required.filter((name) => !header.includes(name));
   if (missing.length > 0) {
     return {
@@ -282,7 +301,7 @@ function parseFile(filePath) {
       warnings.push(warning);
     }
 
-    const normalized = normalizeRow(shaped.row, header, fileName, csvRowNumber);
+    const normalized = normalizeRow(shaped.row, header, fileName, csvRowNumber, i);
     const errors = validateQuestion(normalized);
     if (errors.length > 0) {
       failures.push({
@@ -316,6 +335,8 @@ function dbRowFromQuestion(q) {
     taxonomyL2: q.taxonomyL2,
     taxonomyL3: q.taxonomyL3,
     difficulty: q.difficulty,
+    marks: q.marks,
+    questionFingerprint: q.questionFingerprint,
     structuredJson: q,
     sourceFile: q.source.file,
     sourceRow: q.source.rowNumber,
@@ -341,6 +362,8 @@ async function ensureImportTable(client) {
       taxonomy_l2 text,
       taxonomy_l3 text,
       difficulty text not null default 'Medium',
+      marks integer not null default 15,
+      question_fingerprint text,
       structured_json jsonb not null default '{}'::jsonb,
       source_file text,
       source_row integer,
@@ -353,6 +376,8 @@ async function ensureImportTable(client) {
   await client.query(`alter table ${TARGET_TABLE} add column if not exists taxonomy_l1 text`);
   await client.query(`alter table ${TARGET_TABLE} add column if not exists taxonomy_l2 text`);
   await client.query(`alter table ${TARGET_TABLE} add column if not exists taxonomy_l3 text`);
+  await client.query(`alter table ${TARGET_TABLE} add column if not exists marks integer not null default 15`);
+  await client.query(`alter table ${TARGET_TABLE} add column if not exists question_fingerprint text`);
   await client.query(`create index if not exists pyq_mains_question_bank_subject_status_idx on ${TARGET_TABLE} (subject, status)`);
   await client.query(`create index if not exists pyq_mains_question_bank_sub_subject_idx on ${TARGET_TABLE} (sub_subject)`);
   await client.query(`create index if not exists pyq_mains_question_bank_theme_idx on ${TARGET_TABLE} (theme)`);
@@ -360,10 +385,11 @@ async function ensureImportTable(client) {
   await client.query(`create index if not exists pyq_mains_question_bank_taxonomy_l1_idx on ${TARGET_TABLE} (taxonomy_l1)`);
   await client.query(`create index if not exists pyq_mains_question_bank_taxonomy_l2_idx on ${TARGET_TABLE} (taxonomy_l2)`);
   await client.query(`create index if not exists pyq_mains_question_bank_taxonomy_l3_idx on ${TARGET_TABLE} (taxonomy_l3)`);
+  await client.query(`create index if not exists pyq_mains_question_bank_question_fingerprint_idx on ${TARGET_TABLE} (question_fingerprint)`);
   await client.query(`create index if not exists pyq_mains_question_bank_year_paper_idx on ${TARGET_TABLE} (year, paper)`);
 }
 
-async function importQuestions(questions) {
+async function importQuestions(questions, options = {}) {
   loadEnv(ENV_PATH);
   const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL;
   if (!connectionString) throw new Error("DIRECT_URL or DATABASE_URL is required in upsc_backend/.env");
@@ -373,6 +399,7 @@ async function importQuestions(questions) {
 
   let inserted = 0;
   let updated = 0;
+  let archived = 0;
   try {
     await client.query("begin");
     await ensureImportTable(client);
@@ -399,10 +426,12 @@ async function importQuestions(questions) {
                taxonomy_l2 = $12,
                taxonomy_l3 = $13,
                difficulty = $14,
-               structured_json = $15::jsonb,
-               source_file = $16,
-               source_row = $17,
-               status = $18,
+               marks = $15,
+               question_fingerprint = $16,
+               structured_json = $17::jsonb,
+               source_file = $18,
+               source_row = $19,
+               status = $20,
                updated_at = now()
            where id = $1`,
           [
@@ -410,6 +439,7 @@ async function importQuestions(questions) {
             row.year, row.paper, row.questionNum, row.questionText, row.modelAnswer,
             row.subject, row.subSubject, row.theme, row.topic,
             row.taxonomyL1, row.taxonomyL2, row.taxonomyL3, row.difficulty,
+            row.marks, row.questionFingerprint,
             JSON.stringify(row.structuredJson), row.sourceFile, row.sourceRow, row.status,
           ]
         );
@@ -417,18 +447,31 @@ async function importQuestions(questions) {
       } else {
         await client.query(
           `insert into ${TARGET_TABLE}
-            (id, import_key, year, paper, question_num, question_text, model_answer, subject, sub_subject, theme, topic, taxonomy_l1, taxonomy_l2, taxonomy_l3, difficulty, structured_json, source_file, source_row, status)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,$17,$18,$19)`,
+            (id, import_key, year, paper, question_num, question_text, model_answer, subject, sub_subject, theme, topic, taxonomy_l1, taxonomy_l2, taxonomy_l3, difficulty, marks, question_fingerprint, structured_json, source_file, source_row, status)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::jsonb,$19,$20,$21)`,
           [
             crypto.randomUUID(),
             row.importKey, row.year, row.paper, row.questionNum, row.questionText, row.modelAnswer,
             row.subject, row.subSubject, row.theme, row.topic,
             row.taxonomyL1, row.taxonomyL2, row.taxonomyL3, row.difficulty,
+            row.marks, row.questionFingerprint,
             JSON.stringify(row.structuredJson), row.sourceFile, row.sourceRow, row.status,
           ]
         );
         inserted++;
       }
+    }
+    if (options.archiveStale) {
+      const activeImportKeys = questions.map((question) => question.importKey);
+      const archiveResult = await client.query(
+        `update ${TARGET_TABLE}
+         set status = 'archived',
+             updated_at = now()
+         where status = 'approved'
+           and not (import_key = any($1::text[]))`,
+        [activeImportKeys]
+      );
+      archived = archiveResult.rowCount || 0;
     }
     await client.query("commit");
   } catch (error) {
@@ -438,10 +481,13 @@ async function importQuestions(questions) {
     await client.end();
   }
 
-  return { inserted, updated };
+  return { inserted, updated, archived };
 }
 
-async function importQuestionsViaSupabase(questions) {
+async function importQuestionsViaSupabase(questions, options = {}) {
+  if (options.archiveStale) {
+    throw new Error("--archive-stale requires direct Postgres access; Supabase HTTPS fallback cannot safely archive stale rows");
+  }
   loadEnv(ENV_PATH);
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -471,6 +517,8 @@ async function importQuestionsViaSupabase(questions) {
       taxonomy_l2: row.taxonomyL2,
       taxonomy_l3: row.taxonomyL3,
       difficulty: row.difficulty,
+      marks: row.marks,
+      question_fingerprint: row.questionFingerprint,
       structured_json: row.structuredJson,
       source_file: row.sourceFile,
       source_row: row.sourceRow,
@@ -502,19 +550,229 @@ async function importQuestionsViaSupabase(questions) {
     }
   }
 
-  return { inserted, updated };
+  return { inserted, updated, archived: 0 };
 }
 
-async function importQuestionsWithFallback(questions) {
+async function importQuestionsWithFallback(questions, options = {}) {
   try {
-    return await importQuestions(questions);
+    return await importQuestions(questions, options);
   } catch (error) {
     if (!["ETIMEDOUT", "ECONNREFUSED", "ENETUNREACH", "EHOSTUNREACH"].includes(error?.code)) {
       throw error;
     }
     console.warn(`[pyq:mains:import-csvs] Postgres import failed (${error.code}); retrying via Supabase HTTPS API.`);
-    return importQuestionsViaSupabase(questions);
+    return importQuestionsViaSupabase(questions, options);
   }
+}
+
+async function fetchExistingQuestionsForReconcile() {
+  loadEnv(ENV_PATH);
+  const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL;
+  if (!connectionString) throw new Error("DIRECT_URL or DATABASE_URL is required in upsc_backend/.env");
+
+  const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } });
+  await client.connect();
+  try {
+    const result = await client.query(
+      `select
+         id,
+         import_key,
+         year,
+         paper,
+         question_num,
+         question_text,
+         source_file,
+         source_row,
+         status
+       from ${TARGET_TABLE}
+       where status = 'approved'
+       order by year desc, paper asc, question_num asc`
+    );
+    return result.rows.map((row) => ({
+      id: row.id,
+      importKey: row.import_key,
+      year: Number(row.year),
+      paper: row.paper,
+      questionNumber: Number(row.question_num),
+      questionText: row.question_text,
+      sourceFile: row.source_file,
+      sourceRow: row.source_row == null ? null : Number(row.source_row),
+      fingerprint: questionFingerprint(row.question_text),
+    }));
+  } finally {
+    await client.end();
+  }
+}
+
+function groupBy(items, keyFn) {
+  const groups = new Map();
+  for (const item of items) {
+    const key = keyFn(item);
+    const existing = groups.get(key);
+    if (existing) existing.push(item);
+    else groups.set(key, [item]);
+  }
+  return groups;
+}
+
+function writeCsvReport(fileName, header, rows) {
+  const csv = [
+    header.map(csvEscape).join(","),
+    ...rows.map((row) => header.map((name) => csvEscape(row[name])).join(",")),
+  ].join("\n");
+  const outPath = path.join(REPORTS_DIR, fileName);
+  fs.writeFileSync(outPath, csv + "\n");
+  return outPath;
+}
+
+function buildReconciliation(fileResults, existingRows) {
+  const csvQuestions = fileResults.flatMap((result) => result.questions);
+  const csvByFingerprint = groupBy(csvQuestions, (q) => q.questionFingerprint);
+  const dbByFingerprint = groupBy(existingRows, (row) => row.fingerprint);
+
+  const duplicateCsvFingerprints = Array.from(csvByFingerprint.entries())
+    .filter(([, rows]) => rows.length > 1)
+    .flatMap(([fingerprint, rows]) =>
+      rows.map((q) => ({
+        type: "csv",
+        fingerprint,
+        idOrImportKey: q.importKey,
+        file: q.source.file,
+        rowNumber: q.source.rowNumber,
+        year: q.year,
+        paper: q.paper,
+        questionNumber: q.questionNumber,
+        preview: q.question.displayText.slice(0, 180),
+      }))
+    );
+
+  const duplicateDbFingerprints = Array.from(dbByFingerprint.entries())
+    .filter(([, rows]) => rows.length > 1)
+    .flatMap(([fingerprint, rows]) =>
+      rows.map((row) => ({
+        type: "db",
+        fingerprint,
+        idOrImportKey: row.importKey,
+        file: row.sourceFile || "",
+        rowNumber: row.sourceRow || "",
+        year: row.year,
+        paper: row.paper,
+        questionNumber: row.questionNumber,
+        preview: row.questionText.slice(0, 180),
+      }))
+    );
+
+  const matched = [];
+  const unmatchedCsv = [];
+  const ambiguousCsv = [];
+  const matchedDbIds = new Set();
+
+  for (const q of csvQuestions) {
+    const dbMatches = dbByFingerprint.get(q.questionFingerprint) || [];
+    if (dbMatches.length === 1) {
+      const match = dbMatches[0];
+      matchedDbIds.add(match.id);
+      matched.push({
+        csvFile: q.source.file,
+        csvRow: q.source.rowNumber,
+        csvImportKey: q.importKey,
+        csvYear: q.year,
+        csvPaper: q.paper,
+        csvQuestionNumber: q.questionNumber,
+        csvMarks: q.marks,
+        dbId: match.id,
+        dbImportKey: match.importKey,
+        dbYear: match.year,
+        dbPaper: match.paper,
+        dbQuestionNumber: match.questionNumber,
+        fingerprint: q.questionFingerprint,
+        preview: q.question.displayText.slice(0, 180),
+      });
+    } else if (dbMatches.length === 0) {
+      unmatchedCsv.push({
+        csvFile: q.source.file,
+        csvRow: q.source.rowNumber,
+        csvImportKey: q.importKey,
+        csvYear: q.year,
+        csvPaper: q.paper,
+        csvQuestionNumber: q.questionNumber,
+        csvMarks: q.marks,
+        fingerprint: q.questionFingerprint,
+        preview: q.question.displayText.slice(0, 180),
+      });
+    } else {
+      ambiguousCsv.push({
+        csvFile: q.source.file,
+        csvRow: q.source.rowNumber,
+        csvImportKey: q.importKey,
+        csvYear: q.year,
+        csvPaper: q.paper,
+        csvQuestionNumber: q.questionNumber,
+        csvMarks: q.marks,
+        matchCount: dbMatches.length,
+        fingerprint: q.questionFingerprint,
+        preview: q.question.displayText.slice(0, 180),
+      });
+    }
+  }
+
+  const existingNotInCsv = existingRows
+    .filter((row) => !matchedDbIds.has(row.id) && !csvByFingerprint.has(row.fingerprint))
+    .map((row) => ({
+      dbId: row.id,
+      dbImportKey: row.importKey,
+      dbYear: row.year,
+      dbPaper: row.paper,
+      dbQuestionNumber: row.questionNumber,
+      dbSourceFile: row.sourceFile || "",
+      dbSourceRow: row.sourceRow || "",
+      fingerprint: row.fingerprint,
+      preview: row.questionText.slice(0, 180),
+    }));
+
+  const duplicateRows = [...duplicateCsvFingerprints, ...duplicateDbFingerprints];
+  const paths = {
+    matched: writeCsvReport(
+      "reconciliation-matched.csv",
+      ["csvFile", "csvRow", "csvImportKey", "csvYear", "csvPaper", "csvQuestionNumber", "csvMarks", "dbId", "dbImportKey", "dbYear", "dbPaper", "dbQuestionNumber", "fingerprint", "preview"],
+      matched
+    ),
+    unmatchedCsv: writeCsvReport(
+      "reconciliation-unmatched-csv.csv",
+      ["csvFile", "csvRow", "csvImportKey", "csvYear", "csvPaper", "csvQuestionNumber", "csvMarks", "fingerprint", "preview"],
+      unmatchedCsv
+    ),
+    ambiguousCsv: writeCsvReport(
+      "reconciliation-ambiguous-csv.csv",
+      ["csvFile", "csvRow", "csvImportKey", "csvYear", "csvPaper", "csvQuestionNumber", "csvMarks", "matchCount", "fingerprint", "preview"],
+      ambiguousCsv
+    ),
+    existingNotInCsv: writeCsvReport(
+      "reconciliation-existing-not-in-csv.csv",
+      ["dbId", "dbImportKey", "dbYear", "dbPaper", "dbQuestionNumber", "dbSourceFile", "dbSourceRow", "fingerprint", "preview"],
+      existingNotInCsv
+    ),
+    duplicates: writeCsvReport(
+      "reconciliation-duplicates.csv",
+      ["type", "fingerprint", "idOrImportKey", "file", "rowNumber", "year", "paper", "questionNumber", "preview"],
+      duplicateRows
+    ),
+  };
+
+  const report = {
+    generatedAt: new Date().toISOString(),
+    csvRows: csvQuestions.length,
+    existingRows: existingRows.length,
+    matched: matched.length,
+    unmatchedCsv: unmatchedCsv.length,
+    ambiguousCsv: ambiguousCsv.length,
+    existingNotInCsv: existingNotInCsv.length,
+    duplicateCsvFingerprints: duplicateCsvFingerprints.length,
+    duplicateDbFingerprints: duplicateDbFingerprints.length,
+    paths,
+  };
+  fs.writeFileSync(path.join(REPORTS_DIR, "reconciliation-report.json"), JSON.stringify(report, null, 2) + "\n");
+  return report;
 }
 
 function writeArtifacts(fileResults, importStats) {
@@ -544,6 +802,7 @@ function writeArtifacts(fileResults, importStats) {
       warned: allWarnings.length,
       inserted: importStats.inserted,
       updated: importStats.updated,
+      archived: importStats.archived || 0,
     },
     failures: allFailures,
     warnings: allWarnings,
@@ -588,6 +847,8 @@ function writeArtifacts(fileResults, importStats) {
 async function main() {
   ensureDirs();
   const parseOnly = process.argv.includes("--parse-only");
+  const reconcileOnly = process.argv.includes("--reconcile-only");
+  const archiveStale = process.argv.includes("--archive-stale");
   const csvFiles = fs
     .readdirSync(CSV_DIR)
     .filter((name) => name.toLowerCase().endsWith(".csv"))
@@ -600,18 +861,34 @@ async function main() {
 
   const fileResults = csvFiles.map((name) => parseFile(path.join(CSV_DIR, name)));
   const validQuestions = fileResults.flatMap((result) => result.questions);
-  const importStats = parseOnly ? { inserted: 0, updated: 0 } : await importQuestionsWithFallback(validQuestions);
+  const skipImport = parseOnly || reconcileOnly;
+  const importStats = skipImport
+    ? { inserted: 0, updated: 0, archived: 0 }
+    : await importQuestionsWithFallback(validQuestions, { archiveStale });
   const report = writeArtifacts(fileResults, importStats);
+  const reconciliation = reconcileOnly
+    ? buildReconciliation(fileResults, await fetchExistingQuestionsForReconcile())
+    : null;
 
   console.log(`CSV files: ${report.totals.files}`);
   console.log(`Rows parsed: ${report.totals.parsedRows}`);
   console.log(
-    parseOnly
+    skipImport
       ? `Parsed valid rows: ${report.totals.imported} (database import skipped)`
-      : `Imported: ${report.totals.imported} (${report.totals.inserted} inserted, ${report.totals.updated} updated)`
+      : `Imported: ${report.totals.imported} (${report.totals.inserted} inserted, ${report.totals.updated} updated, ${report.totals.archived} archived)`
   );
   console.log(`Warnings: ${report.totals.warned}`);
   console.log(`Skipped: ${report.totals.skipped}`);
+  if (reconciliation) {
+    console.log(`Reconciled against DB rows: ${reconciliation.existingRows}`);
+    console.log(`Matched: ${reconciliation.matched}`);
+    console.log(`Unmatched CSV rows: ${reconciliation.unmatchedCsv}`);
+    console.log(`Ambiguous CSV rows: ${reconciliation.ambiguousCsv}`);
+    console.log(`Existing DB rows not in CSV: ${reconciliation.existingNotInCsv}`);
+    console.log(`Duplicate CSV fingerprint rows: ${reconciliation.duplicateCsvFingerprints}`);
+    console.log(`Duplicate DB fingerprint rows: ${reconciliation.duplicateDbFingerprints}`);
+    console.log(`Reconciliation report: ${path.join(REPORTS_DIR, "reconciliation-report.json")}`);
+  }
   console.log(`Normalized: ${NORMALIZED_DIR}`);
   console.log(`Report: ${path.join(REPORTS_DIR, "import-report.json")}`);
   console.log(`Failed rows: ${path.join(REPORTS_DIR, "failed-rows.csv")}`);
