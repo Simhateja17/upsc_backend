@@ -8,6 +8,14 @@ vi.mock('../src/config/database', () => ({ default: {} }));
 vi.mock('../src/services/topperRag.service', () => ({
   buildTopperContext: vi.fn(() => 'No comparable topper answers were retrieved.'),
   retrieveTopperMatches: vi.fn(async () => []),
+  computeModelAnswerAlignment: vi.fn(async () => ({
+    cosineSimilarity: 0,
+    band: 'off',
+    keyTermOverlap: 0,
+    coveredKeyTerms: [],
+    missingKeyTerms: [],
+    reason: 'mocked',
+  })),
 }));
 vi.mock('../src/services/checkedCopyGenerator', () => ({
   generateCheckedCopy: vi.fn(async () => ({ status: 'failed', reason: 'mocked' })),

@@ -2,7 +2,7 @@ import { invokeModelJSON, BedrockMessage } from "../config/llm";
 import { renderPdfPagesToImages } from "../config/gemini";
 import { downloadFile, STORAGE_BUCKETS } from "../config/storage";
 import prisma from "../config/database";
-import { buildTopperContext, retrieveTopperMatches } from "./topperRag.service";
+import { buildTopperContext, retrieveTopperMatches, computeModelAnswerAlignment, ModelAnswerAlignment } from "./topperRag.service";
 import { CheckedCopyAnnotationPlan, EvaluatorCheckedCopyPlan, planCheckedCopyAnnotations } from "./checkedCopyPlanner";
 import { generateCheckedCopy, CheckedCopyAnswerHints } from "./checkedCopyGenerator";
 import { transcribeStudentAnswerFromUpload, TranscribedAnswerPage } from "./studentAnswerTranscriber";
@@ -33,6 +33,14 @@ interface EvaluationResult {
   modelAnswerKeyPoints?: string[];
   modelAnswerContent?: string;
   parameterScores?: Array<{ parameter: string; score: number; maxScore: number; comment?: string }>;
+  // PYQ-only fields: the LLM echoes back its verdict on alignment to the
+  // platform model answer included in the prompt as an extra binding signal.
+  modelAnswerAlignment?: {
+    band: ModelAnswerAlignment["band"] | "unassessed";
+    coverage: number;       // 0-1 fraction of model-answer key terms it saw
+    gaps: string[];         // missing substantive terms the LLM flagged
+    comment: string;        // 1-2 sentence examiner comment on the alignment
+  };
 }
 
 interface QuestionContext {
@@ -81,6 +89,7 @@ export interface EvaluationUpdate {
   modelAnswerKeyPoints?: any;
   modelAnswerContent?: string | null;
   parameterScores?: any;
+  modelAnswerAlignment?: any;
   evaluatedAt: Date | null;
 }
 
@@ -101,12 +110,25 @@ export interface EvaluationDbOps {
  * the typed-answer path and the handwritten upload path so the rubric, prompt
  * and fallback behavior stay in one place.
  */
+/**
+ * Optional PYQ-only binding context: the platform model answer for the
+ * question plus a deterministic alignment score (cosine similarity and
+ * key-term overlap) computed upstream via Azure embeddings. When present
+ * the evaluator must treat model-answer coverage as an explicit rubric
+ * axis and echo its verdict back via EvaluationResult.modelAnswerAlignment.
+ */
+interface ModelAnswerPromptContext {
+  modelAnswerText: string;
+  alignment: ModelAnswerAlignment;
+}
+
 async function runAzureEvaluation(
   answerText: string,
   question: QuestionContext,
   uploadTranscriptionNote: boolean,
   topperContext: string,
-  answerPages?: TranscribedAnswerPage[]
+  answerPages?: TranscribedAnswerPage[],
+  modelAnswerContext?: ModelAnswerPromptContext | null
 ): Promise<EvaluationResult> {
   const wordCount = answerText.trim().split(/\s+/).filter(Boolean).length;
   const expectedWords = question.marks >= 15 ? 250 : question.marks >= 10 ? 150 : 100;
@@ -143,7 +165,19 @@ ${pageSeparatedAnswer}
 RAG-CALIBRATION FROM CHECKED TOPPER COPIES:
 ${topperContext}
 
-${uploadTranscriptionNote ? "NOTE: This text was transcribed from uploaded handwritten page image(s). Grade content rigorously but forgive minor transcription artifacts.\n\n" : ""}GRADING RULES — follow precisely:
+${modelAnswerContext ? `PLATFORM MODEL ANSWER (authoritative reference for this PYQ):
+---
+${modelAnswerContext.modelAnswerText}
+---
+
+PRE-COMPUTED ALIGNMENT TO PLATFORM MODEL ANSWER:
+- Cosine similarity: ${modelAnswerContext.alignment.cosineSimilarity} (band: ${modelAnswerContext.alignment.band})
+- Key-term overlap: ${modelAnswerContext.alignment.keyTermOverlap}
+- Covered key terms: ${modelAnswerContext.alignment.coveredKeyTerms.join(", ") || "—"}
+- Missing key terms: ${modelAnswerContext.alignment.missingKeyTerms.join(", ") || "—"}
+- Auto reason: ${modelAnswerContext.alignment.reason}
+
+` : ""}${uploadTranscriptionNote ? "NOTE: This text was transcribed from uploaded handwritten page image(s). Grade content rigorously but forgive minor transcription artifacts.\n\n" : ""}GRADING RULES — follow precisely:
 - Empty / single-line / gibberish / off-topic answers → score 0-1. Do not reward effort.
 - Answer that rephrases the question without substance → 2-4 out of ${question.marks}.
 - Answer with some valid points but missing core demand, no examples, no structure → 5-7 out of ${question.marks}.
@@ -153,7 +187,13 @@ ${uploadTranscriptionNote ? "NOTE: This text was transcribed from uploaded handw
 - Penalize if word count is wildly off (>50% over or under ~${expectedWords}).
 - Penalize factual errors heavily. If a claim is wrong, call it out in "improvements".
 - NEVER give pity marks. A blank or one-sentence answer should not get more than 1/${question.marks}.
-- RAG calibration is binding: treat retrieved checked topper/evaluator copies as scoring anchors, not as automatic marks. If a retrieved answer scored 7/15, award 7/15 only when the student's answer is genuinely at that same standard. If the student's answer is weaker than the retrieved 7/15 answer in demand coverage, specificity, evidence, structure, or balance, award less. Do not award more than the best relevant retrieved example unless the student's answer is clearly and specifically superior, and explain that exact superiority in detailedFeedback. Generic polish is not enough.
+- RAG calibration is binding: treat retrieved checked topper/evaluator copies as scoring anchors, not as automatic marks. If a retrieved answer scored 7/15, award 7/15 only when the student's answer is genuinely at that same standard. If the student's answer is weaker than the retrieved 7/15 answer in demand coverage, specificity, evidence, structure, or balance, award less. Do not award more than the best relevant retrieved example unless the student's answer is clearly and specifically superior, and explain that exact superiority in detailedFeedback. Generic polish is not enough.${modelAnswerContext ? `
+- PYQ MODEL-ANSWER ALIGNMENT IS BINDING: when a platform model answer was supplied above, treat it as the canonical reference. The pre-computed alignment band ("${modelAnswerContext.alignment.band}") is informative but NOT decisive; you decide the band based on your own examiner judgement of demand-coverage against the model answer. You MUST:
+  • If the band is "excellent": treat missing key terms as minor gaps unless fundamental to the demand; lock at no less than the equivalent RAG anchor or 11/${question.marks}, whichever applies for the question demand.
+  • If "strong": reward alignment but cap 2 below the model answer unless the student adds genuinely superior evidence.
+  • If "moderate" or "weak": penalise missing key terms from the model answer explicitly; do not exceed the equivalent RAG anchor minus 2.
+  • If "off": judge against the model answer directly; the answer either missed the demand or went off-topic — apply the corresponding rubric floor (0-4/${question.marks}).
+  • Echo back via "modelAnswerAlignment" with your final band, coverage (0-1), gaps (substantive missing terms/phrases you found), and a 1-2 sentence examiner comment.` : ""}
 - Build annotationPlan as semantic examiner intent, not exact coordinates. The SVG renderer will decide final placement.
 - Use annotationPlan version 2. Split detailed markups, light markups, and correctness ticks.
 - Density target: create 3-5 marginComments for a normal full page, plus one positive_tick for each correct/relevant semantic answer point. A point may span multiple OCR lines; tick the point title or first distinctive phrase only, not continuation lines.
@@ -241,7 +281,13 @@ Return ONLY a JSON object (no prose, no markdown fences):
     {"parameter": "Structure & Flow", "score": <number>, "maxScore": <number>, "comment": "..."},
     {"parameter": "Value Addition", "score": <number>, "maxScore": <number>, "comment": "..."},
     {"parameter": "Presentation", "score": <number>, "maxScore": <number>, "comment": "..."}
-  ]
+  ]${modelAnswerContext ? `,
+  "modelAnswerAlignment": {
+    "band": "excellent|strong|moderate|weak|off",
+    "coverage": <0-1, your final fraction of substantive model-answer key terms the student's answer actually addresses>,
+    "gaps": ["missing substantive term/idea from the model answer", "..."],
+    "comment": "1-2 sentence examiner comment on the alignment to the platform model answer"
+  }` : ""}
 }
 
 For "keyTerms", list 6-10 terms (mix of found and missing). For "parameterScores", the seven maxScore values must sum to exactly ${question.marks} and the seven score values must sum to exactly the overall "score" value above.`,
@@ -574,8 +620,18 @@ export async function evaluateAnswerGeneric(params: {
   question: QuestionContext;
   dbOps: EvaluationDbOps;
   evaluationMode?: "daily" | "pyq" | "mock" | "custom";
+  /**
+   * Curated platform model answer for the question. Currently only PYQ Mains
+   * supplies this (from pyq_mains_question_bank.model_answer). When provided,
+   * an embedding-based alignment score is computed and bound into the
+   * evaluator prompt alongside the standard rubric, and the verdict is
+   * surfaced in ragDiagnostics.modelAnswerAlignment.
+   */
+  modelAnswer?: string | null;
 }): Promise<void> {
   const { attemptId, answerText, fileUrl, question, dbOps } = params;
+  const modelAnswerText = (params.modelAnswer || "").trim();
+  const enableModelAnswerAlignment = params.evaluationMode === "pyq" && modelAnswerText.length >= 30;
   const evaluationStartedAt = Date.now();
 
   try {
@@ -816,8 +872,50 @@ export async function evaluateAnswerGeneric(params: {
         answerChars: textToGrade.length,
         topperContextChars: topperContext.length,
         viaUploadTranscription,
+        modelAnswerAlignment: enableModelAnswerAlignment,
       });
-      result = await runAzureEvaluation(textToGrade, question, viaUploadTranscription, topperContext, transcriptionPages);
+
+      let modelAnswerPromptContext: ModelAnswerPromptContext | null = null;
+      let modelAnswerAlignmentDebug: Record<string, unknown> | null = null;
+      if (enableModelAnswerAlignment) {
+        try {
+          const alignmentStartedAt = Date.now();
+          const alignment = await computeModelAnswerAlignment(textToGrade, modelAnswerText);
+          modelAnswerPromptContext = { modelAnswerText, alignment };
+          modelAnswerAlignmentDebug = {
+            attempted: true,
+            cosineSimilarity: alignment.cosineSimilarity,
+            band: alignment.band,
+            keyTermOverlap: alignment.keyTermOverlap,
+            coveredKeyTerms: alignment.coveredKeyTerms,
+            missingKeyTerms: alignment.missingKeyTerms,
+            reason: alignment.reason,
+            elapsedMs: Date.now() - alignmentStartedAt,
+          };
+          console.log("[eval] model answer alignment computed", {
+            attemptId,
+            cosineSimilarity: alignment.cosineSimilarity,
+            band: alignment.band,
+            keyTermOverlap: alignment.keyTermOverlap,
+            missingCount: alignment.missingKeyTerms.length,
+          });
+        } catch (error) {
+          modelAnswerAlignmentDebug = {
+            attempted: true,
+            error: error instanceof Error ? error.message : String(error),
+          };
+          console.warn("[eval] model answer alignment failed:", error instanceof Error ? error.message : error);
+        }
+      }
+
+      result = await runAzureEvaluation(
+        textToGrade,
+        question,
+        viaUploadTranscription,
+        topperContext,
+        transcriptionPages,
+        modelAnswerPromptContext
+      );
       console.log("[eval] Azure evaluator completed", {
         attemptId,
         elapsed: evalElapsed(gradingStartedAt),
@@ -828,7 +926,20 @@ export async function evaluateAnswerGeneric(params: {
         improvements: result.improvements?.length || 0,
         suggestions: result.suggestions?.length || 0,
         annotationPlanItems: result.annotationPlan ? annotationPlanItemCount(result.annotationPlan) : 0,
+        modelAnswerAlignmentBand: result.modelAnswerAlignment?.band || null,
       });
+
+      // Persist the precomputed alignment into ragDiagnostics so that the
+      // result UI / future audits have the deterministic score alongside the
+      // LLM's verdict. Always written when we attempted (regardless of
+      // failure) so users can see the score was computed but model-abstained.
+      ragDiagnostics = {
+        ...ragDiagnostics,
+        modelAnswerAlignment: {
+          precomputed: modelAnswerAlignmentDebug,
+          llmVerdict: result.modelAnswerAlignment || null,
+        },
+      };
     }
 
     const rawClampedScore = Math.max(

@@ -123,7 +123,8 @@ async function kickoffEvaluation(
   attemptId: string,
   answerText: string | null,
   fileUrl: string | null,
-  question: { questionText: string; subject: string; paper: string; marks?: number | null }
+  question: { questionText: string; subject: string; paper: string; marks?: number | null },
+  modelAnswer?: string | null
 ) {
   const marks = Number.isInteger(question.marks) && Number(question.marks) > 0 ? Number(question.marks) : DEFAULT_MARKS;
   evaluateAnswerGeneric({
@@ -138,6 +139,7 @@ async function kickoffEvaluation(
     },
     dbOps: buildDbOps(attemptId),
     evaluationMode: "pyq",
+    modelAnswer: modelAnswer || null,
   });
 }
 
@@ -259,7 +261,7 @@ export const submitPyqMainsAnswer = async (
       subject: question.subject,
       paper: question.paper,
       marks: bankQuestion?.marks ?? DEFAULT_MARKS,
-    });
+    }, bankQuestion?.modelAnswer ?? null);
 
     await prisma.userActivity.create({
       data: {
@@ -399,6 +401,8 @@ export const getPyqMainsResults = async (
         checkedCopyPath: attempt.evaluation.checkedCopyUrl,
         checkedCopyStatus: attempt.evaluation.checkedCopyStatus,
         ragDiagnostics: attempt.evaluation.ragDiagnostics,
+        modelAnswerAlignment:
+          (attempt.evaluation.ragDiagnostics as any)?.modelAnswerAlignment ?? null,
         modelAnswer: attempt.evaluation.modelAnswer,
         wordCount: attempt.wordCount,
         submittedAt: attempt.submittedAt,
