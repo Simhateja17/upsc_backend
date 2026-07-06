@@ -249,7 +249,6 @@ async function getMainsQuestionBankQuestions(req: Request, res: Response) {
        'mains' as mode,
        year,
        paper,
-       question_num as "questionNum",
        question_text as "questionText",
        model_answer as "modelAnswer",
        taxonomy_l1 as subject,
@@ -269,7 +268,10 @@ async function getMainsQuestionBankQuestions(req: Request, res: Response) {
        created_at as "createdAt"
      from public.pyq_mains_question_bank
      where ${clause}
-     order by year desc, paper asc, question_num asc, created_at desc
+     order by year desc,
+              paper asc,
+              ((structured_json #>> '{source,questionNumber}')::int) asc nulls last,
+              created_at desc
      offset ${pushParam(params, skip)}
      limit ${pushParam(params, limit)}`,
     ...params
@@ -333,7 +335,6 @@ async function findMainsQuestionBankQuestionById(id: string) {
        'mains' as mode,
        year,
        paper,
-       question_num as "questionNum",
        question_text as "questionText",
        model_answer as "modelAnswer",
        taxonomy_l1 as subject,

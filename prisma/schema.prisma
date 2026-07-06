@@ -793,7 +793,6 @@ model PYQMainsQuestionBank {
   importKey      String            @unique @map("import_key")
   year           Int
   paper          String
-  questionNum    Int               @map("question_num")
   questionText   String            @map("question_text")
   modelAnswer    String?           @map("model_answer")
   subject        String
@@ -808,7 +807,6 @@ model PYQMainsQuestionBank {
   questionFingerprint String?      @map("question_fingerprint")
   structuredJson Json              @default("{}") @map("structured_json")
   sourceFile     String?           @map("source_file")
-  sourceRow      Int?              @map("source_row")
   status         String            @default("approved")
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")

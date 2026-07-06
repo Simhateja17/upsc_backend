@@ -324,7 +324,6 @@ function dbRowFromQuestion(q) {
     importKey: q.importKey,
     year: q.year,
     paper: q.paper,
-    questionNum: q.questionNumber,
     questionText: q.question.displayText,
     modelAnswer: q.modelAnswer.displayText,
     subject: q.subject,
@@ -339,7 +338,6 @@ function dbRowFromQuestion(q) {
     questionFingerprint: q.questionFingerprint,
     structuredJson: q,
     sourceFile: q.source.file,
-    sourceRow: q.source.rowNumber,
     status: "approved",
   };
 }
@@ -351,7 +349,6 @@ async function ensureImportTable(client) {
       import_key text not null unique,
       year integer not null,
       paper text not null,
-      question_num integer not null,
       question_text text not null,
       model_answer text,
       subject text not null,
@@ -366,7 +363,6 @@ async function ensureImportTable(client) {
       question_fingerprint text,
       structured_json jsonb not null default '{}'::jsonb,
       source_file text,
-      source_row integer,
       status text not null default 'approved',
       created_at timestamp with time zone not null default now(),
       updated_at timestamp with time zone not null default now()
@@ -415,47 +411,45 @@ async function importQuestions(questions, options = {}) {
           `update ${TARGET_TABLE}
            set year = $2,
                paper = $3,
-               question_num = $4,
-               question_text = $5,
-               model_answer = $6,
-               subject = $7,
-               sub_subject = $8,
-               theme = $9,
-               topic = $10,
-               taxonomy_l1 = $11,
-               taxonomy_l2 = $12,
-               taxonomy_l3 = $13,
-               difficulty = $14,
-               marks = $15,
-               question_fingerprint = $16,
-               structured_json = $17::jsonb,
-               source_file = $18,
-               source_row = $19,
-               status = $20,
+               question_text = $4,
+               model_answer = $5,
+               subject = $6,
+               sub_subject = $7,
+               theme = $8,
+               topic = $9,
+               taxonomy_l1 = $10,
+               taxonomy_l2 = $11,
+               taxonomy_l3 = $12,
+               difficulty = $13,
+               marks = $14,
+               question_fingerprint = $15,
+               structured_json = $16::jsonb,
+               source_file = $17,
+               status = $18,
                updated_at = now()
            where id = $1`,
           [
             existing.rows[0].id,
-            row.year, row.paper, row.questionNum, row.questionText, row.modelAnswer,
+            row.year, row.paper, row.questionText, row.modelAnswer,
             row.subject, row.subSubject, row.theme, row.topic,
             row.taxonomyL1, row.taxonomyL2, row.taxonomyL3, row.difficulty,
             row.marks, row.questionFingerprint,
-            JSON.stringify(row.structuredJson), row.sourceFile, row.sourceRow, row.status,
+            JSON.stringify(row.structuredJson), row.sourceFile, row.status,
           ]
         );
         updated++;
       } else {
         await client.query(
           `insert into ${TARGET_TABLE}
-            (id, import_key, year, paper, question_num, question_text, model_answer, subject, sub_subject, theme, topic, taxonomy_l1, taxonomy_l2, taxonomy_l3, difficulty, marks, question_fingerprint, structured_json, source_file, source_row, status)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::jsonb,$19,$20,$21)`,
+            (id, import_key, year, paper, question_text, model_answer, subject, sub_subject, theme, topic, taxonomy_l1, taxonomy_l2, taxonomy_l3, difficulty, marks, question_fingerprint, structured_json, source_file, status)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb,$18,$19)`,
           [
             crypto.randomUUID(),
-            row.importKey, row.year, row.paper, row.questionNum, row.questionText, row.modelAnswer,
+            row.importKey, row.year, row.paper, row.questionText, row.modelAnswer,
             row.subject, row.subSubject, row.theme, row.topic,
             row.taxonomyL1, row.taxonomyL2, row.taxonomyL3, row.difficulty,
             row.marks, row.questionFingerprint,
-            JSON.stringify(row.structuredJson), row.sourceFile, row.sourceRow, row.status,
+            JSON.stringify(row.structuredJson), row.sourceFile, row.status,
           ]
         );
         inserted++;
@@ -506,7 +500,6 @@ async function importQuestionsViaSupabase(questions, options = {}) {
     const payload = {
       year: row.year,
       paper: row.paper,
-      question_num: row.questionNum,
       question_text: row.questionText,
       model_answer: row.modelAnswer,
       subject: row.subject,
@@ -521,7 +514,6 @@ async function importQuestionsViaSupabase(questions, options = {}) {
       question_fingerprint: row.questionFingerprint,
       structured_json: row.structuredJson,
       source_file: row.sourceFile,
-      source_row: row.sourceRow,
       status: row.status,
       updated_at: new Date().toISOString(),
     };
@@ -579,14 +571,14 @@ async function fetchExistingQuestionsForReconcile() {
          import_key,
          year,
          paper,
-         question_num,
          question_text,
          source_file,
-         source_row,
+         structured_json #>> '{source,rowNumber}' as source_row,
+         structured_json #>> '{source,questionNumber}' as question_num,
          status
        from ${TARGET_TABLE}
        where status = 'approved'
-       order by year desc, paper asc, question_num asc`
+       order by year desc, paper asc, ((structured_json #>> '{source,questionNumber}')::int) asc nulls last`
     );
     return result.rows.map((row) => ({
       id: row.id,
