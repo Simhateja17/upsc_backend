@@ -81,7 +81,7 @@ function multiPaperClause(params: any[], papers: string[]): string | null {
 
 const PRELIMS_TAXONOMY_LABELS = {
   level1: "Subject",
-  level2: "Sub-Subject",
+  level2: "Theme",
   level3: "Topic",
 };
 

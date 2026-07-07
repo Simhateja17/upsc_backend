@@ -1,5 +1,6 @@
 import { dashboardRepo } from "../repositories/prisma-dashboard.repository";
 import { supabaseAdmin } from "../config/supabase";
+import { getDerivedStudyStreak } from "./streak.service";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const ORDERED_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -104,7 +105,7 @@ export async function getStreakCalendar(userId: string) {
 
   const [raw, streak] = await Promise.all([
     dashboardRepo.getMonthlyActivityRaw(userId, monthStart, monthEnd),
-    dashboardRepo.getPerformanceRaw(userId, new Date(new Date().setHours(0, 0, 0, 0))).then((r) => r.streak),
+    getDerivedStudyStreak(userId),
   ]);
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -168,8 +169,8 @@ export async function getStreakCalendar(userId: string) {
     month: month + 1,
     monthLabel: monthStart.toLocaleString("en-US", { month: "long" }),
     today: now.getDate(),
-    currentStreak: streak?.currentStreak ?? 0,
-    longestStreak: streak?.longestStreak ?? 0,
+    currentStreak: streak.currentStreak,
+    longestStreak: streak.longestStreak,
     days,
   };
 }
@@ -302,7 +303,7 @@ export async function getPerformance(userId: string) {
     },
     mockTests: { totalAttempts: raw.mockCount },
     testSeries: { totalAttempts: raw.seriesAttempts.count },
-    streak: raw.streak || { currentStreak: 0, longestStreak: 0 },
+    streak: await getDerivedStudyStreak(userId),
     strongTopics,
     weakTopics,
   };
