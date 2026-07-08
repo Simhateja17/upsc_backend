@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-08T10:07:47.897Z",
+  "generatedAt": "2026-07-08T10:26:19.419Z",
   "csvDirectory": "/Users/teja/Desktop/Projects/upsc/mains_pyq",
   "files": [
     {
@@ -15,7 +15,7 @@
     "imported": 96,
     "skipped": 0,
     "warned": 0,
-    "inserted": 0,
+    "inserted": 96,
     "updated": 0,
     "archived": 0
   },
