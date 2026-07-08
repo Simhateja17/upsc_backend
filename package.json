@@ -17,6 +17,7 @@
     "seed:cms": "npx tsx prisma/seed-cms.ts",
     "pyq:import-csvs": "node scripts/import-pyq-csvs.mjs",
     "pyq:mains:import-csvs": "node scripts/import-mains-pyq-csvs.mjs",
+    "pyq:essay:import-csv": "node scripts/import-mains-pyq-csvs.mjs --essay-only",
     "billing:sync-razorpay-plans": "tsx scripts/sync-razorpay-plans.ts"
   },
   "keywords": [

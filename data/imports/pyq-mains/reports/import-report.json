@@ -1,41 +1,23 @@
 {
-  "generatedAt": "2026-07-06T04:09:56.856Z",
+  "generatedAt": "2026-07-08T10:07:47.897Z",
   "csvDirectory": "/Users/teja/Desktop/Projects/upsc/mains_pyq",
   "files": [
     {
-      "file": "PYQ - Mains GS 1 (1).csv",
-      "normalized": 271,
-      "failed": 0,
-      "warned": 0
-    },
-    {
-      "file": "PYQ - Mains GS2 (1).csv",
-      "normalized": 264,
-      "failed": 0,
-      "warned": 0
-    },
-    {
-      "file": "PYQ - Mains GS3 (1).csv",
-      "normalized": 267,
-      "failed": 0,
-      "warned": 0
-    },
-    {
-      "file": "PYQ - Mains GS4 (1).csv",
-      "normalized": 244,
+      "file": "PYQ - Essay_Final.csv",
+      "normalized": 96,
       "failed": 0,
       "warned": 0
     }
   ],
   "totals": {
-    "files": 4,
-    "parsedRows": 1046,
-    "imported": 1046,
+    "files": 1,
+    "parsedRows": 96,
+    "imported": 96,
     "skipped": 0,
     "warned": 0,
     "inserted": 0,
-    "updated": 1046,
-    "archived": 1
+    "updated": 0,
+    "archived": 0
   },
   "failures": [],
   "warnings": []

@@ -8,6 +8,7 @@ const BACKEND_ROOT = path.resolve(import.meta.dirname, "..");
 const REPO_ROOT = path.resolve(BACKEND_ROOT, "..");
 const ENV_PATH = path.join(BACKEND_ROOT, ".env");
 const CSV_DIR = path.join(REPO_ROOT, "mains_pyq");
+const ESSAY_CSV_FILE = path.join(REPO_ROOT, "PYQ - Essay_Final.csv");
 const NORMALIZED_DIR = path.join(BACKEND_ROOT, "data", "imports", "pyq-mains", "normalized");
 const REPORTS_DIR = path.join(BACKEND_ROOT, "data", "imports", "pyq-mains", "reports");
 const TARGET_TABLE = "public.pyq_mains_question_bank";
@@ -141,6 +142,7 @@ function questionFingerprint(value) {
 
 function inferPaperFromFile(fileName) {
   const normalized = fileName.toLowerCase().replace(/\s+/g, "");
+  if (normalized.includes("essay")) return "Essay";
   if (normalized.includes("gs1")) return "GS-I";
   if (normalized.includes("gs2")) return "GS-II";
   if (normalized.includes("gs3")) return "GS-III";
@@ -157,6 +159,61 @@ function normalizeHeader(header) {
   ]);
 
   return header.map((name) => aliases.get(name) || name);
+}
+
+function importKeyPart(value) {
+  return normalizeWhitespace(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "na";
+}
+
+function splitEssayModelAnswer(value) {
+  const text = normalizeMarkdown(value);
+  if (!text) {
+    return {
+      intro: "",
+      parts: {
+        topicDecoding: "",
+        modelEssay: "",
+        valueAdditionRepository: "",
+      },
+      displayOrder: ["topicDecoding", "modelEssay", "valueAdditionRepository"],
+    };
+  }
+
+  const part1 = /(^|\n)#{1,6}\s*Part\s*-?\s*1\s*[-:–—]?\s*Topic\s*Decoding\b[^\n]*/i.exec(text);
+  const part2 = /(^|\n)#{1,6}\s*Part\s*-?\s*2\b[^\n]*/i.exec(text);
+  const part3 = /(^|\n)#{1,6}\s*Part\s*-?\s*3\b[^\n]*/i.exec(text);
+
+  if (!part1 || !part3 || part3.index <= part1.index) {
+    return {
+      intro: "",
+      parts: {
+        topicDecoding: "",
+        modelEssay: text,
+        valueAdditionRepository: "",
+      },
+      displayOrder: ["modelEssay", "topicDecoding", "valueAdditionRepository"],
+    };
+  }
+
+  const headingAfterPart1 = [...text.slice(part1.index + part1[0].length, part3.index).matchAll(/(^|\n)#{1,6}\s+.+/g)]
+    .map((match) => part1.index + part1[0].length + match.index + (match[1] ? match[1].length : 0))
+    .find((index) => index > part1.index);
+  const modelEssayStart = part2 && part2.index > part1.index && part2.index < part3.index
+    ? part2.index
+    : headingAfterPart1;
+
+  return {
+    intro: text.slice(0, part1.index).trim(),
+    parts: {
+      topicDecoding: text.slice(part1.index, modelEssayStart || part3.index).trim(),
+      modelEssay: text.slice(modelEssayStart || part1.index, part3.index).trim(),
+      valueAdditionRepository: text.slice(part3.index).trim(),
+    },
+    displayOrder: ["topicDecoding", "modelEssay", "valueAdditionRepository"],
+  };
 }
 
 function getHeaderValue(row, header, names) {
@@ -194,26 +251,32 @@ function shapeRowToHeader(row, header) {
 function normalizeRow(row, header, fileName, csvRowNumber, fallbackQuestionNumber) {
   const get = (name) => getHeaderValue(row, header, name);
   const paper = inferPaperFromFile(fileName);
+  const isEssay = paper === "Essay";
   const year = Number.parseInt(get("Year"), 10);
   const parsedQuestionNumber = Number.parseInt(get("Question Number"), 10);
   const questionNumber = Number.isInteger(parsedQuestionNumber) ? parsedQuestionNumber : fallbackQuestionNumber;
   const questionText = normalizeMarkdown(get("Question"));
   const modelAnswer = normalizeMarkdown(get("Model Answer"));
-  const subject = normalizeWhitespace(get("Subject")) || "General Studies";
+  const section = normalizeWhitespace(get("Section")) || null;
+  const subject = normalizeWhitespace(get("Subject")) || (isEssay ? "Essay" : "General Studies");
   const subSubject = normalizeWhitespace(get("Sub Subject")) || null;
   const theme = normalizeWhitespace(get("Theme")) || null;
-  const topic = normalizeWhitespace(get("Topic")) || null;
+  const topic = normalizeWhitespace(get("Topic")) || (isEssay ? section : null);
   const taxonomy = buildMainsTaxonomy({ paper, subject, subSubject, theme, topic });
   const difficulty = titleCaseDifficulty(get("Difficulty"));
   const marks = parseMarks(get("Marks"));
   const fingerprint = questionFingerprint(questionText);
-  const importKey = ["mains", year, paper, questionNumber].join(":").toLowerCase();
+  const importKey = isEssay
+    ? ["mains", year, "essay", importKeyPart(section), questionNumber].join(":").toLowerCase()
+    : ["mains", year, paper, questionNumber].join(":").toLowerCase();
+  const essay = isEssay ? splitEssayModelAnswer(modelAnswer) : null;
 
   return {
     source: {
       file: fileName,
       rowNumber: csvRowNumber,
       questionNumber,
+      ...(section ? { section } : {}),
     },
     importKey,
     exam: "mains",
@@ -231,6 +294,7 @@ function normalizeRow(row, header, fileName, csvRowNumber, fallbackQuestionNumbe
       displayText: modelAnswer,
       format: "markdown",
     },
+    ...(essay ? { essay: { section, ...essay } } : {}),
     subject,
     subSubject,
     theme,
@@ -252,15 +316,19 @@ function buildMainsTaxonomy({ paper, subject, subSubject, theme, topic }) {
 
 function validateQuestion(q) {
   const errors = [];
+  const isEssay = q.paper === "Essay";
   if (!Number.isInteger(q.year) || q.year < 1900 || q.year > 2100) errors.push("Invalid or missing year");
   if (!Number.isInteger(q.questionNumber) || q.questionNumber < 1) errors.push("Invalid or missing question number");
   if (!q.question.displayText || q.question.displayText.length < 10) errors.push("Missing question text");
   if (!q.modelAnswer.displayText || q.modelAnswer.displayText.length < 10) errors.push("Missing model answer");
   if (!q.subject) errors.push("Missing subject");
-  if (!Number.isInteger(q.marks) || q.marks < 1 || q.marks > 50) errors.push("Invalid or missing marks");
+  if (!Number.isInteger(q.marks) || q.marks < 1 || q.marks > (isEssay ? 250 : 50)) errors.push("Invalid or missing marks");
   if (!q.questionFingerprint || q.questionFingerprint.length !== 64) errors.push("Invalid question fingerprint");
   if (!VALID_DIFFICULTIES.has(q.difficulty)) errors.push("Invalid difficulty");
-  if (!["GS-I", "GS-II", "GS-III", "GS-IV"].includes(q.paper)) errors.push("Paper cannot be mapped to GS-I/II/III/IV");
+  if (!["GS-I", "GS-II", "GS-III", "GS-IV", "Essay"].includes(q.paper)) errors.push("Paper cannot be mapped to GS-I/II/III/IV/Essay");
+  if (isEssay && (!q.essay?.parts?.topicDecoding || !q.essay?.parts?.modelEssay || !q.essay?.parts?.valueAdditionRepository)) {
+    errors.push("Essay model answer could not be separated into all expected parts");
+  }
   return errors;
 }
 
@@ -457,11 +525,13 @@ async function importQuestions(questions, options = {}) {
     }
     if (options.archiveStale) {
       const activeImportKeys = questions.map((question) => question.importKey);
+      const scopeClause = options.archiveScope === "essay" ? "and paper = 'Essay'" : "";
       const archiveResult = await client.query(
         `update ${TARGET_TABLE}
          set status = 'archived',
              updated_at = now()
          where status = 'approved'
+           ${scopeClause}
            and not (import_key = any($1::text[]))`,
         [activeImportKeys]
       );
@@ -841,22 +911,29 @@ async function main() {
   const parseOnly = process.argv.includes("--parse-only");
   const reconcileOnly = process.argv.includes("--reconcile-only");
   const archiveStale = process.argv.includes("--archive-stale");
-  const csvFiles = fs
-    .readdirSync(CSV_DIR)
-    .filter((name) => name.toLowerCase().endsWith(".csv"))
-    .sort();
+  const essayOnly = process.argv.includes("--essay-only");
+  const includeEssay = process.argv.includes("--include-essay") || essayOnly;
+  const gsCsvFiles = essayOnly
+    ? []
+    : fs
+        .readdirSync(CSV_DIR)
+        .filter((name) => name.toLowerCase().endsWith(".csv"))
+        .sort()
+        .map((name) => path.join(CSV_DIR, name));
+  const essayCsvFiles = includeEssay && fs.existsSync(ESSAY_CSV_FILE) ? [ESSAY_CSV_FILE] : [];
+  const csvFiles = [...gsCsvFiles, ...essayCsvFiles];
 
   if (csvFiles.length === 0) {
-    console.log(`No CSV files found in ${CSV_DIR}`);
+    console.log(`No CSV files found for the selected mode`);
     return;
   }
 
-  const fileResults = csvFiles.map((name) => parseFile(path.join(CSV_DIR, name)));
+  const fileResults = csvFiles.map((filePath) => parseFile(filePath));
   const validQuestions = fileResults.flatMap((result) => result.questions);
   const skipImport = parseOnly || reconcileOnly;
   const importStats = skipImport
     ? { inserted: 0, updated: 0, archived: 0 }
-    : await importQuestionsWithFallback(validQuestions, { archiveStale });
+    : await importQuestionsWithFallback(validQuestions, { archiveStale, archiveScope: essayOnly ? "essay" : "all" });
   const report = writeArtifacts(fileResults, importStats);
   const reconciliation = reconcileOnly
     ? buildReconciliation(fileResults, await fetchExistingQuestionsForReconcile())
