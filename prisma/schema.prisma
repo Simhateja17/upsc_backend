@@ -333,6 +333,7 @@ model MockTestQuestion {
   options              Json
   correctOption        String                 @map("correct_option")
   explanation          String?
+  marks                Int?
   createdAt            DateTime               @default(now()) @map("created_at")
   mainsAttempts        MockTestMainsAttempt[]
   mockTest             MockTest               @relation(fields: [mockTestId], references: [id], onDelete: Cascade)

@@ -58,6 +58,47 @@ function toMockQuestionFromBank(row: any) {
   };
 }
 
+// Mains "paper" is stored differently across tables: the curated bank uses
+// "GS-I".."GS-IV", daily_mains_questions uses the display form
+// "GS Paper I".."GS Paper IV", and the frontend sends "gs1".."gs4".
+// Normalize once here so callers can match exactly instead of pattern-matching
+// (roman numerals share suffixes — "I"/"II"/"III" all end in "I" — so a LIKE
+// match on a suffix would silently over-match).
+function mainsPaperCode(paperType?: string): string | null {
+  const raw = String(paperType || "").trim().toLowerCase();
+  const map: Record<string, string> = { gs1: "GS-I", gs2: "GS-II", gs3: "GS-III", gs4: "GS-IV" };
+  return map[raw] || null;
+}
+
+function mainsPaperDisplay(paperType?: string): string | null {
+  const raw = String(paperType || "").trim().toLowerCase();
+  const map: Record<string, string> = {
+    gs1: "GS Paper I",
+    gs2: "GS Paper II",
+    gs3: "GS Paper III",
+    gs4: "GS Paper IV",
+  };
+  return map[raw] || null;
+}
+
+function toMockMainsQuestion(row: {
+  sourceQuestionBankId: string | null;
+  questionText: string;
+  subject: string;
+  marks: number | null;
+  difficulty?: string | null;
+}) {
+  return {
+    sourceQuestionBankId: row.sourceQuestionBankId,
+    questionText: row.questionText,
+    subject: row.subject,
+    category: row.subject,
+    difficulty: row.difficulty || "Medium",
+    explanation: "",
+    marks: row.marks && row.marks > 0 ? row.marks : 15,
+  };
+}
+
 export function createPrismaMockTestRepository(): MockTestRepository {
   return {
     async getSubjectCounts() {
@@ -121,7 +162,7 @@ export function createPrismaMockTestRepository(): MockTestRepository {
     async findQuestions(testId) {
       const { data } = await supabaseAdmin
         .from("mock_test_questions")
-        .select("id, question_num, question_text, subject, category, difficulty, options, correct_option, explanation")
+        .select("id, question_num, question_text, subject, category, difficulty, options, correct_option, explanation, marks, source_question_bank_id")
         .eq("mock_test_id", testId)
         .order("question_num", { ascending: true });
       return data || [];
@@ -194,6 +235,62 @@ export function createPrismaMockTestRepository(): MockTestRepository {
       if (paperType) query = query.ilike("paper", `%${String(paperType).replace(/[^0-9IVX]/gi, "")}%`);
       const { data } = await query;
       return data || [];
+    },
+
+    /**
+     * "Previous Year Questions" mains source — pulls directly from the
+     * curated PYQ Mains bank (same table Daily Answer Writing and PYQ Mains
+     * practice use), so every question carries a real marks value and a
+     * `sourceQuestionBankId` that the results page can resolve back to a
+     * human-authored model answer.
+     */
+    async findPYQBankMains(subject, paperType, limit = 40) {
+      let query = supabaseAdmin
+        .from("pyq_mains_question_bank")
+        .select("id, question_text, subject, paper, marks, difficulty")
+        .eq("status", "approved")
+        .limit(limit);
+      if (subject && subject !== "All Subjects") query = query.ilike("subject", `%${subject}%`);
+      const paperCode = mainsPaperCode(paperType);
+      if (paperCode) query = query.eq("paper", paperCode);
+      const { data } = await query;
+      return (data || []).map((row: any) =>
+        toMockMainsQuestion({
+          sourceQuestionBankId: row.id,
+          questionText: row.question_text,
+          subject: row.subject,
+          marks: row.marks,
+          difficulty: row.difficulty,
+        })
+      );
+    },
+
+    /**
+     * "Daily Mains Challenge" mains source — pulls from the questions that
+     * have actually been served as a past Daily Answer Writing question.
+     * Restricted to rows with a linked `pyq_question_id` (i.e. drawn from
+     * the curated bank, not the rare AI-fallback day), which guarantees a
+     * curated model answer is available for every question in this pool.
+     */
+    async findDailyMainsHistory(subject, paperType, limit = 40) {
+      let query = supabaseAdmin
+        .from("daily_mains_questions")
+        .select("id, question_text, subject, paper, marks, pyq_question_id")
+        .not("pyq_question_id", "is", null)
+        .order("date", { ascending: false })
+        .limit(limit);
+      if (subject && subject !== "All Subjects") query = query.ilike("subject", `%${subject}%`);
+      const paperDisplay = mainsPaperDisplay(paperType);
+      if (paperDisplay) query = query.eq("paper", paperDisplay);
+      const { data } = await query;
+      return (data || []).map((row: any) =>
+        toMockMainsQuestion({
+          sourceQuestionBankId: row.pyq_question_id,
+          questionText: row.question_text,
+          subject: row.subject,
+          marks: row.marks,
+        })
+      );
     },
 
     async findPYQQuestions(subject, excludeSubjects, limit = 30) {
