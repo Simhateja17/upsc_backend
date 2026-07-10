@@ -1,6 +1,7 @@
 import prisma from "../config/database";
 import { invokeModelJSON } from "../config/llm";
 import { isValidSubject, normalizeSubject, VALID_UPSC_SUBJECTS } from "../constants/subjects";
+import { mainsWordLimit, mainsTimeLimit } from "../utils/mainsPattern";
 
 /**
  * UPSC subject taxonomy — sourced from the shared categorizer categories.
@@ -360,20 +361,10 @@ function displayPaper(pyqPaper: string): string {
   return map[pyqPaper] || pyqPaper;
 }
 
-// Word/time budgets follow the standard UPSC allocation per marks.
-function wordLimitForMarks(marks: number): number {
-  if (marks >= 20) return 300;
-  if (marks >= 15) return 250;
-  if (marks >= 12) return 200;
-  return 150;
-}
-
-function timeLimitForMarks(marks: number): number {
-  if (marks >= 20) return 15;
-  if (marks >= 15) return 12;
-  if (marks >= 12) return 10;
-  return 8;
-}
+// Word/time budgets follow the standard UPSC allocation per marks — see
+// utils/mainsPattern for the single source of truth.
+const wordLimitForMarks = mainsWordLimit;
+const timeLimitForMarks = mainsTimeLimit;
 
 function deriveMainsTitle(row: {
   questionText: string;
@@ -531,8 +522,8 @@ Make it a thought-provoking, analytical question typical of UPSC Mains. Focus on
       paper: selectedPaper.paper,
       subject: selectedSubject,
       marks: 15,
-      wordLimit: 250,
-      timeLimit: 20,
+      wordLimit: wordLimitForMarks(15),
+      timeLimit: timeLimitForMarks(15),
       instructions:
         result.instructions ||
         "Write a well-structured answer with introduction, body, and conclusion.",
@@ -558,8 +549,8 @@ Make it a thought-provoking, analytical question typical of UPSC Mains. Focus on
       paper: selectedPaper.paper,
       subject: selectedSubject,
       marks: 15,
-      wordLimit: 250,
-      timeLimit: 20,
+      wordLimit: wordLimitForMarks(15),
+      timeLimit: timeLimitForMarks(15),
       instructions:
         "Structure your answer with a clear introduction, balanced arguments, relevant examples, and a conclusion.",
       isActive: true,

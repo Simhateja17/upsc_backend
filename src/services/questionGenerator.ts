@@ -1,4 +1,5 @@
 import { generateJSON } from "../config/azure";
+import { mainsWordLimit } from "../utils/mainsPattern";
 
 function coerceToArray<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
@@ -107,8 +108,7 @@ export async function generateMainsQuestions(params: {
       ? "Advanced — multi-dimensional, analytical, requires critical thinking, inter-linkages and case-based application"
       : "Standard UPSC Mains difficulty — balanced analysis, examples and contemporary relevance expected";
 
-  const wordLimitHint =
-    marksPerQuestion >= 15 ? "250 words" : marksPerQuestion >= 10 ? "150 words" : "100 words";
+  const wordLimitHint = `${mainsWordLimit(marksPerQuestion)} words`;
 
   const paperHint = paperType ? `Target paper: ${paperType}.` : "";
 

@@ -70,7 +70,8 @@ const FREE_POLICY: EntitlementPolicy = {
     mindmaps: "limited",
     spaced_repetition: "none",
     syllabus_tracker: "limited",
-    live_study_room: "none",
+    // Study Groups are available to every signed-in learner, including free users.
+    live_study_room: "full",
     mental_health_buddy: "none",
     mentorship: "none",
   },

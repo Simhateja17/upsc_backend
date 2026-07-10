@@ -249,6 +249,8 @@ export function createPrismaMockTestRepository(): MockTestRepository {
         .from("pyq_mains_question_bank")
         .select("id, question_text, subject, paper, marks, difficulty")
         .eq("status", "approved")
+        // Mock Test Mains only uses 10-mark questions (cheaper to auto-evaluate).
+        .eq("marks", 10)
         .limit(limit);
       if (subject && subject !== "All Subjects") query = query.ilike("subject", `%${subject}%`);
       const paperCode = mainsPaperCode(paperType);
@@ -277,6 +279,8 @@ export function createPrismaMockTestRepository(): MockTestRepository {
         .from("daily_mains_questions")
         .select("id, question_text, subject, paper, marks, pyq_question_id")
         .not("pyq_question_id", "is", null)
+        // Mock Test Mains only uses 10-mark questions (cheaper to auto-evaluate).
+        .eq("marks", 10)
         .order("date", { ascending: false })
         .limit(limit);
       if (subject && subject !== "All Subjects") query = query.ilike("subject", `%${subject}%`);

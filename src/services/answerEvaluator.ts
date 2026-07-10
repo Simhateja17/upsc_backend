@@ -7,6 +7,7 @@ import { CheckedCopyAnnotationPlan, EvaluatorCheckedCopyPlan, planCheckedCopyAnn
 import { generateCheckedCopy, CheckedCopyAnswerHints } from "./checkedCopyGenerator";
 import { transcribeStudentAnswerFromUpload, TranscribedAnswerPage } from "./studentAnswerTranscriber";
 import { analyzeDocumentPageLayout, DocumentPageLayout } from "./documentLayout.service";
+import { mainsWordLimit, mainsWordRange, wordCountStatus, WordCountStatus } from "../utils/mainsPattern";
 
 function evalElapsed(startedAt: number) {
   return `${Date.now() - startedAt}ms`;
@@ -33,6 +34,12 @@ interface EvaluationResult {
   modelAnswerKeyPoints?: string[];
   modelAnswerContent?: string;
   parameterScores?: Array<{ parameter: string; score: number; maxScore: number; comment?: string }>;
+  wordCountAssessment?: {
+    wordCount: number;
+    wordLimit: number;
+    status: WordCountStatus;
+    comment?: string;
+  };
   // PYQ-only fields: the LLM echoes back its verdict on alignment to the
   // platform model answer included in the prompt as an extra binding signal.
   modelAnswerAlignment?: {
@@ -131,7 +138,15 @@ async function runAzureEvaluation(
   modelAnswerContext?: ModelAnswerPromptContext | null
 ): Promise<EvaluationResult> {
   const wordCount = answerText.trim().split(/\s+/).filter(Boolean).length;
-  const expectedWords = question.marks >= 15 ? 250 : question.marks >= 10 ? 150 : 100;
+  const expectedWords = mainsWordLimit(question.marks);
+  const wordRange = mainsWordRange(question.marks);
+  const wordStatus = wordCountStatus(wordCount, question.marks);
+  const wordCountVerdict =
+    wordStatus === "over"
+      ? `OVER THE WORD LIMIT — the student wrote ${wordCount} words against a ${expectedWords}-word limit (${Math.round((wordCount / expectedWords - 1) * 100)}% over). This is a real exam penalty: in the actual UPSC Mains the extra words would go unread and the extra time would be stolen from other questions.`
+      : wordStatus === "under"
+        ? `UNDER LENGTH — the student wrote ${wordCount} words against a ${expectedWords}-word limit. The answer cannot have covered the demand at this length.`
+        : `Within the acceptable band (${wordRange.min}-${wordRange.max} words for a ${expectedWords}-word limit).`;
   const readablePages = (answerPages || [])
     .filter((page) => page.studentAnswerText.trim().length > 0)
     .sort((a, b) => a.pageNumber - b.pageNumber);
@@ -149,8 +164,14 @@ async function runAzureEvaluation(
       role: "user",
       content: `You are grading a UPSC Civil Services Mains answer. Be strict — UPSC marks are notoriously tight.
 
-QUESTION (${question.paper} · ${question.subject} · ${question.marks} marks · ~${expectedWords} words expected):
+QUESTION (${question.paper} · ${question.subject} · ${question.marks} marks · STRICT WORD LIMIT ${expectedWords} words):
 "${question.questionText}"
+
+WORD-LIMIT CHECK (already computed — do not recount, treat as fact):
+- Student word count: ${wordCount}
+- Prescribed limit for a ${question.marks}-marker: ${expectedWords} words
+- Acceptable band: ${wordRange.min}-${wordRange.max} words
+- Verdict: ${wordCountVerdict}
 
 STUDENT'S ANSWER (${wordCount} words):
 ---
@@ -184,7 +205,11 @@ PRE-COMPUTED ALIGNMENT TO PLATFORM MODEL ANSWER:
 - Answer that addresses the question directly, has clear structure (intro/body/conclusion), relevant facts, but is incomplete or one-sided → 8-10 out of ${question.marks}.
 - Well-structured, multi-dimensional, with specific examples (reports/schemes/data/committees/case studies), balanced conclusion → 11-13 out of ${question.marks}.
 - Reserve 14-${question.marks} ONLY for exceptional answers: precise directive (examine/discuss/critically analyze) addressed, original insight, contemporary linkage, committee/data references, crisp conclusion. A topper-level answer.
-- Penalize if word count is wildly off (>50% over or under ~${expectedWords}).
+- WORD LIMIT IS BINDING. The prescribed limit is ${expectedWords} words for this ${question.marks}-marker (10 marks→150, 15 marks→200, 20 marks→250). Apply it as follows:
+  • Within ${wordRange.min}-${wordRange.max} words: no word-count penalty.
+  • Over ${wordRange.max} words: deduct 1 mark, or 2 marks if more than 40% over. Say so explicitly in "improvements" and name the exact target ("Cut to ~${expectedWords} words"). Long answers are NOT rewarded — extra length usually means padding, repetition, or bullet-dumping instead of analysis. Never let a long answer score higher because it "covered more".
+  • Under ${wordRange.min} words: deduct 1-2 marks for insufficient development of the demand, and say so in "improvements".
+  • Whatever the length, the "Presentation" parameter score must reflect the word-limit breach.
 - Penalize factual errors heavily. If a claim is wrong, call it out in "improvements".
 - NEVER give pity marks. A blank or one-sentence answer should not get more than 1/${question.marks}.
 - RAG calibration is binding: treat retrieved checked topper/evaluator copies as scoring anchors, not as automatic marks. If a retrieved answer scored 7/15, award 7/15 only when the student's answer is genuinely at that same standard. If the student's answer is weaker than the retrieved 7/15 answer in demand coverage, specificity, evidence, structure, or balance, award less. Do not award more than the best relevant retrieved example unless the student's answer is clearly and specifically superior, and explain that exact superiority in detailedFeedback. Generic polish is not enough.${modelAnswerContext ? `
@@ -232,8 +257,8 @@ Return ONLY a JSON object (no prose, no markdown fences):
   "improvements": ["concrete, actionable — name the missing dimension/fact/structure"],
   "suggestions": ["specific source/report/scheme the student should read to improve"],
   "overallFeedback": "short examiner-style overall comment",
-  "modelAnswer": "concise model answer calibrated to the marks and word limit",
-  "detailedFeedback": "2-3 paragraph examiner-style feedback: what the answer did, where it falls on the rubric, and exactly what to fix. Be blunt, not encouraging.",
+  "modelAnswer": "concise model answer of NO MORE THAN ${expectedWords} words (the prescribed limit for this ${question.marks}-marker). Do not exceed it.",
+  "detailedFeedback": "2-3 paragraph examiner-style feedback: what the answer did, where it falls on the rubric, and exactly what to fix. Be blunt, not encouraging. If the answer breached the word limit, state that explicitly.",
   "annotationPlan": {
     "version": 2,
     "scoreText": "same integer score/maxScore, e.g. \"4/${question.marks}\"",
@@ -272,7 +297,13 @@ Return ONLY a JSON object (no prose, no markdown fences):
   "nextAttemptFocus": "1-2 sentences telling the student exactly what to focus on in their next attempt at a similar question",
   "evaluatorConclusion": "2-3 sentence overall verdict in an encouraging-but-honest examiner tone, naming the single biggest gap and what score the answer could realistically reach if fixed",
   "modelAnswerKeyPoints": ["short bullet point the model answer must hit", "..."],
-  "modelAnswerContent": "the full model answer text, written in the same style as 'modelAnswer' but as flowing paragraphs with an intro, body points, and conclusion",
+  "modelAnswerContent": "the full model answer text, written in the same style as 'modelAnswer' but as flowing paragraphs with an intro, body points, and conclusion. It MUST itself stay within the ${expectedWords}-word limit — it is the worked example of a correctly-sized answer, so an over-length model answer is a contradiction.",
+  "wordCountAssessment": {
+    "wordCount": ${wordCount},
+    "wordLimit": ${expectedWords},
+    "status": "${wordStatus}",
+    "comment": "1 sentence telling the student what to do about their length (trim to the limit, or develop further)"
+  },
   "parameterScores": [
     {"parameter": "Demand Fulfilment", "score": <0-${question.marks}, scaled to this parameter's weight>, "maxScore": <weighted max for this parameter>, "comment": "specific feedback for this parameter"},
     {"parameter": "Conceptual Clarity", "score": <number>, "maxScore": <number>, "comment": "..."},
@@ -290,12 +321,14 @@ Return ONLY a JSON object (no prose, no markdown fences):
   }` : ""}
 }
 
-For "keyTerms", list 6-10 terms (mix of found and missing). For "parameterScores", the seven maxScore values must sum to exactly ${question.marks} and the seven score values must sum to exactly the overall "score" value above.`,
+For "keyTerms", list 6-10 terms (mix of found and missing). For "parameterScores", the seven maxScore values must sum to exactly ${question.marks} and the seven score values must sum to exactly the overall "score" value above.
+
+Both "modelAnswer" and "modelAnswerContent" must be at most ${expectedWords} words. Count before you emit them.`,
     },
   ];
 
   const system =
-    "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, return semantic marking intent for an SVG checked-copy renderer: use exact targetText from the student's answer, never target printed question/header text, use detailed teacher-style margin comments, and separate visual marks from comments. Do not invent targetText that is not present in the answer.";
+    "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. You enforce the UPSC word limit (10 marks→150 words, 15 marks→200 words, 20 marks→250 words): an over-length answer is penalised for padding, never rewarded for covering more, and every model answer you write stays inside that limit. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, return semantic marking intent for an SVG checked-copy renderer: use exact targetText from the student's answer, never target printed question/header text, use detailed teacher-style margin comments, and separate visual marks from comments. Do not invent targetText that is not present in the answer.";
 
   return invokeModelJSON<EvaluationResult>(messages, {
     system,
@@ -586,8 +619,9 @@ export function triviallyBadAnswer(
 
   if (!tooShort && !mostlyNonAlpha && !noOverlap) return null;
 
+  const wordLimit = mainsWordLimit(question.marks);
   const reason = tooShort
-    ? `Answer is too short (${wordCount} words). UPSC mains answers for ${question.marks} marks need roughly ${question.marks >= 15 ? 250 : 150} words.`
+    ? `Answer is too short (${wordCount} words). UPSC mains answers for ${question.marks} marks need roughly ${wordLimit} words.`
     : mostlyNonAlpha
       ? "Answer is unreadable or contains mostly non-text characters."
       : "Answer does not address the question — it does not engage with any of the key terms in the directive.";
@@ -598,7 +632,7 @@ export function triviallyBadAnswer(
     improvements: [
       reason,
       "Read the question's directive word carefully (examine / discuss / critically analyze) and structure your answer around it.",
-      "Target roughly " + (question.marks >= 15 ? "250 words with 3-4 body sub-points" : "150 words with 2-3 body points") + ", plus a crisp intro and conclusion.",
+      `Target roughly ${wordLimit} words with ${question.marks >= 15 ? "3-4" : "2-3"} body points, plus a crisp intro and conclusion.`,
     ],
     suggestions: [
       "Revise the relevant chapter before re-attempting.",
@@ -618,26 +652,29 @@ export function triviallyBadAnswer(
 export async function generateModelAnswerOnly(
   question: QuestionContext
 ): Promise<Pick<EvaluationResult, "modelAnswer" | "modelAnswerKeyPoints" | "modelAnswerContent">> {
+  const wordLimit = mainsWordLimit(question.marks);
   const messages: BedrockMessage[] = [
     {
       role: "user",
       content: `Question (${question.paper}, ${question.subject}, ${question.marks} marks):
 ${question.questionText}
 
-Write a model answer a UPSC Mains topper would submit for this question, calibrated to ${question.marks} marks and the corresponding word limit.
+Write a model answer a UPSC Mains topper would submit for this question.
+
+STRICT WORD LIMIT: ${wordLimit} words (UPSC pattern — 10 marks→150 words, 15 marks→200 words, 20 marks→250 words). A topper's answer fits the limit; going over is a fault, not a virtue. Both "modelAnswer" and "modelAnswerContent" must be at most ${wordLimit} words.
 
 Return ONLY a JSON object (no prose, no markdown fences):
 {
-  "modelAnswer": "concise model answer calibrated to the marks and word limit",
+  "modelAnswer": "concise model answer, at most ${wordLimit} words",
   "modelAnswerKeyPoints": ["short bullet point the model answer must hit", "..."],
-  "modelAnswerContent": "the full model answer text, written in the same style as 'modelAnswer' but as flowing paragraphs with an intro, body points, and conclusion"
+  "modelAnswerContent": "the full model answer text, written in the same style as 'modelAnswer' but as flowing paragraphs with an intro, body points, and conclusion — at most ${wordLimit} words"
 }`,
     },
   ];
 
   return invokeModelJSON(messages, {
     system:
-      "You are a senior UPSC Mains examiner writing a reference model answer. Return valid JSON only.",
+      "You are a senior UPSC Mains examiner writing a reference model answer. You always respect the UPSC word limit (10 marks→150 words, 15 marks→200 words, 20 marks→250 words) — a model answer that exceeds its limit is not a model answer. Return valid JSON only.",
     maxTokens: 2600,
     temperature: 0.3,
     serviceName: "answerEvaluator.modelAnswerOnly",

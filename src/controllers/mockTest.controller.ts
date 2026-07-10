@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
 import { mockTestRepo } from "../repositories/prisma-mock-test.repository";
 import { generateMainsQuestions } from "../services/questionGenerator";
+import { mainsTimeLimit } from "../utils/mainsPattern";
 
 export const getSubjects = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -74,11 +75,14 @@ type MainsPoolQuestion = {
   marks: number;
 };
 
-// A real UPSC GS Mains paper is 20 questions: 10 worth 10 marks (~150 words)
-// and 10 worth 15 marks (~250 words), 250 marks total.
-const MAINS_FULL_LENGTH_PATTERN: number[] = [...Array(10).fill(10), ...Array(10).fill(15)];
-const MAINS_FULL_LENGTH_COUNT = MAINS_FULL_LENGTH_PATTERN.length;
-const MAINS_FULL_LENGTH_TOTAL_MARKS = MAINS_FULL_LENGTH_PATTERN.reduce((a, b) => a + b, 0);
+// Product decision: Mock Test Mains only ever uses 10-mark questions. A
+// 10-mark answer is ~150 words, which is materially cheaper to auto-evaluate
+// (shorter transcription, grading prompt and model answer) than a 15/20-marker,
+// so every generated mains question — including Full Length — is a 10-marker.
+const MOCK_MAINS_MARKS = 10;
+// Full Length mains = a 20-question paper, all 10-markers (200 marks).
+const MAINS_FULL_LENGTH_COUNT = 20;
+const MAINS_FULL_LENGTH_TOTAL_MARKS = MAINS_FULL_LENGTH_COUNT * MOCK_MAINS_MARKS;
 
 function dedupeBySourceId(rows: MainsPoolQuestion[]): MainsPoolQuestion[] {
   const seen = new Set<string>();
@@ -109,7 +113,7 @@ async function aiMainsQuestions(params: {
       category: q.category || q.subject || params.subject,
       difficulty: q.difficulty || params.difficulty,
       explanation: "",
-      marks: params.marksPerQuestion || 15,
+      marks: params.marksPerQuestion || MOCK_MAINS_MARKS,
     }));
   } catch {
     return [];
@@ -119,7 +123,8 @@ async function aiMainsQuestions(params: {
 /**
  * "Daily Mains Challenge" / "Previous Year Questions" pools: draw from a
  * curated source, dedupe, and pad any shortfall with AI-generated questions
- * at the standard 15-mark pattern so the requested count is always met.
+ * so the requested count is always met. Every question is a 10-marker (the
+ * source queries only return 10-mark rows and the AI is asked for 10-markers).
  */
 async function curatedMainsPool(params: {
   fetch: () => Promise<MainsPoolQuestion[]>;
@@ -137,56 +142,11 @@ async function curatedMainsPool(params: {
         difficulty: params.difficulty,
         count: params.count - pool.length,
         paperType: params.paperType,
-        marksPerQuestion: 15,
+        marksPerQuestion: MOCK_MAINS_MARKS,
       })
     );
   }
   return pool;
-}
-
-async function fullLengthMainsPool(params: {
-  subject?: string;
-  paperType?: string;
-  difficulty: string;
-  targetSubject: string;
-}): Promise<MainsPoolQuestion[]> {
-  const poolLimit = 120;
-  const [dailyRows, bankRows] = await Promise.all([
-    mockTestRepo.findDailyMainsHistory(params.subject, params.paperType, poolLimit),
-    mockTestRepo.findPYQBankMains(params.subject, params.paperType, poolLimit),
-  ]);
-  const curated = shuffle(dedupeBySourceId([...dailyRows, ...bankRows]));
-
-  const used = new Set<MainsPoolQuestion>();
-  const takeOne = (target: number): MainsPoolQuestion | null => {
-    const match = curated.find((q) => q.marks === target && !used.has(q));
-    if (match) used.add(match);
-    return match || null;
-  };
-
-  const slots: Array<MainsPoolQuestion | null> = MAINS_FULL_LENGTH_PATTERN.map(takeOne);
-
-  // Fill any slots the curated pools couldn't cover with AI-generated
-  // questions pinned to the exact target marks, so the paper still lands on
-  // the real 10/15-mark pattern.
-  const missingByMarks = new Map<number, number[]>();
-  slots.forEach((slot, i) => {
-    if (slot) return;
-    const target = MAINS_FULL_LENGTH_PATTERN[i];
-    missingByMarks.set(target, [...(missingByMarks.get(target) || []), i]);
-  });
-  for (const [target, indexes] of missingByMarks) {
-    const generated = await aiMainsQuestions({
-      subject: params.targetSubject,
-      difficulty: params.difficulty,
-      count: indexes.length,
-      paperType: params.paperType,
-      marksPerQuestion: target,
-    });
-    indexes.forEach((idx, n) => { slots[idx] = generated[n] || null; });
-  }
-
-  return slots.filter((s): s is MainsPoolQuestion => Boolean(s));
 }
 
 /**
@@ -221,11 +181,22 @@ async function buildMainsPool(params: {
 
   if (source === "question_bank") {
     // "Question Bank" for Mains means fresh AI-generated questions on demand.
-    return aiMainsQuestions({ subject: targetSubject, difficulty, count, paperType, marksPerQuestion: 15 });
+    return aiMainsQuestions({ subject: targetSubject, difficulty, count, paperType, marksPerQuestion: MOCK_MAINS_MARKS });
   }
 
   if (source === "full_length") {
-    return fullLengthMainsPool({ subject, paperType, difficulty, targetSubject });
+    // Full Length = a 20-question paper of 10-markers, drawn from both curated
+    // pools (Daily Mains history + PYQ bank) and AI-padded to fill.
+    return curatedMainsPool({
+      fetch: async () => {
+        const [dailyRows, bankRows] = await Promise.all([
+          mockTestRepo.findDailyMainsHistory(subject, paperType, 120),
+          mockTestRepo.findPYQBankMains(subject, paperType, 120),
+        ]);
+        return dedupeBySourceId([...dailyRows, ...bankRows]);
+      },
+      count, difficulty, paperType, targetSubject,
+    });
   }
 
   // "mixed" — even split across the three pools.
@@ -237,11 +208,11 @@ async function buildMainsPool(params: {
   const curated = dedupeBySourceId(shuffle([...dailyRows, ...bankRows]));
   const fromCurated = curated.slice(0, Math.min(count, perPool * 2));
   const aiNeeded = Math.max(0, Math.min(perPool, count - fromCurated.length));
-  const fromAi = await aiMainsQuestions({ subject: targetSubject, difficulty, count: aiNeeded, paperType, marksPerQuestion: 15 });
+  const fromAi = await aiMainsQuestions({ subject: targetSubject, difficulty, count: aiNeeded, paperType, marksPerQuestion: MOCK_MAINS_MARKS });
   let pool = shuffle([...fromCurated, ...fromAi]).slice(0, count);
   if (pool.length < count) {
     pool = pool.concat(
-      await aiMainsQuestions({ subject: targetSubject, difficulty, count: count - pool.length, paperType, marksPerQuestion: 15 })
+      await aiMainsQuestions({ subject: targetSubject, difficulty, count: count - pool.length, paperType, marksPerQuestion: MOCK_MAINS_MARKS })
     );
   }
   return pool;
@@ -257,11 +228,12 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
     const count = isFullLength
       ? (isMainsMode ? MAINS_FULL_LENGTH_COUNT : 100)
       : Math.min(questionCount || 10, 100);
+    // Every mains question is a 10-marker → ~7 min each (see mainsPattern).
     const duration = isMainsMode
-      ? (isFullLength ? 180 : Math.max(10, count * 8))
+      ? count * mainsTimeLimit(MOCK_MAINS_MARKS)
       : count;
     const total_marks = isMainsMode
-      ? (isFullLength ? MAINS_FULL_LENGTH_TOTAL_MARKS : count * 15)
+      ? (isFullLength ? MAINS_FULL_LENGTH_TOTAL_MARKS : count * MOCK_MAINS_MARKS)
       : count * 2;
     const selectedSubject = subject === "All Subjects" ? null : subject;
     const selectedDifficulty = isFullLength ? "mixed" : (difficulty || "mixed");

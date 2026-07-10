@@ -34,6 +34,28 @@ function paperAliases(paper: string): string[] {
   return aliases[normalized] || [paper];
 }
 
+function mainsPaperRank(paper: string | null | undefined): number {
+  const normalized = String(paper || "").toLowerCase().replace(/[\s_-]+/g, "");
+  if (normalized === "gsi" || normalized === "gspaperi" || normalized === "gspaper1") return 0;
+  if (normalized === "gsii" || normalized === "gspaperii" || normalized === "gspaper2") return 1;
+  if (normalized === "gsiii" || normalized === "gspaperiii" || normalized === "gspaper3") return 2;
+  if (normalized === "gsiv" || normalized === "gspaperiv" || normalized === "gspaper4") return 3;
+  if (normalized === "essay" || normalized === "essaypaper") return 4;
+  return 5;
+}
+
+function isUnfilteredMainsRequest(req: Request): boolean {
+  return qsList(req.query.subject as string | string[]).length === 0
+    && qsList(req.query.subSubject as string | string[]).length === 0
+    && qsList(req.query.sub_subject as string | string[]).length === 0
+    && qsList(req.query.topic as string | string[]).length === 0
+    && qsList(req.query.paper as string | string[]).length === 0
+    && !qs(req.query.year as string)
+    && qsList(req.query.years as string | string[]).length === 0
+    && !qs(req.query.yearFrom as string)
+    && !qs(req.query.yearTo as string);
+}
+
 async function shouldUseQuestionBank(): Promise<boolean> {
   try {
     const rows = await prisma.$queryRawUnsafe<Array<{ count: string }>>(
@@ -243,6 +265,7 @@ async function getQuestionBankQuestions(req: Request, res: Response) {
 async function getMainsQuestionBankQuestions(req: Request, res: Response) {
   const { clause, params, page, limit } = buildMainsQuestionBankWhere(req);
   const skip = (page - 1) * limit;
+  const isUnfiltered = isUnfilteredMainsRequest(req);
   const rows = await prisma.$queryRawUnsafe<any[]>(
     `select
        id,
@@ -268,8 +291,15 @@ async function getMainsQuestionBankQuestions(req: Request, res: Response) {
        created_at as "createdAt"
      from public.pyq_mains_question_bank
      where ${clause}
-     order by year desc,
-              paper asc,
+     order by ${isUnfiltered ? `case
+                when paper ilike 'GS-I' or paper ilike 'GS Paper I' or paper ilike 'GS Paper 1' then 0
+                when paper ilike 'GS-II' or paper ilike 'GS Paper II' or paper ilike 'GS Paper 2' then 1
+                when paper ilike 'GS-III' or paper ilike 'GS Paper III' or paper ilike 'GS Paper 3' then 2
+                when paper ilike 'GS-IV' or paper ilike 'GS Paper IV' or paper ilike 'GS Paper 4' then 3
+                when paper ilike 'Essay%' then 4
+                else 5
+              end` : `year desc, paper asc`},
+              ${isUnfiltered ? `year desc,` : ""}
               ((structured_json #>> '{source,questionNumber}')::int) asc nulls last,
               created_at desc
      offset ${pushParam(params, skip)}
@@ -588,16 +618,23 @@ export const getPublicPYQQuestions = async (
 
     // Drop non-UPSC noise from default listing
     const EXCLUDE_SUBJECTS = ["sports", "entertainment", "lifestyle"];
+    const isUnfilteredMains = mode === "mains"
+      && !year && !yearFrom && !yearTo
+      && papers.length === 0
+      && subjects.length === 0
+      && subSubjects.length === 0
+      && topics.length === 0;
 
     const [rawQuestions, total] = await Promise.all(
       mode === "mains"
         ? [
             prisma.pYQMainsQuestion.findMany({
               where,
-              // Latest year first, latest created as tiebreaker
+              // The unfiltered Mains view is re-ranked below by GS paper; filtered
+              // views retain the existing latest-year-first query order.
               orderBy: [{ year: "desc" }, { createdAt: "desc" }],
-              skip,
-              take: limit * 3, // over-fetch for re-ranking by subject
+              skip: isUnfilteredMains ? undefined : skip,
+              take: isUnfilteredMains ? undefined : limit * 3,
             }),
             prisma.pYQMainsQuestion.count({ where }),
           ]
@@ -619,7 +656,15 @@ export const getPublicPYQQuestions = async (
     });
 
     let questions = filtered;
-    if (subjects.length === 0) {
+    if (isUnfilteredMains) {
+      questions = [...filtered].sort((a: any, b: any) => {
+        const paperOrder = mainsPaperRank(a.paper) - mainsPaperRank(b.paper);
+        if (paperOrder !== 0) return paperOrder;
+        if (a.year !== b.year) return (b.year || 0) - (a.year || 0);
+        const questionOrder = (a.questionNum || 0) - (b.questionNum || 0);
+        return questionOrder || String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+      });
+    } else if (subjects.length === 0) {
       const rank = (subj: string) => {
         const s = (subj || "").toLowerCase();
         const idx = PRIORITY.findIndex((p) => s.includes(p));
