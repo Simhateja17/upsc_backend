@@ -4,6 +4,7 @@ import { evaluateAnswer } from "../services/answerEvaluator";
 import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
 import { ensureTodayMainsQuestion, getTodayInAppTimeZone } from "../jobs/dailyContentJob";
 import { notifyAnswerEvaluated } from "../utils/notifications";
+import { deriveKeyPointsFromMarkdown } from "../utils/modelAnswer";
 
 function getToday(): Date {
   return getTodayInAppTimeZone();
@@ -337,7 +338,7 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
     if (typeof req.query.attemptId === "string") {
       attempt = await prisma.mainsAttempt.findUnique({
         where: { id: req.query.attemptId },
-        include: { evaluation: true, question: true },
+        include: { evaluation: true, question: { include: { pyqQuestion: true } } },
       });
       if (!attempt || attempt.userId !== userId) {
         return res.status(404).json({ status: "error", message: "No evaluation results found" });
@@ -358,7 +359,7 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
 
       attempt = await prisma.mainsAttempt.findUnique({
         where: { userId_questionId: { userId, questionId: question.id } },
-        include: { evaluation: true, question: true },
+        include: { evaluation: true, question: { include: { pyqQuestion: true } } },
       });
     }
 
@@ -368,6 +369,11 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
 
     const checkedCopyUrl = await signedCheckedCopyUrl(attempt.evaluation.checkedCopyUrl);
     const checkedCopyPages = await signedCheckedCopyPages(attempt.evaluation.checkedCopyPages);
+
+    // Curated model answer from the PYQ bank (markdown) when this daily
+    // question was drawn from it; falls back to the per-attempt LLM answer.
+    const curatedModelAnswer = attempt.question.pyqQuestion?.modelAnswer?.trim() || null;
+    const curatedKeyPoints = deriveKeyPointsFromMarkdown(curatedModelAnswer);
 
     res.json({
       status: "success",
@@ -381,6 +387,9 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
           wordLimit: attempt.question.wordLimit,
           timeLimit: attempt.question.timeLimit,
         },
+        curatedModelAnswer,
+        curatedModelAnswerFormat: curatedModelAnswer ? "markdown" : null,
+        curatedModelAnswerKeyPoints: curatedKeyPoints,
         score: attempt.evaluation.score,
         maxScore: attempt.evaluation.maxScore,
         strengths: attempt.evaluation.strengths,

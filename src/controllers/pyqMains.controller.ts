@@ -6,6 +6,7 @@ import {
 } from "../services/answerEvaluator";
 import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
 import { notifyAnswerEvaluated } from "../utils/notifications";
+import { deriveKeyPointsFromMarkdown } from "../utils/modelAnswer";
 
 const DEFAULT_MARKS = 15;
 
@@ -374,6 +375,7 @@ export const getPyqMainsResults = async (
           theme: bankQuestion.theme,
           topic: bankQuestion.topic,
           year: bankQuestion.year,
+          marks: bankQuestion.marks ?? attempt.evaluation.maxScore,
           modelAnswer: bankQuestion.modelAnswer,
         }
       : attempt.mainsQuestion ? {
@@ -382,7 +384,14 @@ export const getPyqMainsResults = async (
           paper: attempt.mainsQuestion.paper,
           subject: attempt.mainsQuestion.subject,
           year: attempt.mainsQuestion.year,
+          marks: attempt.evaluation.maxScore,
         } : null;
+
+    // Curated (human-authored) model answer from the question bank, when
+    // present — same shape the Daily Answer results endpoint returns so the
+    // shared results UI can render it identically.
+    const curatedModelAnswer = bankQuestion?.modelAnswer?.trim() || null;
+    const curatedKeyPoints = deriveKeyPointsFromMarkdown(curatedModelAnswer);
 
     res.json({
       status: "success",
@@ -393,6 +402,7 @@ export const getPyqMainsResults = async (
         improvements: attempt.evaluation.improvements,
         suggestions: attempt.evaluation.suggestions,
         detailedFeedback: attempt.evaluation.detailedFeedback,
+        metrics: attempt.evaluation.metrics,
         demandCoverage: attempt.evaluation.demandCoverage,
         sectionFeedback: attempt.evaluation.sectionFeedback,
         annotationPlan: attempt.evaluation.annotationPlan,
@@ -404,6 +414,15 @@ export const getPyqMainsResults = async (
         modelAnswerAlignment:
           (attempt.evaluation.ragDiagnostics as any)?.modelAnswerAlignment ?? null,
         modelAnswer: attempt.evaluation.modelAnswer,
+        keyTerms: attempt.evaluation.keyTerms,
+        nextAttemptFocus: attempt.evaluation.nextAttemptFocus,
+        evaluatorConclusion: attempt.evaluation.evaluatorConclusion,
+        modelAnswerKeyPoints: attempt.evaluation.modelAnswerKeyPoints,
+        modelAnswerContent: attempt.evaluation.modelAnswerContent,
+        parameterScores: attempt.evaluation.parameterScores,
+        curatedModelAnswer,
+        curatedModelAnswerFormat: curatedModelAnswer ? "markdown" : null,
+        curatedModelAnswerKeyPoints: curatedKeyPoints,
         wordCount: attempt.wordCount,
         submittedAt: attempt.submittedAt,
         answerText: attempt.answerText,

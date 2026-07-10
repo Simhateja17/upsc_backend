@@ -609,6 +609,42 @@ export function triviallyBadAnswer(
 }
 
 /**
+ * Standalone model-answer generation, used when the full evaluator prompt is
+ * skipped (trivially bad / off-topic answers via `triviallyBadAnswer`). These
+ * students still need to see a correct, topic-matched reference answer, so we
+ * make one small dedicated LLM call instead of piggybacking on the full
+ * grading prompt (which never runs for this path).
+ */
+export async function generateModelAnswerOnly(
+  question: QuestionContext
+): Promise<Pick<EvaluationResult, "modelAnswer" | "modelAnswerKeyPoints" | "modelAnswerContent">> {
+  const messages: BedrockMessage[] = [
+    {
+      role: "user",
+      content: `Question (${question.paper}, ${question.subject}, ${question.marks} marks):
+${question.questionText}
+
+Write a model answer a UPSC Mains topper would submit for this question, calibrated to ${question.marks} marks and the corresponding word limit.
+
+Return ONLY a JSON object (no prose, no markdown fences):
+{
+  "modelAnswer": "concise model answer calibrated to the marks and word limit",
+  "modelAnswerKeyPoints": ["short bullet point the model answer must hit", "..."],
+  "modelAnswerContent": "the full model answer text, written in the same style as 'modelAnswer' but as flowing paragraphs with an intro, body points, and conclusion"
+}`,
+    },
+  ];
+
+  return invokeModelJSON(messages, {
+    system:
+      "You are a senior UPSC Mains examiner writing a reference model answer. Return valid JSON only.",
+    maxTokens: 2600,
+    temperature: 0.3,
+    serviceName: "answerEvaluator.modelAnswerOnly",
+  });
+}
+
+/**
  * Schema-agnostic mains evaluator. Handles the upload transcription → RAG → Azure grade →
  * persist flow, calling into `dbOps` so the caller decides which Prisma
  * tables get written. Used by Daily Answer, PYQ Mains and Mock Test Mains.
@@ -740,6 +776,21 @@ export async function evaluateAnswerGeneric(params: {
           confidence: transcription.confidence,
           warnings: transcription.warnings,
         });
+        let unreadableModelAnswerFields: Pick<
+          EvaluationResult,
+          "modelAnswer" | "modelAnswerKeyPoints" | "modelAnswerContent"
+        > = {};
+        try {
+          unreadableModelAnswerFields = await generateModelAnswerOnly(question);
+        } catch (modelAnswerError) {
+          console.error("[eval] unreadable-upload model-answer generation failed", {
+            attemptId,
+            message:
+              modelAnswerError instanceof Error
+                ? modelAnswerError.message
+                : String(modelAnswerError),
+          });
+        }
         await dbOps.saveEvaluation({
           score: 0,
           maxScore: question.marks,
@@ -756,6 +807,9 @@ export async function evaluateAnswerGeneric(params: {
           ],
           detailedFeedback:
             "Your uploaded file was received, but the answer transcription could not extract a readable response from it. This usually happens with blurry photos, low light, very faint pencil marks, or pages where the answer is not visible. Please retake the photo with good lighting and clear handwriting, then resubmit — or type the answer directly.",
+          modelAnswer: unreadableModelAnswerFields.modelAnswer || null,
+          modelAnswerKeyPoints: unreadableModelAnswerFields.modelAnswerKeyPoints || null,
+          modelAnswerContent: unreadableModelAnswerFields.modelAnswerContent || null,
           evaluatedAt: new Date(),
         });
         return;
@@ -805,6 +859,18 @@ export async function evaluateAnswerGeneric(params: {
         reason: trivial.detailedFeedback,
       });
       result = trivial;
+      try {
+        const modelAnswerFields = await generateModelAnswerOnly(question);
+        result = { ...result, ...modelAnswerFields };
+      } catch (modelAnswerError) {
+        console.error("[eval] trivial-answer model-answer generation failed", {
+          attemptId,
+          message:
+            modelAnswerError instanceof Error
+              ? modelAnswerError.message
+              : String(modelAnswerError),
+        });
+      }
     } else {
       let topperContext = "No comparable topper answers were retrieved. Grade from the rubric only.";
       try {

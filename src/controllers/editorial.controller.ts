@@ -4,19 +4,18 @@ import { summarizeEditorialStructured } from "../services/editorialSummarizer";
 import { getNewsArticlesBySource, syncNewsToEditorials } from "../services/newsApi";
 import { runRssFetch } from "../services/rssFetcher";
 import { categorize, extractTags, relevanceScore, isValidCategory, isDailyEditorialWorthy } from "../services/categorizer";
+import { istDateKey, istDayWindow, istMonthWindow } from "../utils/istDate";
 
 function parseMonthWindow(month: unknown): { since: Date; until: Date; monthPrefix: string } | null {
   if (typeof month !== "string" || !/^\d{4}-\d{2}$/.test(month)) {
     return null;
   }
 
-  const [yearRaw, monthRaw] = month.split("-");
-  const year = Number(yearRaw);
+  const [, monthRaw] = month.split("-");
   const monthIndex = Number(monthRaw) - 1;
   if (monthIndex < 0 || monthIndex > 11) return null;
 
-  const since = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0, 0));
-  const until = new Date(Date.UTC(year, monthIndex + 1, 0, 23, 59, 59, 999));
+  const { since, until } = istMonthWindow(month);
   return { since, until, monthPrefix: month };
 }
 
@@ -27,20 +26,16 @@ function displayCategoryForEditorial(editorial: { title: string; summary?: strin
 
 /**
  * GET /api/editorials/today
- * Today's editorial list, ranked by UPSC relevance.
+ * Daily editorial edition, ranked by UPSC relevance. Defaults to yesterday in IST.
  */
 export const getTodayEditorials = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { source, limit, date } = req.query;
 
-    let since: Date;
-    let until: Date | undefined;
-    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      since = new Date(`${date}T00:00:00.000Z`);
-      until = new Date(`${date}T23:59:59.999Z`);
-    } else {
-      since = new Date(Date.now() - 48 * 60 * 60 * 1000);
-    }
+    const editionDate = typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
+      ? date
+      : istDateKey(new Date(), -1);
+    const { since, until } = istDayWindow(editionDate);
 
     const rawEditorials = await editorialRepo.getRecent(
       since,
@@ -121,7 +116,7 @@ export const getEditorialAvailability = async (req: Request, res: Response, next
     rows
       .filter((row) => isValidCategory(row.category) && isDailyEditorialWorthy(row.title, row.summary, row.content))
       .forEach((row) => {
-        const date = row.publishedAt.toISOString().slice(0, 10);
+        const date = istDateKey(row.publishedAt);
         if (date.startsWith(window.monthPrefix)) dates.add(date);
       });
 

@@ -323,6 +323,7 @@ async function createDailyMainsQuestionRecord(
     timeLimit: number;
     instructions: string;
     isActive: boolean;
+    pyqQuestionId?: string | null;
   }
 ): Promise<boolean> {
   try {
@@ -342,7 +343,99 @@ async function createDailyMainsQuestionRecord(
   }
 }
 
-async function createDailyMainsQuestionForDate(targetDate: Date): Promise<void> {
+// Daily Mains questions rotate GS-I → GS-II → GS-III (GS-IV and Essay excluded).
+const PYQ_PAPER_ROTATION = ["GS-I", "GS-II", "GS-III"] as const;
+
+function pyqPaperForDate(targetDate: Date): string {
+  const dayIndex = Math.floor(targetDate.getTime() / 86_400_000);
+  return PYQ_PAPER_ROTATION[((dayIndex % 3) + 3) % 3];
+}
+
+function displayPaper(pyqPaper: string): string {
+  const map: Record<string, string> = {
+    "GS-I": "GS Paper I",
+    "GS-II": "GS Paper II",
+    "GS-III": "GS Paper III",
+  };
+  return map[pyqPaper] || pyqPaper;
+}
+
+// Word/time budgets follow the standard UPSC allocation per marks.
+function wordLimitForMarks(marks: number): number {
+  if (marks >= 20) return 300;
+  if (marks >= 15) return 250;
+  if (marks >= 12) return 200;
+  return 150;
+}
+
+function timeLimitForMarks(marks: number): number {
+  if (marks >= 20) return 15;
+  if (marks >= 15) return 12;
+  if (marks >= 12) return 10;
+  return 8;
+}
+
+function deriveMainsTitle(row: {
+  questionText: string;
+  theme: string | null;
+  topic: string | null;
+  subSubject: string | null;
+}): string {
+  const base = (row.theme || row.topic || row.subSubject || "").trim();
+  if (base) return base;
+  const words = row.questionText.trim().split(/\s+/);
+  const short = words.slice(0, 9).join(" ");
+  return words.length > 9 ? `${short}…` : short;
+}
+
+type MainsBankRow = {
+  id: string;
+  paper: string;
+  questionText: string;
+  subject: string;
+  subSubject: string | null;
+  theme: string | null;
+  topic: string | null;
+  marks: number | null;
+};
+
+/**
+ * Pick an approved GS-I/II/III bank question (with a curated model answer) for
+ * the day's rotation. Prefers questions not previously served as a daily
+ * question; falls back to allowing a repeat if that paper's pool is exhausted.
+ */
+async function pickMainsBankQuestion(pyqPaper: string): Promise<MainsBankRow | null> {
+  const selectUnused = `
+    select id, paper, question_text as "questionText", subject,
+           sub_subject as "subSubject", theme, topic, marks
+    from public.pyq_mains_question_bank b
+    where b.paper = $1
+      and b.status = 'approved'
+      and b.model_answer is not null and length(trim(b.model_answer)) > 0
+      and not exists (
+        select 1 from public.daily_mains_questions d where d.pyq_question_id = b.id
+      )
+    order by random()
+    limit 1`;
+
+  const unused = await prisma.$queryRawUnsafe<MainsBankRow[]>(selectUnused, pyqPaper);
+  if (unused[0]) return unused[0];
+
+  // Pool exhausted for this paper — allow a repeat rather than blocking.
+  const selectAny = `
+    select id, paper, question_text as "questionText", subject,
+           sub_subject as "subSubject", theme, topic, marks
+    from public.pyq_mains_question_bank b
+    where b.paper = $1
+      and b.status = 'approved'
+      and b.model_answer is not null and length(trim(b.model_answer)) > 0
+    order by random()
+    limit 1`;
+  const any = await prisma.$queryRawUnsafe<MainsBankRow[]>(selectAny, pyqPaper);
+  return any[0] || null;
+}
+
+export async function createDailyMainsQuestionForDate(targetDate: Date): Promise<void> {
   // Check if already created
   const existing = await prisma.dailyMainsQuestion.findUnique({
     where: { date: targetDate },
@@ -352,12 +445,48 @@ async function createDailyMainsQuestionForDate(targetDate: Date): Promise<void> 
     return;
   }
 
-  // Pick a random subject and paper
+  // Primary path: draw from the curated PYQ Mains bank (GS-I/II/III rotation).
+  const pyqPaper = pyqPaperForDate(targetDate);
+  try {
+    const bankRow = await pickMainsBankQuestion(pyqPaper);
+    if (bankRow) {
+      const marks = bankRow.marks && bankRow.marks > 0 ? bankRow.marks : 15;
+      const created = await createDailyMainsQuestionRecord(targetDate, {
+        title: deriveMainsTitle(bankRow),
+        questionText: bankRow.questionText,
+        paper: displayPaper(bankRow.paper),
+        subject: bankRow.subject,
+        marks,
+        wordLimit: wordLimitForMarks(marks),
+        timeLimit: timeLimitForMarks(marks),
+        instructions:
+          "Write a well-structured answer with a clear introduction, an analytical body with sub-headings, and a crisp conclusion.",
+        isActive: true,
+        pyqQuestionId: bankRow.id,
+      });
+      if (created) {
+        console.log(
+          `[DailyMains] Created for ${targetDate.toISOString().split("T")[0]} from PYQ bank (${bankRow.paper}): ${bankRow.id}`
+        );
+      }
+      return;
+    }
+    console.warn(
+      `[DailyMains] No PYQ bank question available for ${pyqPaper}; falling back to AI generation.`
+    );
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      console.log(`[DailyMains] Already created for ${targetDate.toISOString().split("T")[0]}`);
+      return;
+    }
+    console.error("[DailyMains] PYQ bank selection failed, falling back to AI generation:", error);
+  }
+
+  // Fallback path: AI-generated question (used only when the bank is unavailable).
   const papers = [
     { paper: "GS Paper I", subjects: ["History", "Geography", "Society"] },
     { paper: "GS Paper II", subjects: ["Polity", "Governance", "International Relations"] },
     { paper: "GS Paper III", subjects: ["Economy", "Environment", "Science & Tech", "Security"] },
-    { paper: "GS Paper IV", subjects: ["Ethics", "Integrity", "Aptitude"] },
   ];
 
   const selectedPaper = papers[Math.floor(Math.random() * papers.length)];
