@@ -150,9 +150,9 @@ export async function getStreakCalendar(userId: string) {
 
   const days = perDay.map((entry, i) => {
     const day = i + 1;
-    const signalCount = entry.activityCount + entry.mcqAttempts + entry.mainsAttempts + entry.mockAttempts +
-      entry.editorialsRead + (entry.studyMinutes > 0 ? 1 : 0);
-    const intensity = signalCount === 0 ? 0 : signalCount <= 1 ? 1 : signalCount <= 3 ? 2 : 3;
+    // Intensity = how many of the 3 Daily Trio activities (MCQ, Mains, News) were done that day.
+    const trioCount = (entry.mcqAttempts > 0 ? 1 : 0) + (entry.mainsAttempts > 0 ? 1 : 0) + (entry.editorialsRead > 0 ? 1 : 0);
+    const intensity = trioCount;
     return {
       day,
       intensity,

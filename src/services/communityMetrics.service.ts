@@ -114,8 +114,9 @@ function syntheticNameForIndex(index: number) {
 }
 
 export function buildSyntheticLeaderboardRows(range = "all", count = 937, now = new Date()): SyntheticLeaderboardRow[] {
-  const bucket = currentBucket(now);
-  const seedBase = hashSeed(`${todayKey(now)}:${bucket}:${range}`);
+  // Keep cultivated profiles stable throughout the day. The range remains part
+  // of the seed because weekly, monthly, and all-time rankings are distinct.
+  const seedBase = hashSeed(`${todayKey(now)}:${range}`);
 
   return Array.from({ length: count }, (_, index) => {
     const rnd = seededRand(seedBase + index * 7919 + 31337);
