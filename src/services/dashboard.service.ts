@@ -1,6 +1,7 @@
 import { dashboardRepo } from "../repositories/prisma-dashboard.repository";
 import { supabaseAdmin } from "../config/supabase";
 import { getDerivedStudyStreak } from "./streak.service";
+import { istDateKey } from "../utils/istDate";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const ORDERED_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -277,6 +278,10 @@ export async function getPerformance(userId: string) {
   const totalCovered = raw.syllabusCoverage.reduce((s, c) => s + c.coveredTopics, 0);
   const totalTopics = raw.syllabusCoverage.reduce((s, c) => s + c.totalTopics, 0);
   const syllabusCoverage = totalTopics > 0 ? Math.round((totalCovered / totalTopics) * 100) : 0;
+  const polity = raw.syllabusCoverage.find((entry) => entry.subject.toLowerCase().includes("polity"));
+  const polityCoverage = polity && polity.totalTopics > 0
+    ? Math.round((polity.coveredTopics / polity.totalTopics) * 100)
+    : 0;
 
   return {
     studyTimeToday,
@@ -284,8 +289,8 @@ export async function getPerformance(userId: string) {
     questionsAttempted,
     rank,
     rankPercentile,
-    jeetCoins: 0,
     syllabusCoverage,
+    polityCoverage,
     mcq: {
       totalAttempts: raw.mcqAgg._count.id,
       totalCorrect: raw.mcqAgg._sum.correctCount ?? 0,
@@ -324,18 +329,18 @@ export async function getBadges(userId: string): Promise<{ badges: BadgeInfo[] }
   const testsTaken = perf.testsTaken;
   const syllabusCoverage = perf.syllabusCoverage;
   const avgAccuracy = perf.mcq.avgAccuracy;
-  const jeetCoins = perf.jeetCoins;
+  const questionsAttempted = perf.questionsAttempted;
 
   const hasAnyProgress = currentStreak > 0 || testsTaken > 0 || syllabusCoverage > 0;
-  const isFirstTimeUser = !hasAnyProgress && jeetCoins === 0;
+  const isFirstTimeUser = !hasAnyProgress && questionsAttempted === 0;
 
   const badgeStatus = {
     streak: { earned: currentStreak >= 30, progress: currentStreak > 0 },
     learner: { earned: testsTaken >= 10, progress: testsTaken > 0 },
     accuracy: { earned: testsTaken > 0 && avgAccuracy >= 95, progress: testsTaken > 0 },
-    polity: { earned: syllabusCoverage >= 60, progress: syllabusCoverage > 0 },
+    polity: { earned: perf.polityCoverage >= 60, progress: perf.polityCoverage > 0 },
     allRounder: { earned: currentStreak >= 7 && testsTaken >= 5 && syllabusCoverage >= 40, progress: hasAnyProgress },
-    centurion: { earned: jeetCoins >= 100, progress: jeetCoins > 0 },
+    centurion: { earned: questionsAttempted >= 100, progress: questionsAttempted > 0 },
   };
 
   const statusFor = (b: { earned: boolean; progress: boolean }): BadgeInfo["status"] =>
@@ -346,9 +351,9 @@ export async function getBadges(userId: string): Promise<{ badges: BadgeInfo[] }
       { key: "streak", title: "30-Day Streak", note: `${currentStreak} day streak`, status: statusFor(badgeStatus.streak) },
       { key: "learner", title: "Quick Learner", note: `${testsTaken} tests done`, status: statusFor(badgeStatus.learner) },
       { key: "accuracy", title: "95% Accuracy", note: avgAccuracy > 0 ? `${avgAccuracy}% accuracy` : "Build accuracy", status: statusFor(badgeStatus.accuracy) },
-      { key: "polity", title: "Polity Pro", note: `${syllabusCoverage}% coverage`, status: statusFor(badgeStatus.polity) },
+      { key: "polity", title: "Polity Pro", note: `${perf.polityCoverage}% coverage`, status: statusFor(badgeStatus.polity) },
       { key: "all-rounder", title: "All-Rounder", note: "Consistency badge", status: statusFor(badgeStatus.allRounder) },
-      { key: "centurion", title: "Centurion", note: `${jeetCoins}/100 coins`, status: statusFor(badgeStatus.centurion) },
+      { key: "centurion", title: "Centurion", note: `${Math.min(questionsAttempted, 100)}/100 questions`, status: statusFor(badgeStatus.centurion) },
     ],
   };
 }
@@ -356,6 +361,12 @@ export async function getBadges(userId: string): Promise<{ badges: BadgeInfo[] }
 /** Build the comprehensive test analytics response. */
 export async function getTestAnalytics(userId: string) {
   const raw = await dashboardRepo.getTestAnalyticsRaw(userId);
+  const lastSevenIstDateKeys = new Set(
+    Array.from({ length: 7 }, (_, index) => istDateKey(new Date(), index - 6)),
+  );
+  const countDistinctActiveDays = (dates: Date[]) => new Set(
+    dates.map((date) => istDateKey(date)).filter((key) => lastSevenIstDateKeys.has(key)),
+  ).size;
 
   // Resolve test-series metadata
   const seriesAttempts = raw.seriesAttempts.data;
@@ -638,6 +649,15 @@ export async function getTestAnalytics(userId: string) {
   const seriesQ = (seriesAttempts as any[]).reduce((s: number, a: any) => s + (a.total ?? 0), 0);
   const mainsQ = raw.mainsAttempts.length + raw.mockTestMainsAttempts.length + raw.pyqMainsAttempts.length;
   const totalQuestions = mcqQuestions + mockPrelimsQ + seriesQ + mainsQ;
+  const dailyTrio = {
+    mcqDays: countDistinctActiveDays(raw.recentMcq.map((attempt: any) => new Date(attempt.createdAt))),
+    mainsDays: countDistinctActiveDays([
+      ...raw.mainsAttempts.map((attempt: any) => new Date(attempt.createdAt)),
+      ...raw.mockTestMainsAttempts.map((attempt: any) => new Date(attempt.createdAt)),
+      ...raw.pyqMainsAttempts.map((attempt: any) => new Date(attempt.createdAt)),
+    ]),
+    editorialDays: countDistinctActiveDays(raw.editorialReadDatesLast7Days),
+  };
 
   return {
     summary: {
@@ -670,6 +690,7 @@ export async function getTestAnalytics(userId: string) {
     mainsStats,
     timePerQuestion,
     testHistory,
-    editorialDaysThisWeek: new Set(raw.editorialReadDatesLast7Days.map((d) => new Date(d).toDateString())).size,
+    dailyTrio,
+    editorialDaysThisWeek: dailyTrio.editorialDays,
   };
 }

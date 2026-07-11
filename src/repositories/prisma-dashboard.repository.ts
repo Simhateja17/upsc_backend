@@ -1,6 +1,7 @@
 import prisma from "../config/database";
 import { supabaseAdmin } from "../config/supabase";
 import { computeSyllabusCoverage } from "../utils/syllabusDedup";
+import { istDateKey, istDayWindow } from "../utils/istDate";
 import type {
   DashboardRepository,
   DashboardSnapshot,
@@ -148,7 +149,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
       // page shows for the same saved state (see src/utils/syllabusDedup.ts).
       const syllabusCov = syllabusSubjects.map((subject) => {
         const { totalTopics, coveredTopics } = computeSyllabusCoverage(subject.topics, subject.id, stateMap);
-        return { coveredTopics, totalTopics };
+        return { subject: subject.name, coveredTopics, totalTopics };
       });
 
       const mockAgg = await prisma.mockTestAttempt.aggregate({
@@ -177,9 +178,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
     },
 
     async getTestAnalyticsRaw(userId) {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setHours(0, 0, 0, 0);
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+      const sevenDaysAgo = istDayWindow(istDateKey(new Date(), -6)).since;
 
       const [mcqAgg, recentMcq, mockAttempts, mainsAttempts, mockTestMainsAttempts, pyqMainsAttempts, completedStudyTasksLast7Days, streak, seriesRes, editorialReads] =
         await Promise.all([
