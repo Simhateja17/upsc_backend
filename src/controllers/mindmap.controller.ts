@@ -10,7 +10,7 @@ function param(req: Request, key: string): string {
 
 // Free/Aspire plans keep full access to these subjects; every other subject
 // stays visible in the UI (blurred + locked) but its content is gated.
-const FREE_MINDMAP_SUBJECT_SLUGS = new Set(["indian-polity", "indian-economy"]);
+const FREE_MINDMAP_SUBJECT_SLUGS = new Set(["polity", "economy"]);
 
 function isFreeMindmapSubject(slug: string, name?: string | null) {
   if (FREE_MINDMAP_SUBJECT_SLUGS.has(slug)) return true;
