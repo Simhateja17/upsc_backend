@@ -69,7 +69,6 @@ export const VALID_STUDY_PLANNER_SUBJECTS = [
   "Governance",
   "International Relations",
   "Social Justice",
-  "Agriculture",
   "Internal Security",
   "Disaster Management",
   "Ethics",

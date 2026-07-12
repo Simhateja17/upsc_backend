@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { userRepo } from "../repositories/prisma-user.repository";
 import { getDashboard, getPerformance, getTestAnalytics, getBadges, getStreakCalendar } from "../services/dashboard.service";
+import { getAchievements, markBadgesSeen } from "../services/badges/badgeService";
 
 /**
  * GET /api/user/dashboard
@@ -74,6 +75,34 @@ export const getBadgesHandler = async (req: Request, res: Response, next: NextFu
   try {
     const data = await getBadges(req.user!.id);
     res.json({ status: "success", data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/user/achievements
+ * Full achievement board — evaluates all badges against real activity, awards
+ * newly-earned ones (persist + notify), and returns statuses, totals and stats.
+ */
+export const getAchievementsHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await getAchievements(req.user!.id);
+    res.json({ status: "success", data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/user/achievements/seen
+ * Marks the given badge keys as seen so their toast fires only once.
+ */
+export const markBadgesSeenHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const keys = Array.isArray(req.body?.keys) ? (req.body.keys as string[]) : [];
+    await markBadgesSeen(req.user!.id, keys);
+    res.json({ status: "success" });
   } catch (error) {
     next(error);
   }

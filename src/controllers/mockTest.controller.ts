@@ -231,7 +231,7 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
     // Every mains question is a 10-marker → ~7 min each (see mainsPattern).
     const duration = isMainsMode
       ? count * mainsTimeLimit(MOCK_MAINS_MARKS)
-      : count;
+      : Math.round(count * 1.2);
     const total_marks = isMainsMode
       ? (isFullLength ? MAINS_FULL_LENGTH_TOTAL_MARKS : count * MOCK_MAINS_MARKS)
       : count * 2;

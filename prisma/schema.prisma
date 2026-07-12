@@ -77,8 +77,22 @@ model User {
   streak                  UserStreak?
   weeklyGoals             WeeklyGoal[]
   wellnessStreak          WellnessStreak?
+  badges                  UserBadge[]
 
   @@map("users")
+}
+
+model UserBadge {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  badgeKey String   @map("badge_key")
+  earnedAt DateTime @default(now()) @map("earned_at")
+  seen     Boolean  @default(false)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeKey])
+  @@index([userId])
+  @@map("user_badges")
 }
 
 model UserActivity {
