@@ -380,6 +380,7 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
       data: {
         question: {
           title: attempt.question.title,
+          questionText: attempt.question.questionText,
           subject: attempt.question.subject,
           paper: attempt.question.paper,
           date: attempt.question.date,

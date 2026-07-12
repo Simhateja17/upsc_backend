@@ -15,7 +15,9 @@ function parseMonthWindow(month: unknown): { since: Date; until: Date; monthPref
   const monthIndex = Number(monthRaw) - 1;
   if (monthIndex < 0 || monthIndex > 11) return null;
 
-  const { since, until } = istMonthWindow(month);
+  // Availability is shown by edition date, so include the previous day's
+  // content at the start of the month and exclude the next month's content.
+  const { since, until } = istMonthWindow(month, 0, -1);
   return { since, until, monthPrefix: month };
 }
 
@@ -93,7 +95,7 @@ export const getTodayEditorials = async (req: Request, res: Response, next: Next
 
 /**
  * GET /api/editorials/availability?source=The%20Hindu&month=2026-03
- * Source-specific dates with at least one visible UPSC-relevant editorial.
+ * Source-specific edition dates with at least one visible UPSC-relevant editorial.
  */
 export const getEditorialAvailability = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -116,7 +118,7 @@ export const getEditorialAvailability = async (req: Request, res: Response, next
     rows
       .filter((row) => isValidCategory(row.category) && isDailyEditorialWorthy(row.title, row.summary, row.content))
       .forEach((row) => {
-        const date = istDateKey(row.publishedAt);
+        const date = istDateKey(row.publishedAt, 1);
         if (date.startsWith(window.monthPrefix)) dates.add(date);
       });
 

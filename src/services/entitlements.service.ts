@@ -57,7 +57,7 @@ const ADMIN_PLAN_SIMULATION_REASON = "admin_plan_simulation";
 const FREE_POLICY: EntitlementPolicy = {
   tier: "free",
   limits: {
-    jeet_ai_message: { period: "lifetime", limit: 20 },
+    jeet_ai_message: { period: "day", limit: 2 },
     mains_evaluation: { period: "lifetime", limit: 3 },
     prelims_mock_attempt: { period: "lifetime", limit: 1 },
     syllabus_tracker_items: { period: "total", limit: 5 },
@@ -68,7 +68,7 @@ const FREE_POLICY: EntitlementPolicy = {
     revision_suite: "limited",
     flashcards: "limited",
     mindmaps: "limited",
-    spaced_repetition: "none",
+    spaced_repetition: "limited",
     syllabus_tracker: "limited",
     // Study Groups are available to every signed-in learner, including free users.
     live_study_room: "full",
@@ -76,9 +76,9 @@ const FREE_POLICY: EntitlementPolicy = {
     mentorship: "none",
   },
   preview: {
-    flashcard_subjects: 4,
-    mindmaps: 1,
-    spaced_repetition_questions: 0,
+    flashcard_subjects: 2,
+    mindmaps: 2,
+    spaced_repetition_questions: 5,
   },
 };
 
@@ -87,7 +87,7 @@ const DEFAULT_POLICIES: Record<PlanTier, EntitlementPolicy> = {
   aspire: {
     tier: "aspire",
     limits: {
-      jeet_ai_message: { period: "day", limit: 5 },
+      jeet_ai_message: { period: "day", limit: 10 },
       mains_evaluation: { period: "day", limit: 5 },
       prelims_mock_attempt: { period: "day", limit: 5 },
       syllabus_tracker_items: { period: "total", limit: 5 },
@@ -105,9 +105,9 @@ const DEFAULT_POLICIES: Record<PlanTier, EntitlementPolicy> = {
       mentorship: "none",
     },
     preview: {
-      flashcard_subjects: 4,
-      mindmaps: 1,
-      spaced_repetition_questions: 2,
+      flashcard_subjects: 2,
+      mindmaps: 2,
+      spaced_repetition_questions: 5,
     },
   },
   rise: {
@@ -166,9 +166,10 @@ const DEFAULT_POLICIES: Record<PlanTier, EntitlementPolicy> = {
 
 const THROTTLES: Partial<Record<PlanTier, Partial<Record<FeatureKey, FeatureLimit>>>> = {
   free: {
-    jeet_ai_message: { period: "hour", limit: 10 },
+    jeet_ai_message: { period: "hour", limit: 2 },
   },
   aspire: {
+    jeet_ai_message: { period: "hour", limit: 5 },
     mains_evaluation: { period: "hour", limit: 3 },
     prelims_mock_attempt: { period: "hour", limit: 3 },
   },
@@ -294,9 +295,6 @@ function nextTierFor(featureKey: FeatureKey, tier: PlanTier): PlanTier {
 }
 
 function upgradeMessage(featureKey: FeatureKey, tier: PlanTier, limit: FeatureLimit) {
-  if (featureKey === "jeet_ai_message" && tier === "free") {
-    return "Jeet AI Mentor is handling heavy queries right now. Please try again later or upgrade for priority access.";
-  }
   const nextTier = nextTierFor(featureKey, tier);
   const readable = featureKey.replace(/_/g, " ");
   return `You have used your ${limit.limit} ${limit.period} ${readable} limit. Upgrade to ${nextTier[0].toUpperCase()}${nextTier.slice(1)} for higher access.`;

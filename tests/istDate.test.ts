@@ -21,4 +21,10 @@ describe("IST editorial date windows", () => {
     expect(window.since.toISOString()).toBe("2026-06-30T18:30:00.000Z");
     expect(window.until.toISOString()).toBe("2026-07-31T18:29:59.999Z");
   });
+
+  it("can build the content window for a month of editions", () => {
+    const window = istMonthWindow("2026-07", 0, -1);
+    expect(window.since.toISOString()).toBe("2026-06-30T18:30:00.000Z");
+    expect(window.until.toISOString()).toBe("2026-07-30T18:29:59.999Z");
+  });
 });
