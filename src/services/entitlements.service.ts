@@ -90,7 +90,7 @@ const DEFAULT_POLICIES: Record<PlanTier, EntitlementPolicy> = {
       jeet_ai_message: { period: "day", limit: 10 },
       mains_evaluation: { period: "day", limit: 5 },
       prelims_mock_attempt: { period: "day", limit: 5 },
-      syllabus_tracker_items: { period: "total", limit: 5 },
+      syllabus_tracker_items: { period: "unlimited", limit: null },
     },
     access: {
       analytics: "limited",
@@ -99,7 +99,7 @@ const DEFAULT_POLICIES: Record<PlanTier, EntitlementPolicy> = {
       flashcards: "limited",
       mindmaps: "limited",
       spaced_repetition: "limited",
-      syllabus_tracker: "limited",
+      syllabus_tracker: "full",
       live_study_room: "none",
       mental_health_buddy: "full",
       mentorship: "none",

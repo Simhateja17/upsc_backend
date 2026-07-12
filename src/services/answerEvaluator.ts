@@ -297,7 +297,7 @@ Return ONLY a JSON object (no prose, no markdown fences):
   "nextAttemptFocus": "1-2 sentences telling the student exactly what to focus on in their next attempt at a similar question",
   "evaluatorConclusion": "2-3 sentence overall verdict in an encouraging-but-honest examiner tone, naming the single biggest gap and what score the answer could realistically reach if fixed",
   "modelAnswerKeyPoints": ["short bullet point the model answer must hit", "..."],
-  "modelAnswerContent": "the full model answer text, written in the same style as 'modelAnswer' but as flowing paragraphs with an intro, body points, and conclusion. It MUST itself stay within the ${expectedWords}-word limit — it is the worked example of a correctly-sized answer, so an over-length model answer is a contradiction.",
+  "modelAnswerContent": "the full model answer as GitHub-flavoured MARKDOWN with these exact section headings: a '## Introduction' section, then 2-4 body sections each with its own '## <thematic heading>' (use markdown '-' bullets and '**bold**' lead-ins where it aids clarity), then a final '## Conclusion' section. The prose (excluding the short headings) MUST stay within the ${expectedWords}-word limit — it is the worked example of a correctly-sized answer, so an over-length model answer is a contradiction.",
   "wordCountAssessment": {
     "wordCount": ${wordCount},
     "wordLimit": ${expectedWords},
@@ -667,7 +667,7 @@ Return ONLY a JSON object (no prose, no markdown fences):
 {
   "modelAnswer": "concise model answer, at most ${wordLimit} words",
   "modelAnswerKeyPoints": ["short bullet point the model answer must hit", "..."],
-  "modelAnswerContent": "the full model answer text, written in the same style as 'modelAnswer' but as flowing paragraphs with an intro, body points, and conclusion — at most ${wordLimit} words"
+  "modelAnswerContent": "the full model answer as GitHub-flavoured MARKDOWN with these exact section headings: a '## Introduction' section, then 2-4 body sections each with its own '## <thematic heading>' (use markdown '-' bullets and '**bold**' lead-ins where it aids clarity), then a final '## Conclusion' section — prose (excluding the short headings) at most ${wordLimit} words"
 }`,
     },
   ];
