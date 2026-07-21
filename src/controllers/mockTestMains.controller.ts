@@ -10,7 +10,7 @@ import { deriveKeyPointsFromMarkdown } from "../utils/modelAnswer";
 
 /**
  * Curated model answer lookup for a mains question pulled from the PYQ bank
- * (either directly, or via a past Daily Mains Challenge question). Display
+ * (either directly, or via a past Daily Answer Writing question). Display
  * only — mirrors Daily Answer Writing, which shows the curated answer as a
  * reference without binding it into the grading prompt.
  */

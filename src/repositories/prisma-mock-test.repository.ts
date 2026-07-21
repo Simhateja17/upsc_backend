@@ -268,7 +268,7 @@ export function createPrismaMockTestRepository(): MockTestRepository {
     },
 
     /**
-     * "Daily Mains Challenge" mains source — pulls from the questions that
+     * "Daily Answer Writing" mains source — pulls from the questions that
      * have actually been served as a past Daily Answer Writing question.
      * Restricted to rows with a linked `pyq_question_id` (i.e. drawn from
      * the curated bank, not the rare AI-fallback day), which guarantees a

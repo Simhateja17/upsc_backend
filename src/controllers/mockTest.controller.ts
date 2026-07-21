@@ -121,7 +121,7 @@ async function aiMainsQuestions(params: {
 }
 
 /**
- * "Daily Mains Challenge" / "Previous Year Questions" pools: draw from a
+ * "Daily Answer Writing" / "Previous Year Questions" pools: draw from a
  * curated source, dedupe, and pad any shortfall with AI-generated questions
  * so the requested count is always met. Every question is a 10-marker (the
  * source queries only return 10-mark rows and the AI is asked for 10-markers).

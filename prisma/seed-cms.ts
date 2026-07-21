@@ -163,7 +163,7 @@ const pages: PageSeed[] = [
     title: "Daily Answer Writing",
     description: "Daily mains answer writing page content",
     sections: [
-      { key: "page_title", type: "text", content: "Daily Mains Challenge", order: 0 },
+      { key: "page_title", type: "text", content: "Daily Answer Writing", order: 0 },
       { key: "subtitle", type: "text", content: "Sharpen your answer writing skills with today's carefully crafted question.", order: 1 },
       { key: "subtitle_line2", type: "text", content: "Develop structure, clarity, and depth in your answers.", order: 2 },
       { key: "button_start", type: "text", content: "Start Now", order: 3 },
@@ -404,7 +404,7 @@ const pages: PageSeed[] = [
       { key: "daily_trio_title", type: "text", content: "Daily Trio — This Week", order: 10 },
       { key: "daily_trio_items", type: "json", content: JSON.stringify([
         { title: "Daily MCQ Challenge", subtitle: "Polity, Economy, Geography", icon: "book" },
-        { title: "Daily Mains Challenge", subtitle: "Answer Writing, AI Evaluated", icon: "pen" },
+        { title: "Daily Answer Writing", subtitle: "Answer Writing, AI Evaluated", icon: "pen" },
         { title: "Daily News Analysis", subtitle: "The Hindu, Indian Express", icon: "news" },
       ]), order: 11 },
       { key: "badges_title", type: "text", content: "Achievement Badges", order: 12 },
