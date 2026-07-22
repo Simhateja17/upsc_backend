@@ -488,7 +488,7 @@ export const getCalendar = async (req: Request, res: Response, next: NextFunctio
         orderBy: { date: "desc" },
         skip,
         take: limit,
-        select: { id: true, date: true, title: true, paper: true, subject: true, marks: true },
+        select: { id: true, date: true, title: true, questionText: true, paper: true, subject: true, marks: true },
       }),
       prisma.dailyMainsQuestion.count({ where }),
     ]);
@@ -505,6 +505,7 @@ export const getCalendar = async (req: Request, res: Response, next: NextFunctio
       return {
         date: q.date.toISOString().split("T")[0],
         title: q.title,
+        questionText: q.questionText,
         paper: q.paper,
         subject: q.subject,
         marks: q.marks,

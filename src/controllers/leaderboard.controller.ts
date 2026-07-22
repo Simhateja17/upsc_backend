@@ -316,6 +316,11 @@ export const getMyRank = async (req: Request, res: Response, next: NextFunction)
         mainsRank: isRankUnlocked && myMainsRank > 0 ? myMainsRank : null,
         isRankUnlocked,
         attemptsToUnlockRank,
+        // Keep the denominator paired with the same (real + fallback) list used
+        // to calculate `mcqRank`. `realRankedCount` is retained for admin/community
+        // metrics, but using it beside a synthetic-aware rank produced values such
+        // as "#949 of 17 ranked".
+        mcqRankedCount: mcqRanked.length,
         realRankedCount,
         ...myData,
       },
