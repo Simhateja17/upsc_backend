@@ -13,28 +13,26 @@ interface LeaderboardRawRow {
   email: string;
   avatar_url: string | null;
   mcq_avg: number;
-  pyq_prelims_avg: number;
-  mock_prelims_avg: number;
-  mock_mains_avg: number;
-  daily_mains_avg: number;
-  pyq_mains_avg: number;
+  mcq_attempt_count: number;
   mains_avg: number;
+  mains_attempt_count: number;
   streak: number;
   study_hours: number;
   questions_solved: number;
-  attempt_count: number;
 }
 
-type LeaderboardRow = ReturnType<typeof mapRealRows>[number] | SyntheticLeaderboardRow;
-type RankedLeaderboardRow = LeaderboardRow & { rank: number };
+type RealLeaderboardRow = ReturnType<typeof mapRealRows>[number];
+type LeaderboardRow = RealLeaderboardRow | SyntheticLeaderboardRow;
+type PublicLeaderboardRow = (Omit<RealLeaderboardRow, "_rankScore">) | SyntheticLeaderboardRow;
+type RankedLeaderboardRow = PublicLeaderboardRow & { rank: number };
 
-function avg(values: number[], includeZeros = false) {
-  const filtered = values.filter((value) => Number.isFinite(value) && (includeZeros || value > 0));
-  return filtered.length ? filtered.reduce((sum, value) => sum + value, 0) / filtered.length : 0;
-}
-
-function pctToTen(value: number) {
-  return parseFloat(((Number(value) || 0) / 10).toFixed(2));
+// Round to `decimals` places. Internal scores are kept at 6dp (spec: store
+// high precision) so tie-breaking never collapses two genuinely different
+// scores; only the API response's top-level totalScore/mcqAvg/mainsAvg are
+// rounded to 2dp (spec: display only 2 decimal places).
+function round(value: number, decimals: number) {
+  const factor = 10 ** decimals;
+  return Math.round((Number(value) || 0) * factor) / factor;
 }
 
 function getDateFilter(range: string, tableAlias: string) {
@@ -45,27 +43,13 @@ function getDateFilter(range: string, tableAlias: string) {
 
 function mapRealRows(rows: LeaderboardRawRow[]) {
   return rows.map((row) => {
-    const dailyMcqScore = pctToTen(Number(row.mcq_avg) || 0);
-    const pyqPrelimsScore = pctToTen(Number(row.pyq_prelims_avg) || 0);
-    const mockPrelimsScore = pctToTen(Number(row.mock_prelims_avg) || 0);
-    const dailyAnswerScore = pctToTen(Number(row.daily_mains_avg) || 0);
-    const pyqMainsScore = pctToTen(Number(row.pyq_mains_avg) || 0);
-    const mockMainsScore = pctToTen(Number(row.mock_mains_avg) || 0);
-    const mcqAvg = parseFloat(avg([dailyMcqScore, pyqPrelimsScore, mockPrelimsScore], true).toFixed(2));
-    const mockAvg = parseFloat(avg([mockPrelimsScore, mockMainsScore], true).toFixed(2));
-    const dailyAnswerAvg = dailyAnswerScore;
-    const pyqAvg = parseFloat(avg([pyqPrelimsScore, pyqMainsScore], true).toFixed(2));
-    const mainsAvg = parseFloat(avg([dailyAnswerScore, pyqMainsScore, mockMainsScore], true).toFixed(2));
-    const totalScore = parseFloat(avg([
-      dailyMcqScore,
-      pyqPrelimsScore,
-      mockPrelimsScore,
-      dailyAnswerScore,
-      pyqMainsScore,
-      mockMainsScore,
-    ], true).toFixed(2));
-    const accuracy = parseFloat((totalScore * 10).toFixed(1));
-    const attemptCount = Number(row.attempt_count) || 0;
+    const mcqAvg = round(Number(row.mcq_avg) || 0, 6);
+    const mainsAvg = round(Number(row.mains_avg) || 0, 6);
+    const totalScore = round(mcqAvg * 0.5 + mainsAvg * 0.5, 6);
+    const accuracy = round(totalScore * 10, 1);
+    const mcqAttemptCount = Number(row.mcq_attempt_count) || 0;
+    const mainsAttemptCount = Number(row.mains_attempt_count) || 0;
+    const attemptCount = mcqAttemptCount + mainsAttemptCount;
 
     return {
       userId: row.id,
@@ -76,55 +60,88 @@ function mapRealRows(rows: LeaderboardRawRow[]) {
       handle: row.email ? `@${row.email.split("@")[0]}` : "",
       initial: (row.first_name?.[0] || row.last_name?.[0] || "?").toUpperCase(),
       avatarUrl: row.avatar_url,
-      totalScore,
-      mcqAvg,
-      mockAvg,
-      mainsAvg,
-      dailyMcqScore,
-      pyqPrelimsScore,
-      mockPrelimsScore,
-      dailyAnswerScore,
-      pyqMainsScore,
-      mockMainsScore,
-      dailyAnswerAvg,
-      pyqAvg,
+      totalScore: round(totalScore, 2),
+      mcqAvg: round(mcqAvg, 2),
+      mainsAvg: round(mainsAvg, 2),
       streak: Number(row.streak) || 0,
-      studyHours: parseFloat((Number(row.study_hours) || 0).toFixed(1)),
+      studyHours: round(Number(row.study_hours) || 0, 1),
       accuracy,
       questionsSolved: Number(row.questions_solved) || 0,
+      mcqAttemptCount,
+      mainsAttemptCount,
       attemptCount,
       isRankUnlocked: attemptCount >= 3,
-      isSynthetic: false,
+      isSynthetic: false as const,
+      // Kept at full precision for ranking/tie-breaking; not sent to clients.
+      _rankScore: { mcqAvg, mainsAvg, totalScore },
     };
   });
 }
 
-function getScoreForRanking(item: LeaderboardRow, tab: string): number {
-  if (tab === "mcq") return item.mcqAvg;
-  if (tab === "mains") return item.mainsAvg;
-  return item.totalScore;
+/**
+ * Eligibility Rule: a user only appears on the Overall leaderboard once
+ * they've attempted both an MCQ-type and a Mains-type challenge, so someone
+ * who has only ever done MCQs can't rank on Overall purely by volume.
+ * Synthetic (community-filler) rows always represent both by construction.
+ */
+function isEligibleForTab(item: LeaderboardRow, tab: string): boolean {
+  if ((item as SyntheticLeaderboardRow).isSynthetic) return true;
+  const real = item as ReturnType<typeof mapRealRows>[number];
+  if (tab === "mcq") return real.mcqAttemptCount > 0;
+  if (tab === "mains") return real.mainsAttemptCount > 0;
+  return real.mcqAttemptCount > 0 && real.mainsAttemptCount > 0;
 }
 
-function sortLeaderboard(rows: LeaderboardRow[], tab: string) {
-  const sorted = [...rows];
-  if (tab === "mcq") {
-    return sorted.sort((a, b) => b.mcqAvg - a.mcqAvg || b.totalScore - a.totalScore);
-  }
-  if (tab === "mains") {
-    return sorted.sort((a, b) => b.mainsAvg - a.mainsAvg || b.totalScore - a.totalScore);
-  }
-  return sorted.sort((a, b) => b.totalScore - a.totalScore);
+function rankMetrics(item: LeaderboardRow) {
+  const real = item as ReturnType<typeof mapRealRows>[number];
+  if (real._rankScore) return real._rankScore;
+  // Synthetic rows have no _rankScore; their already-rounded avgs are fine
+  // as tie-break inputs since they aren't real ties with genuine users.
+  const synthetic = item as SyntheticLeaderboardRow;
+  return { mcqAvg: synthetic.mcqAvg, mainsAvg: synthetic.mainsAvg, totalScore: synthetic.totalScore };
 }
 
-function assignRanks(rows: LeaderboardRow[], tab: string): RankedLeaderboardRow[] {
-  let previousRank = 1;
-  return rows.map((item, index) => {
-    if (index === 0) return { ...item, rank: previousRank };
-    const prev = rows[index - 1];
-    const sameScore = getScoreForRanking(item, tab) === getScoreForRanking(prev, tab);
-    previousRank = sameScore ? previousRank : index + 1;
-    return { ...item, rank: previousRank };
-  });
+/**
+ * Tie-Breaking Rules (spec): higher Mains avg, then higher MCQ avg, then
+ * more total attempts, then user ID as the final deterministic tie-breaker.
+ * Because userId is unique, this always produces a strict total order —
+ * no two rows can ever land on the same rank.
+ */
+function compareRows(a: LeaderboardRow, b: LeaderboardRow, tab: string): number {
+  const am = rankMetrics(a);
+  const bm = rankMetrics(b);
+
+  const primary =
+    tab === "mcq" ? bm.mcqAvg - am.mcqAvg
+    : tab === "mains" ? bm.mainsAvg - am.mainsAvg
+    : bm.totalScore - am.totalScore;
+  if (primary !== 0) return primary;
+
+  const mainsDiff = bm.mainsAvg - am.mainsAvg;
+  if (mainsDiff !== 0) return mainsDiff;
+
+  const mcqDiff = bm.mcqAvg - am.mcqAvg;
+  if (mcqDiff !== 0) return mcqDiff;
+
+  const aAttempts = (a as ReturnType<typeof mapRealRows>[number]).attemptCount ?? 0;
+  const bAttempts = (b as ReturnType<typeof mapRealRows>[number]).attemptCount ?? 0;
+  const attemptDiff = bAttempts - aAttempts;
+  if (attemptDiff !== 0) return attemptDiff;
+
+  return String(a.userId).localeCompare(String(b.userId));
+}
+
+function stripInternal(item: LeaderboardRow): PublicLeaderboardRow {
+  if ((item as SyntheticLeaderboardRow).isSynthetic) return item as SyntheticLeaderboardRow;
+  const { _rankScore, ...rest } = item as RealLeaderboardRow;
+  return rest;
+}
+
+function rankForTab(rows: LeaderboardRow[], tab: string): RankedLeaderboardRow[] {
+  return rows
+    .filter((row) => isEligibleForTab(row, tab))
+    .sort((a, b) => compareRows(a, b, tab))
+    .map((item, index) => ({ ...stripInternal(item), rank: index + 1 }));
 }
 
 function buildLeaderboardQuery(range: string, includeInactiveUsers: boolean) {
@@ -137,65 +154,81 @@ function buildLeaderboardQuery(range: string, includeInactiveUsers: boolean) {
   const activityFilter = getDateFilter(range, "ua");
   const having = includeInactiveUsers
     ? ""
-    : `WHERE COALESCE(mcq.mcq_count, 0) > 0
-        OR COALESCE(mock.mock_count, 0) > 0
-        OR COALESCE(pyq_prelims.pyq_prelims_count, 0) > 0
-        OR COALESCE(daily_mains.daily_mains_count, 0) > 0
-        OR COALESCE(pyq.pyq_count, 0) > 0
-        OR COALESCE(mock_mains.mock_mains_count, 0) > 0
+    : `WHERE COALESCE(mcq_agg.mcq_attempt_count, 0) > 0
+        OR COALESCE(mains_agg.mains_attempt_count, 0) > 0
         OR COALESCE(study.study_count, 0) > 0
         OR COALESCE(us.current_streak, 0) > 0`;
 
   return `
     WITH
-      mcq AS (
-        SELECT m.user_id, AVG(m.accuracy) as mcq_avg, COUNT(m.id) as mcq_count,
-               SUM(COALESCE(m.correct_count, 0) + COALESCE(m.wrong_count, 0) + COALESCE(m.skipped_count, 0)) as mcq_questions
+      mcq_raw AS (
+        SELECT m.user_id,
+               CASE WHEN (m.correct_count + m.wrong_count + m.skipped_count) > 0
+                    THEN (m.correct_count::numeric / (m.correct_count + m.wrong_count + m.skipped_count)) * 10
+                    ELSE 0 END AS score,
+               (m.correct_count + m.wrong_count + m.skipped_count) AS questions
         FROM mcq_attempts m
         WHERE 1=1 ${mcqFilter}
-        GROUP BY m.user_id
       ),
-      mock AS (
-        SELECT mt.user_id, AVG(mt.accuracy) as mock_prelims_avg, COUNT(mt.id) as mock_count,
-               SUM(COALESCE(mt.correct_count, 0) + COALESCE(mt.wrong_count, 0) + COALESCE(mt.skipped_count, 0)) as mock_questions
-        FROM mock_test_attempts mt
-        WHERE 1=1 ${mockFilter}
-        GROUP BY mt.user_id
-      ),
-      pyq_prelims AS (
+      pyq_prelims_raw AS (
+        -- Each row is a single PYQ question — one MCQ "attempt" worth 1 question.
         SELECT ppa.user_id,
-               AVG(ppa.accuracy) as pyq_prelims_avg,
-               COUNT(ppa.id) as pyq_prelims_count
+               CASE WHEN ppa.is_correct THEN 10 ELSE 0 END AS score,
+               1 AS questions
         FROM pyq_prelims_attempts ppa
         WHERE 1=1 ${pyqPrelimsFilter}
-        GROUP BY ppa.user_id
       ),
-      daily_mains AS (
-        SELECT ma.user_id,
-               AVG(me.score / NULLIF(me.max_score, 0) * 100) as daily_mains_avg,
-               COUNT(ma.id) as daily_mains_count
+      mock_prelims_raw AS (
+        SELECT mt.user_id,
+               CASE WHEN (mt.correct_count + mt.wrong_count + mt.skipped_count) > 0
+                    THEN (mt.correct_count::numeric / (mt.correct_count + mt.wrong_count + mt.skipped_count)) * 10
+                    ELSE 0 END AS score,
+               (mt.correct_count + mt.wrong_count + mt.skipped_count) AS questions
+        FROM mock_test_attempts mt
+        WHERE 1=1 ${mockFilter}
+      ),
+      mcq_pool AS (
+        SELECT user_id, score, questions FROM mcq_raw
+        UNION ALL SELECT user_id, score, questions FROM pyq_prelims_raw
+        UNION ALL SELECT user_id, score, questions FROM mock_prelims_raw
+      ),
+      mcq_agg AS (
+        SELECT user_id,
+               AVG(score) as mcq_avg,
+               COUNT(*) as mcq_attempt_count,
+               SUM(questions) as mcq_questions
+        FROM mcq_pool
+        GROUP BY user_id
+      ),
+      daily_mains_raw AS (
+        SELECT ma.user_id, (me.score::numeric / NULLIF(me.max_score, 0)) * 10 AS score
         FROM mains_attempts ma
-        LEFT JOIN mains_evaluations me ON me.attempt_id = ma.id AND me.status = 'completed'
+        JOIN mains_evaluations me ON me.attempt_id = ma.id AND me.status = 'completed'
         WHERE 1=1 ${dailyMainsFilter}
-        GROUP BY ma.user_id
       ),
-      pyq AS (
-        SELECT pma.user_id,
-               AVG(pme.score / NULLIF(pme.max_score, 0) * 100) as pyq_mains_avg,
-               COUNT(pma.id) as pyq_count
+      pyq_mains_raw AS (
+        SELECT pma.user_id, (pme.score::numeric / NULLIF(pme.max_score, 0)) * 10 AS score
         FROM pyq_mains_attempts pma
-        LEFT JOIN pyq_mains_evaluations pme ON pme.attempt_id = pma.id AND pme.status = 'completed'
+        JOIN pyq_mains_evaluations pme ON pme.attempt_id = pma.id AND pme.status = 'completed'
         WHERE 1=1 ${pyqFilter}
-        GROUP BY pma.user_id
       ),
-      mock_mains AS (
-        SELECT mma.user_id,
-               AVG(mme.score / NULLIF(mme.max_score, 0) * 100) as mock_mains_avg,
-               COUNT(mma.id) as mock_mains_count
+      mock_mains_raw AS (
+        SELECT mma.user_id, (mme.score::numeric / NULLIF(mme.max_score, 0)) * 10 AS score
         FROM mock_test_mains_attempts mma
-        LEFT JOIN mock_test_mains_evaluations mme ON mme.attempt_id = mma.id AND mme.status = 'completed'
+        JOIN mock_test_mains_evaluations mme ON mme.attempt_id = mma.id AND mme.status = 'completed'
         WHERE 1=1 ${mockMainsFilter}
-        GROUP BY mma.user_id
+      ),
+      mains_pool AS (
+        SELECT user_id, score FROM daily_mains_raw
+        UNION ALL SELECT user_id, score FROM pyq_mains_raw
+        UNION ALL SELECT user_id, score FROM mock_mains_raw
+      ),
+      mains_agg AS (
+        SELECT user_id,
+               AVG(score) as mains_avg,
+               COUNT(*) as mains_attempt_count
+        FROM mains_pool
+        GROUP BY user_id
       ),
       study AS (
         SELECT ua.user_id,
@@ -211,34 +244,16 @@ function buildLeaderboardQuery(range: string, includeInactiveUsers: boolean) {
       u.last_name,
       u.email,
       u.avatar_url,
-      COALESCE(mcq.mcq_avg, 0) as mcq_avg,
-      COALESCE(pyq_prelims.pyq_prelims_avg, 0) as pyq_prelims_avg,
-      COALESCE(mock.mock_prelims_avg, 0) as mock_prelims_avg,
-      COALESCE(mock_mains.mock_mains_avg, 0) as mock_mains_avg,
-      COALESCE(daily_mains.daily_mains_avg, 0) as daily_mains_avg,
-      COALESCE(pyq.pyq_mains_avg, 0) as pyq_mains_avg,
-      COALESCE((COALESCE(daily_mains.daily_mains_avg, 0) + COALESCE(pyq.pyq_mains_avg, 0) + COALESCE(mock_mains.mock_mains_avg, 0)) / 3, 0) as mains_avg,
+      COALESCE(mcq_agg.mcq_avg, 0) as mcq_avg,
+      COALESCE(mcq_agg.mcq_attempt_count, 0) as mcq_attempt_count,
+      COALESCE(mains_agg.mains_avg, 0) as mains_avg,
+      COALESCE(mains_agg.mains_attempt_count, 0) as mains_attempt_count,
       COALESCE(us.current_streak, 0) as streak,
       COALESCE(study.study_hours, 0) as study_hours,
-      COALESCE(mcq.mcq_questions, 0)
-        + COALESCE(mock.mock_questions, 0)
-        + COALESCE(pyq_prelims.pyq_prelims_count, 0)
-        + COALESCE(daily_mains.daily_mains_count, 0)
-        + COALESCE(pyq.pyq_count, 0)
-        + COALESCE(mock_mains.mock_mains_count, 0) as questions_solved,
-      COALESCE(mcq.mcq_count, 0)
-        + COALESCE(mock.mock_count, 0)
-        + COALESCE(pyq_prelims.pyq_prelims_count, 0)
-        + COALESCE(daily_mains.daily_mains_count, 0)
-        + COALESCE(pyq.pyq_count, 0)
-        + COALESCE(mock_mains.mock_mains_count, 0) as attempt_count
+      COALESCE(mcq_agg.mcq_questions, 0) + COALESCE(mains_agg.mains_attempt_count, 0) as questions_solved
     FROM users u
-    LEFT JOIN mcq ON mcq.user_id = u.id
-    LEFT JOIN mock ON mock.user_id = u.id
-    LEFT JOIN pyq_prelims ON pyq_prelims.user_id = u.id
-    LEFT JOIN daily_mains ON daily_mains.user_id = u.id
-    LEFT JOIN pyq ON pyq.user_id = u.id
-    LEFT JOIN mock_mains ON mock_mains.user_id = u.id
+    LEFT JOIN mcq_agg ON mcq_agg.user_id = u.id
+    LEFT JOIN mains_agg ON mains_agg.user_id = u.id
     LEFT JOIN study ON study.user_id = u.id
     LEFT JOIN user_streaks us ON us.user_id = u.id
     ${having}
@@ -262,7 +277,7 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
     const realRankedCount = realRows.filter((row) => row.isRankUnlocked).length;
     const syntheticRows = realOnly ? [] : buildSyntheticLeaderboardRows(range);
     const merged = !realOnly && realRankedCount < 100 ? [...realRows, ...syntheticRows] : realRows;
-    const withRank = sortLeaderboard(merged, tab).map((item, index) => ({ ...item, rank: index + 1 }));
+    const withRank = rankForTab(merged, tab);
     const communityStats = buildCommunityStats({
       realUserCount,
       rows: merged,
@@ -293,15 +308,15 @@ export const getMyRank = async (req: Request, res: Response, next: NextFunction)
     const myData = realRows.find((item) => item.userId === userId);
     const mapped = realRankedCount < 100 ? [...realRows, ...buildSyntheticLeaderboardRows(range)] : realRows;
 
-    const overallRanked = assignRanks(sortLeaderboard(mapped, "overall"), "overall");
+    const overallRanked = rankForTab(mapped, "overall");
     const myOverallIndex = overallRanked.findIndex((item) => item.userId === userId);
     const myOverallRank = myOverallIndex >= 0 ? overallRanked[myOverallIndex].rank : -1;
 
-    const mcqRanked = assignRanks(sortLeaderboard(mapped, "mcq"), "mcq");
+    const mcqRanked = rankForTab(mapped, "mcq");
     const myMcqIndex = mcqRanked.findIndex((item) => item.userId === userId);
     const myMcqRank = myMcqIndex >= 0 ? mcqRanked[myMcqIndex].rank : -1;
 
-    const mainsRanked = assignRanks(sortLeaderboard(mapped, "mains"), "mains");
+    const mainsRanked = rankForTab(mapped, "mains");
     const myMainsIndex = mainsRanked.findIndex((item) => item.userId === userId);
     const myMainsRank = myMainsIndex >= 0 ? mainsRanked[myMainsIndex].rank : -1;
 
@@ -311,6 +326,7 @@ export const getMyRank = async (req: Request, res: Response, next: NextFunction)
     res.json({
       status: "success",
       data: {
+        ...(myData ? stripInternal(myData) : {}),
         rank: isRankUnlocked && myOverallRank > 0 ? myOverallRank : null,
         mcqRank: isRankUnlocked && myMcqRank > 0 ? myMcqRank : null,
         mainsRank: isRankUnlocked && myMainsRank > 0 ? myMainsRank : null,
@@ -322,7 +338,6 @@ export const getMyRank = async (req: Request, res: Response, next: NextFunction)
         // as "#949 of 17 ranked".
         mcqRankedCount: mcqRanked.length,
         realRankedCount,
-        ...myData,
       },
     });
   } catch (error) {
