@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
-import { downloadFile, getSignedUrl, STORAGE_BUCKETS } from "../config/storage";
+import { downloadFile, getSignedUrl, getSignedUrls, listFiles, uploadFile, STORAGE_BUCKETS } from "../config/storage";
 import { renderPdfPagesToImages } from "../config/gemini";
 
 function hasAccess(userPlan: string, accessLevel: string): boolean {
@@ -207,6 +207,38 @@ export const getMaterialViewPages = async (req: Request, res: Response, next: Ne
       return res.status(403).json({ status: "error", message: "Upgrade required to access this PDF" });
     }
 
+    // Rendering a PDF to page images is the expensive part of this endpoint
+    // (CPU-heavy at scale:2, plus a full PDF download). Cache the rendered
+    // pages in storage on first open so every later "Read" just fetches
+    // already-rendered images instead of re-rendering the whole document.
+    const cachePrefix = `rendered-pages/${materialId}`;
+    const cachedNames = await listFiles(STORAGE_BUCKETS.STUDY_MATERIALS, cachePrefix).catch(() => []);
+    const cachedPageNumbers = cachedNames
+      .map((name) => Number(name.replace(/^page-/, "").replace(/\.png$/, "")))
+      .filter((n) => Number.isFinite(n) && n > 0)
+      .sort((a, b) => a - b);
+
+    if (cachedPageNumbers.length > 0) {
+      const pageNumbers = cachedPageNumbers.slice(0, maxPages);
+      const paths = pageNumbers.map((n) => `${cachePrefix}/page-${n}.png`);
+      const urls = await getSignedUrls(STORAGE_BUCKETS.STUDY_MATERIALS, paths, 3600, true);
+
+      return res.json({
+        status: "success",
+        data: {
+          id: material.id,
+          title: material.title,
+          totalPages: material.pageCount || cachedPageNumbers.length,
+          renderedPages: pageNumbers.length,
+          pages: pageNumbers.map((pageNumber, index) => ({
+            pageNumber,
+            mimeType: "image/png",
+            url: urls[index],
+          })),
+        },
+      });
+    }
+
     let pdfBuffer: Buffer;
     if (material.fileUrl?.startsWith("http")) {
       const response = await fetch(material.fileUrl);
@@ -220,6 +252,16 @@ export const getMaterialViewPages = async (req: Request, res: Response, next: Ne
     }
 
     const images = await renderPdfPagesToImages(pdfBuffer, maxPages);
+
+    await Promise.all(
+      images.map((buffer, index) =>
+        uploadFile(STORAGE_BUCKETS.STUDY_MATERIALS, `${cachePrefix}/page-${index + 1}.png`, buffer, "image/png")
+      )
+    ).catch((err) => console.warn("[LIBRARY] Failed to cache rendered pages:", err.message));
+
+    const freshPaths = images.map((_, index) => `${cachePrefix}/page-${index + 1}.png`);
+    const freshUrls = await getSignedUrls(STORAGE_BUCKETS.STUDY_MATERIALS, freshPaths, 3600, true);
+
     res.json({
       status: "success",
       data: {
@@ -227,10 +269,10 @@ export const getMaterialViewPages = async (req: Request, res: Response, next: Ne
         title: material.title,
         totalPages: material.pageCount || images.length,
         renderedPages: images.length,
-        pages: images.map((buffer, index) => ({
+        pages: images.map((_, index) => ({
           pageNumber: index + 1,
           mimeType: "image/png",
-          url: `data:image/png;base64,${buffer.toString("base64")}`,
+          url: freshUrls[index] || `data:image/png;base64,${images[index].toString("base64")}`,
         })),
       },
     });

@@ -221,6 +221,39 @@ export async function getSignedUrl(
 }
 
 /**
+ * Get signed URLs for multiple files in one round trip (faster than calling
+ * getSignedUrl in a loop when serving many pages of the same document).
+ * Returns urls in the same order as `paths`; a failed path yields "".
+ */
+export async function getSignedUrls(
+  bucket: string,
+  paths: string[],
+  expiresIn = 3600,
+  inline = false
+): Promise<string[]> {
+  if (!supabaseAdminStorage) throw new Error("Supabase admin client not configured");
+  if (paths.length === 0) return [];
+
+  const { data, error } = await supabaseAdminStorage.storage
+    .from(bucket)
+    .createSignedUrls(paths, expiresIn, { download: !inline });
+
+  if (error) throw new Error(`Signed URLs failed: ${error.message}`);
+  const byPath = new Map(data.map((d) => [d.path, d.signedUrl]));
+  return paths.map((p) => byPath.get(p) || "");
+}
+
+/**
+ * List file names directly under a storage prefix (non-recursive).
+ */
+export async function listFiles(bucket: string, prefix: string): Promise<string[]> {
+  if (!supabaseAdminStorage) throw new Error("Supabase admin client not configured");
+  const { data, error } = await supabaseAdminStorage.storage.from(bucket).list(prefix);
+  if (error) throw new Error(`List failed: ${error.message}`);
+  return (data || []).map((f) => f.name);
+}
+
+/**
  * Get a public URL for a file in a public bucket
  */
 export function getPublicUrl(bucket: string, path: string): string {
