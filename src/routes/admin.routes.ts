@@ -23,6 +23,8 @@ import * as cmsCtrl from "../controllers/admin/cms.controller";
 import * as studyMaterialCtrl from "../controllers/admin/studyMaterial.controller";
 import * as mockTestMaterialCtrl from "../controllers/admin/mockTestMaterial.controller";
 import * as entitlementCtrl from "../controllers/admin/entitlements.controller";
+import * as contactCtrl from "../controllers/admin/contact.controller";
+import * as feedbackCtrl from "../controllers/admin/feedback.controller";
 
 const router = Router();
 
@@ -131,6 +133,13 @@ router.get("/faqs", faqCtrl.getFaqsAdmin);
 router.post("/faqs", faqCtrl.createFaq);
 router.put("/faqs/:id", faqCtrl.updateFaq);
 router.delete("/faqs/:id", faqCtrl.deleteFaq);
+
+// ==================== Contact Submissions ====================
+router.get("/contact-submissions", contactCtrl.getContactSubmissionsAdmin);
+router.patch("/contact-submissions/:id/status", contactCtrl.updateContactSubmissionStatus);
+
+// ==================== User Feedback ====================
+router.get("/feedback", feedbackCtrl.getFeedbackAdmin);
 
 // ==================== Analytics ====================
 router.get("/analytics", analyticsCtrl.getAnalytics);
