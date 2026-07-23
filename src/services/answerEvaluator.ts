@@ -2,11 +2,12 @@ import { invokeModelJSON, BedrockMessage } from "../config/llm";
 import { renderPdfPagesToImages } from "../config/gemini";
 import { downloadFile, STORAGE_BUCKETS } from "../config/storage";
 import prisma from "../config/database";
-import { buildTopperContext, retrieveTopperMatches } from "./topperRag.service";
+import { buildTopperContext, retrieveTopperMatches, computeModelAnswerAlignment, ModelAnswerAlignment } from "./topperRag.service";
 import { CheckedCopyAnnotationPlan, EvaluatorCheckedCopyPlan, planCheckedCopyAnnotations } from "./checkedCopyPlanner";
-import { generateCheckedCopy } from "./checkedCopyGenerator";
+import { generateCheckedCopy, CheckedCopyAnswerHints } from "./checkedCopyGenerator";
 import { transcribeStudentAnswerFromUpload, TranscribedAnswerPage } from "./studentAnswerTranscriber";
 import { analyzeDocumentPageLayout, DocumentPageLayout } from "./documentLayout.service";
+import { mainsWordLimit, mainsWordRange, wordCountStatus, WordCountStatus } from "../utils/mainsPattern";
 
 function evalElapsed(startedAt: number) {
   return `${Date.now() - startedAt}ms`;
@@ -33,6 +34,20 @@ interface EvaluationResult {
   modelAnswerKeyPoints?: string[];
   modelAnswerContent?: string;
   parameterScores?: Array<{ parameter: string; score: number; maxScore: number; comment?: string }>;
+  wordCountAssessment?: {
+    wordCount: number;
+    wordLimit: number;
+    status: WordCountStatus;
+    comment?: string;
+  };
+  // PYQ-only fields: the LLM echoes back its verdict on alignment to the
+  // platform model answer included in the prompt as an extra binding signal.
+  modelAnswerAlignment?: {
+    band: ModelAnswerAlignment["band"] | "unassessed";
+    coverage: number;       // 0-1 fraction of model-answer key terms it saw
+    gaps: string[];         // missing substantive terms the LLM flagged
+    comment: string;        // 1-2 sentence examiner comment on the alignment
+  };
 }
 
 interface QuestionContext {
@@ -54,6 +69,7 @@ type CheckedCopyInput = {
   contentType: string;
   source: "image" | "pdf-page";
   layout?: DocumentPageLayout | null;
+  answerHints?: CheckedCopyAnswerHints;
 };
 
 export interface EvaluationUpdate {
@@ -73,13 +89,14 @@ export interface EvaluationUpdate {
   checkedCopyPages?: any;
   checkedCopyStatus?: string | null;
   ragDiagnostics?: any;
-  evaluationMode?: "daily" | "pyq" | "mock";
+  evaluationMode?: "daily" | "pyq" | "mock" | "custom";
   keyTerms?: any;
   nextAttemptFocus?: string | null;
   evaluatorConclusion?: string | null;
   modelAnswerKeyPoints?: any;
   modelAnswerContent?: string | null;
   parameterScores?: any;
+  modelAnswerAlignment?: any;
   evaluatedAt: Date | null;
 }
 
@@ -100,15 +117,36 @@ export interface EvaluationDbOps {
  * the typed-answer path and the handwritten upload path so the rubric, prompt
  * and fallback behavior stay in one place.
  */
+/**
+ * Optional PYQ-only binding context: the platform model answer for the
+ * question plus a deterministic alignment score (cosine similarity and
+ * key-term overlap) computed upstream via Azure embeddings. When present
+ * the evaluator must treat model-answer coverage as an explicit rubric
+ * axis and echo its verdict back via EvaluationResult.modelAnswerAlignment.
+ */
+interface ModelAnswerPromptContext {
+  modelAnswerText: string;
+  alignment: ModelAnswerAlignment;
+}
+
 async function runAzureEvaluation(
   answerText: string,
   question: QuestionContext,
   uploadTranscriptionNote: boolean,
   topperContext: string,
-  answerPages?: TranscribedAnswerPage[]
+  answerPages?: TranscribedAnswerPage[],
+  modelAnswerContext?: ModelAnswerPromptContext | null
 ): Promise<EvaluationResult> {
   const wordCount = answerText.trim().split(/\s+/).filter(Boolean).length;
-  const expectedWords = question.marks >= 15 ? 250 : question.marks >= 10 ? 150 : 100;
+  const expectedWords = mainsWordLimit(question.marks);
+  const wordRange = mainsWordRange(question.marks);
+  const wordStatus = wordCountStatus(wordCount, question.marks);
+  const wordCountVerdict =
+    wordStatus === "over"
+      ? `OVER THE WORD LIMIT — the student wrote ${wordCount} words against a ${expectedWords}-word limit (${Math.round((wordCount / expectedWords - 1) * 100)}% over). This is a real exam penalty: in the actual UPSC Mains the extra words would go unread and the extra time would be stolen from other questions.`
+      : wordStatus === "under"
+        ? `UNDER LENGTH — the student wrote ${wordCount} words against a ${expectedWords}-word limit. The answer cannot have covered the demand at this length.`
+        : `Within the acceptable band (${wordRange.min}-${wordRange.max} words for a ${expectedWords}-word limit).`;
   const readablePages = (answerPages || [])
     .filter((page) => page.studentAnswerText.trim().length > 0)
     .sort((a, b) => a.pageNumber - b.pageNumber);
@@ -126,8 +164,14 @@ async function runAzureEvaluation(
       role: "user",
       content: `You are grading a UPSC Civil Services Mains answer. Be strict — UPSC marks are notoriously tight.
 
-QUESTION (${question.paper} · ${question.subject} · ${question.marks} marks · ~${expectedWords} words expected):
+QUESTION (${question.paper} · ${question.subject} · ${question.marks} marks · STRICT WORD LIMIT ${expectedWords} words):
 "${question.questionText}"
+
+WORD-LIMIT CHECK (already computed — do not recount, treat as fact):
+- Student word count: ${wordCount}
+- Prescribed limit for a ${question.marks}-marker: ${expectedWords} words
+- Acceptable band: ${wordRange.min}-${wordRange.max} words
+- Verdict: ${wordCountVerdict}
 
 STUDENT'S ANSWER (${wordCount} words):
 ---
@@ -142,17 +186,39 @@ ${pageSeparatedAnswer}
 RAG-CALIBRATION FROM CHECKED TOPPER COPIES:
 ${topperContext}
 
-${uploadTranscriptionNote ? "NOTE: This text was transcribed from uploaded handwritten page image(s). Grade content rigorously but forgive minor transcription artifacts.\n\n" : ""}GRADING RULES — follow precisely:
+${modelAnswerContext ? `PLATFORM MODEL ANSWER (authoritative reference for this PYQ):
+---
+${modelAnswerContext.modelAnswerText}
+---
+
+PRE-COMPUTED ALIGNMENT TO PLATFORM MODEL ANSWER:
+- Cosine similarity: ${modelAnswerContext.alignment.cosineSimilarity} (band: ${modelAnswerContext.alignment.band})
+- Key-term overlap: ${modelAnswerContext.alignment.keyTermOverlap}
+- Covered key terms: ${modelAnswerContext.alignment.coveredKeyTerms.join(", ") || "—"}
+- Missing key terms: ${modelAnswerContext.alignment.missingKeyTerms.join(", ") || "—"}
+- Auto reason: ${modelAnswerContext.alignment.reason}
+
+` : ""}${uploadTranscriptionNote ? "NOTE: This text was transcribed from uploaded handwritten page image(s). Grade content rigorously but forgive minor transcription artifacts.\n\n" : ""}GRADING RULES — follow precisely:
 - Empty / single-line / gibberish / off-topic answers → score 0-1. Do not reward effort.
 - Answer that rephrases the question without substance → 2-4 out of ${question.marks}.
 - Answer with some valid points but missing core demand, no examples, no structure → 5-7 out of ${question.marks}.
 - Answer that addresses the question directly, has clear structure (intro/body/conclusion), relevant facts, but is incomplete or one-sided → 8-10 out of ${question.marks}.
 - Well-structured, multi-dimensional, with specific examples (reports/schemes/data/committees/case studies), balanced conclusion → 11-13 out of ${question.marks}.
 - Reserve 14-${question.marks} ONLY for exceptional answers: precise directive (examine/discuss/critically analyze) addressed, original insight, contemporary linkage, committee/data references, crisp conclusion. A topper-level answer.
-- Penalize if word count is wildly off (>50% over or under ~${expectedWords}).
+- WORD LIMIT IS BINDING. The prescribed limit is ${expectedWords} words for this ${question.marks}-marker (10 marks→150, 15 marks→200, 20 marks→250). Apply it as follows:
+  • Within ${wordRange.min}-${wordRange.max} words: no word-count penalty.
+  • Over ${wordRange.max} words: deduct 1 mark, or 2 marks if more than 40% over. Say so explicitly in "improvements" and name the exact target ("Cut to ~${expectedWords} words"). Long answers are NOT rewarded — extra length usually means padding, repetition, or bullet-dumping instead of analysis. Never let a long answer score higher because it "covered more".
+  • Under ${wordRange.min} words: deduct 1-2 marks for insufficient development of the demand, and say so in "improvements".
+  • Whatever the length, the "Presentation" parameter score must reflect the word-limit breach.
 - Penalize factual errors heavily. If a claim is wrong, call it out in "improvements".
 - NEVER give pity marks. A blank or one-sentence answer should not get more than 1/${question.marks}.
-- RAG calibration is binding: treat retrieved checked topper/evaluator copies as scoring anchors, not as automatic marks. If a retrieved answer scored 7/15, award 7/15 only when the student's answer is genuinely at that same standard. If the student's answer is weaker than the retrieved 7/15 answer in demand coverage, specificity, evidence, structure, or balance, award less. Do not award more than the best relevant retrieved example unless the student's answer is clearly and specifically superior, and explain that exact superiority in detailedFeedback. Generic polish is not enough.
+- RAG calibration is binding: treat retrieved checked topper/evaluator copies as scoring anchors, not as automatic marks. If a retrieved answer scored 7/15, award 7/15 only when the student's answer is genuinely at that same standard. If the student's answer is weaker than the retrieved 7/15 answer in demand coverage, specificity, evidence, structure, or balance, award less. Do not award more than the best relevant retrieved example unless the student's answer is clearly and specifically superior, and explain that exact superiority in detailedFeedback. Generic polish is not enough.${modelAnswerContext ? `
+- PYQ MODEL-ANSWER ALIGNMENT IS BINDING: when a platform model answer was supplied above, treat it as the canonical reference. The pre-computed alignment band ("${modelAnswerContext.alignment.band}") is informative but NOT decisive; you decide the band based on your own examiner judgement of demand-coverage against the model answer. You MUST:
+  • If the band is "excellent": treat missing key terms as minor gaps unless fundamental to the demand; lock at no less than the equivalent RAG anchor or 11/${question.marks}, whichever applies for the question demand.
+  • If "strong": reward alignment but cap 2 below the model answer unless the student adds genuinely superior evidence.
+  • If "moderate" or "weak": penalise missing key terms from the model answer explicitly; do not exceed the equivalent RAG anchor minus 2.
+  • If "off": judge against the model answer directly; the answer either missed the demand or went off-topic — apply the corresponding rubric floor (0-4/${question.marks}).
+  • Echo back via "modelAnswerAlignment" with your final band, coverage (0-1), gaps (substantive missing terms/phrases you found), and a 1-2 sentence examiner comment.` : ""}
 - Build annotationPlan as semantic examiner intent, not exact coordinates. The SVG renderer will decide final placement.
 - Use annotationPlan version 2. Split detailed markups, light markups, and correctness ticks.
 - Density target: create 3-5 marginComments for a normal full page, plus one positive_tick for each correct/relevant semantic answer point. A point may span multiple OCR lines; tick the point title or first distinctive phrase only, not continuation lines.
@@ -191,8 +257,8 @@ Return ONLY a JSON object (no prose, no markdown fences):
   "improvements": ["concrete, actionable — name the missing dimension/fact/structure"],
   "suggestions": ["specific source/report/scheme the student should read to improve"],
   "overallFeedback": "short examiner-style overall comment",
-  "modelAnswer": "concise model answer calibrated to the marks and word limit",
-  "detailedFeedback": "2-3 paragraph examiner-style feedback: what the answer did, where it falls on the rubric, and exactly what to fix. Be blunt, not encouraging.",
+  "modelAnswer": "concise model answer of NO MORE THAN ${expectedWords} words (the prescribed limit for this ${question.marks}-marker). Do not exceed it.",
+  "detailedFeedback": "2-3 paragraph examiner-style feedback: what the answer did, where it falls on the rubric, and exactly what to fix. Be blunt, not encouraging. If the answer breached the word limit, state that explicitly.",
   "annotationPlan": {
     "version": 2,
     "scoreText": "same integer score/maxScore, e.g. \"4/${question.marks}\"",
@@ -231,7 +297,13 @@ Return ONLY a JSON object (no prose, no markdown fences):
   "nextAttemptFocus": "1-2 sentences telling the student exactly what to focus on in their next attempt at a similar question",
   "evaluatorConclusion": "2-3 sentence overall verdict in an encouraging-but-honest examiner tone, naming the single biggest gap and what score the answer could realistically reach if fixed",
   "modelAnswerKeyPoints": ["short bullet point the model answer must hit", "..."],
-  "modelAnswerContent": "the full model answer text, written in the same style as 'modelAnswer' but as flowing paragraphs with an intro, body points, and conclusion",
+  "modelAnswerContent": "the full model answer as GitHub-flavoured MARKDOWN with these exact section headings: a '## Introduction' section, then 2-4 body sections each with its own '## <thematic heading>' (use markdown '-' bullets and '**bold**' lead-ins where it aids clarity), then a final '## Conclusion' section. The prose (excluding the short headings) MUST stay within the ${expectedWords}-word limit — it is the worked example of a correctly-sized answer, so an over-length model answer is a contradiction.",
+  "wordCountAssessment": {
+    "wordCount": ${wordCount},
+    "wordLimit": ${expectedWords},
+    "status": "${wordStatus}",
+    "comment": "1 sentence telling the student what to do about their length (trim to the limit, or develop further)"
+  },
   "parameterScores": [
     {"parameter": "Demand Fulfilment", "score": <0-${question.marks}, scaled to this parameter's weight>, "maxScore": <weighted max for this parameter>, "comment": "specific feedback for this parameter"},
     {"parameter": "Conceptual Clarity", "score": <number>, "maxScore": <number>, "comment": "..."},
@@ -240,15 +312,23 @@ Return ONLY a JSON object (no prose, no markdown fences):
     {"parameter": "Structure & Flow", "score": <number>, "maxScore": <number>, "comment": "..."},
     {"parameter": "Value Addition", "score": <number>, "maxScore": <number>, "comment": "..."},
     {"parameter": "Presentation", "score": <number>, "maxScore": <number>, "comment": "..."}
-  ]
+  ]${modelAnswerContext ? `,
+  "modelAnswerAlignment": {
+    "band": "excellent|strong|moderate|weak|off",
+    "coverage": <0-1, your final fraction of substantive model-answer key terms the student's answer actually addresses>,
+    "gaps": ["missing substantive term/idea from the model answer", "..."],
+    "comment": "1-2 sentence examiner comment on the alignment to the platform model answer"
+  }` : ""}
 }
 
-For "keyTerms", list 6-10 terms (mix of found and missing). For "parameterScores", the seven maxScore values must sum to exactly ${question.marks} and the seven score values must sum to exactly the overall "score" value above.`,
+For "keyTerms", list 6-10 terms (mix of found and missing). For "parameterScores", the seven maxScore values must sum to exactly ${question.marks} and the seven score values must sum to exactly the overall "score" value above.
+
+Both "modelAnswer" and "modelAnswerContent" must be at most ${expectedWords} words. Count before you emit them.`,
     },
   ];
 
   const system =
-    "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, return semantic marking intent for an SVG checked-copy renderer: use exact targetText from the student's answer, never target printed question/header text, use detailed teacher-style margin comments, and separate visual marks from comments. Do not invent targetText that is not present in the answer.";
+    "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. You enforce the UPSC word limit (10 marks→150 words, 15 marks→200 words, 20 marks→250 words): an over-length answer is penalised for padding, never rewarded for covering more, and every model answer you write stays inside that limit. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, return semantic marking intent for an SVG checked-copy renderer: use exact targetText from the student's answer, never target printed question/header text, use detailed teacher-style margin comments, and separate visual marks from comments. Do not invent targetText that is not present in the answer.";
 
   return invokeModelJSON<EvaluationResult>(messages, {
     system,
@@ -302,11 +382,27 @@ function getCheckedCopyMaxPages(): number {
 
 async function buildCheckedCopyInputsFromUploads(
   attemptId: string,
-  uploads: OriginalUploadPage[]
+  uploads: OriginalUploadPage[],
+  answerPages?: TranscribedAnswerPage[]
 ): Promise<CheckedCopyInput[]> {
   const maxPages = getCheckedCopyMaxPages();
   const inputs: CheckedCopyInput[] = [];
   let truncated = false;
+
+  const hintsByPage = new Map<number, CheckedCopyAnswerHints>(
+    (answerPages || []).map((page) => [
+      page.pageNumber,
+      {
+        answerStartText: page.answerStartText,
+        answerLineHints: page.answerLineHints?.length
+          ? page.answerLineHints
+          : page.studentAnswerText.split(/\n+/).map((line) => line.trim()).filter(Boolean).slice(0, 30),
+        copiedQuestionText: page.copiedQuestionText,
+        ignoredPrintedText: page.ignoredPrintedText,
+      },
+    ])
+  );
+  const hintsForNextPage = () => hintsByPage.get(inputs.length + 1);
 
   for (const upload of uploads) {
     const remaining = maxPages - inputs.length;
@@ -321,6 +417,7 @@ async function buildCheckedCopyInputsFromUploads(
         buffer: upload.buffer,
         contentType: upload.contentType,
         source: "image",
+        answerHints: hintsForNextPage(),
       });
       continue;
     }
@@ -342,6 +439,7 @@ async function buildCheckedCopyInputsFromUploads(
           buffer,
           contentType: "image/png",
           source: "pdf-page",
+          answerHints: hintsForNextPage(),
         });
       });
       console.log("[eval] checked-copy PDF render completed", {
@@ -521,8 +619,9 @@ export function triviallyBadAnswer(
 
   if (!tooShort && !mostlyNonAlpha && !noOverlap) return null;
 
+  const wordLimit = mainsWordLimit(question.marks);
   const reason = tooShort
-    ? `Answer is too short (${wordCount} words). UPSC mains answers for ${question.marks} marks need roughly ${question.marks >= 15 ? 250 : 150} words.`
+    ? `Answer is too short (${wordCount} words). UPSC mains answers for ${question.marks} marks need roughly ${wordLimit} words.`
     : mostlyNonAlpha
       ? "Answer is unreadable or contains mostly non-text characters."
       : "Answer does not address the question — it does not engage with any of the key terms in the directive.";
@@ -533,7 +632,7 @@ export function triviallyBadAnswer(
     improvements: [
       reason,
       "Read the question's directive word carefully (examine / discuss / critically analyze) and structure your answer around it.",
-      "Target roughly " + (question.marks >= 15 ? "250 words with 3-4 body sub-points" : "150 words with 2-3 body points") + ", plus a crisp intro and conclusion.",
+      `Target roughly ${wordLimit} words with ${question.marks >= 15 ? "3-4" : "2-3"} body points, plus a crisp intro and conclusion.`,
     ],
     suggestions: [
       "Revise the relevant chapter before re-attempting.",
@@ -541,6 +640,45 @@ export function triviallyBadAnswer(
     ],
     detailedFeedback: reason + " No further grading was possible — please resubmit a full answer that directly addresses the question.",
   };
+}
+
+/**
+ * Standalone model-answer generation, used when the full evaluator prompt is
+ * skipped (trivially bad / off-topic answers via `triviallyBadAnswer`). These
+ * students still need to see a correct, topic-matched reference answer, so we
+ * make one small dedicated LLM call instead of piggybacking on the full
+ * grading prompt (which never runs for this path).
+ */
+export async function generateModelAnswerOnly(
+  question: QuestionContext
+): Promise<Pick<EvaluationResult, "modelAnswer" | "modelAnswerKeyPoints" | "modelAnswerContent">> {
+  const wordLimit = mainsWordLimit(question.marks);
+  const messages: BedrockMessage[] = [
+    {
+      role: "user",
+      content: `Question (${question.paper}, ${question.subject}, ${question.marks} marks):
+${question.questionText}
+
+Write a model answer a UPSC Mains topper would submit for this question.
+
+STRICT WORD LIMIT: ${wordLimit} words (UPSC pattern — 10 marks→150 words, 15 marks→200 words, 20 marks→250 words). A topper's answer fits the limit; going over is a fault, not a virtue. Both "modelAnswer" and "modelAnswerContent" must be at most ${wordLimit} words.
+
+Return ONLY a JSON object (no prose, no markdown fences):
+{
+  "modelAnswer": "concise model answer, at most ${wordLimit} words",
+  "modelAnswerKeyPoints": ["short bullet point the model answer must hit", "..."],
+  "modelAnswerContent": "the full model answer as GitHub-flavoured MARKDOWN with these exact section headings: a '## Introduction' section, then 2-4 body sections each with its own '## <thematic heading>' (use markdown '-' bullets and '**bold**' lead-ins where it aids clarity), then a final '## Conclusion' section — prose (excluding the short headings) at most ${wordLimit} words"
+}`,
+    },
+  ];
+
+  return invokeModelJSON(messages, {
+    system:
+      "You are a senior UPSC Mains examiner writing a reference model answer. You always respect the UPSC word limit (10 marks→150 words, 15 marks→200 words, 20 marks→250 words) — a model answer that exceeds its limit is not a model answer. Return valid JSON only.",
+    maxTokens: 2600,
+    temperature: 0.3,
+    serviceName: "answerEvaluator.modelAnswerOnly",
+  });
 }
 
 /**
@@ -554,9 +692,19 @@ export async function evaluateAnswerGeneric(params: {
   fileUrl: string | null;
   question: QuestionContext;
   dbOps: EvaluationDbOps;
-  evaluationMode?: "daily" | "pyq" | "mock";
+  evaluationMode?: "daily" | "pyq" | "mock" | "custom";
+  /**
+   * Curated platform model answer for the question. Currently only PYQ Mains
+   * supplies this (from pyq_mains_question_bank.model_answer). When provided,
+   * an embedding-based alignment score is computed and bound into the
+   * evaluator prompt alongside the standard rubric, and the verdict is
+   * surfaced in ragDiagnostics.modelAnswerAlignment.
+   */
+  modelAnswer?: string | null;
 }): Promise<void> {
   const { attemptId, answerText, fileUrl, question, dbOps } = params;
+  const modelAnswerText = (params.modelAnswer || "").trim();
+  const enableModelAnswerAlignment = params.evaluationMode === "pyq" && modelAnswerText.length >= 30;
   const evaluationStartedAt = Date.now();
 
   try {
@@ -665,6 +813,21 @@ export async function evaluateAnswerGeneric(params: {
           confidence: transcription.confidence,
           warnings: transcription.warnings,
         });
+        let unreadableModelAnswerFields: Pick<
+          EvaluationResult,
+          "modelAnswer" | "modelAnswerKeyPoints" | "modelAnswerContent"
+        > = {};
+        try {
+          unreadableModelAnswerFields = await generateModelAnswerOnly(question);
+        } catch (modelAnswerError) {
+          console.error("[eval] unreadable-upload model-answer generation failed", {
+            attemptId,
+            message:
+              modelAnswerError instanceof Error
+                ? modelAnswerError.message
+                : String(modelAnswerError),
+          });
+        }
         await dbOps.saveEvaluation({
           score: 0,
           maxScore: question.marks,
@@ -681,6 +844,9 @@ export async function evaluateAnswerGeneric(params: {
           ],
           detailedFeedback:
             "Your uploaded file was received, but the answer transcription could not extract a readable response from it. This usually happens with blurry photos, low light, very faint pencil marks, or pages where the answer is not visible. Please retake the photo with good lighting and clear handwriting, then resubmit — or type the answer directly.",
+          modelAnswer: unreadableModelAnswerFields.modelAnswer || null,
+          modelAnswerKeyPoints: unreadableModelAnswerFields.modelAnswerKeyPoints || null,
+          modelAnswerContent: unreadableModelAnswerFields.modelAnswerContent || null,
           evaluatedAt: new Date(),
         });
         return;
@@ -730,6 +896,18 @@ export async function evaluateAnswerGeneric(params: {
         reason: trivial.detailedFeedback,
       });
       result = trivial;
+      try {
+        const modelAnswerFields = await generateModelAnswerOnly(question);
+        result = { ...result, ...modelAnswerFields };
+      } catch (modelAnswerError) {
+        console.error("[eval] trivial-answer model-answer generation failed", {
+          attemptId,
+          message:
+            modelAnswerError instanceof Error
+              ? modelAnswerError.message
+              : String(modelAnswerError),
+        });
+      }
     } else {
       let topperContext = "No comparable topper answers were retrieved. Grade from the rubric only.";
       try {
@@ -797,8 +975,50 @@ export async function evaluateAnswerGeneric(params: {
         answerChars: textToGrade.length,
         topperContextChars: topperContext.length,
         viaUploadTranscription,
+        modelAnswerAlignment: enableModelAnswerAlignment,
       });
-      result = await runAzureEvaluation(textToGrade, question, viaUploadTranscription, topperContext, transcriptionPages);
+
+      let modelAnswerPromptContext: ModelAnswerPromptContext | null = null;
+      let modelAnswerAlignmentDebug: Record<string, unknown> | null = null;
+      if (enableModelAnswerAlignment) {
+        try {
+          const alignmentStartedAt = Date.now();
+          const alignment = await computeModelAnswerAlignment(textToGrade, modelAnswerText);
+          modelAnswerPromptContext = { modelAnswerText, alignment };
+          modelAnswerAlignmentDebug = {
+            attempted: true,
+            cosineSimilarity: alignment.cosineSimilarity,
+            band: alignment.band,
+            keyTermOverlap: alignment.keyTermOverlap,
+            coveredKeyTerms: alignment.coveredKeyTerms,
+            missingKeyTerms: alignment.missingKeyTerms,
+            reason: alignment.reason,
+            elapsedMs: Date.now() - alignmentStartedAt,
+          };
+          console.log("[eval] model answer alignment computed", {
+            attemptId,
+            cosineSimilarity: alignment.cosineSimilarity,
+            band: alignment.band,
+            keyTermOverlap: alignment.keyTermOverlap,
+            missingCount: alignment.missingKeyTerms.length,
+          });
+        } catch (error) {
+          modelAnswerAlignmentDebug = {
+            attempted: true,
+            error: error instanceof Error ? error.message : String(error),
+          };
+          console.warn("[eval] model answer alignment failed:", error instanceof Error ? error.message : error);
+        }
+      }
+
+      result = await runAzureEvaluation(
+        textToGrade,
+        question,
+        viaUploadTranscription,
+        topperContext,
+        transcriptionPages,
+        modelAnswerPromptContext
+      );
       console.log("[eval] Azure evaluator completed", {
         attemptId,
         elapsed: evalElapsed(gradingStartedAt),
@@ -809,7 +1029,20 @@ export async function evaluateAnswerGeneric(params: {
         improvements: result.improvements?.length || 0,
         suggestions: result.suggestions?.length || 0,
         annotationPlanItems: result.annotationPlan ? annotationPlanItemCount(result.annotationPlan) : 0,
+        modelAnswerAlignmentBand: result.modelAnswerAlignment?.band || null,
       });
+
+      // Persist the precomputed alignment into ragDiagnostics so that the
+      // result UI / future audits have the deterministic score alongside the
+      // LLM's verdict. Always written when we attempted (regardless of
+      // failure) so users can see the score was computed but model-abstained.
+      ragDiagnostics = {
+        ...ragDiagnostics,
+        modelAnswerAlignment: {
+          precomputed: modelAnswerAlignmentDebug,
+          llmVerdict: result.modelAnswerAlignment || null,
+        },
+      };
     }
 
     const rawClampedScore = Math.max(
@@ -896,7 +1129,7 @@ export async function evaluateAnswerGeneric(params: {
       });
     }
     let checkedCopyStatus: string | null = originalUploads.length > 0 ? "skipped" : null;
-    let checkedCopyInputs: CheckedCopyInput[] = await buildCheckedCopyInputsFromUploads(attemptId, originalUploads);
+    let checkedCopyInputs: CheckedCopyInput[] = await buildCheckedCopyInputsFromUploads(attemptId, originalUploads, transcriptionPages);
 
     if (checkedCopyInputs.length > 0) {
       if (process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT && process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY) {
@@ -951,6 +1184,7 @@ export async function evaluateAnswerGeneric(params: {
           mimeType: input.contentType,
           annotationPlan,
           layout: input.layout,
+          answerHints: input.answerHints,
         });
         if (checked.status === "completed") {
           checkedCopyPages.push({

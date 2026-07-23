@@ -6,6 +6,22 @@ import {
 } from "../services/answerEvaluator";
 import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
 import { notifyAnswerEvaluated } from "../utils/notifications";
+import { deriveKeyPointsFromMarkdown } from "../utils/modelAnswer";
+
+/**
+ * Curated model answer lookup for a mains question pulled from the PYQ bank
+ * (either directly, or via a past Daily Answer Writing question). Display
+ * only — mirrors Daily Answer Writing, which shows the curated answer as a
+ * reference without binding it into the grading prompt.
+ */
+async function findCuratedModelAnswer(sourceQuestionBankId: string | null): Promise<string | null> {
+  if (!sourceQuestionBankId) return null;
+  const rows = await prisma.$queryRawUnsafe<Array<{ modelAnswer: string | null }>>(
+    `select model_answer as "modelAnswer" from public.pyq_mains_question_bank where id = $1 limit 1`,
+    sourceQuestionBankId
+  );
+  return rows[0]?.modelAnswer?.trim() || null;
+}
 
 async function signedCheckedCopyUrl(path: string | null | undefined): Promise<string | null> {
   if (!path) return null;
@@ -203,7 +219,7 @@ export const submitMockTestMainsAnswer = async (
       },
     });
 
-    const marks = deriveMarks(mockTest.totalMarks, mockTest.questionCount);
+    const marks = question.marks || deriveMarks(mockTest.totalMarks, mockTest.questionCount);
     const paper = mockTest.paperType || "GS";
 
     kickoffEvaluation(
@@ -308,6 +324,8 @@ export const getMockTestMainsResults = async (
 
     const checkedCopyUrl = await signedCheckedCopyUrl(attempt.evaluation.checkedCopyUrl);
     const checkedCopyPages = await signedCheckedCopyPages(attempt.evaluation.checkedCopyPages);
+    const curatedModelAnswer = await findCuratedModelAnswer(attempt.question.sourceQuestionBankId);
+    const curatedKeyPoints = deriveKeyPointsFromMarkdown(curatedModelAnswer);
 
     res.json({
       status: "success",
@@ -328,6 +346,15 @@ export const getMockTestMainsResults = async (
         checkedCopyStatus: attempt.evaluation.checkedCopyStatus,
         ragDiagnostics: attempt.evaluation.ragDiagnostics,
         modelAnswer: attempt.evaluation.modelAnswer,
+        keyTerms: attempt.evaluation.keyTerms,
+        nextAttemptFocus: attempt.evaluation.nextAttemptFocus,
+        evaluatorConclusion: attempt.evaluation.evaluatorConclusion,
+        modelAnswerKeyPoints: attempt.evaluation.modelAnswerKeyPoints,
+        modelAnswerContent: attempt.evaluation.modelAnswerContent,
+        parameterScores: attempt.evaluation.parameterScores,
+        curatedModelAnswer,
+        curatedModelAnswerFormat: curatedModelAnswer ? "markdown" : null,
+        curatedModelAnswerKeyPoints: curatedKeyPoints,
         wordCount: attempt.wordCount,
         submittedAt: attempt.submittedAt,
         answerText: attempt.answerText,
@@ -335,6 +362,8 @@ export const getMockTestMainsResults = async (
           id: attempt.question.id,
           questionText: attempt.question.questionText,
           subject: attempt.question.subject,
+          paper: attempt.mockTest.paperType,
+          marks: attempt.question.marks || attempt.evaluation.maxScore,
         },
         mockTest: {
           id: attempt.mockTest.id,

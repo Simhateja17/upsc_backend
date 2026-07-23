@@ -17,16 +17,23 @@ function isVisibleFlashcardSubject(subject: string | null | undefined): boolean 
   return isValidSubject(stripped);
 }
 
+// Free/Aspire plans keep full access to these subjects; every other subject
+// stays visible in the UI (blurred + locked) but its content is gated.
+function isFreeFlashcardSubject(subjectId: string, subject?: string | null) {
+  const label = `${subjectId} ${subject || ""}`.toLowerCase();
+  return label.includes("polity") || label.includes("economy");
+}
+
+/** Returns null when the user has full access; otherwise the Set of unlocked subject ids. */
 async function limitedFlashcardSubjectIds(userId?: string) {
   if (!userId) return null;
   const effective = await getEffectiveEntitlements(userId);
   if (effective.policy.access.flashcards === "full") return null;
-  const limit = effective.policy.preview.flashcard_subjects ?? 4;
   const decks = await prisma.flashcardDeck.findMany({ orderBy: { createdAt: "asc" } });
   return new Set(
     decks
       .filter((deck) => isVisibleFlashcardSubject(deck.subject))
-      .slice(0, limit)
+      .filter((deck) => isFreeFlashcardSubject(deck.subjectId, deck.subject))
       .map((deck) => deck.subjectId)
   );
 }
@@ -47,10 +54,12 @@ export const getSubjects = async (
       include: { cards: true },
     });
 
+    // List every subject with real stats — limited plans see locked subjects
+    // blurred in the UI rather than hidden. Content access is gated per-subject
+    // in getTopics/getCards.
     const deckData = await Promise.all(
       decks
         .filter((deck) => isVisibleFlashcardSubject(deck.subject))
-        .filter((deck) => !allowedSubjectIds || allowedSubjectIds.has(deck.subjectId))
         .map(async (deck) => {
           const totalCards = deck.cards.length;
           let masteredCards = 0;
@@ -243,6 +252,21 @@ export const createCard = async (
     if (!subjectId || !question || !answer) {
       res.status(400).json({ status: "error", message: "subjectId, question, and answer are required" });
       return;
+    }
+
+    // Creating subjects/topics/flashcards is a Rise/Ascent capability.
+    if (req.user?.id) {
+      const effective = await getEffectiveEntitlements(req.user.id);
+      if (effective.policy.access.flashcards !== "full") {
+        res.status(403).json({
+          status: "error",
+          code: "FEATURE_ACCESS_REQUIRED",
+          feature: "flashcards",
+          message: "Upgrade to Rise to create your own subjects, topics and flashcards.",
+          upgrade: { recommendedTier: "rise", message: "Upgrade to Rise to create your own subjects, topics and flashcards." },
+        });
+        return;
+      }
     }
 
     let deck = await prisma.flashcardDeck.findUnique({ where: { subjectId } });

@@ -252,6 +252,7 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
   try {
     const range = (req.query.range as string) || "all";
     const tab = (req.query.tab as string) || "overall";
+    const realOnly = req.query.realOnly === "true";
 
     const [rows, realUserCount] = await Promise.all([
       prisma.$queryRawUnsafe<LeaderboardRawRow[]>(buildLeaderboardQuery(range, false)),
@@ -259,8 +260,8 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
     ]);
     const realRows = mapRealRows(rows);
     const realRankedCount = realRows.filter((row) => row.isRankUnlocked).length;
-    const syntheticRows = buildSyntheticLeaderboardRows(range);
-    const merged = realRankedCount < 100 ? [...realRows, ...syntheticRows] : realRows;
+    const syntheticRows = realOnly ? [] : buildSyntheticLeaderboardRows(range);
+    const merged = !realOnly && realRankedCount < 100 ? [...realRows, ...syntheticRows] : realRows;
     const withRank = sortLeaderboard(merged, tab).map((item, index) => ({ ...item, rank: index + 1 }));
     const communityStats = buildCommunityStats({
       realUserCount,
@@ -315,6 +316,11 @@ export const getMyRank = async (req: Request, res: Response, next: NextFunction)
         mainsRank: isRankUnlocked && myMainsRank > 0 ? myMainsRank : null,
         isRankUnlocked,
         attemptsToUnlockRank,
+        // Keep the denominator paired with the same (real + fallback) list used
+        // to calculate `mcqRank`. `realRankedCount` is retained for admin/community
+        // metrics, but using it beside a synthetic-aware rank produced values such
+        // as "#949 of 17 ranked".
+        mcqRankedCount: mcqRanked.length,
         realRankedCount,
         ...myData,
       },

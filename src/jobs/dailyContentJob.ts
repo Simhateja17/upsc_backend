@@ -1,6 +1,7 @@
 import prisma from "../config/database";
 import { invokeModelJSON } from "../config/llm";
 import { isValidSubject, normalizeSubject, VALID_UPSC_SUBJECTS } from "../constants/subjects";
+import { mainsWordLimit, mainsTimeLimit } from "../utils/mainsPattern";
 
 /**
  * UPSC subject taxonomy — sourced from the shared categorizer categories.
@@ -124,10 +125,39 @@ const DAILY_DIFFICULTY_COUNTS: Record<Difficulty, number> = {
   Hard: 2,
 };
 
+// Raw subject values in pyq_question_bank that normalize onto the 6 canonical
+// subjects. Filtering in SQL (rather than only in JS after the fact) ensures the
+// deterministic pick isn't starved by rows whose subject the app can't use —
+// e.g. "International Relation", which isn't one of the canonical Prelims subjects.
+const USABLE_BANK_SUBJECTS = [
+  "History",
+  "Modern History",
+  "Modern",
+  "Ancient History",
+  "Ancient India",
+  "Medieval India",
+  "Medieval History",
+  "Art & Culture",
+  "Art and Culture",
+  "Culture",
+  "Geography",
+  "Polity",
+  "Economy",
+  "Environment & Ecology",
+  "Environment",
+  "Science & Technology",
+  "Science & Tech",
+];
+
+// Over-fetch factor so JS-side validation (options shape, subject normalization)
+// dropping a few rows can't push a difficulty bucket below its target count.
+const DAILY_FETCH_BUFFER = 4;
+
 async function findDailyQuestionBankRows(targetDate: Date, difficulty: Difficulty, limit: number, excludeIds: string[]) {
   const seed = targetDate.toISOString().slice(0, 10);
-  const params: any[] = [difficulty, seed, limit];
-  const excludeClause = excludeIds.length > 0 ? `and id <> all($4::text[])` : "";
+  const fetchLimit = limit * DAILY_FETCH_BUFFER;
+  const params: any[] = [difficulty, seed, fetchLimit, USABLE_BANK_SUBJECTS];
+  const excludeClause = excludeIds.length > 0 ? `and id <> all($5::text[])` : "";
   if (excludeIds.length > 0) params.push(excludeIds);
 
   return prisma.$queryRawUnsafe<any[]>(
@@ -146,6 +176,7 @@ async function findDailyQuestionBankRows(targetDate: Date, difficulty: Difficult
        and lower(difficulty) = lower($1)
        and options is not null
        and coalesce(correct_option, '') <> ''
+       and subject = any($4::text[])
        ${excludeClause}
        and id not in (
          select q.source_question_bank_id
@@ -293,6 +324,7 @@ async function createDailyMainsQuestionRecord(
     timeLimit: number;
     instructions: string;
     isActive: boolean;
+    pyqQuestionId?: string | null;
   }
 ): Promise<boolean> {
   try {
@@ -312,7 +344,89 @@ async function createDailyMainsQuestionRecord(
   }
 }
 
-async function createDailyMainsQuestionForDate(targetDate: Date): Promise<void> {
+// Daily Mains questions rotate GS-I → GS-II → GS-III (GS-IV and Essay excluded).
+const PYQ_PAPER_ROTATION = ["GS-I", "GS-II", "GS-III"] as const;
+
+function pyqPaperForDate(targetDate: Date): string {
+  const dayIndex = Math.floor(targetDate.getTime() / 86_400_000);
+  return PYQ_PAPER_ROTATION[((dayIndex % 3) + 3) % 3];
+}
+
+function displayPaper(pyqPaper: string): string {
+  const map: Record<string, string> = {
+    "GS-I": "GS Paper I",
+    "GS-II": "GS Paper II",
+    "GS-III": "GS Paper III",
+  };
+  return map[pyqPaper] || pyqPaper;
+}
+
+// Word/time budgets follow the standard UPSC allocation per marks — see
+// utils/mainsPattern for the single source of truth.
+const wordLimitForMarks = mainsWordLimit;
+const timeLimitForMarks = mainsTimeLimit;
+
+function deriveMainsTitle(row: {
+  questionText: string;
+  theme: string | null;
+  topic: string | null;
+  subSubject: string | null;
+}): string {
+  const base = (row.theme || row.topic || row.subSubject || "").trim();
+  if (base) return base;
+  const words = row.questionText.trim().split(/\s+/);
+  const short = words.slice(0, 9).join(" ");
+  return words.length > 9 ? `${short}…` : short;
+}
+
+type MainsBankRow = {
+  id: string;
+  paper: string;
+  questionText: string;
+  subject: string;
+  subSubject: string | null;
+  theme: string | null;
+  topic: string | null;
+  marks: number | null;
+};
+
+/**
+ * Pick an approved GS-I/II/III bank question (with a curated model answer) for
+ * the day's rotation. Prefers questions not previously served as a daily
+ * question; falls back to allowing a repeat if that paper's pool is exhausted.
+ */
+async function pickMainsBankQuestion(pyqPaper: string): Promise<MainsBankRow | null> {
+  const selectUnused = `
+    select id, paper, question_text as "questionText", subject,
+           sub_subject as "subSubject", theme, topic, marks
+    from public.pyq_mains_question_bank b
+    where b.paper = $1
+      and b.status = 'approved'
+      and b.model_answer is not null and length(trim(b.model_answer)) > 0
+      and not exists (
+        select 1 from public.daily_mains_questions d where d.pyq_question_id = b.id
+      )
+    order by random()
+    limit 1`;
+
+  const unused = await prisma.$queryRawUnsafe<MainsBankRow[]>(selectUnused, pyqPaper);
+  if (unused[0]) return unused[0];
+
+  // Pool exhausted for this paper — allow a repeat rather than blocking.
+  const selectAny = `
+    select id, paper, question_text as "questionText", subject,
+           sub_subject as "subSubject", theme, topic, marks
+    from public.pyq_mains_question_bank b
+    where b.paper = $1
+      and b.status = 'approved'
+      and b.model_answer is not null and length(trim(b.model_answer)) > 0
+    order by random()
+    limit 1`;
+  const any = await prisma.$queryRawUnsafe<MainsBankRow[]>(selectAny, pyqPaper);
+  return any[0] || null;
+}
+
+export async function createDailyMainsQuestionForDate(targetDate: Date): Promise<void> {
   // Check if already created
   const existing = await prisma.dailyMainsQuestion.findUnique({
     where: { date: targetDate },
@@ -322,12 +436,48 @@ async function createDailyMainsQuestionForDate(targetDate: Date): Promise<void> 
     return;
   }
 
-  // Pick a random subject and paper
+  // Primary path: draw from the curated PYQ Mains bank (GS-I/II/III rotation).
+  const pyqPaper = pyqPaperForDate(targetDate);
+  try {
+    const bankRow = await pickMainsBankQuestion(pyqPaper);
+    if (bankRow) {
+      const marks = bankRow.marks && bankRow.marks > 0 ? bankRow.marks : 15;
+      const created = await createDailyMainsQuestionRecord(targetDate, {
+        title: deriveMainsTitle(bankRow),
+        questionText: bankRow.questionText,
+        paper: displayPaper(bankRow.paper),
+        subject: bankRow.subject,
+        marks,
+        wordLimit: wordLimitForMarks(marks),
+        timeLimit: timeLimitForMarks(marks),
+        instructions:
+          "Write a well-structured answer with a clear introduction, an analytical body with sub-headings, and a crisp conclusion.",
+        isActive: true,
+        pyqQuestionId: bankRow.id,
+      });
+      if (created) {
+        console.log(
+          `[DailyMains] Created for ${targetDate.toISOString().split("T")[0]} from PYQ bank (${bankRow.paper}): ${bankRow.id}`
+        );
+      }
+      return;
+    }
+    console.warn(
+      `[DailyMains] No PYQ bank question available for ${pyqPaper}; falling back to AI generation.`
+    );
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      console.log(`[DailyMains] Already created for ${targetDate.toISOString().split("T")[0]}`);
+      return;
+    }
+    console.error("[DailyMains] PYQ bank selection failed, falling back to AI generation:", error);
+  }
+
+  // Fallback path: AI-generated question (used only when the bank is unavailable).
   const papers = [
     { paper: "GS Paper I", subjects: ["History", "Geography", "Society"] },
     { paper: "GS Paper II", subjects: ["Polity", "Governance", "International Relations"] },
     { paper: "GS Paper III", subjects: ["Economy", "Environment", "Science & Tech", "Security"] },
-    { paper: "GS Paper IV", subjects: ["Ethics", "Integrity", "Aptitude"] },
   ];
 
   const selectedPaper = papers[Math.floor(Math.random() * papers.length)];
@@ -372,8 +522,8 @@ Make it a thought-provoking, analytical question typical of UPSC Mains. Focus on
       paper: selectedPaper.paper,
       subject: selectedSubject,
       marks: 15,
-      wordLimit: 250,
-      timeLimit: 20,
+      wordLimit: wordLimitForMarks(15),
+      timeLimit: timeLimitForMarks(15),
       instructions:
         result.instructions ||
         "Write a well-structured answer with introduction, body, and conclusion.",
@@ -399,8 +549,8 @@ Make it a thought-provoking, analytical question typical of UPSC Mains. Focus on
       paper: selectedPaper.paper,
       subject: selectedSubject,
       marks: 15,
-      wordLimit: 250,
-      timeLimit: 20,
+      wordLimit: wordLimitForMarks(15),
+      timeLimit: timeLimitForMarks(15),
       instructions:
         "Structure your answer with a clear introduction, balanced arguments, relevant examples, and a conclusion.",
       isActive: true,

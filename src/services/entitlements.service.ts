@@ -52,10 +52,12 @@ const TIER_RANK: Record<PlanTier, number> = {
   ascent: 3,
 };
 
+const ADMIN_PLAN_SIMULATION_REASON = "admin_plan_simulation";
+
 const FREE_POLICY: EntitlementPolicy = {
   tier: "free",
   limits: {
-    jeet_ai_message: { period: "lifetime", limit: 20 },
+    jeet_ai_message: { period: "day", limit: 2 },
     mains_evaluation: { period: "lifetime", limit: 3 },
     prelims_mock_attempt: { period: "lifetime", limit: 1 },
     syllabus_tracker_items: { period: "total", limit: 5 },
@@ -66,16 +68,17 @@ const FREE_POLICY: EntitlementPolicy = {
     revision_suite: "limited",
     flashcards: "limited",
     mindmaps: "limited",
-    spaced_repetition: "none",
+    spaced_repetition: "limited",
     syllabus_tracker: "limited",
-    live_study_room: "none",
+    // Study Groups are available to every signed-in learner, including free users.
+    live_study_room: "full",
     mental_health_buddy: "none",
     mentorship: "none",
   },
   preview: {
-    flashcard_subjects: 4,
-    mindmaps: 1,
-    spaced_repetition_questions: 0,
+    flashcard_subjects: 2,
+    mindmaps: 2,
+    spaced_repetition_questions: 5,
   },
 };
 
@@ -84,10 +87,10 @@ const DEFAULT_POLICIES: Record<PlanTier, EntitlementPolicy> = {
   aspire: {
     tier: "aspire",
     limits: {
-      jeet_ai_message: { period: "day", limit: 5 },
+      jeet_ai_message: { period: "day", limit: 10 },
       mains_evaluation: { period: "day", limit: 5 },
       prelims_mock_attempt: { period: "day", limit: 5 },
-      syllabus_tracker_items: { period: "total", limit: 5 },
+      syllabus_tracker_items: { period: "unlimited", limit: null },
     },
     access: {
       analytics: "limited",
@@ -96,15 +99,15 @@ const DEFAULT_POLICIES: Record<PlanTier, EntitlementPolicy> = {
       flashcards: "limited",
       mindmaps: "limited",
       spaced_repetition: "limited",
-      syllabus_tracker: "limited",
+      syllabus_tracker: "full",
       live_study_room: "none",
       mental_health_buddy: "full",
       mentorship: "none",
     },
     preview: {
-      flashcard_subjects: 4,
-      mindmaps: 1,
-      spaced_repetition_questions: 2,
+      flashcard_subjects: 2,
+      mindmaps: 2,
+      spaced_repetition_questions: 5,
     },
   },
   rise: {
@@ -163,9 +166,10 @@ const DEFAULT_POLICIES: Record<PlanTier, EntitlementPolicy> = {
 
 const THROTTLES: Partial<Record<PlanTier, Partial<Record<FeatureKey, FeatureLimit>>>> = {
   free: {
-    jeet_ai_message: { period: "hour", limit: 10 },
+    jeet_ai_message: { period: "hour", limit: 2 },
   },
   aspire: {
+    jeet_ai_message: { period: "hour", limit: 5 },
     mains_evaluation: { period: "hour", limit: 3 },
     prelims_mock_attempt: { period: "hour", limit: 3 },
   },
@@ -291,9 +295,6 @@ function nextTierFor(featureKey: FeatureKey, tier: PlanTier): PlanTier {
 }
 
 function upgradeMessage(featureKey: FeatureKey, tier: PlanTier, limit: FeatureLimit) {
-  if (featureKey === "jeet_ai_message" && tier === "free") {
-    return "Jeet AI Mentor is handling heavy queries right now. Please try again later or upgrade for priority access.";
-  }
   const nextTier = nextTierFor(featureKey, tier);
   const readable = featureKey.replace(/_/g, " ");
   return `You have used your ${limit.limit} ${limit.period} ${readable} limit. Upgrade to ${nextTier[0].toUpperCase()}${nextTier.slice(1)} for higher access.`;
@@ -312,7 +313,7 @@ async function activeOverride(userId: string) {
 
 export async function getEffectiveEntitlements(userId: string) {
   const now = new Date();
-  const [subscriptions, override] = await Promise.all([
+  const [subscriptions, override, user] = await Promise.all([
     prisma.subscription.findMany({
       where: {
         userId,
@@ -322,6 +323,10 @@ export async function getEffectiveEntitlements(userId: string) {
       orderBy: { createdAt: "desc" },
     }),
     activeOverride(userId),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    }),
   ]);
 
   let tier: PlanTier = "free";
@@ -347,7 +352,8 @@ export async function getEffectiveEntitlements(userId: string) {
 
   if (override?.planTierOverride) {
     const overrideTier = normalizePlanTier(override.planTierOverride);
-    if (TIER_RANK[overrideTier] >= TIER_RANK[tier]) {
+    const isAdminPlanSimulation = user?.role === "admin" && override.reason === ADMIN_PLAN_SIMULATION_REASON;
+    if (isAdminPlanSimulation || TIER_RANK[overrideTier] >= TIER_RANK[tier]) {
       tier = overrideTier;
       plan = null;
     }
@@ -503,6 +509,15 @@ export async function getEntitlementSummary(userId: string) {
     features,
     access: effective.policy.access,
     preview: effective.policy.preview,
+    override: effective.override
+      ? {
+          id: effective.override.id,
+          planTierOverride: effective.override.planTierOverride,
+          reason: effective.override.reason,
+          expiresAt: effective.override.expiresAt,
+          isAdminPlanSimulation: effective.override.reason === ADMIN_PLAN_SIMULATION_REASON,
+        }
+      : null,
   };
 }
 

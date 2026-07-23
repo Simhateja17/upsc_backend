@@ -6,10 +6,43 @@ import {
 } from "../services/answerEvaluator";
 import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
 import { notifyAnswerEvaluated } from "../utils/notifications";
+import { deriveKeyPointsFromMarkdown } from "../utils/modelAnswer";
 
-// PYQMainsQuestion has no `marks` column, so use the UPSC Mains convention:
-// 15-mark answers ≈ 250 words, 10-mark answers ≈ 150 words. Default to 15.
 const DEFAULT_MARKS = 15;
+
+async function findMainsBankQuestion(questionId: string) {
+  const rows = await prisma.$queryRawUnsafe<Array<{
+    id: string;
+    year: number;
+    paper: string;
+    questionText: string;
+    modelAnswer: string | null;
+    subject: string;
+    subSubject: string | null;
+    theme: string | null;
+    topic: string | null;
+    difficulty: string;
+    marks: number | null;
+  }>>(
+    `select
+       id,
+       year,
+       paper,
+       question_text as "questionText",
+       model_answer as "modelAnswer",
+       subject,
+       coalesce(nullif(sub_subject, ''), nullif(theme, '')) as "subSubject",
+       theme,
+       topic,
+       difficulty,
+       marks
+     from public.pyq_mains_question_bank
+     where id = $1 and status = 'approved'
+     limit 1`,
+    questionId
+  );
+  return rows[0] || null;
+}
 
 async function signedCheckedCopyUrl(path: string | null | undefined): Promise<string | null> {
   if (!path) return null;
@@ -91,8 +124,10 @@ async function kickoffEvaluation(
   attemptId: string,
   answerText: string | null,
   fileUrl: string | null,
-  question: { questionText: string; subject: string; paper: string }
+  question: { questionText: string; subject: string; paper: string; marks?: number | null },
+  modelAnswer?: string | null
 ) {
+  const marks = Number.isInteger(question.marks) && Number(question.marks) > 0 ? Number(question.marks) : DEFAULT_MARKS;
   evaluateAnswerGeneric({
     attemptId,
     answerText,
@@ -101,10 +136,11 @@ async function kickoffEvaluation(
       questionText: question.questionText,
       subject: question.subject,
       paper: question.paper,
-      marks: DEFAULT_MARKS,
+      marks,
     },
     dbOps: buildDbOps(attemptId),
     evaluationMode: "pyq",
+    modelAnswer: modelAnswer || null,
   });
 }
 
@@ -132,9 +168,11 @@ export const submitPyqMainsAnswer = async (
       answerTextChars: typeof req.body?.answerText === "string" ? req.body.answerText.length : 0,
     });
 
-    const question = await prisma.pYQMainsQuestion.findUnique({
+    const bankQuestion = await findMainsBankQuestion(questionId);
+    const legacyQuestion = bankQuestion ? null : await prisma.pYQMainsQuestion.findUnique({
       where: { id: questionId },
     });
+    const question = bankQuestion || legacyQuestion;
     if (!question) {
       return res
         .status(404)
@@ -202,7 +240,8 @@ export const submitPyqMainsAnswer = async (
     const attempt = await prisma.pyqMainsAttempt.create({
       data: {
         userId,
-        pyqMainsQuestionId: questionId,
+        pyqMainsQuestionId: bankQuestion ? null : questionId,
+        pyqMainsBankQuestionId: bankQuestion ? questionId : null,
         answerText: answerText || null,
         fileUrl,
         wordCount,
@@ -222,7 +261,8 @@ export const submitPyqMainsAnswer = async (
       questionText: question.questionText,
       subject: question.subject,
       paper: question.paper,
-    });
+      marks: bankQuestion?.marks ?? DEFAULT_MARKS,
+    }, bankQuestion?.modelAnswer ?? null);
 
     await prisma.userActivity.create({
       data: {
@@ -322,6 +362,36 @@ export const getPyqMainsResults = async (
 
     const checkedCopyUrl = await signedCheckedCopyUrl(attempt.evaluation.checkedCopyUrl);
     const checkedCopyPages = await signedCheckedCopyPages(attempt.evaluation.checkedCopyPages);
+    const bankQuestion = attempt.pyqMainsBankQuestionId
+      ? await findMainsBankQuestion(attempt.pyqMainsBankQuestionId)
+      : null;
+    const responseQuestion = bankQuestion
+      ? {
+          id: bankQuestion.id,
+          questionText: bankQuestion.questionText,
+          paper: bankQuestion.paper,
+          subject: bankQuestion.subject,
+          subSubject: bankQuestion.subSubject,
+          theme: bankQuestion.theme,
+          topic: bankQuestion.topic,
+          year: bankQuestion.year,
+          marks: bankQuestion.marks ?? attempt.evaluation.maxScore,
+          modelAnswer: bankQuestion.modelAnswer,
+        }
+      : attempt.mainsQuestion ? {
+          id: attempt.mainsQuestion.id,
+          questionText: attempt.mainsQuestion.questionText,
+          paper: attempt.mainsQuestion.paper,
+          subject: attempt.mainsQuestion.subject,
+          year: attempt.mainsQuestion.year,
+          marks: attempt.evaluation.maxScore,
+        } : null;
+
+    // Curated (human-authored) model answer from the question bank, when
+    // present — same shape the Daily Answer results endpoint returns so the
+    // shared results UI can render it identically.
+    const curatedModelAnswer = bankQuestion?.modelAnswer?.trim() || null;
+    const curatedKeyPoints = deriveKeyPointsFromMarkdown(curatedModelAnswer);
 
     res.json({
       status: "success",
@@ -332,6 +402,7 @@ export const getPyqMainsResults = async (
         improvements: attempt.evaluation.improvements,
         suggestions: attempt.evaluation.suggestions,
         detailedFeedback: attempt.evaluation.detailedFeedback,
+        metrics: attempt.evaluation.metrics,
         demandCoverage: attempt.evaluation.demandCoverage,
         sectionFeedback: attempt.evaluation.sectionFeedback,
         annotationPlan: attempt.evaluation.annotationPlan,
@@ -340,17 +411,22 @@ export const getPyqMainsResults = async (
         checkedCopyPath: attempt.evaluation.checkedCopyUrl,
         checkedCopyStatus: attempt.evaluation.checkedCopyStatus,
         ragDiagnostics: attempt.evaluation.ragDiagnostics,
+        modelAnswerAlignment:
+          (attempt.evaluation.ragDiagnostics as any)?.modelAnswerAlignment ?? null,
         modelAnswer: attempt.evaluation.modelAnswer,
+        keyTerms: attempt.evaluation.keyTerms,
+        nextAttemptFocus: attempt.evaluation.nextAttemptFocus,
+        evaluatorConclusion: attempt.evaluation.evaluatorConclusion,
+        modelAnswerKeyPoints: attempt.evaluation.modelAnswerKeyPoints,
+        modelAnswerContent: attempt.evaluation.modelAnswerContent,
+        parameterScores: attempt.evaluation.parameterScores,
+        curatedModelAnswer,
+        curatedModelAnswerFormat: curatedModelAnswer ? "markdown" : null,
+        curatedModelAnswerKeyPoints: curatedKeyPoints,
         wordCount: attempt.wordCount,
         submittedAt: attempt.submittedAt,
         answerText: attempt.answerText,
-        question: attempt.mainsQuestion ? {
-          id: attempt.mainsQuestion!.id,
-          questionText: attempt.mainsQuestion!.questionText,
-          paper: attempt.mainsQuestion!.paper,
-          subject: attempt.mainsQuestion!.subject,
-          year: attempt.mainsQuestion!.year,
-        } : null,
+        question: responseQuestion,
       },
     });
   } catch (error) {

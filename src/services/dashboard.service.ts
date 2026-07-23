@@ -1,5 +1,7 @@
 import { dashboardRepo } from "../repositories/prisma-dashboard.repository";
 import { supabaseAdmin } from "../config/supabase";
+import { getDerivedStudyStreak } from "./streak.service";
+import { istDateKey } from "../utils/istDate";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const ORDERED_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -92,6 +94,86 @@ function getDefaultTargetYear(): string {
 export function computeDaysRemaining(targetYear?: string): number {
   const prelimsDate = PRELIMS_DATES[targetYear || ""] || PRELIMS_DATES[getDefaultTargetYear()];
   return Math.max(0, Math.ceil((prelimsDate.getTime() - Date.now()) / 86400000));
+}
+
+/** Build a real, per-day activity calendar for the current month (no synthetic days). */
+export async function getStreakCalendar(userId: string) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 1);
+
+  const [raw, streak] = await Promise.all([
+    dashboardRepo.getMonthlyActivityRaw(userId, monthStart, monthEnd),
+    getDerivedStudyStreak(userId),
+  ]);
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const perDay = Array.from({ length: daysInMonth }, () => ({
+    activityCount: 0,
+    mcqAttempts: 0,
+    mainsAttempts: 0,
+    mockAttempts: 0,
+    editorialsRead: 0,
+    editorialsTotal: 0,
+    studyMinutes: 0,
+  }));
+
+  const bump = (dates: Date[], key: "activityCount" | "mcqAttempts" | "mainsAttempts" | "mockAttempts") => {
+    for (const d of dates) {
+      const entry = perDay[new Date(d).getDate() - 1];
+      if (entry) entry[key]++;
+    }
+  };
+
+  bump(raw.activityDates, "activityCount");
+  bump(raw.mcqDates, "mcqAttempts");
+  bump(raw.mainsDates, "mainsAttempts");
+  bump(raw.mockDates, "mockAttempts");
+  bump(raw.mockMainsDates, "mainsAttempts");
+  bump(raw.pyqMainsDates, "mainsAttempts");
+
+  for (const editorial of raw.editorials) {
+    const entry = perDay[new Date(editorial.publishedAt).getDate() - 1];
+    if (!entry) continue;
+    entry.editorialsTotal++;
+    if (editorial.readByUser) entry.editorialsRead++;
+  }
+
+  for (const task of raw.completedTasks) {
+    if (!task.completedAt) continue;
+    const entry = perDay[new Date(task.completedAt).getDate() - 1];
+    if (!entry) continue;
+    entry.studyMinutes += getTaskDurationMinutes(task);
+  }
+
+  const days = perDay.map((entry, i) => {
+    const day = i + 1;
+    // Intensity = how many of the 3 Daily Trio activities (MCQ, Mains, News) were done that day.
+    const trioCount = (entry.mcqAttempts > 0 ? 1 : 0) + (entry.mainsAttempts > 0 ? 1 : 0) + (entry.editorialsRead > 0 ? 1 : 0);
+    const intensity = trioCount;
+    return {
+      day,
+      intensity,
+      studyTime: formatStudyDuration(entry.studyMinutes),
+      mcqAttempts: entry.mcqAttempts,
+      mainsAttempts: entry.mainsAttempts,
+      mockAttempts: entry.mockAttempts,
+      editorialsRead: entry.editorialsRead,
+      editorialsTotal: entry.editorialsTotal,
+    };
+  });
+
+  return {
+    year,
+    month: month + 1,
+    monthLabel: monthStart.toLocaleString("en-US", { month: "long" }),
+    today: now.getDate(),
+    currentStreak: streak.currentStreak,
+    longestStreak: streak.longestStreak,
+    days,
+  };
 }
 
 /** Build the dashboard today snapshot response. */
@@ -196,6 +278,10 @@ export async function getPerformance(userId: string) {
   const totalCovered = raw.syllabusCoverage.reduce((s, c) => s + c.coveredTopics, 0);
   const totalTopics = raw.syllabusCoverage.reduce((s, c) => s + c.totalTopics, 0);
   const syllabusCoverage = totalTopics > 0 ? Math.round((totalCovered / totalTopics) * 100) : 0;
+  const polity = raw.syllabusCoverage.find((entry) => entry.subject.toLowerCase().includes("polity"));
+  const polityCoverage = polity && polity.totalTopics > 0
+    ? Math.round((polity.coveredTopics / polity.totalTopics) * 100)
+    : 0;
 
   return {
     studyTimeToday,
@@ -203,8 +289,8 @@ export async function getPerformance(userId: string) {
     questionsAttempted,
     rank,
     rankPercentile,
-    jeetCoins: 0,
     syllabusCoverage,
+    polityCoverage,
     mcq: {
       totalAttempts: raw.mcqAgg._count.id,
       totalCorrect: raw.mcqAgg._sum.correctCount ?? 0,
@@ -222,7 +308,7 @@ export async function getPerformance(userId: string) {
     },
     mockTests: { totalAttempts: raw.mockCount },
     testSeries: { totalAttempts: raw.seriesAttempts.count },
-    streak: raw.streak || { currentStreak: 0, longestStreak: 0 },
+    streak: await getDerivedStudyStreak(userId),
     strongTopics,
     weakTopics,
   };
@@ -243,18 +329,18 @@ export async function getBadges(userId: string): Promise<{ badges: BadgeInfo[] }
   const testsTaken = perf.testsTaken;
   const syllabusCoverage = perf.syllabusCoverage;
   const avgAccuracy = perf.mcq.avgAccuracy;
-  const jeetCoins = perf.jeetCoins;
+  const questionsAttempted = perf.questionsAttempted;
 
   const hasAnyProgress = currentStreak > 0 || testsTaken > 0 || syllabusCoverage > 0;
-  const isFirstTimeUser = !hasAnyProgress && jeetCoins === 0;
+  const isFirstTimeUser = !hasAnyProgress && questionsAttempted === 0;
 
   const badgeStatus = {
     streak: { earned: currentStreak >= 30, progress: currentStreak > 0 },
     learner: { earned: testsTaken >= 10, progress: testsTaken > 0 },
     accuracy: { earned: testsTaken > 0 && avgAccuracy >= 95, progress: testsTaken > 0 },
-    polity: { earned: syllabusCoverage >= 60, progress: syllabusCoverage > 0 },
+    polity: { earned: perf.polityCoverage >= 60, progress: perf.polityCoverage > 0 },
     allRounder: { earned: currentStreak >= 7 && testsTaken >= 5 && syllabusCoverage >= 40, progress: hasAnyProgress },
-    centurion: { earned: jeetCoins >= 100, progress: jeetCoins > 0 },
+    centurion: { earned: questionsAttempted >= 100, progress: questionsAttempted > 0 },
   };
 
   const statusFor = (b: { earned: boolean; progress: boolean }): BadgeInfo["status"] =>
@@ -265,9 +351,9 @@ export async function getBadges(userId: string): Promise<{ badges: BadgeInfo[] }
       { key: "streak", title: "30-Day Streak", note: `${currentStreak} day streak`, status: statusFor(badgeStatus.streak) },
       { key: "learner", title: "Quick Learner", note: `${testsTaken} tests done`, status: statusFor(badgeStatus.learner) },
       { key: "accuracy", title: "95% Accuracy", note: avgAccuracy > 0 ? `${avgAccuracy}% accuracy` : "Build accuracy", status: statusFor(badgeStatus.accuracy) },
-      { key: "polity", title: "Polity Pro", note: `${syllabusCoverage}% coverage`, status: statusFor(badgeStatus.polity) },
+      { key: "polity", title: "Polity Pro", note: `${perf.polityCoverage}% coverage`, status: statusFor(badgeStatus.polity) },
       { key: "all-rounder", title: "All-Rounder", note: "Consistency badge", status: statusFor(badgeStatus.allRounder) },
-      { key: "centurion", title: "Centurion", note: `${jeetCoins}/100 coins`, status: statusFor(badgeStatus.centurion) },
+      { key: "centurion", title: "Centurion", note: `${Math.min(questionsAttempted, 100)}/100 questions`, status: statusFor(badgeStatus.centurion) },
     ],
   };
 }
@@ -275,6 +361,12 @@ export async function getBadges(userId: string): Promise<{ badges: BadgeInfo[] }
 /** Build the comprehensive test analytics response. */
 export async function getTestAnalytics(userId: string) {
   const raw = await dashboardRepo.getTestAnalyticsRaw(userId);
+  const lastSevenIstDateKeys = new Set(
+    Array.from({ length: 7 }, (_, index) => istDateKey(new Date(), index - 6)),
+  );
+  const countDistinctActiveDays = (dates: Date[]) => new Set(
+    dates.map((date) => istDateKey(date)).filter((key) => lastSevenIstDateKeys.has(key)),
+  ).size;
 
   // Resolve test-series metadata
   const seriesAttempts = raw.seriesAttempts.data;
@@ -557,6 +649,15 @@ export async function getTestAnalytics(userId: string) {
   const seriesQ = (seriesAttempts as any[]).reduce((s: number, a: any) => s + (a.total ?? 0), 0);
   const mainsQ = raw.mainsAttempts.length + raw.mockTestMainsAttempts.length + raw.pyqMainsAttempts.length;
   const totalQuestions = mcqQuestions + mockPrelimsQ + seriesQ + mainsQ;
+  const dailyTrio = {
+    mcqDays: countDistinctActiveDays(raw.recentMcq.map((attempt: any) => new Date(attempt.createdAt))),
+    mainsDays: countDistinctActiveDays([
+      ...raw.mainsAttempts.map((attempt: any) => new Date(attempt.createdAt)),
+      ...raw.mockTestMainsAttempts.map((attempt: any) => new Date(attempt.createdAt)),
+      ...raw.pyqMainsAttempts.map((attempt: any) => new Date(attempt.createdAt)),
+    ]),
+    editorialDays: countDistinctActiveDays(raw.editorialReadDatesLast7Days),
+  };
 
   return {
     summary: {
@@ -589,5 +690,7 @@ export async function getTestAnalytics(userId: string) {
     mainsStats,
     timePerQuestion,
     testHistory,
+    dailyTrio,
+    editorialDaysThisWeek: dailyTrio.editorialDays,
   };
 }

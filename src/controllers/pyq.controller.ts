@@ -34,10 +34,43 @@ function paperAliases(paper: string): string[] {
   return aliases[normalized] || [paper];
 }
 
+function mainsPaperRank(paper: string | null | undefined): number {
+  const normalized = String(paper || "").toLowerCase().replace(/[\s_-]+/g, "");
+  if (normalized === "gsi" || normalized === "gspaperi" || normalized === "gspaper1") return 0;
+  if (normalized === "gsii" || normalized === "gspaperii" || normalized === "gspaper2") return 1;
+  if (normalized === "gsiii" || normalized === "gspaperiii" || normalized === "gspaper3") return 2;
+  if (normalized === "gsiv" || normalized === "gspaperiv" || normalized === "gspaper4") return 3;
+  if (normalized === "essay" || normalized === "essaypaper") return 4;
+  return 5;
+}
+
+function isUnfilteredMainsRequest(req: Request): boolean {
+  return qsList(req.query.subject as string | string[]).length === 0
+    && qsList(req.query.subSubject as string | string[]).length === 0
+    && qsList(req.query.sub_subject as string | string[]).length === 0
+    && qsList(req.query.topic as string | string[]).length === 0
+    && qsList(req.query.paper as string | string[]).length === 0
+    && !qs(req.query.year as string)
+    && qsList(req.query.years as string | string[]).length === 0
+    && !qs(req.query.yearFrom as string)
+    && !qs(req.query.yearTo as string);
+}
+
 async function shouldUseQuestionBank(): Promise<boolean> {
   try {
     const rows = await prisma.$queryRawUnsafe<Array<{ count: string }>>(
       `select count(*)::text as count from public.pyq_question_bank where exam = 'prelims' and status = 'approved'`
+    );
+    return Number(rows[0]?.count || 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function shouldUseMainsQuestionBank(): Promise<boolean> {
+  try {
+    const rows = await prisma.$queryRawUnsafe<Array<{ count: string }>>(
+      `select count(*)::text as count from public.pyq_mains_question_bank where status = 'approved'`
     );
     return Number(rows[0]?.count || 0) > 0;
   } catch {
@@ -50,26 +83,57 @@ function pushParam(params: any[], value: any): string {
   return `$${params.length}`;
 }
 
+// Build an OR-combined `ilike` clause for a multi-select filter (e.g. several
+// subjects or sub-subjects). Returns null when there is nothing to filter on.
+function multiIlikeClause(params: any[], column: string, values: string[]): string | null {
+  const clean = values.filter((v) => v && v !== "All Papers");
+  if (clean.length === 0) return null;
+  const clauses = clean.map((v) => `${column} ilike ${pushParam(params, v)}`);
+  return clauses.length === 1 ? clauses[0] : `(${clauses.join(" or ")})`;
+}
+
+// Build a paper clause that expands each selected paper to its aliases and
+// matches any of them. Returns null when no paper is selected.
+function multiPaperClause(params: any[], papers: string[]): string | null {
+  const clean = papers.filter(Boolean);
+  if (clean.length === 0) return null;
+  const aliases = Array.from(new Set(clean.flatMap((p) => paperAliases(p))));
+  return `paper = any(${pushParam(params, aliases)}::text[])`;
+}
+
+const PRELIMS_TAXONOMY_LABELS = {
+  level1: "Subject",
+  level2: "Theme",
+  level3: "Topic",
+};
+
+const MAINS_TAXONOMY_LABELS = {
+  level1: "Subject",
+  level2: "Theme",
+  level3: "Topic",
+};
+
 function buildQuestionBankWhere(req: Request): { clause: string; params: any[]; page: number; limit: number } {
-  const subject = qs(req.query.subject as string);
-  const subSubject = qs(req.query.subSubject as string) || qs(req.query.sub_subject as string);
+  const subjects = qsList(req.query.subject as string | string[]);
+  const subSubjects = [
+    ...qsList(req.query.subSubject as string | string[]),
+    ...qsList(req.query.sub_subject as string | string[]),
+  ];
   const topics = qsList(req.query.topic as string | string[]);
   const year = qs(req.query.year as string);
   const years = qsList(req.query.years as string | string[]);
   const yearFrom = qs(req.query.yearFrom as string);
   const yearTo = qs(req.query.yearTo as string);
-  const paper = qs(req.query.paper as string);
+  const papers = qsList(req.query.paper as string | string[]);
   const page = parseInt(qs(req.query.page as string) || "1");
   const limit = parseInt(qs(req.query.limit as string) || "20");
   const params: any[] = [];
   const where = ["exam = 'prelims'", "status = 'approved'"];
 
-  if (subject && subject !== "All Papers") {
-    where.push(`subject ilike ${pushParam(params, subject)}`);
-  }
-  if (subSubject) {
-    where.push(`sub_subject ilike ${pushParam(params, subSubject)}`);
-  }
+  const subjectClause = multiIlikeClause(params, "subject", subjects);
+  if (subjectClause) where.push(subjectClause);
+  const subSubjectClause = multiIlikeClause(params, "sub_subject", subSubjects);
+  if (subSubjectClause) where.push(subSubjectClause);
   if (topics.length === 1) {
     where.push(`topic ilike ${pushParam(params, `%${topics[0]}%`)}`);
   } else if (topics.length > 1) {
@@ -85,9 +149,58 @@ function buildQuestionBankWhere(req: Request): { clause: string; params: any[]; 
     if (yearFrom) where.push(`year >= ${pushParam(params, parseInt(yearFrom, 10))}`);
     if (yearTo) where.push(`year <= ${pushParam(params, parseInt(yearTo, 10))}`);
   }
-  if (paper) {
-    where.push(`paper = any(${pushParam(params, paperAliases(paper))}::text[])`);
+  const paperClause = multiPaperClause(params, papers);
+  if (paperClause) where.push(paperClause);
+
+  return {
+    clause: where.join(" and "),
+    params,
+    page,
+    limit,
+  };
+}
+
+function buildMainsQuestionBankWhere(req: Request): { clause: string; params: any[]; page: number; limit: number } {
+  const subjects = qsList(req.query.subject as string | string[]);
+  const subSubjects = [
+    ...qsList(req.query.subSubject as string | string[]),
+    ...qsList(req.query.sub_subject as string | string[]),
+  ];
+  const topics = qsList(req.query.topic as string | string[]);
+  const year = qs(req.query.year as string);
+  const years = qsList(req.query.years as string | string[]);
+  const yearFrom = qs(req.query.yearFrom as string);
+  const yearTo = qs(req.query.yearTo as string);
+  const papers = qsList(req.query.paper as string | string[]);
+  const page = parseInt(qs(req.query.page as string) || "1");
+  const limit = parseInt(qs(req.query.limit as string) || "20");
+  const params: any[] = [];
+  const where = ["status = 'approved'"];
+
+  const subjectClause = multiIlikeClause(params, "taxonomy_l1", subjects);
+  if (subjectClause) where.push(subjectClause);
+  const cleanSubSubjects = subSubjects.filter(Boolean);
+  if (cleanSubSubjects.length > 0) {
+    const taxonomyL2Clause = multiIlikeClause(params, "taxonomy_l2", cleanSubSubjects);
+    if (taxonomyL2Clause) where.push(taxonomyL2Clause);
   }
+  if (topics.length === 1) {
+    where.push(`taxonomy_l3 ilike ${pushParam(params, `%${topics[0]}%`)}`);
+  } else if (topics.length > 1) {
+    const topicClauses = topics.map((topic) => `taxonomy_l3 ilike ${pushParam(params, `%${topic}%`)}`);
+    where.push(`(${topicClauses.join(" or ")})`);
+  }
+  if (years.length > 0) {
+    const parsedYears = years.map((y) => parseInt(y, 10)).filter(Number.isFinite);
+    if (parsedYears.length > 0) where.push(`year = any(${pushParam(params, parsedYears)}::int[])`);
+  } else if (year) {
+    where.push(`year = ${pushParam(params, parseInt(year, 10))}`);
+  } else if (yearFrom || yearTo) {
+    if (yearFrom) where.push(`year >= ${pushParam(params, parseInt(yearFrom, 10))}`);
+    if (yearTo) where.push(`year <= ${pushParam(params, parseInt(yearTo, 10))}`);
+  }
+  const paperClause = multiPaperClause(params, papers);
+  if (paperClause) where.push(paperClause);
 
   return {
     clause: where.join(" and "),
@@ -110,6 +223,9 @@ async function getQuestionBankQuestions(req: Request, res: Response) {
        subject,
        sub_subject as "subSubject",
        topic,
+       subject as "taxonomyL1",
+       sub_subject as "taxonomyL2",
+       topic as "taxonomyL3",
        difficulty,
        options,
        correct_option as "correctOption",
@@ -135,7 +251,71 @@ async function getQuestionBankQuestions(req: Request, res: Response) {
   res.json({
     status: "success",
     data: {
-      questions: rows,
+      questions: rows.map((row) => ({ ...row, taxonomyLabels: PRELIMS_TAXONOMY_LABELS })),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    },
+  });
+}
+
+async function getMainsQuestionBankQuestions(req: Request, res: Response) {
+  const { clause, params, page, limit } = buildMainsQuestionBankWhere(req);
+  const skip = (page - 1) * limit;
+  const isUnfiltered = isUnfilteredMainsRequest(req);
+  const rows = await prisma.$queryRawUnsafe<any[]>(
+    `select
+       id,
+       'mains' as mode,
+       year,
+       paper,
+       question_text as "questionText",
+       model_answer as "modelAnswer",
+       taxonomy_l1 as subject,
+       taxonomy_l2 as "subSubject",
+       taxonomy_l3 as topic,
+       taxonomy_l1 as "taxonomyL1",
+       taxonomy_l2 as "taxonomyL2",
+       taxonomy_l3 as "taxonomyL3",
+       sub_subject as "sourceSubSubject",
+       theme,
+       topic as "sourceTopic",
+       difficulty,
+       marks,
+       structured_json as "structuredJson",
+       source_file as "sourceFile",
+       status,
+       created_at as "createdAt"
+     from public.pyq_mains_question_bank
+     where ${clause}
+     order by ${isUnfiltered ? `case
+                when paper ilike 'GS-I' or paper ilike 'GS Paper I' or paper ilike 'GS Paper 1' then 0
+                when paper ilike 'GS-II' or paper ilike 'GS Paper II' or paper ilike 'GS Paper 2' then 1
+                when paper ilike 'GS-III' or paper ilike 'GS Paper III' or paper ilike 'GS Paper 3' then 2
+                when paper ilike 'GS-IV' or paper ilike 'GS Paper IV' or paper ilike 'GS Paper 4' then 3
+                when paper ilike 'Essay%' then 4
+                else 5
+              end` : `year desc, paper asc`},
+              ${isUnfiltered ? `year desc,` : ""}
+              ((structured_json #>> '{source,questionNumber}')::int) asc nulls last,
+              created_at desc
+     offset ${pushParam(params, skip)}
+     limit ${pushParam(params, limit)}`,
+    ...params
+  );
+  const totalRows = await prisma.$queryRawUnsafe<Array<{ count: string }>>(
+    `select count(*)::text as count from public.pyq_mains_question_bank where ${clause}`,
+    ...params.slice(0, params.length - 2)
+  );
+  const total = Number(totalRows[0]?.count || 0);
+
+  res.json({
+    status: "success",
+    data: {
+      questions: rows.map((row) => ({ ...row, taxonomyLabels: MAINS_TAXONOMY_LABELS })),
       pagination: {
         total,
         page,
@@ -158,6 +338,9 @@ async function findQuestionBankQuestionById(id: string) {
        subject,
        sub_subject as "subSubject",
        topic,
+       subject as "taxonomyL1",
+       sub_subject as "taxonomyL2",
+       topic as "taxonomyL3",
        difficulty,
        options,
        correct_option as "correctOption",
@@ -172,7 +355,39 @@ async function findQuestionBankQuestionById(id: string) {
      limit 1`,
     id
   );
-  return rows[0] || null;
+  return rows[0] ? { ...rows[0], taxonomyLabels: PRELIMS_TAXONOMY_LABELS } : null;
+}
+
+async function findMainsQuestionBankQuestionById(id: string) {
+  const rows = await prisma.$queryRawUnsafe<any[]>(
+    `select
+       id,
+       'mains' as mode,
+       year,
+       paper,
+       question_text as "questionText",
+       model_answer as "modelAnswer",
+       taxonomy_l1 as subject,
+       taxonomy_l2 as "subSubject",
+       taxonomy_l3 as topic,
+       taxonomy_l1 as "taxonomyL1",
+       taxonomy_l2 as "taxonomyL2",
+       taxonomy_l3 as "taxonomyL3",
+       sub_subject as "sourceSubSubject",
+       theme,
+       topic as "sourceTopic",
+       difficulty,
+       marks,
+       structured_json as "structuredJson",
+       source_file as "sourceFile",
+       status,
+       created_at as "createdAt"
+     from public.pyq_mains_question_bank
+     where id = $1 and status = 'approved'
+     limit 1`,
+    id
+  );
+  return rows[0] ? { ...rows[0], taxonomyLabels: MAINS_TAXONOMY_LABELS } : null;
 }
 
 async function getQuestionBankYearCounts() {
@@ -180,6 +395,17 @@ async function getQuestionBankYearCounts() {
     `select year, count(*)::int as count
      from public.pyq_question_bank
      where exam = 'prelims' and status = 'approved' and year is not null
+     group by year
+     order by year desc`
+  );
+  return rows.map((row) => ({ year: Number(row.year), count: Number(row.count || 0) }));
+}
+
+async function getMainsQuestionBankYearCounts() {
+  const rows = await prisma.$queryRawUnsafe<Array<{ year: number; count: number }>>(
+    `select year, count(*)::int as count
+     from public.pyq_mains_question_bank
+     where status = 'approved' and year is not null
      group by year
      order by year desc`
   );
@@ -233,6 +459,61 @@ async function getQuestionBankCounts(req: Request, res: Response) {
     status: "success",
     data: {
       mode: "prelims",
+      taxonomyLabels: PRELIMS_TAXONOMY_LABELS,
+      total: Number(totalRows[0]?.count || 0),
+      bySubject: bySubject.map((s: any) => ({ subject: s.subject, count: s.count })),
+      byPaper: byPaper.map((p: any) => ({ paper: p.paper, count: p.count })),
+      bySubSubject: bySubSubject.map((s: any) => ({
+        subject: s.subject,
+        subSubject: s.subSubject,
+        count: s.count,
+      })),
+      byTopic: byTopic.map((t: any) => ({
+        subject: t.subject,
+        subSubject: t.subSubject,
+        topic: t.topic,
+        count: t.count,
+      })),
+    },
+  });
+}
+
+async function getMainsQuestionBankCounts(req: Request, res: Response) {
+  const { clause, params } = buildMainsQuestionBankWhere(req);
+  const [totalRows, bySubject, byPaper, bySubSubject, byTopic] = await Promise.all([
+    prisma.$queryRawUnsafe<Array<{ count: string }>>(
+      `select count(*)::text as count from public.pyq_mains_question_bank where ${clause}`,
+      ...params
+    ),
+    prisma.$queryRawUnsafe<any[]>(
+      `select taxonomy_l1 as subject, count(*)::int as count
+       from public.pyq_mains_question_bank where ${clause}
+       group by taxonomy_l1 order by taxonomy_l1`,
+      ...params
+    ),
+    prisma.$queryRawUnsafe<any[]>(
+      `select paper, count(*)::int as count from public.pyq_mains_question_bank where ${clause} group by paper order by paper`,
+      ...params
+    ),
+    prisma.$queryRawUnsafe<any[]>(
+      `select taxonomy_l1 as subject, taxonomy_l2 as "subSubject", count(*)::int as count
+       from public.pyq_mains_question_bank where ${clause}
+       group by taxonomy_l1, taxonomy_l2 order by taxonomy_l1, taxonomy_l2`,
+      ...params
+    ),
+    prisma.$queryRawUnsafe<any[]>(
+      `select taxonomy_l1 as subject, taxonomy_l2 as "subSubject", taxonomy_l3 as topic, count(*)::int as count
+       from public.pyq_mains_question_bank where ${clause}
+       group by taxonomy_l1, taxonomy_l2, taxonomy_l3 order by taxonomy_l1, taxonomy_l2, taxonomy_l3`,
+      ...params
+    ),
+  ]);
+
+  res.json({
+    status: "success",
+    data: {
+      mode: "mains",
+      taxonomyLabels: MAINS_TAXONOMY_LABELS,
       total: Number(totalRows[0]?.count || 0),
       bySubject: bySubject.map((s: any) => ({ subject: s.subject, count: s.count })),
       byPaper: byPaper.map((p: any) => ({ paper: p.paper, count: p.count })),
@@ -264,47 +545,57 @@ export const getPublicPYQQuestions = async (
 ) => {
   try {
     const mode = (qs(req.query.mode as string) || "prelims").toLowerCase();
+    if (mode === "mains" && (await shouldUseMainsQuestionBank())) {
+      return getMainsQuestionBankQuestions(req, res);
+    }
     if (mode !== "mains" && (await shouldUseQuestionBank())) {
       return getQuestionBankQuestions(req, res);
     }
 
-    const subject = qs(req.query.subject as string);
-    const subSubject = qs(req.query.subSubject as string) || qs(req.query.sub_subject as string);
+    const subjects = qsList(req.query.subject as string | string[]).filter((s) => s !== "All Papers");
+    const subSubjects = [
+      ...qsList(req.query.subSubject as string | string[]),
+      ...qsList(req.query.sub_subject as string | string[]),
+    ];
     const topics = qsList(req.query.topic as string | string[]);
     const year = qs(req.query.year as string);
     const yearFrom = qs(req.query.yearFrom as string);
     const yearTo = qs(req.query.yearTo as string);
-    const paper = qs(req.query.paper as string);
+    const papers = qsList(req.query.paper as string | string[]);
     const page = parseInt(qs(req.query.page as string) || "1");
     const limit = parseInt(qs(req.query.limit as string) || "20");
     const skip = (page - 1) * limit;
     const effectiveTopics = [...topics];
 
-    const where: any = { status: "approved" };
+    // Each entry is a group of alternatives that are OR-ed internally and
+    // AND-ed against the other groups (multi-select semantics).
+    const andGroups: any[] = [];
+    const where: any = { status: "approved", AND: andGroups };
 
-    if (subject && subject !== "All Papers") {
-      where.subject = { equals: subject, mode: "insensitive" };
+    if (subjects.length > 0) {
+      andGroups.push({
+        OR: subjects.map((s) => ({ subject: { equals: s, mode: "insensitive" } })),
+      });
     }
-    if (mode === "mains" && subSubject && effectiveTopics.length === 0) {
+    if (mode === "mains" && subSubjects.length > 0 && effectiveTopics.length === 0) {
       // Backward compatibility: older mains clients send the hierarchy label as `subSubject`.
       // Mains questions only have `topic`, so translate it before building the Prisma filter.
-      effectiveTopics.push(subSubject);
-    } else if (subSubject) {
-      where.subSubject = { equals: subSubject, mode: "insensitive" };
+      effectiveTopics.push(...subSubjects);
+    } else if (subSubjects.length > 0) {
+      andGroups.push({
+        OR: subSubjects.map((s) => ({ subSubject: { equals: s, mode: "insensitive" } })),
+      });
     }
-    if (effectiveTopics.length === 1) {
+    if (effectiveTopics.length > 0) {
       // Topic strings in dataset can be a comma-separated list; use contains so
-      // selecting one topic still matches those rows.
-      where.topic = { contains: effectiveTopics[0], mode: "insensitive" };
-    } else if (effectiveTopics.length > 1) {
-      // Multi-topic selection should return questions matching ANY selected topic.
-      where.OR = effectiveTopics.map((topic) => ({
-        topic: { contains: topic, mode: "insensitive" },
-      }));
+      // selecting a topic still matches those rows. Any selected topic matches.
+      andGroups.push({
+        OR: effectiveTopics.map((topic) => ({ topic: { contains: topic, mode: "insensitive" } })),
+      });
     }
-    
+
     console.log(
-      `[PYQ] Query params: mode=${mode}, subject=${subject}, subSubject=${subSubject}, topics=${effectiveTopics.join("|")}, year=${year}, paper=${paper}, page=${page}, limit=${limit}`
+      `[PYQ] Query params: mode=${mode}, subjects=${subjects.join("|")}, subSubjects=${subSubjects.join("|")}, topics=${effectiveTopics.join("|")}, year=${year}, papers=${papers.join("|")}, page=${page}, limit=${limit}`
     );
 
     if (year) where.year = parseInt(year);
@@ -313,7 +604,11 @@ export const getPublicPYQQuestions = async (
       if (yearFrom) where.year.gte = parseInt(yearFrom);
       if (yearTo) where.year.lte = parseInt(yearTo);
     }
-    if (paper) where.paper = { in: paperAliases(paper), mode: "insensitive" };
+    if (papers.length > 0) {
+      const paperAliasList = Array.from(new Set(papers.flatMap((p) => paperAliases(p))));
+      where.paper = { in: paperAliasList, mode: "insensitive" };
+    }
+    if (andGroups.length === 0) delete where.AND;
 
     // UPSC priority subject order for "All Papers" default sort.
     const PRIORITY = [
@@ -323,16 +618,23 @@ export const getPublicPYQQuestions = async (
 
     // Drop non-UPSC noise from default listing
     const EXCLUDE_SUBJECTS = ["sports", "entertainment", "lifestyle"];
+    const isUnfilteredMains = mode === "mains"
+      && !year && !yearFrom && !yearTo
+      && papers.length === 0
+      && subjects.length === 0
+      && subSubjects.length === 0
+      && topics.length === 0;
 
     const [rawQuestions, total] = await Promise.all(
       mode === "mains"
         ? [
             prisma.pYQMainsQuestion.findMany({
               where,
-              // Latest year first, latest created as tiebreaker
+              // The unfiltered Mains view is re-ranked below by GS paper; filtered
+              // views retain the existing latest-year-first query order.
               orderBy: [{ year: "desc" }, { createdAt: "desc" }],
-              skip,
-              take: limit * 3, // over-fetch for re-ranking by subject
+              skip: isUnfilteredMains ? undefined : skip,
+              take: isUnfilteredMains ? undefined : limit * 3,
             }),
             prisma.pYQMainsQuestion.count({ where }),
           ]
@@ -354,7 +656,15 @@ export const getPublicPYQQuestions = async (
     });
 
     let questions = filtered;
-    if (!subject || subject === "All Papers") {
+    if (isUnfilteredMains) {
+      questions = [...filtered].sort((a: any, b: any) => {
+        const paperOrder = mainsPaperRank(a.paper) - mainsPaperRank(b.paper);
+        if (paperOrder !== 0) return paperOrder;
+        if (a.year !== b.year) return (b.year || 0) - (a.year || 0);
+        const questionOrder = (a.questionNum || 0) - (b.questionNum || 0);
+        return questionOrder || String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+      });
+    } else if (subjects.length === 0) {
       const rank = (subj: string) => {
         const s = (subj || "").toLowerCase();
         const idx = PRIORITY.findIndex((p) => s.includes(p));
@@ -402,6 +712,13 @@ export const getPublicPYQQuestionById = async (
 
     if (!questionId) {
       return res.status(400).json({ status: "error", message: "questionId is required" });
+    }
+
+    if (requestedMode !== "prelims" && (await shouldUseMainsQuestionBank())) {
+      const bankQuestion = await findMainsQuestionBankQuestionById(questionId);
+      if (bankQuestion) {
+        return res.json({ status: "success", data: { question: bankQuestion, mode: "mains" } });
+      }
     }
 
     if (requestedMode !== "mains" && (await shouldUseQuestionBank())) {
@@ -453,6 +770,7 @@ export const getPublicPYQMetadata = async (
 ) => {
   try {
     const useQuestionBank = await shouldUseQuestionBank();
+    const useMainsQuestionBank = await shouldUseMainsQuestionBank();
     const [prelimsYears, csatYears, mainsYears] = await Promise.all([
       useQuestionBank
         ? getQuestionBankYearCounts()
@@ -481,14 +799,16 @@ export const getPublicPYQMetadata = async (
               orderBy: { year: "desc" },
             })
             .then((rows: any[]) => rows.map((row) => ({ year: Number(row.year), count: Number(row._count?.id || 0) }))),
-      prisma.pYQMainsQuestion
-        .groupBy({
-          by: ["year"],
-          _count: { id: true },
-          where: { status: "approved" },
-          orderBy: { year: "desc" },
-        })
-        .then((rows: any[]) => rows.map((row) => ({ year: Number(row.year), count: Number(row._count?.id || 0) }))),
+      useMainsQuestionBank
+        ? getMainsQuestionBankYearCounts()
+        : prisma.pYQMainsQuestion
+            .groupBy({
+              by: ["year"],
+              _count: { id: true },
+              where: { status: "approved" },
+              orderBy: { year: "desc" },
+            })
+            .then((rows: any[]) => rows.map((row) => ({ year: Number(row.year), count: Number(row._count?.id || 0) }))),
     ]);
 
     const modes = [
@@ -521,6 +841,9 @@ export const getPublicPYQCounts = async (
 ) => {
   try {
     const mode = (qs(req.query.mode as string) || "prelims").toLowerCase();
+    if (mode === "mains" && (await shouldUseMainsQuestionBank())) {
+      return getMainsQuestionBankCounts(req, res);
+    }
     if (mode !== "mains" && (await shouldUseQuestionBank())) {
       return getQuestionBankCounts(req, res);
     }

@@ -69,7 +69,6 @@ export const VALID_STUDY_PLANNER_SUBJECTS = [
   "Governance",
   "International Relations",
   "Social Justice",
-  "Agriculture",
   "Internal Security",
   "Disaster Management",
   "Ethics",
@@ -109,6 +108,23 @@ export function normalizeSubject(subject: string): string {
   // Science & Tech aliases
   if (lower === "science & tech" || lower === "science and tech" || lower === "science and technology" || lower === "s&t" || lower === "sci-tech") {
     return "Science & Technology";
+  }
+
+  // History aliases — per the Prelims syllabus, History is the parent subject
+  // for the Ancient/Medieval/Modern eras and Art & Culture. The question bank
+  // tags these as separate subjects, so roll them up to canonical "History".
+  if (
+    lower === "modern history" ||
+    lower === "modern" ||
+    lower === "ancient history" ||
+    lower === "ancient india" ||
+    lower === "medieval india" ||
+    lower === "medieval history" ||
+    lower === "art & culture" ||
+    lower === "art and culture" ||
+    lower === "culture"
+  ) {
+    return "History";
   }
 
   // Direct match

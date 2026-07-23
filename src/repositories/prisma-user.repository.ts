@@ -8,26 +8,12 @@ export interface UserRepository {
 
 import prisma from "../config/database";
 import type { UserRepository as IUserRepository } from "./user.repository";
+import { getDerivedStudyStreak } from "../services/streak.service";
 
 export function createPrismaUserRepository(): IUserRepository {
   return {
     async getStreak(userId) {
-      let streak = await prisma.userStreak.findUnique({ where: { userId } });
-      if (!streak) {
-        streak = await prisma.userStreak.create({
-          data: {
-            userId,
-            currentStreak: 0,
-            longestStreak: 0,
-            weekActivity: [false, false, false, false, false, false, false],
-          },
-        });
-      }
-      return {
-        currentStreak: streak.currentStreak,
-        longestStreak: streak.longestStreak,
-        weekActivity: streak.weekActivity as boolean[],
-      };
+      return getDerivedStudyStreak(userId);
     },
 
     async getActivity(userId, limit = 10) {

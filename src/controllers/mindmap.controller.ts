@@ -8,16 +8,27 @@ function param(req: Request, key: string): string {
   return Array.isArray(v) ? v[0] : (v ?? "");
 }
 
-async function limitedMindmapSlugs(userId?: string) {
+// Free/Aspire plans keep full access to these subjects; every other subject
+// stays visible in the UI (blurred + locked) but its content is gated.
+const FREE_MINDMAP_SUBJECT_SLUGS = new Set(["polity", "economy"]);
+
+function isFreeMindmapSubject(slug: string, name?: string | null) {
+  if (FREE_MINDMAP_SUBJECT_SLUGS.has(slug)) return true;
+  const label = `${slug} ${name || ""}`.toLowerCase();
+  return label.includes("polity") || label.includes("economy");
+}
+
+/** Returns null when the user has full access; otherwise the Set of unlocked subject slugs. */
+async function limitedMindmapSubjectSlugs(userId?: string) {
   if (!userId) return null;
   const effective = await getEffectiveEntitlements(userId);
   if (effective.policy.access.mindmaps === "full") return null;
-  const limit = effective.policy.preview.mindmaps ?? 1;
-  const maps = await prisma.mindmap.findMany({
-    orderBy: { createdAt: "asc" },
-    include: { subject: true },
-  });
-  return new Set(maps.slice(0, limit).map((map) => `${map.subject.slug}:${map.slug}`));
+  const subjects = await prisma.mindmapSubject.findMany();
+  return new Set(
+    subjects
+      .filter((s) => isFreeMindmapSubject(s.slug, s.name))
+      .map((s) => s.slug)
+  );
 }
 
 /**
@@ -30,8 +41,10 @@ export const getSubjects = async (
 ) => {
   try {
     const userId = req.user?.id;
-    const allowedMapSlugs = await limitedMindmapSlugs(userId);
 
+    // Always list every subject with real totals — limited plans see locked
+    // subjects blurred in the UI rather than hidden. Content access is gated
+    // per-subject in getMindmaps/getMindmap.
     const subjects = await prisma.mindmapSubject.findMany({
       include: { maps: true },
     });
@@ -39,7 +52,7 @@ export const getSubjects = async (
     const data = await Promise.all(
       subjects
         .map(async (s) => {
-          const visibleMaps = allowedMapSlugs ? s.maps.filter((m) => allowedMapSlugs.has(`${s.slug}:${m.slug}`)) : s.maps;
+          const visibleMaps = s.maps;
           const total = visibleMaps.length;
           let explored = 0;
 
@@ -80,7 +93,17 @@ export const getMindmaps = async (
   try {
     const subjectId = param(req, "subjectId");
     const userId = req.user?.id;
-    const allowedMapSlugs = await limitedMindmapSlugs(userId);
+    const allowedSubjectSlugs = await limitedMindmapSubjectSlugs(userId);
+    if (allowedSubjectSlugs && !allowedSubjectSlugs.has(subjectId)) {
+      res.status(403).json({
+        status: "error",
+        code: "FEATURE_ACCESS_REQUIRED",
+        feature: "mindmaps",
+        message: "Upgrade to Rise to unlock the full mindmap library.",
+        upgrade: { recommendedTier: "rise", message: "Upgrade to Rise to unlock the full mindmap library." },
+      });
+      return;
+    }
 
     const subject = await prisma.mindmapSubject.findUnique({
       where: { slug: subjectId },
@@ -92,9 +115,7 @@ export const getMindmaps = async (
       return;
     }
 
-    const visibleMaps = allowedMapSlugs
-      ? subject.maps.filter((m) => allowedMapSlugs.has(`${subject.slug}:${m.slug}`))
-      : subject.maps;
+    const visibleMaps = subject.maps;
     const mapIds = visibleMaps.map((m) => m.id);
     const progressMap: Record<string, { mastery: number; viewed: boolean }> = {};
 
@@ -119,7 +140,7 @@ export const getMindmaps = async (
     res.json({
       status: "success",
       data: { subject: { name: subject.name, icon: subject.icon }, maps },
-      access: allowedMapSlugs ? { mode: "limited", upgradeRequired: true, visibleItemsLimit: allowedMapSlugs.size } : { mode: "full" },
+      access: allowedSubjectSlugs ? { mode: "limited", upgradeRequired: true } : { mode: "full" },
     });
   } catch (error) {
     next(error);
@@ -138,8 +159,8 @@ export const getMindmap = async (
     const subjectId = param(req, "subjectId");
     const mindmapId = param(req, "mindmapId");
     const userId = req.user?.id;
-    const allowedMapSlugs = await limitedMindmapSlugs(userId);
-    if (allowedMapSlugs && !allowedMapSlugs.has(`${subjectId}:${mindmapId}`)) {
+    const allowedSubjectSlugs = await limitedMindmapSubjectSlugs(userId);
+    if (allowedSubjectSlugs && !allowedSubjectSlugs.has(subjectId)) {
       res.status(403).json({
         status: "error",
         code: "FEATURE_ACCESS_REQUIRED",

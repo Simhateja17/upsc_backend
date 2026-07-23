@@ -1,6 +1,7 @@
 import prisma from "../config/database";
 import { supabaseAdmin } from "../config/supabase";
 import { computeSyllabusCoverage } from "../utils/syllabusDedup";
+import { istDateKey, istDayWindow } from "../utils/istDate";
 import type {
   DashboardRepository,
   DashboardSnapshot,
@@ -148,7 +149,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
       // page shows for the same saved state (see src/utils/syllabusDedup.ts).
       const syllabusCov = syllabusSubjects.map((subject) => {
         const { totalTopics, coveredTopics } = computeSyllabusCoverage(subject.topics, subject.id, stateMap);
-        return { coveredTopics, totalTopics };
+        return { subject: subject.name, coveredTopics, totalTopics };
       });
 
       const mockAgg = await prisma.mockTestAttempt.aggregate({
@@ -177,11 +178,9 @@ export function createPrismaDashboardRepository(): DashboardRepository {
     },
 
     async getTestAnalyticsRaw(userId) {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setHours(0, 0, 0, 0);
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+      const sevenDaysAgo = istDayWindow(istDateKey(new Date(), -6)).since;
 
-      const [mcqAgg, recentMcq, mockAttempts, mainsAttempts, mockTestMainsAttempts, pyqMainsAttempts, completedStudyTasksLast7Days, streak, seriesRes] =
+      const [mcqAgg, recentMcq, mockAttempts, mainsAttempts, mockTestMainsAttempts, pyqMainsAttempts, completedStudyTasksLast7Days, streak, seriesRes, editorialReads] =
         await Promise.all([
           prisma.mCQAttempt.aggregate({
             where: { userId },
@@ -255,6 +254,10 @@ export function createPrismaDashboardRepository(): DashboardRepository {
             .eq("user_id", userId)
             .order("submitted_at", { ascending: false })
             .limit(20),
+          prisma.editorialProgress.findMany({
+            where: { userId, isRead: true, readAt: { gte: sevenDaysAgo } },
+            select: { readAt: true },
+          }),
         ]);
 
       return {
@@ -267,6 +270,71 @@ export function createPrismaDashboardRepository(): DashboardRepository {
         completedStudyTasksLast7Days,
         streak,
         seriesAttempts: { data: seriesRes.data ?? [] },
+        editorialReadDatesLast7Days: editorialReads.map((e) => e.readAt as Date).filter(Boolean),
+      };
+    },
+
+    async getMonthlyActivityRaw(userId, monthStart, monthEnd) {
+      const [
+        activities,
+        mcqAttempts,
+        mainsAttempts,
+        mockAttempts,
+        mockMainsAttempts,
+        pyqMainsAttempts,
+        completedTasks,
+        editorials,
+      ] = await Promise.all([
+        prisma.userActivity.findMany({
+          where: { userId, createdAt: { gte: monthStart, lt: monthEnd } },
+          select: { createdAt: true },
+        }),
+        prisma.mCQAttempt.findMany({
+          where: { userId, createdAt: { gte: monthStart, lt: monthEnd } },
+          select: { createdAt: true },
+        }),
+        prisma.mainsAttempt.findMany({
+          where: { userId, createdAt: { gte: monthStart, lt: monthEnd } },
+          select: { createdAt: true },
+        }),
+        prisma.mockTestAttempt.findMany({
+          where: { userId, createdAt: { gte: monthStart, lt: monthEnd } },
+          select: { createdAt: true },
+        }),
+        prisma.mockTestMainsAttempt.findMany({
+          where: { userId, createdAt: { gte: monthStart, lt: monthEnd } },
+          select: { createdAt: true },
+        }),
+        prisma.pyqMainsAttempt.findMany({
+          where: { userId, createdAt: { gte: monthStart, lt: monthEnd } },
+          select: { createdAt: true },
+        }),
+        prisma.studyPlanTask.findMany({
+          where: {
+            userId,
+            isCompleted: true,
+            completedAt: { gte: monthStart, lt: monthEnd },
+          },
+          select: { completedAt: true, duration: true, actualDuration: true, startTime: true, endTime: true },
+        }),
+        prisma.editorial.findMany({
+          where: { publishedAt: { gte: monthStart, lt: monthEnd } },
+          select: {
+            publishedAt: true,
+            progress: { where: { userId, isRead: true }, select: { id: true } },
+          },
+        }),
+      ]);
+
+      return {
+        activityDates: activities.map((a) => a.createdAt),
+        mcqDates: mcqAttempts.map((a) => a.createdAt),
+        mainsDates: mainsAttempts.map((a) => a.createdAt),
+        mockDates: mockAttempts.map((a) => a.createdAt),
+        mockMainsDates: mockMainsAttempts.map((a) => a.createdAt),
+        pyqMainsDates: pyqMainsAttempts.map((a) => a.createdAt),
+        editorials: editorials.map((e) => ({ publishedAt: e.publishedAt, readByUser: e.progress.length > 0 })),
+        completedTasks,
       };
     },
 

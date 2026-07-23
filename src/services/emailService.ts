@@ -116,9 +116,9 @@ export async function sendMorningDigest(
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>Good morning, ${firstName || "Aspirant"}!</h2>
-        <p>Here are today's editorials for your current affairs preparation:</p>
+        <p>Here is your complete current affairs edition from yesterday:</p>
         <ul style="padding-left: 20px; margin: 16px 0;">
-          ${editorialList || "<li>No editorials published yet today — check back soon!</li>"}
+          ${editorialList || "<li>No editorials were available for yesterday.</li>"}
         </ul>
         <a href="${config.cors.origins[0]}/dashboard/daily-editorial" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">Read Editorials</a>
         <p style="color: #666; margin-top: 24px;">— Team Rise with Jeet</p>

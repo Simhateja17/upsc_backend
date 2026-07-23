@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
 import { mockTestRepo } from "../repositories/prisma-mock-test.repository";
 import { generateMainsQuestions } from "../services/questionGenerator";
+import { mainsTimeLimit } from "../utils/mainsPattern";
 
 export const getSubjects = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -64,16 +65,176 @@ function shuffle<T>(arr: T[]): T[] {
   return arr;
 }
 
+type MainsPoolQuestion = {
+  sourceQuestionBankId: string | null;
+  questionText: string;
+  subject: string;
+  category: string;
+  difficulty: string;
+  explanation: string;
+  marks: number;
+};
+
+// Product decision: Mock Test Mains only ever uses 10-mark questions. A
+// 10-mark answer is ~150 words, which is materially cheaper to auto-evaluate
+// (shorter transcription, grading prompt and model answer) than a 15/20-marker,
+// so every generated mains question — including Full Length — is a 10-marker.
+const MOCK_MAINS_MARKS = 10;
+// Full Length mains = a 20-question paper, all 10-markers (200 marks).
+const MAINS_FULL_LENGTH_COUNT = 20;
+const MAINS_FULL_LENGTH_TOTAL_MARKS = MAINS_FULL_LENGTH_COUNT * MOCK_MAINS_MARKS;
+
+function dedupeBySourceId(rows: MainsPoolQuestion[]): MainsPoolQuestion[] {
+  const seen = new Set<string>();
+  const out: MainsPoolQuestion[] = [];
+  for (const row of rows) {
+    const key = row.sourceQuestionBankId || `text:${row.questionText.slice(0, 80)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+  }
+  return out;
+}
+
+async function aiMainsQuestions(params: {
+  subject: string;
+  difficulty: string;
+  count: number;
+  paperType?: string;
+  marksPerQuestion?: number;
+}): Promise<MainsPoolQuestion[]> {
+  if (params.count <= 0) return [];
+  try {
+    const generated = await generateMainsQuestions(params);
+    return generated.map((q: any) => ({
+      sourceQuestionBankId: null,
+      questionText: q.questionText,
+      subject: q.subject || params.subject,
+      category: q.category || q.subject || params.subject,
+      difficulty: q.difficulty || params.difficulty,
+      explanation: "",
+      marks: params.marksPerQuestion || MOCK_MAINS_MARKS,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * "Daily Answer Writing" / "Previous Year Questions" pools: draw from a
+ * curated source, dedupe, and pad any shortfall with AI-generated questions
+ * so the requested count is always met. Every question is a 10-marker (the
+ * source queries only return 10-mark rows and the AI is asked for 10-markers).
+ */
+async function curatedMainsPool(params: {
+  fetch: () => Promise<MainsPoolQuestion[]>;
+  count: number;
+  difficulty: string;
+  paperType?: string;
+  targetSubject: string;
+}): Promise<MainsPoolQuestion[]> {
+  const rows = await params.fetch();
+  let pool = dedupeBySourceId(shuffle([...rows])).slice(0, params.count);
+  if (pool.length < params.count) {
+    pool = pool.concat(
+      await aiMainsQuestions({
+        subject: params.targetSubject,
+        difficulty: params.difficulty,
+        count: params.count - pool.length,
+        paperType: params.paperType,
+        marksPerQuestion: MOCK_MAINS_MARKS,
+      })
+    );
+  }
+  return pool;
+}
+
+/**
+ * Routes a Mains mock test's question pool by the user-selected source.
+ * "mixed" (and any unrecognized source) draws an even split across the
+ * curated Daily Mains history, curated PYQ bank, and AI generation.
+ */
+async function buildMainsPool(params: {
+  source: string;
+  subject?: string;
+  paperType?: string;
+  difficulty: string;
+  count: number;
+  targetSubject: string;
+}): Promise<MainsPoolQuestion[]> {
+  const { source, subject, paperType, difficulty, count, targetSubject } = params;
+  const poolLimit = Math.max(count * 4, 40);
+
+  if (source === "daily_mains") {
+    return curatedMainsPool({
+      fetch: () => mockTestRepo.findDailyMainsHistory(subject, paperType, poolLimit),
+      count, difficulty, paperType, targetSubject,
+    });
+  }
+
+  if (source === "pyq") {
+    return curatedMainsPool({
+      fetch: () => mockTestRepo.findPYQBankMains(subject, paperType, poolLimit),
+      count, difficulty, paperType, targetSubject,
+    });
+  }
+
+  if (source === "question_bank") {
+    // "Question Bank" for Mains means fresh AI-generated questions on demand.
+    return aiMainsQuestions({ subject: targetSubject, difficulty, count, paperType, marksPerQuestion: MOCK_MAINS_MARKS });
+  }
+
+  if (source === "full_length") {
+    // Full Length = a 20-question paper of 10-markers, drawn from both curated
+    // pools (Daily Mains history + PYQ bank) and AI-padded to fill.
+    return curatedMainsPool({
+      fetch: async () => {
+        const [dailyRows, bankRows] = await Promise.all([
+          mockTestRepo.findDailyMainsHistory(subject, paperType, 120),
+          mockTestRepo.findPYQBankMains(subject, paperType, 120),
+        ]);
+        return dedupeBySourceId([...dailyRows, ...bankRows]);
+      },
+      count, difficulty, paperType, targetSubject,
+    });
+  }
+
+  // "mixed" — even split across the three pools.
+  const perPool = Math.ceil(count / 3);
+  const [dailyRows, bankRows] = await Promise.all([
+    mockTestRepo.findDailyMainsHistory(subject, paperType, Math.max(perPool * 4, 20)),
+    mockTestRepo.findPYQBankMains(subject, paperType, Math.max(perPool * 4, 20)),
+  ]);
+  const curated = dedupeBySourceId(shuffle([...dailyRows, ...bankRows]));
+  const fromCurated = curated.slice(0, Math.min(count, perPool * 2));
+  const aiNeeded = Math.max(0, Math.min(perPool, count - fromCurated.length));
+  const fromAi = await aiMainsQuestions({ subject: targetSubject, difficulty, count: aiNeeded, paperType, marksPerQuestion: MOCK_MAINS_MARKS });
+  let pool = shuffle([...fromCurated, ...fromAi]).slice(0, count);
+  if (pool.length < count) {
+    pool = pool.concat(
+      await aiMainsQuestions({ subject: targetSubject, difficulty, count: count - pool.length, paperType, marksPerQuestion: MOCK_MAINS_MARKS })
+    );
+  }
+  return pool;
+}
+
 export const generateTest = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
     const { subject, examMode, paperType, questionCount, difficulty } = req.body;
     const source = normalizeSource(req.body.source);
-    const isFullLength = source === "full_length";
-    const count = isFullLength ? 100 : Math.min(questionCount || 10, 100);
     const isMainsMode = (examMode || "prelims") === "mains";
-    const duration = isMainsMode ? Math.max(10, count * 8) : count;
-    const total_marks = isMainsMode ? count * 15 : count * 2;
+    const isFullLength = source === "full_length";
+    const count = isFullLength
+      ? (isMainsMode ? MAINS_FULL_LENGTH_COUNT : 100)
+      : Math.min(questionCount || 10, 100);
+    // Every mains question is a 10-marker → ~7 min each (see mainsPattern).
+    const duration = isMainsMode
+      ? count * mainsTimeLimit(MOCK_MAINS_MARKS)
+      : Math.round(count * 1.2);
+    const total_marks = isMainsMode
+      ? (isFullLength ? MAINS_FULL_LENGTH_TOTAL_MARKS : count * MOCK_MAINS_MARKS)
+      : count * 2;
     const selectedSubject = subject === "All Subjects" ? null : subject;
     const selectedDifficulty = isFullLength ? "mixed" : (difficulty || "mixed");
 
@@ -105,18 +266,9 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
     let finalQuestions: any[] = [];
 
     if (isMainsMode) {
-      const mainsRows = await mockTestRepo.findPYQMains(subject, paperType, Math.max(count * 4, 40));
-      const pool = shuffle([...(mainsRows || [])]).slice(0, count);
-      finalQuestions = pool.map((q: any) => ({
-        questionText: q.question_text, options: [], correctOption: null,
-        subject: q.subject, category: q.subject, difficulty: q.difficulty || difficulty || "Medium", explanation: "",
-      }));
-      if (finalQuestions.length < count) {
-        try {
-          const aiMains = await generateMainsQuestions({ subject: targetSubject, difficulty: difficulty || "medium", count: count - finalQuestions.length, paperType, marksPerQuestion: 15 });
-          finalQuestions.push(...aiMains.map((q: any) => ({ questionText: q.questionText, options: [], correctOption: null, subject: q.subject || targetSubject, category: q.category || targetSubject, difficulty: q.difficulty || difficulty || "medium", explanation: "" })));
-        } catch {}
-      }
+      finalQuestions = await buildMainsPool({
+        source, subject, paperType, difficulty: difficulty || "medium", count, targetSubject,
+      });
     } else {
       finalQuestions = await mockTestRepo.findQuestionBankQuestions({
         source,
@@ -143,6 +295,7 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
       category: q.category || q.subject || targetSubject, difficulty: q.difficulty || difficulty || "Medium",
       options: isMainsMode ? [] : (q.options || [{ id: "A", text: "A" }, { id: "B", text: "B" }, { id: "C", text: "C" }, { id: "D", text: "D" }]),
       correct_option: isMainsMode ? "N/A" : (q.correctOption || "A"), explanation: q.explanation || "",
+      marks: isMainsMode ? (q.marks || 15) : null,
     }));
 
     await mockTestRepo.insertQuestions(questionsToInsert);
@@ -162,6 +315,7 @@ export const getTestQuestions = async (req: Request, res: Response, next: NextFu
       questions: questions.map((q: any) => ({
         id: q.id, questionNum: q.question_num, text: q.question_text,
         subject: q.subject, category: q.category, difficulty: q.difficulty,
+        marks: q.marks || null,
         options: (q.options || []).map((o: any) => ({ label: o.id || o.label, text: o.text })),
       })),
     }});

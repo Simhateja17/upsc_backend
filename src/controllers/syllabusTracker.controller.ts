@@ -10,6 +10,21 @@ function countTrackedItems(states: Record<string, unknown>) {
   }).length;
 }
 
+function getTrackedSubjectIds(states: Record<string, unknown>) {
+  const subjectIds = new Set<string>();
+
+  for (const [key, value] of Object.entries(states)) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const status = (value as { status?: string }).status;
+    if (!status || status === "none" || status === "not_started") continue;
+
+    const separatorIndex = key.indexOf("__");
+    if (separatorIndex > 0) subjectIds.add(key.slice(0, separatorIndex));
+  }
+
+  return Array.from(subjectIds);
+}
+
 /**
  * GET /api/user/syllabus-tracker
  */
@@ -19,11 +34,15 @@ export const getTrackerState = async (req: Request, res: Response, next: NextFun
       where: { userId: req.user!.id },
     });
 
+    const states = (state?.states ?? {}) as Record<string, unknown>;
+
     res.json({
       status: "success",
-      data: state
-        ? { mode: state.mode, states: state.states }
-        : { mode: "prelims", states: {} },
+      data: {
+        mode: state?.mode ?? "prelims",
+        states,
+        trackedSubjectIds: getTrackedSubjectIds(states),
+      },
     });
   } catch (error) {
     next(error);
@@ -73,7 +92,11 @@ export const saveTrackerState = async (req: Request, res: Response, next: NextFu
       },
     });
 
-    res.json({ status: "success", message: "Tracker state saved" });
+    res.json({
+      status: "success",
+      message: "Tracker state saved",
+      data: { trackedSubjectIds: getTrackedSubjectIds(states) },
+    });
   } catch (error) {
     next(error);
   }

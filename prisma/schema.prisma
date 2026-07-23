@@ -9,20 +9,22 @@ datasource db {
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model User {
-  id                      String                   @id @default(uuid())
-  supabaseId              String                   @unique @map("supabase_id")
+  id                      String                         @id @default(uuid())
+  supabaseId              String                         @unique @map("supabase_id")
   email                   String?
-  firstName               String?                  @map("first_name")
-  lastName                String?                  @map("last_name")
-  phone                   String?                  @unique(map: "users_phone_unique_not_null", where: raw("(phone IS NOT NULL)"))
-  avatarUrl               String?                  @map("avatar_url")
-  role                    String                   @default("user")
-  isActive                Boolean                  @default(true) @map("is_active")
-  emailVerified           Boolean                  @default(false) @map("email_verified")
-  createdAt               DateTime                 @default(now()) @map("created_at")
-  updatedAt               DateTime                 @default(now()) @updatedAt @map("updated_at")
+  firstName               String?                        @map("first_name")
+  lastName                String?                        @map("last_name")
+  phone                   String?                        @unique(map: "users_phone_unique_not_null", where: raw("(phone IS NOT NULL)"))
+  avatarUrl               String?                        @map("avatar_url")
+  role                    String                         @default("user")
+  isActive                Boolean                        @default(true) @map("is_active")
+  emailVerified           Boolean                        @default(false) @map("email_verified")
+  createdAt               DateTime                       @default(now()) @map("created_at")
+  updatedAt               DateTime                       @default(now()) @updatedAt @map("updated_at")
   bio                     String?
   settings                Json?
+  activeSessionId         String?                        @map("active_session_id")
+  activeSessionMeta       Json?                          @map("active_session_meta")
   bookmarks               Bookmark[]
   questionFlags           QuestionFlag[]
   calendarSyncSetting     CalendarSyncSetting?
@@ -56,7 +58,8 @@ model User {
   pyqPrelimsAttempts      PyqPrelimsAttempt[]
   pyqUploads              PYQUpload[]
   groupMemberships        StudyGroupMember[]
-  createdGroups           StudyGroup[]             @relation("CreatedGroups")
+  groupJoinRequests       StudyGroupJoinRequest[]
+  createdGroups           StudyGroup[]                   @relation("CreatedGroups")
   studyMaterialUploads    StudyMaterialUpload[]
   studyPlanTasks          StudyPlanTask[]
   studyStreak             StudyStreak?
@@ -74,8 +77,22 @@ model User {
   streak                  UserStreak?
   weeklyGoals             WeeklyGoal[]
   wellnessStreak          WellnessStreak?
+  badges                  UserBadge[]
 
   @@map("users")
+}
+
+model UserBadge {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  badgeKey String   @map("badge_key")
+  earnedAt DateTime @default(now()) @map("earned_at")
+  seen     Boolean  @default(false)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeKey])
+  @@index([userId])
+  @@map("user_badges")
 }
 
 model UserActivity {
@@ -124,19 +141,19 @@ model DailyMCQ {
 }
 
 model MCQQuestion {
-  id            String        @id @default(uuid())
-  dailyMcqId    String        @map("daily_mcq_id")
-  sourceQuestionBankId String? @map("source_question_bank_id")
-  questionNum   Int           @map("question_num")
-  questionText  String        @map("question_text")
-  category      String
-  difficulty    String
-  options       Json
-  correctOption String        @map("correct_option")
-  explanation   String?
-  createdAt     DateTime      @default(now()) @map("created_at")
-  dailyMcq      DailyMCQ      @relation(fields: [dailyMcqId], references: [id], onDelete: Cascade)
-  responses     MCQResponse[]
+  id                   String        @id @default(uuid())
+  dailyMcqId           String        @map("daily_mcq_id")
+  sourceQuestionBankId String?       @map("source_question_bank_id")
+  questionNum          Int           @map("question_num")
+  questionText         String        @map("question_text")
+  category             String
+  difficulty           String
+  options              Json
+  correctOption        String        @map("correct_option")
+  explanation          String?
+  createdAt            DateTime      @default(now()) @map("created_at")
+  dailyMcq             DailyMCQ      @relation(fields: [dailyMcqId], references: [id], onDelete: Cascade)
+  responses            MCQResponse[]
 
   @@unique([dailyMcqId, questionNum])
   @@index([sourceQuestionBankId])
@@ -195,8 +212,11 @@ model DailyMainsQuestion {
   instructions String?
   isActive     Boolean        @default(true) @map("is_active")
   createdAt    DateTime       @default(now()) @map("created_at")
+  pyqQuestionId String?       @map("pyq_question_id")
   attempts     MainsAttempt[]
+  pyqQuestion  PYQMainsQuestionBank? @relation(fields: [pyqQuestionId], references: [id], onDelete: SetNull)
 
+  @@index([pyqQuestionId])
   @@map("daily_mains_questions")
 }
 
@@ -218,34 +238,34 @@ model MainsAttempt {
 }
 
 model MainsEvaluation {
-  id                String       @id @default(uuid())
-  attemptId         String       @unique @map("attempt_id")
-  score             Float
-  maxScore          Float        @map("max_score")
-  status            String       @default("pending")
-  strengths         String[]
-  improvements      String[]
-  suggestions       String[]
-  detailedFeedback  String?      @map("detailed_feedback")
-  evaluatedAt       DateTime?    @map("evaluated_at")
-  createdAt         DateTime     @default(now()) @map("created_at")
-  metrics           Json?
-  demandCoverage    Json?        @map("demand_coverage")
-  sectionFeedback   Json?        @map("section_feedback")
-  modelAnswer       String?      @map("model_answer")
-  annotationPlan    Json?        @map("annotation_plan")
-  checkedCopyUrl    String?      @map("checked_copy_url")
-  checkedCopyStatus String?      @map("checked_copy_status")
-  evaluationMode    String?      @map("evaluation_mode")
-  ragDiagnostics    Json?        @map("rag_diagnostics")
-  checkedCopyPages  Json?        @map("checked_copy_pages")
+  id                   String       @id @default(uuid())
+  attemptId            String       @unique @map("attempt_id")
+  score                Float
+  maxScore             Float        @map("max_score")
+  status               String       @default("pending")
+  strengths            String[]
+  improvements         String[]
+  suggestions          String[]
+  detailedFeedback     String?      @map("detailed_feedback")
+  evaluatedAt          DateTime?    @map("evaluated_at")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  metrics              Json?
+  demandCoverage       Json?        @map("demand_coverage")
+  sectionFeedback      Json?        @map("section_feedback")
+  modelAnswer          String?      @map("model_answer")
+  annotationPlan       Json?        @map("annotation_plan")
+  checkedCopyUrl       String?      @map("checked_copy_url")
+  checkedCopyStatus    String?      @map("checked_copy_status")
+  evaluationMode       String?      @map("evaluation_mode")
+  ragDiagnostics       Json?        @map("rag_diagnostics")
+  checkedCopyPages     Json?        @map("checked_copy_pages")
   keyTerms             Json?        @map("key_terms")
   nextAttemptFocus     String?      @map("next_attempt_focus")
   evaluatorConclusion  String?      @map("evaluator_conclusion")
   modelAnswerKeyPoints Json?        @map("model_answer_key_points")
   modelAnswerContent   String?      @map("model_answer_content")
   parameterScores      Json?        @map("parameter_scores")
-  attempt           MainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  attempt              MainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@map("mains_evaluations")
 }
@@ -316,20 +336,21 @@ model MockTest {
 }
 
 model MockTestQuestion {
-  id            String                 @id @default(uuid())
-  mockTestId    String                 @map("mock_test_id")
-  sourceQuestionBankId String?         @map("source_question_bank_id")
-  questionNum   Int                    @map("question_num")
-  questionText  String                 @map("question_text")
-  subject       String
-  category      String
-  difficulty    String
-  options       Json
-  correctOption String                 @map("correct_option")
-  explanation   String?
-  createdAt     DateTime               @default(now()) @map("created_at")
-  mainsAttempts MockTestMainsAttempt[]
-  mockTest      MockTest               @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+  id                   String                 @id @default(uuid())
+  mockTestId           String                 @map("mock_test_id")
+  sourceQuestionBankId String?                @map("source_question_bank_id")
+  questionNum          Int                    @map("question_num")
+  questionText         String                 @map("question_text")
+  subject              String
+  category             String
+  difficulty           String
+  options              Json
+  correctOption        String                 @map("correct_option")
+  explanation          String?
+  marks                Int?
+  createdAt            DateTime               @default(now()) @map("created_at")
+  mainsAttempts        MockTestMainsAttempt[]
+  mockTest             MockTest               @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
 
   @@unique([mockTestId, questionNum])
   @@index([sourceQuestionBankId])
@@ -650,24 +671,24 @@ model StudyMaterial {
 }
 
 model PricingPlan {
-  id            String         @id @default(uuid())
-  name          String
-  price         Int
-  duration      String
-  features      String[]
-  isPopular     Boolean        @default(false) @map("is_popular")
-  order         Int            @default(0)
-  isActive      Boolean        @default(true) @map("is_active")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  durationDays  Int            @default(90) @map("duration_days")
-  tier          String         @default("rise")
-  billingCycle  String         @default("quarterly") @map("billing_cycle")
-  originalPrice Int?           @map("original_price")
-  entitlements  Json?
-  razorpayPlanId String?       @map("razorpay_plan_id")
-  razorpayPlanVerifiedAt DateTime? @map("razorpay_plan_verified_at")
-  orders        Order[]
-  subscriptions Subscription[]
+  id                     String         @id @default(uuid())
+  name                   String
+  price                  Int
+  duration               String
+  features               String[]
+  isPopular              Boolean        @default(false) @map("is_popular")
+  order                  Int            @default(0)
+  isActive               Boolean        @default(true) @map("is_active")
+  createdAt              DateTime       @default(now()) @map("created_at")
+  durationDays           Int            @default(90) @map("duration_days")
+  tier                   String         @default("rise")
+  billingCycle           String         @default("quarterly") @map("billing_cycle")
+  originalPrice          Int?           @map("original_price")
+  entitlements           Json?
+  razorpayPlanId         String?        @map("razorpay_plan_id")
+  razorpayPlanVerifiedAt DateTime?      @map("razorpay_plan_verified_at")
+  orders                 Order[]
+  subscriptions          Subscription[]
 
   @@index([tier, billingCycle, isActive])
   @@map("pricing_plans")
@@ -783,6 +804,43 @@ model PYQMainsQuestion {
   @@index([subject, status])
   @@index([year, paper])
   @@map("pyq_mains_questions")
+}
+
+model PYQMainsQuestionBank {
+  id             String            @id @default(uuid())
+  importKey      String            @unique @map("import_key")
+  year           Int
+  paper          String
+  questionText   String            @map("question_text")
+  modelAnswer    String?           @map("model_answer")
+  subject        String
+  subSubject     String?           @map("sub_subject")
+  theme          String?
+  topic          String?
+  taxonomyL1     String            @map("taxonomy_l1")
+  taxonomyL2     String?           @map("taxonomy_l2")
+  taxonomyL3     String?           @map("taxonomy_l3")
+  difficulty     String            @default("Medium")
+  marks          Int               @default(15)
+  questionFingerprint String?      @map("question_fingerprint")
+  structuredJson Json              @default("{}") @map("structured_json")
+  sourceFile     String?           @map("source_file")
+  status         String            @default("approved")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  attempts       PyqMainsAttempt[]
+  dailyQuestions DailyMainsQuestion[]
+
+  @@index([subject, status])
+  @@index([subSubject])
+  @@index([theme])
+  @@index([topic])
+  @@index([taxonomyL1])
+  @@index([taxonomyL2])
+  @@index([taxonomyL3])
+  @@index([questionFingerprint])
+  @@index([year, paper])
+  @@map("pyq_mains_question_bank")
 }
 
 model MockTestMaterialUpload {
@@ -1032,12 +1090,12 @@ model AiUsageLog {
 }
 
 model FlashcardDeck {
-  id          String                     @id @default(cuid())
-  subject     String
-  subjectId   String                     @unique @map("subject_id")
-  icon        String                     @default("📚")
-  createdAt   DateTime                   @default(now()) @map("created_at")
-  cards       Flashcard[]
+  id           String                     @id @default(cuid())
+  subject      String
+  subjectId    String                     @unique @map("subject_id")
+  icon         String                     @default("📚")
+  createdAt    DateTime                   @default(now()) @map("created_at")
+  cards        Flashcard[]
   hiddenTopics UserHiddenFlashcardTopic[]
 
   @@map("flashcard_decks")
@@ -1270,51 +1328,54 @@ model SyllabusSubTopic {
 }
 
 model PyqMainsAttempt {
-  id                 String              @id @default(uuid())
-  userId             String              @map("user_id")
-  answerText         String?             @map("answer_text")
-  fileUrl            String?             @map("file_url")
-  wordCount          Int                 @default(0) @map("word_count")
-  submittedAt        DateTime?           @map("submitted_at")
-  createdAt          DateTime            @default(now()) @map("created_at")
-  pyqMainsQuestionId String?             @map("pyq_mains_question_id")
-  mainsQuestion      PYQMainsQuestion?   @relation(fields: [pyqMainsQuestionId], references: [id], onDelete: Cascade)
-  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  evaluation         PyqMainsEvaluation?
+  id                     String                @id @default(uuid())
+  userId                 String                @map("user_id")
+  answerText             String?               @map("answer_text")
+  fileUrl                String?               @map("file_url")
+  wordCount              Int                   @default(0) @map("word_count")
+  submittedAt            DateTime?             @map("submitted_at")
+  createdAt              DateTime              @default(now()) @map("created_at")
+  pyqMainsQuestionId     String?               @map("pyq_mains_question_id")
+  pyqMainsBankQuestionId String?               @map("pyq_mains_bank_question_id")
+  mainsQuestion          PYQMainsQuestion?     @relation(fields: [pyqMainsQuestionId], references: [id], onDelete: Cascade)
+  mainsBankQuestion      PYQMainsQuestionBank? @relation(fields: [pyqMainsBankQuestionId], references: [id], onDelete: Cascade)
+  user                   User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  evaluation             PyqMainsEvaluation?
 
   @@index([userId, pyqMainsQuestionId])
+  @@index([userId, pyqMainsBankQuestionId])
   @@map("pyq_mains_attempts")
 }
 
 model PyqMainsEvaluation {
-  id                String          @id @default(uuid())
-  attemptId         String          @unique @map("attempt_id")
-  score             Float
-  maxScore          Float           @map("max_score")
-  status            String          @default("pending")
-  strengths         String[]
-  improvements      String[]
-  suggestions       String[]
-  detailedFeedback  String?         @map("detailed_feedback")
-  evaluatedAt       DateTime?       @map("evaluated_at")
-  createdAt         DateTime        @default(now()) @map("created_at")
-  metrics           Json?
-  demandCoverage    Json?           @map("demand_coverage")
-  sectionFeedback   Json?           @map("section_feedback")
-  modelAnswer       String?         @map("model_answer")
-  annotationPlan    Json?           @map("annotation_plan")
-  checkedCopyUrl    String?         @map("checked_copy_url")
-  checkedCopyStatus String?         @map("checked_copy_status")
-  evaluationMode    String?         @map("evaluation_mode")
-  ragDiagnostics    Json?           @map("rag_diagnostics")
-  checkedCopyPages  Json?           @map("checked_copy_pages")
+  id                   String          @id @default(uuid())
+  attemptId            String          @unique @map("attempt_id")
+  score                Float
+  maxScore             Float           @map("max_score")
+  status               String          @default("pending")
+  strengths            String[]
+  improvements         String[]
+  suggestions          String[]
+  detailedFeedback     String?         @map("detailed_feedback")
+  evaluatedAt          DateTime?       @map("evaluated_at")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  metrics              Json?
+  demandCoverage       Json?           @map("demand_coverage")
+  sectionFeedback      Json?           @map("section_feedback")
+  modelAnswer          String?         @map("model_answer")
+  annotationPlan       Json?           @map("annotation_plan")
+  checkedCopyUrl       String?         @map("checked_copy_url")
+  checkedCopyStatus    String?         @map("checked_copy_status")
+  evaluationMode       String?         @map("evaluation_mode")
+  ragDiagnostics       Json?           @map("rag_diagnostics")
+  checkedCopyPages     Json?           @map("checked_copy_pages")
   keyTerms             Json?           @map("key_terms")
   nextAttemptFocus     String?         @map("next_attempt_focus")
   evaluatorConclusion  String?         @map("evaluator_conclusion")
   modelAnswerKeyPoints Json?           @map("model_answer_key_points")
   modelAnswerContent   String?         @map("model_answer_content")
   parameterScores      Json?           @map("parameter_scores")
-  attempt           PyqMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  attempt              PyqMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@map("pyq_mains_evaluations")
 }
@@ -1339,34 +1400,34 @@ model MockTestMainsAttempt {
 }
 
 model MockTestMainsEvaluation {
-  id                String               @id @default(uuid())
-  attemptId         String               @unique @map("attempt_id")
-  score             Float
-  maxScore          Float                @map("max_score")
-  status            String               @default("pending")
-  strengths         String[]
-  improvements      String[]
-  suggestions       String[]
-  detailedFeedback  String?              @map("detailed_feedback")
-  evaluatedAt       DateTime?            @map("evaluated_at")
-  createdAt         DateTime             @default(now()) @map("created_at")
-  metrics           Json?
-  demandCoverage    Json?                @map("demand_coverage")
-  sectionFeedback   Json?                @map("section_feedback")
-  modelAnswer       String?              @map("model_answer")
-  annotationPlan    Json?                @map("annotation_plan")
-  checkedCopyUrl    String?              @map("checked_copy_url")
-  checkedCopyStatus String?              @map("checked_copy_status")
-  evaluationMode    String?              @map("evaluation_mode")
-  ragDiagnostics    Json?                @map("rag_diagnostics")
-  checkedCopyPages  Json?                @map("checked_copy_pages")
+  id                   String               @id @default(uuid())
+  attemptId            String               @unique @map("attempt_id")
+  score                Float
+  maxScore             Float                @map("max_score")
+  status               String               @default("pending")
+  strengths            String[]
+  improvements         String[]
+  suggestions          String[]
+  detailedFeedback     String?              @map("detailed_feedback")
+  evaluatedAt          DateTime?            @map("evaluated_at")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  metrics              Json?
+  demandCoverage       Json?                @map("demand_coverage")
+  sectionFeedback      Json?                @map("section_feedback")
+  modelAnswer          String?              @map("model_answer")
+  annotationPlan       Json?                @map("annotation_plan")
+  checkedCopyUrl       String?              @map("checked_copy_url")
+  checkedCopyStatus    String?              @map("checked_copy_status")
+  evaluationMode       String?              @map("evaluation_mode")
+  ragDiagnostics       Json?                @map("rag_diagnostics")
+  checkedCopyPages     Json?                @map("checked_copy_pages")
   keyTerms             Json?                @map("key_terms")
   nextAttemptFocus     String?              @map("next_attempt_focus")
   evaluatorConclusion  String?              @map("evaluator_conclusion")
   modelAnswerKeyPoints Json?                @map("model_answer_key_points")
   modelAnswerContent   String?              @map("model_answer_content")
   parameterScores      Json?                @map("parameter_scores")
-  attempt           MockTestMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  attempt              MockTestMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@map("mock_test_mains_evaluations")
 }
@@ -1385,20 +1446,21 @@ model Faq {
 }
 
 model StudyGroup {
-  id          String             @id @default(uuid())
+  id          String                  @id @default(uuid())
   name        String
   description String?
   subject     String
-  status      String             @default("open")
-  maxMembers  Int                @default(50) @map("max_members")
-  createdById String             @map("created_by_id")
-  createdAt   DateTime           @default(now()) @map("created_at")
-  updatedAt   DateTime           @updatedAt @map("updated_at")
-  messages    GroupMessage[]
-  members     StudyGroupMember[]
-  goals       StudyGroupGoal[]
-  memberDaily StudyGroupMemberDaily[]
-  creator     User               @relation("CreatedGroups", fields: [createdById], references: [id], onDelete: Cascade)
+  status      String                  @default("open")
+  maxMembers  Int                     @default(50) @map("max_members")
+  createdById String                  @map("created_by_id")
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+  messages     GroupMessage[]
+  members      StudyGroupMember[]
+  goals        StudyGroupGoal[]
+  memberDaily  StudyGroupMemberDaily[]
+  joinRequests StudyGroupJoinRequest[]
+  creator      User                    @relation("CreatedGroups", fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([subject])
   @@index([status])
@@ -1406,17 +1468,36 @@ model StudyGroup {
 }
 
 model StudyGroupMember {
-  id       String     @id @default(uuid())
-  groupId  String     @map("group_id")
-  userId   String     @map("user_id")
-  joinedAt DateTime   @default(now()) @map("joined_at")
-  isActive Boolean    @default(true) @map("is_active")
-  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String     @id @default(uuid())
+  groupId       String     @map("group_id")
+  userId        String     @map("user_id")
+  joinedAt      DateTime   @default(now()) @map("joined_at")
+  isActive      Boolean    @default(true) @map("is_active")
+  isStudyingNow Boolean    @default(false) @map("is_studying_now")
+  lastActiveAt  DateTime?  @map("last_active_at")
+  group         StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, userId])
   @@index([userId])
+  @@index([groupId, isStudyingNow])
   @@map("study_group_members")
+}
+
+model StudyGroupJoinRequest {
+  id          String     @id @default(uuid())
+  groupId     String     @map("group_id")
+  userId      String     @map("user_id")
+  status      String     @default("pending") // pending | approved | rejected
+  createdAt   DateTime   @default(now()) @map("created_at")
+  respondedAt DateTime?  @map("responded_at")
+  group       StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId, status])
+  @@index([userId])
+  @@map("study_group_join_requests")
 }
 
 model GroupMessage {
@@ -1433,12 +1514,12 @@ model GroupMessage {
 }
 
 model StudyGroupGoal {
-  id          String   @id @default(uuid())
-  groupId     String   @map("group_id")
+  id          String                     @id @default(uuid())
+  groupId     String                     @map("group_id")
   title       String
   date        DateTime
-  createdById String   @map("created_by_id")
-  createdAt   DateTime @default(now()) @map("created_at")
+  createdById String                     @map("created_by_id")
+  createdAt   DateTime                   @default(now()) @map("created_at")
   group       StudyGroup                 @relation(fields: [groupId], references: [id], onDelete: Cascade)
   createdBy   User                       @relation(fields: [createdById], references: [id], onDelete: Cascade)
   completions StudyGroupGoalCompletion[]
@@ -1448,11 +1529,11 @@ model StudyGroupGoal {
 }
 
 model StudyGroupGoalCompletion {
-  id        String   @id @default(uuid())
-  goalId    String   @map("goal_id")
-  userId    String   @map("user_id")
-  taskId    String?  @map("task_id")
-  createdAt DateTime @default(now()) @map("created_at")
+  id        String         @id @default(uuid())
+  goalId    String         @map("goal_id")
+  userId    String         @map("user_id")
+  taskId    String?        @map("task_id")
+  createdAt DateTime       @default(now()) @map("created_at")
   goal      StudyGroupGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1461,12 +1542,12 @@ model StudyGroupGoalCompletion {
 }
 
 model StudyGroupMemberDaily {
-  id           String   @id @default(uuid())
-  groupId      String   @map("group_id")
-  userId       String   @map("user_id")
+  id           String     @id @default(uuid())
+  groupId      String     @map("group_id")
+  userId       String     @map("user_id")
   date         DateTime
-  focusSeconds Int      @default(0) @map("focus_seconds")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  focusSeconds Int        @default(0) @map("focus_seconds")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
   group        StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1492,60 +1573,60 @@ model Order {
 }
 
 model Payment {
-  id                String        @id @default(uuid())
-  userId            String        @map("user_id")
-  orderId           String?       @map("order_id")
-  subscriptionId    String?       @map("subscription_id")
+  id                String                         @id @default(uuid())
+  userId            String                         @map("user_id")
+  orderId           String?                        @map("order_id")
+  subscriptionId    String?                        @map("subscription_id")
   amount            Int
-  currency          String        @default("INR")
+  currency          String                         @default("INR")
   status            String
   provider          String
-  providerPaymentId String?       @map("provider_payment_id")
-  receiptUrl        String?       @map("receipt_url")
-  paidAt            DateTime?     @map("paid_at")
-  failedAt          DateTime?     @map("failed_at")
-  failureReason     String?       @map("failure_reason")
-  createdAt         DateTime      @default(now()) @map("created_at")
-  updatedAt         DateTime      @updatedAt @map("updated_at")
-  providerOrderId   String?       @map("provider_order_id")
+  providerPaymentId String?                        @map("provider_payment_id")
+  receiptUrl        String?                        @map("receipt_url")
+  paidAt            DateTime?                      @map("paid_at")
+  failedAt          DateTime?                      @map("failed_at")
+  failureReason     String?                        @map("failure_reason")
+  createdAt         DateTime                       @default(now()) @map("created_at")
+  updatedAt         DateTime                       @updatedAt @map("updated_at")
+  providerOrderId   String?                        @map("provider_order_id")
   metadata          Json?
   couponRedemptions SubscriptionCouponRedemption[]
-  order             Order?        @relation(fields: [orderId], references: [id])
-  subscription      Subscription? @relation(fields: [subscriptionId], references: [id])
-  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order             Order?                         @relation(fields: [orderId], references: [id])
+  subscription      Subscription?                  @relation(fields: [subscriptionId], references: [id])
+  user              User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
   @@map("payments")
 }
 
 model Subscription {
-  id          String      @id @default(uuid())
-  userId      String      @map("user_id")
-  planId      String      @map("plan_id")
-  status      String
-  startDate   DateTime    @map("start_date")
-  endDate     DateTime    @map("end_date")
-  autoRenew   Boolean     @default(true) @map("auto_renew")
-  cancelledAt DateTime?   @map("cancelled_at")
-  razorpaySubscriptionId String? @unique @map("razorpay_subscription_id")
-  razorpayPlanId String? @map("razorpay_plan_id")
-  razorpayStatus String? @map("razorpay_status")
-  currentStart DateTime? @map("current_start")
-  currentEnd DateTime? @map("current_end")
-  chargeAt DateTime? @map("charge_at")
-  graceEndsAt DateTime? @map("grace_ends_at")
-  supersededAt DateTime? @map("superseded_at")
-  supersededBySubscriptionId String? @map("superseded_by_subscription_id")
-  pausedAt DateTime? @map("paused_at")
-  resumedAt DateTime? @map("resumed_at")
-  failureReason String? @map("failure_reason")
-  metadata Json?
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-  payments    Payment[]
-  couponRedemptions SubscriptionCouponRedemption[]
-  plan        PricingPlan @relation(fields: [planId], references: [id])
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                         String                         @id @default(uuid())
+  userId                     String                         @map("user_id")
+  planId                     String                         @map("plan_id")
+  status                     String
+  startDate                  DateTime                       @map("start_date")
+  endDate                    DateTime                       @map("end_date")
+  autoRenew                  Boolean                        @default(true) @map("auto_renew")
+  cancelledAt                DateTime?                      @map("cancelled_at")
+  razorpaySubscriptionId     String?                        @unique @map("razorpay_subscription_id")
+  razorpayPlanId             String?                        @map("razorpay_plan_id")
+  razorpayStatus             String?                        @map("razorpay_status")
+  currentStart               DateTime?                      @map("current_start")
+  currentEnd                 DateTime?                      @map("current_end")
+  chargeAt                   DateTime?                      @map("charge_at")
+  graceEndsAt                DateTime?                      @map("grace_ends_at")
+  supersededAt               DateTime?                      @map("superseded_at")
+  supersededBySubscriptionId String?                        @map("superseded_by_subscription_id")
+  pausedAt                   DateTime?                      @map("paused_at")
+  resumedAt                  DateTime?                      @map("resumed_at")
+  failureReason              String?                        @map("failure_reason")
+  metadata                   Json?
+  createdAt                  DateTime                       @default(now()) @map("created_at")
+  updatedAt                  DateTime                       @updatedAt @map("updated_at")
+  payments                   Payment[]
+  couponRedemptions          SubscriptionCouponRedemption[]
+  plan                       PricingPlan                    @relation(fields: [planId], references: [id])
+  user                       User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
   @@index([razorpaySubscriptionId])
@@ -1571,20 +1652,20 @@ model RazorpayWebhookEvent {
 }
 
 model SubscriptionCoupon {
-  id                    String   @id @default(uuid())
-  code                  String   @unique
-  razorpayOfferId       String   @map("razorpay_offer_id")
-  discountLabel         String?  @map("discount_label")
-  maxRedemptions        Int?     @map("max_redemptions")
-  maxRedemptionsPerUser Int?     @map("max_redemptions_per_user")
-  redeemedCount         Int      @default(0) @map("redeemed_count")
-  validFrom             DateTime? @map("valid_from")
-  validUntil            DateTime? @map("valid_until")
-  allowedTiers          String[] @default([]) @map("allowed_tiers")
-  allowedBillingCycles  String[] @default([]) @map("allowed_billing_cycles")
-  isActive              Boolean  @default(true) @map("is_active")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                    String                         @id @default(uuid())
+  code                  String                         @unique
+  razorpayOfferId       String                         @map("razorpay_offer_id")
+  discountLabel         String?                        @map("discount_label")
+  maxRedemptions        Int?                           @map("max_redemptions")
+  maxRedemptionsPerUser Int?                           @map("max_redemptions_per_user")
+  redeemedCount         Int                            @default(0) @map("redeemed_count")
+  validFrom             DateTime?                      @map("valid_from")
+  validUntil            DateTime?                      @map("valid_until")
+  allowedTiers          String[]                       @default([]) @map("allowed_tiers")
+  allowedBillingCycles  String[]                       @default([]) @map("allowed_billing_cycles")
+  isActive              Boolean                        @default(true) @map("is_active")
+  createdAt             DateTime                       @default(now()) @map("created_at")
+  updatedAt             DateTime                       @updatedAt @map("updated_at")
   redemptions           SubscriptionCouponRedemption[]
 
   @@index([code, isActive])
@@ -1592,23 +1673,23 @@ model SubscriptionCoupon {
 }
 
 model SubscriptionCouponRedemption {
-  id             String   @id @default(uuid())
-  couponId       String   @map("coupon_id")
-  userId         String   @map("user_id")
-  subscriptionId String   @map("subscription_id")
-  paymentId      String?  @map("payment_id")
-  status         String   @default("pending")
-  redeemedAt     DateTime? @map("redeemed_at")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id             String             @id @default(uuid())
+  couponId       String             @map("coupon_id")
+  userId         String             @map("user_id")
+  subscriptionId String             @map("subscription_id")
+  paymentId      String?            @map("payment_id")
+  status         String             @default("pending")
+  redeemedAt     DateTime?          @map("redeemed_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
   coupon         SubscriptionCoupon @relation(fields: [couponId], references: [id])
-  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  payment        Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription   Subscription       @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  payment        Payment?           @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
+  @@unique([couponId, subscriptionId])
   @@index([userId, status])
   @@index([subscriptionId, status])
-  @@unique([couponId, subscriptionId])
   @@map("subscription_coupon_redemptions")
 }
 

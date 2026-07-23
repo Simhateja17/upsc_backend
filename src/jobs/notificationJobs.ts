@@ -123,13 +123,13 @@ export async function sendStreakAlerts(): Promise<void> {
 
 export async function sendMorningDigestNotifications(): Promise<void> {
   const todayStart = todayStartIST();
-  const tomorrowStart = new Date(todayStart.getTime() + 86400000);
+  const yesterdayStart = new Date(todayStart.getTime() - 86400000);
 
   const { data: editorials } = await supabaseAdmin
     .from("editorials")
     .select("title, source")
-    .gte("published_at", todayStart.toISOString())
-    .lt("published_at", tomorrowStart.toISOString())
+    .gte("published_at", yesterdayStart.toISOString())
+    .lt("published_at", todayStart.toISOString())
     .order("published_at", { ascending: false })
     .limit(10);
 
@@ -152,8 +152,8 @@ export async function sendMorningDigestNotifications(): Promise<void> {
       user.id,
       "Today's Current Affairs Digest 📰",
       count > 0
-        ? `${count} editorial${count > 1 ? "s" : ""} ready for your current affairs prep today.`
-        : "Check back soon — today's editorials are being prepared.",
+        ? `${count} editorial${count > 1 ? "s" : ""} from yesterday ready for your current affairs prep.`
+        : "Yesterday's current affairs edition has no editorials yet.",
       "digest"
     );
 

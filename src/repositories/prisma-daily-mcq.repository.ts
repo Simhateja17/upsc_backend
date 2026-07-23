@@ -7,6 +7,42 @@ function getToday(): Date {
   return d;
 }
 
+function getWeekStart(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function isSameWeek(a: Date | null, b: Date): boolean {
+  if (!a) return false;
+  return getWeekStart(a).getTime() === getWeekStart(b).getTime();
+}
+
+function getMondayIndex(date: Date): number {
+  const day = date.getDay();
+  return day === 0 ? 6 : day - 1;
+}
+
+function buildCurrentWeekActivity(today: Date, currentStreak: number, existing?: unknown): boolean[] {
+  const activity = Array.isArray(existing) && existing.length === 7
+    ? existing.map(Boolean)
+    : [false, false, false, false, false, false, false];
+  const weekStart = getWeekStart(today);
+  const daysToMark = Math.max(1, currentStreak);
+
+  for (let offset = 0; offset < daysToMark; offset++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - offset);
+    d.setHours(0, 0, 0, 0);
+    if (d.getTime() < weekStart.getTime()) break;
+    activity[getMondayIndex(d)] = true;
+  }
+
+  return activity;
+}
+
 export function createPrismaDailyMCQRepository(): DailyMCQRepository {
   return {
     async findTodayMCQ() {
@@ -90,17 +126,26 @@ export function createPrismaDailyMCQRepository(): DailyMCQRepository {
       const isConsecutive = lastActive?.getTime() === yesterday.getTime();
       const newStreak = isConsecutive ? streak.currentStreak + 1 : 1;
       const newLongest = Math.max(newStreak, streak.longestStreak);
+      const nextWeekActivity = isSameWeek(lastActive, today)
+        ? buildCurrentWeekActivity(today, newStreak, streak.weekActivity)
+        : weekActivity;
       await prisma.userStreak.update({
         where: { userId },
-        data: { currentStreak: newStreak, longestStreak: newLongest, lastActiveDate: today, weekActivity },
+        data: { currentStreak: newStreak, longestStreak: newLongest, lastActiveDate: today, weekActivity: nextWeekActivity },
       });
     },
 
     async updateStreak(userId, newStreak, longest, today, weekActivity) {
+      const streak = await prisma.userStreak.findUnique({ where: { userId } });
+      const lastActive = streak?.lastActiveDate ? new Date(streak.lastActiveDate) : null;
+      if (lastActive) lastActive.setHours(0, 0, 0, 0);
+      const nextWeekActivity = streak && isSameWeek(lastActive, today)
+        ? buildCurrentWeekActivity(today, newStreak, streak.weekActivity)
+        : weekActivity;
       await prisma.userStreak.upsert({
         where: { userId },
-        create: { userId, currentStreak: newStreak, longestStreak: longest, lastActiveDate: today, weekActivity },
-        update: { currentStreak: newStreak, longestStreak: longest, lastActiveDate: today, weekActivity },
+        create: { userId, currentStreak: newStreak, longestStreak: longest, lastActiveDate: today, weekActivity: nextWeekActivity },
+        update: { currentStreak: newStreak, longestStreak: longest, lastActiveDate: today, weekActivity: nextWeekActivity },
       });
     },
 

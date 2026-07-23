@@ -33,6 +33,12 @@ export interface EditorialStats {
   totalSaved: number;
   weeklyRead: number;
   streak: number;
+  /** Editorials the user has read since local midnight today. */
+  readToday: number;
+  /** Daily reading goal (articles/day). */
+  dailyTarget: number;
+  /** Real per-day activity for the current week (Mon..Sun); true = read >=1 editorial that day. */
+  weekChecks: boolean[];
   todayCounts: {
     hindu: number;
     express: number;
