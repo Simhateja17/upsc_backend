@@ -1,4 +1,5 @@
 import prisma from "../config/database";
+import { getDerivedStudyStreak } from "../services/streak.service";
 import type {
   EditorialRepository,
   EditorialRow,
@@ -116,7 +117,9 @@ export function createPrismaEditorialRepository(): EditorialRepository {
         if (dayIndex >= 0 && dayIndex < 7) weekChecks[dayIndex] = true;
       }
 
-      const streakRow = await prisma.userStreak.findUnique({ where: { userId } });
+      // Use the derived streak so an editorial read contributes immediately,
+      // instead of relying on the legacy user_streaks snapshot.
+      const derivedStreak = await getDerivedStudyStreak(userId);
 
       const [hindu, express, ai, read] = await Promise.all([
         prisma.editorial.count({ where: { source: "The Hindu", publishedAt: { gte: recentSince } } }),
@@ -146,7 +149,7 @@ export function createPrismaEditorialRepository(): EditorialRepository {
         totalRead,
         totalSaved,
         weeklyRead,
-        streak: streakRow?.currentStreak || 0,
+        streak: derivedStreak.currentStreak,
         readToday,
         dailyTarget: 7,
         weekChecks,
