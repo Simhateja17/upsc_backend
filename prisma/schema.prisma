@@ -264,6 +264,7 @@ model MainsEvaluation {
   evaluatorConclusion  String?      @map("evaluator_conclusion")
   modelAnswerKeyPoints Json?        @map("model_answer_key_points")
   modelAnswerContent   String?      @map("model_answer_content")
+  modelAnswerStructure Json?        @map("model_answer_structure")
   parameterScores      Json?        @map("parameter_scores")
   attempt              MainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
@@ -1374,6 +1375,7 @@ model PyqMainsEvaluation {
   evaluatorConclusion  String?         @map("evaluator_conclusion")
   modelAnswerKeyPoints Json?           @map("model_answer_key_points")
   modelAnswerContent   String?         @map("model_answer_content")
+  modelAnswerStructure Json?           @map("model_answer_structure")
   parameterScores      Json?           @map("parameter_scores")
   attempt              PyqMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
@@ -1426,6 +1428,7 @@ model MockTestMainsEvaluation {
   evaluatorConclusion  String?              @map("evaluator_conclusion")
   modelAnswerKeyPoints Json?                @map("model_answer_key_points")
   modelAnswerContent   String?              @map("model_answer_content")
+  modelAnswerStructure Json?                @map("model_answer_structure")
   parameterScores      Json?                @map("parameter_scores")
   attempt              MockTestMainsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 

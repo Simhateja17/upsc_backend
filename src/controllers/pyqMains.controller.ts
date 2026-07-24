@@ -419,6 +419,7 @@ export const getPyqMainsResults = async (
         evaluatorConclusion: attempt.evaluation.evaluatorConclusion,
         modelAnswerKeyPoints: attempt.evaluation.modelAnswerKeyPoints,
         modelAnswerContent: attempt.evaluation.modelAnswerContent,
+        modelAnswerStructure: attempt.evaluation.modelAnswerStructure,
         parameterScores: attempt.evaluation.parameterScores,
         curatedModelAnswer,
         curatedModelAnswerFormat: curatedModelAnswer ? "markdown" : null,

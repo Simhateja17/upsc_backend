@@ -8,6 +8,7 @@ import { generateCheckedCopy, CheckedCopyAnswerHints } from "./checkedCopyGenera
 import { transcribeStudentAnswerFromUpload, TranscribedAnswerPage } from "./studentAnswerTranscriber";
 import { analyzeDocumentPageLayout, DocumentPageLayout } from "./documentLayout.service";
 import { mainsWordLimit, mainsWordRange, wordCountStatus, WordCountStatus } from "../utils/mainsPattern";
+import { normalizeStructuredModelAnswer, StructuredModelAnswer } from "../utils/modelAnswer";
 
 function evalElapsed(startedAt: number) {
   return `${Date.now() - startedAt}ms`;
@@ -33,6 +34,7 @@ interface EvaluationResult {
   evaluatorConclusion?: string;
   modelAnswerKeyPoints?: string[];
   modelAnswerContent?: string;
+  modelAnswerStructure?: StructuredModelAnswer;
   parameterScores?: Array<{ parameter: string; score: number; maxScore: number; comment?: string }>;
   wordCountAssessment?: {
     wordCount: number;
@@ -95,6 +97,7 @@ export interface EvaluationUpdate {
   evaluatorConclusion?: string | null;
   modelAnswerKeyPoints?: any;
   modelAnswerContent?: string | null;
+  modelAnswerStructure?: any;
   parameterScores?: any;
   modelAnswerAlignment?: any;
   evaluatedAt: Date | null;
@@ -297,7 +300,14 @@ Return ONLY a JSON object (no prose, no markdown fences):
   "nextAttemptFocus": "1-2 sentences telling the student exactly what to focus on in their next attempt at a similar question",
   "evaluatorConclusion": "2-3 sentence overall verdict in an encouraging-but-honest examiner tone, naming the single biggest gap and what score the answer could realistically reach if fixed",
   "modelAnswerKeyPoints": ["short bullet point the model answer must hit", "..."],
-  "modelAnswerContent": "the full model answer as GitHub-flavoured MARKDOWN with these exact section headings: a '## Introduction' section, then 2-4 body sections each with its own '## <thematic heading>' (use markdown '-' bullets and '**bold**' lead-ins where it aids clarity), then a final '## Conclusion' section. The prose (excluding the short headings) MUST stay within the ${expectedWords}-word limit — it is the worked example of a correctly-sized answer, so an over-length model answer is a contradiction.",
+  "modelAnswerContent": "legacy Markdown version of the model answer, matching modelAnswerStructure exactly",
+  "modelAnswerStructure": {
+    "introduction": "a concise opening paragraph",
+    "sections": [
+      { "heading": "a thematic UPSC body heading", "points": ["complete analytical point", "complete analytical point"] }
+    ],
+    "conclusion": "a concise, forward-looking conclusion"
+  },
   "wordCountAssessment": {
     "wordCount": ${wordCount},
     "wordLimit": ${expectedWords},
@@ -323,19 +333,20 @@ Return ONLY a JSON object (no prose, no markdown fences):
 
 For "keyTerms", list 6-10 terms (mix of found and missing). For "parameterScores", the seven maxScore values must sum to exactly ${question.marks} and the seven score values must sum to exactly the overall "score" value above.
 
-Both "modelAnswer" and "modelAnswerContent" must be at most ${expectedWords} words. Count before you emit them.`,
+Both "modelAnswer", "modelAnswerContent", and all prose across "modelAnswerStructure" must be at most ${expectedWords} words. Count before you emit them.`,
     },
   ];
 
   const system =
     "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. You enforce the UPSC word limit (10 marks→150 words, 15 marks→200 words, 20 marks→250 words): an over-length answer is penalised for padding, never rewarded for covering more, and every model answer you write stays inside that limit. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, return semantic marking intent for an SVG checked-copy renderer: use exact targetText from the student's answer, never target printed question/header text, use detailed teacher-style margin comments, and separate visual marks from comments. Do not invent targetText that is not present in the answer.";
 
-  return invokeModelJSON<EvaluationResult>(messages, {
+  const result = await invokeModelJSON<EvaluationResult>(messages, {
     system,
     maxTokens: 4096,
     temperature: 0.1,
     serviceName: "answerEvaluator",
   });
+  return { ...result, modelAnswerStructure: normalizeStructuredModelAnswer(result.modelAnswerStructure) || undefined };
 }
 
 function hasEvaluatorAnnotationPlan(plan: unknown): plan is EvaluatorCheckedCopyPlan {
@@ -651,7 +662,7 @@ export function triviallyBadAnswer(
  */
 export async function generateModelAnswerOnly(
   question: QuestionContext
-): Promise<Pick<EvaluationResult, "modelAnswer" | "modelAnswerKeyPoints" | "modelAnswerContent">> {
+): Promise<Pick<EvaluationResult, "modelAnswer" | "modelAnswerKeyPoints" | "modelAnswerContent" | "modelAnswerStructure">> {
   const wordLimit = mainsWordLimit(question.marks);
   const messages: BedrockMessage[] = [
     {
@@ -667,18 +678,24 @@ Return ONLY a JSON object (no prose, no markdown fences):
 {
   "modelAnswer": "concise model answer, at most ${wordLimit} words",
   "modelAnswerKeyPoints": ["short bullet point the model answer must hit", "..."],
-  "modelAnswerContent": "the full model answer as GitHub-flavoured MARKDOWN with these exact section headings: a '## Introduction' section, then 2-4 body sections each with its own '## <thematic heading>' (use markdown '-' bullets and '**bold**' lead-ins where it aids clarity), then a final '## Conclusion' section — prose (excluding the short headings) at most ${wordLimit} words"
+  "modelAnswerContent": "legacy Markdown version matching modelAnswerStructure exactly",
+  "modelAnswerStructure": {
+    "introduction": "a concise opening paragraph",
+    "sections": [{ "heading": "a thematic body heading", "points": ["complete analytical point", "complete analytical point"] }],
+    "conclusion": "a concise forward-looking conclusion"
+  }
 }`,
     },
   ];
 
-  return invokeModelJSON(messages, {
+  const result = await invokeModelJSON<EvaluationResult>(messages, {
     system:
       "You are a senior UPSC Mains examiner writing a reference model answer. You always respect the UPSC word limit (10 marks→150 words, 15 marks→200 words, 20 marks→250 words) — a model answer that exceeds its limit is not a model answer. Return valid JSON only.",
     maxTokens: 2600,
     temperature: 0.3,
     serviceName: "answerEvaluator.modelAnswerOnly",
   });
+  return { ...result, modelAnswerStructure: normalizeStructuredModelAnswer(result.modelAnswerStructure) || undefined };
 }
 
 /**
@@ -815,7 +832,7 @@ export async function evaluateAnswerGeneric(params: {
         });
         let unreadableModelAnswerFields: Pick<
           EvaluationResult,
-          "modelAnswer" | "modelAnswerKeyPoints" | "modelAnswerContent"
+          "modelAnswer" | "modelAnswerKeyPoints" | "modelAnswerContent" | "modelAnswerStructure"
         > = {};
         try {
           unreadableModelAnswerFields = await generateModelAnswerOnly(question);
@@ -847,6 +864,7 @@ export async function evaluateAnswerGeneric(params: {
           modelAnswer: unreadableModelAnswerFields.modelAnswer || null,
           modelAnswerKeyPoints: unreadableModelAnswerFields.modelAnswerKeyPoints || null,
           modelAnswerContent: unreadableModelAnswerFields.modelAnswerContent || null,
+          modelAnswerStructure: unreadableModelAnswerFields.modelAnswerStructure || null,
           evaluatedAt: new Date(),
         });
         return;
@@ -1245,6 +1263,7 @@ export async function evaluateAnswerGeneric(params: {
       evaluatorConclusion: result.evaluatorConclusion || null,
       modelAnswerKeyPoints: result.modelAnswerKeyPoints || null,
       modelAnswerContent: result.modelAnswerContent || null,
+      modelAnswerStructure: result.modelAnswerStructure || null,
       parameterScores: result.parameterScores || null,
       evaluatedAt: new Date(),
     });

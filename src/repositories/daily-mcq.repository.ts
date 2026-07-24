@@ -10,6 +10,7 @@ export interface DailyMCQRepository {
   getOrCreateStreak(userId: string, weekActivity: boolean[]): Promise<void>;
   updateStreak(userId: string, newStreak: number, longest: number, today: Date, weekActivity: boolean[]): Promise<void>;
   findAttempt(userId: string, mcqId: string): Promise<any>;
+  findAttemptById(userId: string, attemptId: string, includeResponses?: boolean): Promise<any>;
   countHigherScores(mcqId: string, score: number): Promise<number>;
   countTotalAttempts(mcqId: string): Promise<number>;
   findAttemptWithResponses(userId: string, mcqId: string): Promise<any>;

@@ -294,6 +294,7 @@ export const getMainsEvaluatorResults = async (
         evaluatorConclusion: attempt.evaluation.evaluatorConclusion,
         modelAnswerKeyPoints: attempt.evaluation.modelAnswerKeyPoints,
         modelAnswerContent: attempt.evaluation.modelAnswerContent,
+        modelAnswerStructure: attempt.evaluation.modelAnswerStructure,
         parameterScores: attempt.evaluation.parameterScores,
         wordCount: attempt.wordCount,
         submittedAt: attempt.submittedAt,

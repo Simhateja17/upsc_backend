@@ -533,11 +533,26 @@ export async function getTestAnalytics(userId: string) {
 
   const mainsTrend = mainsPoints.map((p, i) => ({
     attempt: `T${i + 1}`,
+    date: p.createdAt.toISOString(),
     score: Math.round(p.scorePct * 10) / 10,
     rawScore: p.score,
     maxScore: p.maxScore,
     source: p.source,
   }));
+  const mainsAttemptTimeline = [
+    ...raw.mainsAttempts.map((attempt: any) => ({
+      date: new Date(attempt.createdAt).toISOString(),
+      score: attempt.evaluation?.status === "completed" ? attempt.evaluation.score : null,
+    })),
+    ...raw.mockTestMainsAttempts.map((attempt: any) => ({
+      date: new Date(attempt.createdAt).toISOString(),
+      score: attempt.evaluation?.status === "completed" ? attempt.evaluation.score : null,
+    })),
+    ...raw.pyqMainsAttempts.map((attempt: any) => ({
+      date: new Date(attempt.createdAt).toISOString(),
+      score: attempt.evaluation?.status === "completed" ? attempt.evaluation.score : null,
+    })),
+  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const mainsScores = mainsTrend.map((t) => t.score);
   const mainsRawScores = mainsPoints.map((p) => p.score);
   const mainsStats = {
@@ -559,6 +574,40 @@ export async function getTestAnalytics(userId: string) {
     const avgSec = d.questions > 0 ? Math.round(d.time / d.questions) : 0;
     return { day, avgSeconds: avgSec };
   });
+
+  // Period-aware time metrics: today, the current Monday-Sunday week, and the
+  // current calendar month. Values remain weighted by question count.
+  const timeByDate: Record<string, { time: number; questions: number }> = {};
+  for (const attempt of raw.recentMcq) {
+    const questions = (attempt.correctCount ?? 0) + (attempt.wrongCount ?? 0) + (attempt.skippedCount ?? 0);
+    if (questions <= 0 || !attempt.createdAt) continue;
+    const dateKey = istDateKey(new Date(attempt.createdAt));
+    timeByDate[dateKey] ??= { time: 0, questions: 0 };
+    timeByDate[dateKey].time += attempt.timeTaken ?? 0;
+    timeByDate[dateKey].questions += questions;
+  }
+  const todayKey = istDateKey(now);
+  const shiftedNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+  const daysSinceMonday = (shiftedNow.getUTCDay() + 6) % 7;
+  const weekStartKey = istDateKey(now, -daysSinceMonday);
+  const monthKey = todayKey.slice(0, 7);
+  const averageTime = (bucket?: { time: number; questions: number }) =>
+    bucket && bucket.questions > 0 ? Math.round(bucket.time / bucket.questions) : 0;
+  const periodEntries = (startKey: string) =>
+    Object.entries(timeByDate)
+      .filter(([key]) => key >= startKey && key <= todayKey)
+      .sort(([a], [b]) => a.localeCompare(b));
+  const timePerQuestionTrend = {
+    day: [{ label: "Today", avgSeconds: averageTime(timeByDate[todayKey]) }],
+    week: periodEntries(weekStartKey).map(([key, bucket]) => ({
+      label: new Date(`${key}T00:00:00+05:30`).toLocaleDateString("en-US", { weekday: "short" }),
+      avgSeconds: averageTime(bucket),
+    })),
+    month: periodEntries(`${monthKey}-01`).map(([key, bucket]) => ({
+      label: new Date(`${key}T00:00:00+05:30`).toLocaleDateString("en-US", { day: "numeric", month: "short" }),
+      avgSeconds: averageTime(bucket),
+    })),
+  };
 
   // Test history (merged across 6 sources)
   const relDate = (d: Date) => {
@@ -687,8 +736,10 @@ export async function getTestAnalytics(userId: string) {
     dailyActivity,
     studyTypeDistribution,
     mainsTrend,
+    mainsAttemptTimeline,
     mainsStats,
     timePerQuestion,
+    timePerQuestionTrend,
     testHistory,
     dailyTrio,
     editorialDaysThisWeek: dailyTrio.editorialDays,

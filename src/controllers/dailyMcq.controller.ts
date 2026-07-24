@@ -170,11 +170,15 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
 export const getTodayResults = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const mcq = await dailyMcqRepo.findTodayMCQ();
-    if (!mcq) return res.status(404).json({ status: "error", message: "No MCQ challenge for today" });
+    const attemptId = typeof req.query.attemptId === "string" ? req.query.attemptId : null;
+    const todayMcq = attemptId ? null : await dailyMcqRepo.findTodayMCQ();
+    if (!attemptId && !todayMcq) return res.status(404).json({ status: "error", message: "No MCQ challenge for today" });
 
-    const attempt = await dailyMcqRepo.findAttempt(userId, mcq.id);
-    if (!attempt) return res.status(404).json({ status: "error", message: "No attempt found for today" });
+    const attempt = attemptId
+      ? await dailyMcqRepo.findAttemptById(userId, attemptId)
+      : await dailyMcqRepo.findAttempt(userId, todayMcq!.id);
+    if (!attempt) return res.status(404).json({ status: "error", message: "No matching attempt found" });
+    const mcq = attempt.dailyMcq ?? todayMcq;
 
     const higherCount = await dailyMcqRepo.countHigherScores(mcq.id, attempt.score);
     const totalAttempts = await dailyMcqRepo.countTotalAttempts(mcq.id);
@@ -193,11 +197,17 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
 export const getTodayReview = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const mcq = await dailyMcqRepo.findTodayWithQuestions();
-    if (!mcq) return res.status(404).json({ status: "error", message: "No MCQ challenge for today" });
+    const attemptId = typeof req.query.attemptId === "string" ? req.query.attemptId : null;
+    const todayMcq = attemptId ? null : await dailyMcqRepo.findTodayWithQuestions();
+    if (!attemptId && !todayMcq) return res.status(404).json({ status: "error", message: "No MCQ challenge for today" });
 
-    const attempt = await dailyMcqRepo.findAttemptWithResponses(userId, mcq.id);
+    const attempt = attemptId
+      ? await dailyMcqRepo.findAttemptById(userId, attemptId, true)
+      : await dailyMcqRepo.findAttemptWithResponses(userId, todayMcq!.id);
     if (!attempt) return res.status(404).json({ status: "error", message: "No attempt found" });
+    const mcq = attemptId
+      ? { ...attempt.dailyMcq, questions: await dailyMcqRepo.findQuestions(attempt.dailyMcqId, true) }
+      : todayMcq!;
 
     const responseMap = new Map<string, any>(attempt.responses.map((r: any) => [r.questionId, r]));
     const reviewData = mcq.questions

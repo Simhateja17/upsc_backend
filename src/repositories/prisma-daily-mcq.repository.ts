@@ -155,6 +155,16 @@ export function createPrismaDailyMCQRepository(): DailyMCQRepository {
       });
     },
 
+    async findAttemptById(userId, attemptId, includeResponses = false) {
+      return prisma.mCQAttempt.findFirst({
+        where: { id: attemptId, userId },
+        include: {
+          dailyMcq: true,
+          responses: includeResponses,
+        },
+      });
+    },
+
     async countHigherScores(mcqId, score) {
       return prisma.mCQAttempt.count({
         where: { dailyMcqId: mcqId, score: { gt: score } },

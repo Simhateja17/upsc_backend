@@ -412,6 +412,7 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
         evaluatorConclusion: attempt.evaluation.evaluatorConclusion,
         modelAnswerKeyPoints: attempt.evaluation.modelAnswerKeyPoints,
         modelAnswerContent: attempt.evaluation.modelAnswerContent,
+        modelAnswerStructure: attempt.evaluation.modelAnswerStructure,
         parameterScores: attempt.evaluation.parameterScores,
         wordCount: attempt.wordCount,
         answerText: attempt.answerText,

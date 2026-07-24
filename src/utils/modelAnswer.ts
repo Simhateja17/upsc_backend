@@ -22,3 +22,42 @@ export function deriveKeyPointsFromMarkdown(markdown: string | null | undefined)
   }
   return points;
 }
+
+/** Structured form used by Mains results and PDF reports. */
+export type StructuredModelAnswer = {
+  introduction: string;
+  sections: Array<{ heading: string; points: string[] }>;
+  conclusion: string;
+};
+
+const cleanStructuredText = (value: unknown): string =>
+  typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+
+/**
+ * Treat LLM output as untrusted at the API boundary. This keeps malformed
+ * sections from reaching the stored JSON or breaking a results PDF.
+ */
+export function normalizeStructuredModelAnswer(value: unknown): StructuredModelAnswer | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const source = value as Record<string, unknown>;
+  const introduction = cleanStructuredText(source.introduction);
+  const conclusion = cleanStructuredText(source.conclusion);
+  const sections = Array.isArray(source.sections)
+    ? source.sections
+        .map((section) => {
+          if (!section || typeof section !== "object" || Array.isArray(section)) return null;
+          const entry = section as Record<string, unknown>;
+          const heading = cleanStructuredText(entry.heading);
+          const points = Array.isArray(entry.points)
+            ? entry.points.map(cleanStructuredText).filter(Boolean).slice(0, 6)
+            : [];
+          return heading && points.length ? { heading, points } : null;
+        })
+        .filter((section): section is { heading: string; points: string[] } => Boolean(section))
+        .slice(0, 5)
+    : [];
+
+  return introduction || sections.length || conclusion
+    ? { introduction, sections, conclusion }
+    : null;
+}
