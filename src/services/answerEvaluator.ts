@@ -205,13 +205,14 @@ PRE-COMPUTED ALIGNMENT TO PLATFORM MODEL ANSWER:
 - Answer that addresses the question directly, has clear structure (intro/body/conclusion), relevant facts, but is incomplete or one-sided → 8-10 out of ${question.marks}.
 - Well-structured, multi-dimensional, with specific examples (reports/schemes/data/committees/case studies), balanced conclusion → 11-13 out of ${question.marks}.
 - Reserve 14-${question.marks} ONLY for exceptional answers: precise directive (examine/discuss/critically analyze) addressed, original insight, contemporary linkage, committee/data references, crisp conclusion. A topper-level answer.
-- WORD LIMIT IS BINDING. The prescribed limit is ${expectedWords} words for this ${question.marks}-marker (10 marks→150, 15 marks→200, 20 marks→250). Apply it as follows:
+- WORD LIMIT IS BINDING. The prescribed limit is ${expectedWords} words for this ${question.marks}-marker (10 marks→150, 15 marks→250, 20 marks→250). Apply it as follows:
   • Within ${wordRange.min}-${wordRange.max} words: no word-count penalty.
   • Over ${wordRange.max} words: deduct 1 mark, or 2 marks if more than 40% over. Say so explicitly in "improvements" and name the exact target ("Cut to ~${expectedWords} words"). Long answers are NOT rewarded — extra length usually means padding, repetition, or bullet-dumping instead of analysis. Never let a long answer score higher because it "covered more".
   • Under ${wordRange.min} words: deduct 1-2 marks for insufficient development of the demand, and say so in "improvements".
   • Whatever the length, the "Presentation" parameter score must reflect the word-limit breach.
 - Penalize factual errors heavily. If a claim is wrong, call it out in "improvements".
 - NEVER give pity marks. A blank or one-sentence answer should not get more than 1/${question.marks}.
+- "keyTerms" IS MANDATORY. You MUST always populate it with 6-10 specific terms (a mix of found and missing) an examiner would expect for this question — never omit it or return an empty array, regardless of how much other output you've already produced.
 - RAG calibration is binding: treat retrieved checked topper/evaluator copies as scoring anchors, not as automatic marks. If a retrieved answer scored 7/15, award 7/15 only when the student's answer is genuinely at that same standard. If the student's answer is weaker than the retrieved 7/15 answer in demand coverage, specificity, evidence, structure, or balance, award less. Do not award more than the best relevant retrieved example unless the student's answer is clearly and specifically superior, and explain that exact superiority in detailedFeedback. Generic polish is not enough.${modelAnswerContext ? `
 - PYQ MODEL-ANSWER ALIGNMENT IS BINDING: when a platform model answer was supplied above, treat it as the canonical reference. The pre-computed alignment band ("${modelAnswerContext.alignment.band}") is informative but NOT decisive; you decide the band based on your own examiner judgement of demand-coverage against the model answer. You MUST:
   • If the band is "excellent": treat missing key terms as minor gaps unless fundamental to the demand; lock at no less than the equivalent RAG anchor or 11/${question.marks}, whichever applies for the question demand.
@@ -321,14 +322,14 @@ Return ONLY a JSON object (no prose, no markdown fences):
   }` : ""}
 }
 
-For "keyTerms", list 6-10 terms (mix of found and missing). For "parameterScores", the seven maxScore values must sum to exactly ${question.marks} and the seven score values must sum to exactly the overall "score" value above.
+"keyTerms" is a REQUIRED field — list 6-10 terms (mix of found and missing). Never omit it or leave it empty. For "parameterScores", the seven maxScore values must sum to exactly ${question.marks} and the seven score values must sum to exactly the overall "score" value above.
 
 Both "modelAnswer" and "modelAnswerContent" must be at most ${expectedWords} words. Count before you emit them.`,
     },
   ];
 
   const system =
-    "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. You enforce the UPSC word limit (10 marks→150 words, 15 marks→200 words, 20 marks→250 words): an over-length answer is penalised for padding, never rewarded for covering more, and every model answer you write stays inside that limit. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, return semantic marking intent for an SVG checked-copy renderer: use exact targetText from the student's answer, never target printed question/header text, use detailed teacher-style margin comments, and separate visual marks from comments. Do not invent targetText that is not present in the answer.";
+    "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. You enforce the UPSC word limit (10 marks→150 words, 15 marks→250 words, 20 marks→250 words): an over-length answer is penalised for padding, never rewarded for covering more, and every model answer you write stays inside that limit. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, return semantic marking intent for an SVG checked-copy renderer: use exact targetText from the student's answer, never target printed question/header text, use detailed teacher-style margin comments, and separate visual marks from comments. Do not invent targetText that is not present in the answer.";
 
   return invokeModelJSON<EvaluationResult>(messages, {
     system,
@@ -661,7 +662,7 @@ ${question.questionText}
 
 Write a model answer a UPSC Mains topper would submit for this question.
 
-STRICT WORD LIMIT: ${wordLimit} words (UPSC pattern — 10 marks→150 words, 15 marks→200 words, 20 marks→250 words). A topper's answer fits the limit; going over is a fault, not a virtue. Both "modelAnswer" and "modelAnswerContent" must be at most ${wordLimit} words.
+STRICT WORD LIMIT: ${wordLimit} words (UPSC pattern — 10 marks→150 words, 15 marks→250 words, 20 marks→250 words). A topper's answer fits the limit; going over is a fault, not a virtue. Both "modelAnswer" and "modelAnswerContent" must be at most ${wordLimit} words.
 
 Return ONLY a JSON object (no prose, no markdown fences):
 {
@@ -674,7 +675,7 @@ Return ONLY a JSON object (no prose, no markdown fences):
 
   return invokeModelJSON(messages, {
     system:
-      "You are a senior UPSC Mains examiner writing a reference model answer. You always respect the UPSC word limit (10 marks→150 words, 15 marks→200 words, 20 marks→250 words) — a model answer that exceeds its limit is not a model answer. Return valid JSON only.",
+      "You are a senior UPSC Mains examiner writing a reference model answer. You always respect the UPSC word limit (10 marks→150 words, 15 marks→250 words, 20 marks→250 words) — a model answer that exceeds its limit is not a model answer. Return valid JSON only.",
     maxTokens: 2600,
     temperature: 0.3,
     serviceName: "answerEvaluator.modelAnswerOnly",
