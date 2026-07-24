@@ -3,6 +3,7 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import { editorialRepo } from "../repositories/prisma-editorial.repository";
 import { categorize, extractTags, isDailyEditorialWorthy } from "./categorizer";
+import { mapEditorialToSyllabus, mappingDisplayTags } from "./editorialSyllabusMapper";
 
 const parser = new Parser({ timeout: 10000 });
 const MIN_CONTENT_LENGTH = 50; // matches editorialSummarizer.ts's NO_CONTENT threshold
@@ -53,6 +54,9 @@ export interface FetchedArticle {
   source: string;
   category: string;
   tags: string[];
+  primarySyllabusPath: unknown;
+  secondarySyllabusPaths: unknown;
+  syllabusMappingSource: string;
   publishedAt: Date;
 }
 
@@ -78,13 +82,17 @@ export async function fetchRssArticles(): Promise<FetchedArticle[]> {
 
           if (!isDailyEditorialWorthy(title, summary)) continue;
 
+          const mapping = await mapEditorialToSyllabus(title, summary);
           results.push({
             title,
             summary: summary || null,
             sourceUrl: item.link || item.guid || "",
             source,
-            category: categorize(title, summary),
-            tags: extractTags(title, summary),
+            category: mapping.primary?.subject || categorize(title, summary),
+            tags: mapping.primary ? mappingDisplayTags(mapping) : extractTags(title, summary),
+            primarySyllabusPath: mapping.primary,
+            secondarySyllabusPaths: mapping.secondary,
+            syllabusMappingSource: mapping.source,
             publishedAt: item.pubDate ? new Date(item.pubDate) : new Date(),
           });
         }
@@ -121,6 +129,9 @@ export async function saveArticlesToDb(articles: FetchedArticle[]): Promise<numb
       summary: article.summary,
       content,
       tags: article.tags,
+      primarySyllabusPath: article.primarySyllabusPath as any,
+      secondarySyllabusPaths: article.secondarySyllabusPaths as any,
+      syllabusMappingSource: article.syllabusMappingSource,
       aiSummary: null,
       publishedAt: article.publishedAt,
     });

@@ -41,6 +41,7 @@ router.post("/pyq/vectorize", pyqCtrl.triggerPYQVectorization);
 
 // ==================== Editorial Management ====================
 router.get("/editorials", editorialCtrl.getEditorials);
+router.get("/editorial-syllabus-paths", editorialCtrl.getEditorialSyllabusPaths);
 router.post("/editorials", editorialCtrl.createEditorial);
 router.put("/editorials/:id", editorialCtrl.updateEditorial);
 router.delete("/editorials/:id", editorialCtrl.deleteEditorial);

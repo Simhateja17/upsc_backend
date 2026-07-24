@@ -4,6 +4,7 @@ import { summarizeEditorialStructured } from "../services/editorialSummarizer";
 import { getNewsArticlesBySource, syncNewsToEditorials } from "../services/newsApi";
 import { runRssFetch } from "../services/rssFetcher";
 import { categorize, extractTags, relevanceScore, isValidCategory, isDailyEditorialWorthy } from "../services/categorizer";
+import { mapEditorialToSyllabus, mappingDisplayTags, type EditorialSyllabusMapping, type SyllabusPath } from "../services/editorialSyllabusMapper";
 import { istDateKey, istDayWindow, istMonthWindow } from "../utils/istDate";
 
 function parseMonthWindow(month: unknown): { since: Date; until: Date; monthPrefix: string } | null {
@@ -24,6 +25,18 @@ function parseMonthWindow(month: unknown): { since: Date; until: Date; monthPref
 function displayCategoryForEditorial(editorial: { title: string; summary?: string | null; content?: string | null; category: string }) {
   const computed = categorize(editorial.title, editorial.summary, editorial.content);
   return isValidCategory(computed) ? computed : editorial.category;
+}
+
+function storedSyllabusMapping(editorial: { primarySyllabusPath?: unknown; secondarySyllabusPaths?: unknown; syllabusMappingSource?: string | null }): EditorialSyllabusMapping | null {
+  const primary = editorial.primarySyllabusPath as SyllabusPath | null | undefined;
+  const secondary = editorial.secondarySyllabusPaths as SyllabusPath[] | null | undefined;
+  if (!primary || typeof primary.subject !== "string" || typeof primary.subTopic !== "string") return null;
+  return {
+    primary,
+    secondary: Array.isArray(secondary) ? secondary.filter((path) => path && typeof path.subTopic === "string").slice(0, 2) : [],
+    source: editorial.syllabusMappingSource === "ai" ? "ai" : "deterministic",
+    confidence: 1,
+  };
 }
 
 /**
@@ -52,10 +65,13 @@ export const getTodayEditorials = async (req: Request, res: Response, next: Next
     const editorials = rawEditorials
       .filter((e) => isDailyEditorialWorthy(e.title, e.summary, e.content))
       .map((e) => {
-        const category = displayCategoryForEditorial(e);
-        const tags = [category, ...extractTags(e.title, e.summary, e.content)]
+        const mapping = storedSyllabusMapping(e);
+        const category = mapping?.primary?.subject || displayCategoryForEditorial(e);
+        const tags = mapping?.primary
+          ? mappingDisplayTags(mapping)
+          : [category, ...extractTags(e.title, e.summary, e.content)]
           .filter((tag, index, all) => all.indexOf(tag) === index);
-        return { ...e, category, tags };
+        return { ...e, category, tags, primarySyllabusPath: mapping?.primary || null, secondarySyllabusPaths: mapping?.secondary || [] };
       })
       .filter((e) => isValidCategory(e.category))
       .map((e) => ({
@@ -257,20 +273,24 @@ export const getLiveNews = async (req: Request, res: Response, next: NextFunctio
 
     const articles = await getNewsArticlesBySource(sourceType);
 
-    const transformedArticles = articles
-      .map((article) => ({
+    const transformedArticles = (await Promise.all(articles.map(async (article) => {
+      const mapping = await mapEditorialToSyllabus(article.title, article.description, article.content);
+      return {
         id: Buffer.from(article.url).toString("base64").slice(0, 16),
         title: article.title,
         source: article.source.name || sourceType,
         sourceUrl: article.url,
-        category: categorize(article.title, article.description, article.content),
+        category: mapping.primary?.subject || categorize(article.title, article.description, article.content),
         summary: article.description || null,
         content: article.content || null,
-        tags: extractTags(article.title, article.description, article.content),
+        tags: mapping.primary ? mappingDisplayTags(mapping) : extractTags(article.title, article.description, article.content),
+        primarySyllabusPath: mapping.primary,
+        secondarySyllabusPaths: mapping.secondary,
         publishedAt: article.publishedAt,
         isRead: false,
         isSaved: false,
-      }))
+      };
+    })))
       .filter((a) => isValidCategory(a.category) && isDailyEditorialWorthy(a.title, a.summary, a.content));
 
     res.json({ status: "success", data: transformedArticles });

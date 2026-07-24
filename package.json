@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed:cms": "npx tsx prisma/seed-cms.ts",
+    "editorials:backfill-syllabus": "npx tsx scripts/backfill-editorial-syllabus-mappings.ts",
     "pyq:import-csvs": "node scripts/import-pyq-csvs.mjs",
     "pyq:mains:import-csvs": "node scripts/import-mains-pyq-csvs.mjs",
     "pyq:essay:import-csv": "node scripts/import-mains-pyq-csvs.mjs --essay-only",

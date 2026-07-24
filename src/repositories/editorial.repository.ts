@@ -13,6 +13,10 @@ export interface EditorialRow {
   summary: string | null;
   content: string | null;
   tags: string[];
+  primarySyllabusPath?: unknown | null;
+  secondarySyllabusPaths?: unknown | null;
+  syllabusMappingSource?: string | null;
+  syllabusMappingOverridden?: boolean;
   aiSummary: string | null;
   publishedAt: Date;
   createdAt: Date;

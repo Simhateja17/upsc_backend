@@ -178,7 +178,7 @@ export function createPrismaEditorialRepository(): EditorialRepository {
     },
 
     async create(row) {
-      const created = await prisma.editorial.create({ data: row });
+      const created = await prisma.editorial.create({ data: row as any });
       return created as EditorialRow;
     },
   };

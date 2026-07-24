@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { editorialRepo } from '../repositories/prisma-editorial.repository';
 import { categorize, extractTags, isDailyEditorialWorthy } from './categorizer';
+import { mapEditorialToSyllabus, mappingDisplayTags } from './editorialSyllabusMapper';
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const NEWS_API_BASE_URL = 'https://newsapi.org/v2';
@@ -161,8 +162,9 @@ export async function syncNewsToEditorials(): Promise<number> {
 
         if (!isDailyEditorialWorthy(article.title, article.description, article.content)) continue;
 
-        const category = categorize(article.title, article.description, article.content);
-        const tags = extractTags(article.title, article.description, article.content);
+        const mapping = await mapEditorialToSyllabus(article.title, article.description, article.content);
+        const category = mapping.primary?.subject || categorize(article.title, article.description, article.content);
+        const tags = mapping.primary ? mappingDisplayTags(mapping) : extractTags(article.title, article.description, article.content);
 
         await editorialRepo.create({
           title: article.title,
@@ -172,6 +174,9 @@ export async function syncNewsToEditorials(): Promise<number> {
           summary: article.description || null,
           content: article.content || null,
           tags,
+          primarySyllabusPath: mapping.primary as any,
+          secondarySyllabusPaths: mapping.secondary as any,
+          syllabusMappingSource: mapping.source,
           aiSummary: null,
           publishedAt: new Date(article.publishedAt),
         });
