@@ -1160,6 +1160,7 @@ model SpacedRepItem {
   repetitions      Int       @default(0)
   status           String    @default("new")
   scheduleDay      Int       @default(3) @map("schedule_day")
+  scheduleDays     Json?     @map("schedule_days")
   remindEnabled    Boolean   @default(false) @map("remind_enabled")
   addedToFlashcard Boolean   @default(false) @map("added_to_flashcard")
   nextReviewAt     DateTime  @default(now()) @map("next_review_at")

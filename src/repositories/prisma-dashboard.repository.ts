@@ -180,7 +180,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
     async getTestAnalyticsRaw(userId) {
       const sevenDaysAgo = istDayWindow(istDateKey(new Date(), -6)).since;
 
-      const [mcqAgg, recentMcq, mockAttempts, mainsAttempts, mockTestMainsAttempts, pyqMainsAttempts, completedStudyTasksLast7Days, streak, seriesRes, editorialReads] =
+      const [mcqAgg, recentMcq, mockAttempts, mainsAttempts, mockTestMainsAttempts, pyqPrelimsAttempts, pyqMainsAttempts, completedStudyTasksLast7Days, streak, seriesRes, editorialReads] =
         await Promise.all([
           prisma.mCQAttempt.aggregate({
             where: { userId },
@@ -219,11 +219,17 @@ export function createPrismaDashboardRepository(): DashboardRepository {
               mockTest: { select: { title: true } },
             },
           }),
+          prisma.pyqPrelimsAttempt.findMany({
+            where: { userId }, orderBy: { completedAt: "desc" }, take: 30,
+            include: {
+              question: { select: { id: true, year: true, paper: true, subject: true } },
+            },
+          }),
           prisma.pyqMainsAttempt.findMany({
             where: { userId }, orderBy: { createdAt: "asc" },
             include: {
               evaluation: { select: { score: true, maxScore: true, status: true } },
-              mainsQuestion: { select: { subject: true, paper: true, year: true } },
+              mainsQuestion: { select: { subject: true, paper: true, year: true, status: true, sourceFile: true } },
             },
           }),
           prisma.studyPlanTask.findMany({
@@ -266,6 +272,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
         mockAttempts,
         mainsAttempts,
         mockTestMainsAttempts,
+        pyqPrelimsAttempts,
         pyqMainsAttempts,
         completedStudyTasksLast7Days,
         streak,

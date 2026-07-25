@@ -23,7 +23,7 @@ function mapItem(item: {
   sourceType?: string;
   source?: string;
   scheduleDay?: number;
-  scheduleDays?: number[] | null;
+  scheduleDays?: unknown;
   remindEnabled?: boolean;
   addedToFlashcard?: boolean;
 }) {
@@ -37,7 +37,9 @@ function mapItem(item: {
     sourceType: item.sourceType ?? 'custom',
     source: item.source ?? 'Custom',
     scheduleDay: item.scheduleDay ?? item.interval ?? 3,
-    scheduleDays: item.scheduleDays ?? null,
+    scheduleDays: Array.isArray(item.scheduleDays)
+      ? item.scheduleDays.filter((day): day is number => typeof day === "number" && Number.isFinite(day))
+      : null,
     remindEnabled: item.remindEnabled ?? false,
     addedToFlashcard: item.addedToFlashcard ?? false,
     nextReviewAt: item.nextReviewAt.toISOString(),
@@ -47,6 +49,18 @@ function mapItem(item: {
     repetitions: item.repetitions,
     status: item.status,
   };
+}
+
+function normalizeScheduleDays(value: unknown, fallback: number): number[] {
+  const values = Array.isArray(value) ? value : [fallback];
+  const days = values.filter((day): day is number => typeof day === "number" && Number.isFinite(day) && day > 0);
+  return Array.from(new Set(days)).sort((a, b) => a - b);
+}
+
+function scheduledReviewDate(createdAt: Date, day: number): Date {
+  const due = new Date(createdAt);
+  due.setDate(due.getDate() + day);
+  return due;
 }
 
 async function spacedRepAccess(userId: string) {
@@ -116,11 +130,13 @@ export const getSeeds = async (req: Request, res: Response, next: NextFunction) 
       orderBy: { nextReviewAt: "asc" },
     });
 
-    const overdue = allItems.filter((i) => i.nextReviewAt < todayStart).map(mapItem);
-    const dueToday = allItems
+    const pendingItems = allItems.filter((item) => item.status !== "completed");
+
+    const overdue = pendingItems.filter((i) => i.nextReviewAt < todayStart).map(mapItem);
+    const dueToday = pendingItems
       .filter((i) => i.nextReviewAt >= todayStart && i.nextReviewAt < tomorrowStart)
       .map(mapItem);
-    const scheduled = allItems.filter((i) => i.nextReviewAt >= tomorrowStart).map(mapItem);
+    const scheduled = pendingItems.filter((i) => i.nextReviewAt >= tomorrowStart).map(mapItem);
 
     // Streak: consecutive days with at least one review ending at today or yesterday
     const reviewedItems = allItems.filter((i) => i.lastReviewedAt != null);
@@ -175,7 +191,7 @@ export const getSubjectSummaries = async (req: Request, res: Response, next: Nex
     const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
     const items = await prisma.spacedRepItem.findMany({
-      where: { userId },
+      where: { userId, status: { not: "completed" } },
       select: { subject: true, nextReviewAt: true },
     });
 
@@ -272,9 +288,10 @@ export const addItem = async (req: Request, res: Response, next: NextFunction) =
       return;
     }
 
-    const days = typeof scheduleDay === "number" ? scheduleDay : (scheduleDays && scheduleDays.length > 0 ? scheduleDays[0] : 3);
-    const nextReviewAt = new Date();
-    nextReviewAt.setDate(nextReviewAt.getDate() + days);
+    const schedule = normalizeScheduleDays(scheduleDays, typeof scheduleDay === "number" ? scheduleDay : 3);
+    const days = schedule[0] ?? 3;
+    const createdAt = new Date();
+    const nextReviewAt = scheduledReviewDate(createdAt, days);
 
     const item = await prisma.spacedRepItem.create({
       data: {
@@ -285,10 +302,12 @@ export const addItem = async (req: Request, res: Response, next: NextFunction) =
         topic: topic || null,
         interval: days,
         scheduleDay: days,
+        scheduleDays: schedule,
         source: source || 'Custom',
         sourceType: sourceType || 'custom',
         remindEnabled: remindEnabled || false,
         nextReviewAt,
+        createdAt,
         status: "new",
       },
     });
@@ -307,7 +326,7 @@ export const updateItem = async (req: Request, res: Response, next: NextFunction
   try {
     const userId = req.user!.id;
     const id = param(req, "id");
-    const { rating, scheduleDay, remindEnabled, addedToFlashcard } = req.body;
+    const { rating, completeReview, scheduleDay, scheduleDays, remindEnabled, addedToFlashcard, questionText, answer, subject, source, sourceType } = req.body;
 
     const existing = await prisma.spacedRepItem.findFirst({ where: { id, userId } });
     if (!existing) {
@@ -315,7 +334,21 @@ export const updateItem = async (req: Request, res: Response, next: NextFunction
       return;
     }
 
-    if (rating) {
+    if (completeReview) {
+      const days = normalizeScheduleDays(existing.scheduleDays, existing.scheduleDay);
+      const currentIndex = Math.max(0, days.indexOf(existing.scheduleDay));
+      const nextDay = days[currentIndex + 1];
+      const completed = nextDay === undefined;
+      const updated = await prisma.spacedRepItem.update({
+        where: { id },
+        data: {
+          lastReviewedAt: new Date(),
+          status: completed ? "completed" : "review",
+          ...(completed ? {} : { scheduleDay: nextDay, interval: nextDay, nextReviewAt: scheduledReviewDate(existing.createdAt, nextDay) }),
+        },
+      });
+      res.json({ status: "success", data: mapItem(updated) });
+    } else if (rating) {
       const { repetitions, easeFactor, interval } = applySM2(
         existing.repetitions,
         existing.easeFactor,
@@ -343,6 +376,12 @@ export const updateItem = async (req: Request, res: Response, next: NextFunction
         nextReviewAt?: Date;
         remindEnabled?: boolean;
         addedToFlashcard?: boolean;
+        scheduleDays?: number[];
+        questionText?: string;
+        answer?: string;
+        subject?: string;
+        source?: string;
+        sourceType?: string;
       } = {};
 
       if (typeof scheduleDay === "number") {
@@ -352,8 +391,21 @@ export const updateItem = async (req: Request, res: Response, next: NextFunction
         nextReviewAt.setDate(nextReviewAt.getDate() + scheduleDay);
         updateData.nextReviewAt = nextReviewAt;
       }
+      if (scheduleDays !== undefined) {
+        const days = normalizeScheduleDays(scheduleDays, existing.scheduleDay);
+        const currentDay = days[0] ?? existing.scheduleDay;
+        updateData.scheduleDays = days;
+        updateData.scheduleDay = currentDay;
+        updateData.interval = currentDay;
+        updateData.nextReviewAt = scheduledReviewDate(existing.createdAt, currentDay);
+      }
       if (remindEnabled !== undefined) updateData.remindEnabled = Boolean(remindEnabled);
       if (addedToFlashcard !== undefined) updateData.addedToFlashcard = Boolean(addedToFlashcard);
+      if (typeof questionText === "string") updateData.questionText = questionText;
+      if (typeof answer === "string") updateData.answer = answer;
+      if (typeof subject === "string") updateData.subject = normalizeStudyPlannerSubject(subject);
+      if (typeof source === "string") updateData.source = source;
+      if (typeof sourceType === "string") updateData.sourceType = sourceType;
 
       const updated = await prisma.spacedRepItem.update({ where: { id }, data: updateData });
       res.json({ status: "success", data: mapItem(updated) });

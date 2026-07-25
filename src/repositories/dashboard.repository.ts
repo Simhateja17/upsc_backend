@@ -46,6 +46,7 @@ export interface TestAnalyticsRaw {
   mockAttempts: any[];
   mainsAttempts: any[];
   mockTestMainsAttempts: any[];
+  pyqPrelimsAttempts: any[];
   pyqMainsAttempts: any[];
   completedStudyTasksLast7Days: Array<{
     title: string;

@@ -94,6 +94,7 @@ async function sendSpacedRepReminders(): Promise<void> {
   const dueItems = await prisma.spacedRepItem.findMany({
     where: {
       remindEnabled: true,
+      status: { not: "completed" },
       nextReviewAt: { lte: endOfToday },
     },
     select: { userId: true, questionText: true, subject: true, nextReviewAt: true },

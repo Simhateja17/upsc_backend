@@ -609,7 +609,7 @@ export async function getTestAnalytics(userId: string) {
     })),
   };
 
-  // Test history (merged across 6 sources)
+  // Test history (merged across every attempt surface)
   const relDate = (d: Date) => {
     const diff = Math.floor((now.getTime() - d.getTime()) / 86400000);
     return diff === 0 ? "Today" : diff === 1 ? "Yesterday" : `${diff}d ago`;
@@ -661,12 +661,33 @@ export async function getTestAnalytics(userId: string) {
     });
   }
 
+  for (const a of raw.pyqPrelimsAttempts) {
+    const completedAt = new Date(a.completedAt ?? a.createdAt);
+    const q = a.question;
+    historyRows.push({
+      id: a.id, name: q ? `PYQ ${q.year} · ${q.subject}` : "PYQ Prelims",
+      series: q?.paper ? `PYQ · ${q.paper}` : "PYQ · Prelims",
+      date: relDate(completedAt), score: `${a.score}/${a.totalMarks}`,
+      accuracy: Math.round(a.accuracy), sortAt: completedAt.getTime(), rank: null,
+      type: "pyq-prelims", routeParams: { questionId: a.pyqQuestionId },
+    });
+  }
+
   for (const a of raw.pyqMainsAttempts) {
     if (!a.evaluation || a.evaluation.status !== "completed") continue;
     const createdAt = new Date(a.createdAt);
     const max = a.evaluation.maxScore || 15;
     const pct = max > 0 ? Math.round((a.evaluation.score / max) * 100) : 0;
     const q = a.mainsQuestion;
+    if (q?.status === "custom" && q.sourceFile === "mains-answer-evaluator") {
+      historyRows.push({
+        id: a.id, name: "Mains Answer Evaluator", series: "Mains Answer Evaluator",
+        date: relDate(createdAt), score: `${a.evaluation.score}/${max}`, accuracy: pct,
+        sortAt: createdAt.getTime(), rank: null, type: "mains-evaluator",
+        routeParams: { attemptId: a.id },
+      });
+      continue;
+    }
     historyRows.push({
       id: a.id, name: q ? `PYQ ${q.year} · ${q.subject}` : "PYQ Mains",
       series: q?.paper ? `PYQ · ${q.paper}` : "PYQ · Mains",
@@ -697,7 +718,7 @@ export async function getTestAnalytics(userId: string) {
   const mockPrelimsQ = raw.mockAttempts.reduce((s: number, a: any) => s + (a.correctCount ?? 0) + (a.wrongCount ?? 0) + (a.skippedCount ?? 0), 0);
   const seriesQ = (seriesAttempts as any[]).reduce((s: number, a: any) => s + (a.total ?? 0), 0);
   const mainsQ = raw.mainsAttempts.length + raw.mockTestMainsAttempts.length + raw.pyqMainsAttempts.length;
-  const totalQuestions = mcqQuestions + mockPrelimsQ + seriesQ + mainsQ;
+  const totalQuestions = mcqQuestions + mockPrelimsQ + seriesQ + raw.pyqPrelimsAttempts.length + mainsQ;
   const dailyTrio = {
     mcqDays: countDistinctActiveDays(raw.recentMcq.map((attempt: any) => new Date(attempt.createdAt))),
     mainsDays: countDistinctActiveDays([
@@ -711,7 +732,7 @@ export async function getTestAnalytics(userId: string) {
   return {
     summary: {
       totalTests:
-        raw.mockAttempts.length + raw.mockTestMainsAttempts.length + raw.pyqMainsAttempts.length +
+        raw.mockAttempts.length + raw.mockTestMainsAttempts.length + raw.pyqPrelimsAttempts.length + raw.pyqMainsAttempts.length +
         seriesAttempts.length + (raw.mcqAgg._count.id ?? 0) + raw.mainsAttempts.length,
       avgAccuracy: Math.round((raw.mcqAgg._avg.accuracy ?? 0) * 10) / 10,
       avgScore: mainsStats.avgScore,
@@ -727,6 +748,7 @@ export async function getTestAnalytics(userId: string) {
         dailyAnswer: raw.mainsAttempts.length,
         mockPrelims: raw.mockAttempts.length,
         mockMains: raw.mockTestMainsAttempts.length,
+        pyqPrelims: raw.pyqPrelimsAttempts.length,
         pyqMains: raw.pyqMainsAttempts.length,
         testSeries: seriesAttempts.length,
       },
