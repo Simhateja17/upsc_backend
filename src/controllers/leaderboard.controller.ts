@@ -70,7 +70,8 @@ function mapRealRows(rows: LeaderboardRawRow[]) {
       mcqAttemptCount,
       mainsAttemptCount,
       attemptCount,
-      isRankUnlocked: attemptCount >= 3,
+      // Overall eligibility requires one MCQ-type and one Mains-type attempt.
+      isRankUnlocked: mcqAttemptCount > 0 && mainsAttemptCount > 0,
       isSynthetic: false as const,
       // Kept at full precision for ranking/tie-breaking; not sent to clients.
       _rankScore: { mcqAvg, mainsAvg, totalScore },
@@ -320,18 +321,22 @@ export const getMyRank = async (req: Request, res: Response, next: NextFunction)
     const myMainsIndex = mainsRanked.findIndex((item) => item.userId === userId);
     const myMainsRank = myMainsIndex >= 0 ? mainsRanked[myMainsIndex].rank : -1;
 
-    const isRankUnlocked = Boolean(myData?.isRankUnlocked);
-    const attemptsToUnlockRank = Math.max(0, 3 - (myData?.attemptCount ?? 0));
+    const isOverallRankEligible = Boolean(myData && myData.mcqAttemptCount > 0 && myData.mainsAttemptCount > 0);
+    const isMcqRankEligible = Boolean(myData && myData.mcqAttemptCount > 0);
+    const isMainsRankEligible = Boolean(myData && myData.mainsAttemptCount > 0);
 
     res.json({
       status: "success",
       data: {
         ...(myData ? stripInternal(myData) : {}),
-        rank: isRankUnlocked && myOverallRank > 0 ? myOverallRank : null,
-        mcqRank: isRankUnlocked && myMcqRank > 0 ? myMcqRank : null,
-        mainsRank: isRankUnlocked && myMainsRank > 0 ? myMainsRank : null,
-        isRankUnlocked,
-        attemptsToUnlockRank,
+        rank: isOverallRankEligible && myOverallRank > 0 ? myOverallRank : null,
+        mcqRank: isMcqRankEligible && myMcqRank > 0 ? myMcqRank : null,
+        mainsRank: isMainsRankEligible && myMainsRank > 0 ? myMainsRank : null,
+        // Backwards-compatible alias: this now represents Overall eligibility.
+        isRankUnlocked: isOverallRankEligible,
+        isOverallRankEligible,
+        isMcqRankEligible,
+        isMainsRankEligible,
         // Keep the denominator paired with the same (real + fallback) list used
         // to calculate `mcqRank`. `realRankedCount` is retained for admin/community
         // metrics, but using it beside a synthetic-aware rank produced values such
