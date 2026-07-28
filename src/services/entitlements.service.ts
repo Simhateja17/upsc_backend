@@ -88,19 +88,19 @@ const DEFAULT_POLICIES: Record<PlanTier, EntitlementPolicy> = {
     tier: "aspire",
     limits: {
       jeet_ai_message: { period: "day", limit: 10 },
-      mains_evaluation: { period: "day", limit: 5 },
+      mains_evaluation: { period: "day", limit: 2 },
       prelims_mock_attempt: { period: "day", limit: 5 },
-      syllabus_tracker_items: { period: "unlimited", limit: null },
+      syllabus_tracker_items: { period: "total", limit: 5 },
     },
     access: {
       analytics: "limited",
-      test_analytics: "limited",
+      test_analytics: "none",
       revision_suite: "limited",
       flashcards: "limited",
       mindmaps: "limited",
       spaced_repetition: "limited",
-      syllabus_tracker: "full",
-      live_study_room: "none",
+      syllabus_tracker: "limited",
+      live_study_room: "limited",
       mental_health_buddy: "full",
       mentorship: "none",
     },
@@ -350,6 +350,9 @@ export async function getEffectiveEntitlements(userId: string) {
     }
   }
 
+  // Aspire is now the free, always-on entry tier (no purchase/subscription required) — see billing redesign.
+  if (tier === "free") tier = "aspire";
+
   if (override?.planTierOverride) {
     const overrideTier = normalizePlanTier(override.planTierOverride);
     const isAdminPlanSimulation = user?.role === "admin" && override.reason === ADMIN_PLAN_SIMULATION_REASON;
@@ -488,6 +491,7 @@ export async function getEntitlementSummary(userId: string) {
           name: effective.plan.name,
           tier: normalizePlanTier(effective.plan.tier, effective.plan.name),
           billingCycle: effective.plan.billingCycle,
+          price: effective.plan.price,
         }
       : null,
     subscription: effective.subscription
