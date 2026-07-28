@@ -8,6 +8,9 @@ import {
   initiatePayment,
   verifyPayment,
   cancelSubscription,
+  getBillingAddress,
+  saveBillingAddress,
+  submitCancellationFeedback,
   getAllSubscriptions,
   getAllOrders,
   getAllPayments,
@@ -35,6 +38,9 @@ router.post("/subscriptions/verify", authenticate, verifySubscriptionCheckout);
 router.post("/subscriptions/:id/cancel", authenticate, cancelSubscriptionAutopay);
 router.post("/subscriptions/:id/pause", authenticate, pauseSubscriptionAutopay);
 router.post("/subscriptions/:id/resume", authenticate, resumeSubscriptionAutopay);
+router.get("/address", authenticate, getBillingAddress);
+router.put("/address", authenticate, saveBillingAddress);
+router.post("/subscriptions/:id/cancel-feedback", authenticate, submitCancellationFeedback);
 
 // ==================== Admin Billing Routes ====================
 router.get("/admin/subscriptions", authenticate, requireAdmin, getAllSubscriptions);

@@ -674,6 +674,73 @@ export const cancelSubscription = async (req: Request, res: Response, next: Next
   }
 };
 
+/**
+ * GET /api/billing/address
+ * Get the current user's saved billing address (for GST invoicing)
+ */
+export const getBillingAddress = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const address = await prisma.billingAddress.findUnique({ where: { userId } });
+    res.json({ status: "success", data: address });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/billing/address
+ * Create or update the current user's billing address
+ */
+export const saveBillingAddress = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const { fullName, email, phone, city, state } = req.body;
+
+    if (!fullName || !email) {
+      return res.status(400).json({ status: "error", message: "fullName and email are required" });
+    }
+
+    const address = await prisma.billingAddress.upsert({
+      where: { userId },
+      create: { userId, fullName, email, phone, city, state },
+      update: { fullName, email, phone, city, state },
+    });
+
+    res.json({ status: "success", data: address });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/billing/subscriptions/:id/cancel-feedback
+ * Record why a user is cancelling before the cancellation itself is processed
+ */
+export const submitCancellationFeedback = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const id = String(req.params.id || "");
+    const { reason, wantsSupport } = req.body;
+
+    if (!id) return res.status(400).json({ status: "error", message: "Subscription id is required" });
+    if (!reason || typeof reason !== "string" || !reason.trim()) {
+      return res.status(400).json({ status: "error", message: "reason is required" });
+    }
+
+    const subscription = await prisma.subscription.findFirst({ where: { id, userId } });
+    if (!subscription) return res.status(404).json({ status: "error", message: "Subscription not found" });
+
+    const feedback = await prisma.subscriptionCancellationFeedback.create({
+      data: { subscriptionId: id, userId, reason: reason.trim(), wantsSupport: !!wantsSupport },
+    });
+
+    res.json({ status: "success", data: feedback });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ==================== ADMIN BILLING APIs ====================
 
 /**
