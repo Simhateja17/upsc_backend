@@ -320,7 +320,7 @@ export const getPyqMainsEvaluationStatus = async (
       data: {
         attemptId: attempt.id,
         evaluationStatus: status,
-        // "completed" and "failed" are both terminal — the client should stop polling in either case.
+        // "completed" and "failed" are both terminal - the client should stop polling in either case.
         isComplete: status === "completed" || status === "failed",
       },
     });
@@ -388,7 +388,7 @@ export const getPyqMainsResults = async (
         } : null;
 
     // Curated (human-authored) model answer from the question bank, when
-    // present — same shape the Daily Answer results endpoint returns so the
+    // present - same shape the Daily Answer results endpoint returns so the
     // shared results UI can render it identically.
     const curatedModelAnswer = bankQuestion?.modelAnswer?.trim() || null;
     const curatedKeyPoints = deriveKeyPointsFromMarkdown(curatedModelAnswer);

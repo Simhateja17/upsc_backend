@@ -5,7 +5,7 @@ import { getSubjects, getChapters, getDownloadUrl, getMaterialDownloadUrl, getMa
 
 const router = Router();
 
-// Premium library content — require authentication for browsing + download
+// Premium library content - require authentication for browsing + download
 router.get("/subjects", authenticate, getSubjects);
 router.get("/subjects/:id/chapters", authenticate, getChapters);
 router.get("/view/material/:materialId/pages", authenticate, enforceUsage("study_material_download", "library"), getMaterialViewPages);

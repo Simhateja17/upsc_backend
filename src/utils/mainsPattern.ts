@@ -44,7 +44,7 @@ export function mainsTimeLimit(marks: number): number {
 /**
  * Tolerance band around the word limit. UPSC examiners allow a little slack,
  * but a wildly long answer is penalised for padding and a very short one for
- * insufficient content — so the band is asymmetric and deliberately tight on
+ * insufficient content - so the band is asymmetric and deliberately tight on
  * the upper side, where students most often over-write.
  */
 export const WORD_LIMIT_OVER_TOLERANCE = 1.1; // >110% of the limit is "over"

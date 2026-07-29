@@ -1,5 +1,5 @@
 /**
- * UserRepository — seam for user profile and streak data access.
+ * UserRepository - seam for user profile and streak data access.
  */
 export interface UserRepository {
   getStreak(userId: string): Promise<{ currentStreak: number; longestStreak: number; weekActivity: boolean[] }>;

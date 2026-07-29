@@ -317,7 +317,7 @@ export const getEvaluationStatus = async (req: Request, res: Response, next: Nex
       data: {
         attemptId: attempt.id,
         evaluationStatus: evalStatus,
-        // "completed" and "failed" are both terminal — the client should stop polling in either case.
+        // "completed" and "failed" are both terminal - the client should stop polling in either case.
         isComplete: evalStatus === "completed" || evalStatus === "failed",
       },
     });

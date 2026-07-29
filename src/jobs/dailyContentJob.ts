@@ -4,7 +4,7 @@ import { isValidSubject, normalizeSubject, VALID_UPSC_SUBJECTS } from "../consta
 import { mainsWordLimit, mainsTimeLimit } from "../utils/mainsPattern";
 
 /**
- * UPSC subject taxonomy — sourced from the shared categorizer categories.
+ * UPSC subject taxonomy - sourced from the shared categorizer categories.
  * Only subjects relevant for MCQ/mains question generation.
  */
 const UPSC_SUBJECTS = [...VALID_UPSC_SUBJECTS];
@@ -127,7 +127,7 @@ const DAILY_DIFFICULTY_COUNTS: Record<Difficulty, number> = {
 
 // Raw subject values in pyq_question_bank that normalize onto the 6 canonical
 // subjects. Filtering in SQL (rather than only in JS after the fact) ensures the
-// deterministic pick isn't starved by rows whose subject the app can't use —
+// deterministic pick isn't starved by rows whose subject the app can't use -
 // e.g. "International Relation", which isn't one of the canonical Prelims subjects.
 const USABLE_BANK_SUBJECTS = [
   "History",
@@ -260,7 +260,7 @@ async function createDailyMCQForDate(targetDate: Date): Promise<void> {
   const dailyMcq = await prisma.dailyMCQ.create({
     data: {
       date: targetDate,
-      title: `Daily Challenge — ${primaryTopic}`,
+      title: `Daily Challenge - ${primaryTopic}`,
       topic: primaryTopic,
       tags: Object.keys(subjectCounts),
       questionCount: DAILY_MCQ_QUESTION_COUNT,
@@ -361,7 +361,7 @@ function displayPaper(pyqPaper: string): string {
   return map[pyqPaper] || pyqPaper;
 }
 
-// Word/time budgets follow the standard UPSC allocation per marks — see
+// Word/time budgets follow the standard UPSC allocation per marks - see
 // utils/mainsPattern for the single source of truth.
 const wordLimitForMarks = mainsWordLimit;
 const timeLimitForMarks = mainsTimeLimit;
@@ -412,7 +412,7 @@ async function pickMainsBankQuestion(pyqPaper: string): Promise<MainsBankRow | n
   const unused = await prisma.$queryRawUnsafe<MainsBankRow[]>(selectUnused, pyqPaper);
   if (unused[0]) return unused[0];
 
-  // Pool exhausted for this paper — allow a repeat rather than blocking.
+  // Pool exhausted for this paper - allow a repeat rather than blocking.
   const selectAny = `
     select id, paper, question_text as "questionText", subject,
            sub_subject as "subSubject", theme, topic, marks
@@ -542,7 +542,7 @@ Make it a thought-provoking, analytical question typical of UPSC Mains. Focus on
     }
     console.error("[DailyMains] AI generation failed, creating fallback:", error);
 
-    // Fallback — create a generic question
+    // Fallback - create a generic question
     await createDailyMainsQuestionRecord(targetDate, {
       title: `${selectedSubject} - Contemporary Analysis`,
       questionText: `Critically examine the recent developments in ${selectedSubject.toLowerCase()} and their implications for India's development trajectory. Suggest a way forward.`,

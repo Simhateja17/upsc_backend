@@ -5,7 +5,7 @@ import { uploadPDF } from "../middleware/upload";
 import { uploadSingle } from "../middleware/upload";
 import { aiLimiter } from "../middleware/rateLimit";
 
-// Admin controllers — split by domain
+// Admin controllers - split by domain
 import * as pyqCtrl from "../controllers/admin/pyq.controller";
 import * as editorialCtrl from "../controllers/admin/editorial.controller";
 import * as dailyMcqCtrl from "../controllers/admin/daily-mcq.controller";

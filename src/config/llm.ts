@@ -6,7 +6,7 @@ export interface BedrockMessage {
   content: string | Array<{ type: string; text?: string; source?: any }>;
 }
 
-// GPT-5.4 mini pricing (USD per million tokens) — TODO: update with actual Azure pricing
+// GPT-5.4 mini pricing (USD per million tokens) - TODO: update with actual Azure pricing
 const PRICE_INPUT_PER_M = 0.15;
 const PRICE_OUTPUT_PER_M = 0.60;
 
@@ -31,7 +31,7 @@ async function logUsage(
   outputTokens: number
 ): Promise<void> {
   const { costUsd, costInr } = computeCost(inputTokens, outputTokens);
-  // Fire-and-forget — never block or throw on the main call
+  // Fire-and-forget - never block or throw on the main call
   prisma.aiUsageLog
     .create({
       data: {

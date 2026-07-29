@@ -5,7 +5,7 @@
 // Every source file follows one rule, confirmed against all 14 files during
 // investigation: locate every column where the header row says exactly
 // "Subject", treat each as the start of a 3-column `Subject | Theme | Topic`
-// block, and use only the LAST (rightmost) block — earlier blocks are raw,
+// block, and use only the LAST (rightmost) block - earlier blocks are raw,
 // unedited syllabus wording kept for reference, not clean data. Prelims is
 // the one file with several subjects packed into one wide sheet (7 blocks,
 // one subject each); Mains files are one subject per file.
@@ -37,7 +37,7 @@ const SUBJECT_META: Record<string, { short: string; icon: string; color: string;
   Economy: { short: "Economy", icon: "💰", color: "#059669", bg: "rgba(5,150,105,.09)" },
   Environment: { short: "Environment", icon: "🌿", color: "#16a34a", bg: "rgba(22,163,74,.09)" },
   "International Relations": { short: "IR", icon: "🌐", color: "#2563eb", bg: "rgba(37,99,235,.09)" },
-  // Mains-only (some also override a prelims-only entry above by stage, that's fine — different rows)
+  // Mains-only (some also override a prelims-only entry above by stage, that's fine - different rows)
   "Indian Society": { short: "Society", icon: "👥", color: "#0891b2", bg: "rgba(8,145,178,.09)" },
   Governance: { short: "Governance", icon: "🏛️", color: "#6366f1", bg: "rgba(99,102,241,.09)" },
   "Social Justice": { short: "Social Justice", icon: "⚖️", color: "#dc2626", bg: "rgba(220,38,38,.09)" },
@@ -48,7 +48,7 @@ const SUBJECT_META: Record<string, { short: string; icon: string; color: string;
 };
 
 // Prelims uses its own Science & Technology palette (kept distinct from the
-// mains one above — different stage, different row, no conflict).
+// mains one above - different stage, different row, no conflict).
 const PRELIMS_SCIENCE_TECH_META = { short: "Science", icon: "🔬", color: "#0891b2", bg: "rgba(8,145,178,.10)" };
 
 function withMeta(subject: { name: string; topics: SeedTopic[] }, stage: "prelims" | "mains"): SeedSubject {
@@ -131,7 +131,7 @@ interface BlockStart {
 }
 
 // Finds every column, within the first few rows, whose cell reads exactly
-// "Subject" — each marks the start of a Subject|Theme|Topic block.
+// "Subject" - each marks the start of a Subject|Theme|Topic block.
 function findSubjectBlocks(rows: string[][], maxHeaderRow = 3): BlockStart[] {
   const seen = new Set<number>();
   const blocks: BlockStart[] = [];
@@ -187,7 +187,7 @@ function extractBlock(
       topicOrderBySubject.get(currentSubject)!.push(currentTopic);
     }
     // Some source sheets have an accidental duplicated block (e.g. the same
-    // "Agriculture" topic pasted twice in GS3_Economy.csv) — skip exact
+    // "Agriculture" topic pasted twice in GS3_Economy.csv) - skip exact
     // repeat sub-topic names within the same topic rather than fail on the
     // DB's (topic_id, name) uniqueness constraint.
     const subs = topicsMap.get(currentTopic)!;

@@ -8,13 +8,13 @@ describe("dedupeSyllabusTopics", () => {
   it("merges topics whose names normalize to the same value, keeping the longer name", () => {
     const topics: Topic[] = [
       { name: "Modern India", subTopics: [{ name: "1857 Revolt" }] },
-      { name: "Modern India — Freedom Struggle", subTopics: [{ name: "Quit India Movement" }] },
+      { name: "Modern India - Freedom Struggle", subTopics: [{ name: "Quit India Movement" }] },
     ];
 
     const result = dedupeSyllabusTopics(topics);
 
     expect(result).toHaveLength(1);
-    expect(result[0].name).toBe("Modern India — Freedom Struggle");
+    expect(result[0].name).toBe("Modern India - Freedom Struggle");
     expect(result[0].subTopics.map((s) => s.name)).toEqual(["1857 Revolt", "Quit India Movement"]);
   });
 
@@ -24,7 +24,7 @@ describe("dedupeSyllabusTopics", () => {
         name: "Governance",
         subTopics: [
           { name: "Civil Society Organisation" },
-          { name: "Civil Society Organization — role in policy" },
+          { name: "Civil Society Organization - role in policy" },
         ],
       },
     ];
@@ -32,7 +32,7 @@ describe("dedupeSyllabusTopics", () => {
     const result = dedupeSyllabusTopics(topics);
 
     expect(result[0].subTopics).toHaveLength(1);
-    expect(result[0].subTopics[0].name).toBe("Civil Society Organization — role in policy");
+    expect(result[0].subTopics[0].name).toBe("Civil Society Organization - role in policy");
   });
 
   it("preserves first-occurrence order for unrelated topics", () => {
@@ -53,7 +53,7 @@ describe("computeSyllabusCoverage", () => {
     // and a third topic that becomes deduped index 1.
     const topics: Topic[] = [
       { name: "Modern India", subTopics: [{ name: "1857 Revolt" }] },
-      { name: "Modern India — Freedom Struggle", subTopics: [{ name: "Quit India Movement" }] },
+      { name: "Modern India - Freedom Struggle", subTopics: [{ name: "Quit India Movement" }] },
       { name: "Post-Independence", subTopics: [{ name: "Partition" }] },
     ];
 
@@ -72,10 +72,10 @@ describe("computeSyllabusCoverage", () => {
     expect(coveredTopics).toBe(2);
   });
 
-  it("would undercount if raw (undeduped) indices were used instead — regression guard", () => {
+  it("would undercount if raw (undeduped) indices were used instead - regression guard", () => {
     const topics: Topic[] = [
       { name: "Modern India", subTopics: [{ name: "1857 Revolt" }] },
-      { name: "Modern India — Freedom Struggle", subTopics: [{ name: "Quit India Movement" }] },
+      { name: "Modern India - Freedom Struggle", subTopics: [{ name: "Quit India Movement" }] },
     ];
 
     // Saved against deduped index 0 (the merged topic), sub-topic 1.

@@ -4,7 +4,7 @@ const endpoint = process.env.AZURE_OPENAI_ENDPOINT || "";
 const apiKey = process.env.AZURE_OPENAI_API_KEY || "";
 const apiVersion = process.env.AZURE_OPENAI_EMBEDDING_API_VERSION || "2023-05-15";
 
-// text-embedding-ada-002 produces 1536 dimensions — matches existing Supabase vector columns
+// text-embedding-ada-002 produces 1536 dimensions - matches existing Supabase vector columns
 const embeddingDeployment =
   process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT || "text-embedding-ada-002";
 

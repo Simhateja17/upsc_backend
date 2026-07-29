@@ -120,7 +120,7 @@ async function createAdminUser() {
     console.log("✅ Admin account created successfully!");
     console.log("\n📝 Login credentials:");
     console.log(`   Email: ${email}`);
-    console.log("   Password: [SAVE THIS — it will not be displayed again]");
+    console.log("   Password: [SAVE THIS - it will not be displayed again]");
     console.log("\n⚠️  IMPORTANT: Change this password after first login!");
     console.log("\n🚀 You can now login at: http://localhost:3000/login");
 

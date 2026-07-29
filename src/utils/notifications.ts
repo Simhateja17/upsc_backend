@@ -66,7 +66,7 @@ export async function notifyAnswerEvaluated(params: {
 
     await insertNotification(
       userId,
-      `Answer Evaluated — Score: ${score}/${maxScore} ✅`,
+      `Answer Evaluated - Score: ${score}/${maxScore} ✅`,
       "Your mains answer has been evaluated. View detailed feedback, strengths, and suggestions.",
       "answer_evaluated"
     );
@@ -90,10 +90,10 @@ export function streakMilestoneCopy(streak: number): { title: string; body: stri
 
   const title = `${streak}-day streak! 🔥`;
   let body: string;
-  if (streak >= 365) body = "A full year of consistency. You're in rare company — keep going.";
+  if (streak >= 365) body = "A full year of consistency. You're in rare company - keep going.";
   else if (streak >= 100) body = "You're in the top 1% of aspirants for consistency. Unstoppable.";
   else if (streak >= 30) body = "A full month of daily prep. The habit is locked in.";
-  else if (streak >= 14) body = "Two weeks straight — consistency is compounding.";
+  else if (streak >= 14) body = "Two weeks straight - consistency is compounding.";
   else if (streak >= 7) body = "One week strong. Momentum is on your side.";
   else body = "You're building the habit. Keep the chain alive.";
   return { title, body };
@@ -105,7 +105,7 @@ export function streakMilestoneCopy(streak: number): { title: string; body: stri
  * user's current streak hits a milestone (3, 7, 14, 30, 50, 100, ... then every
  * 100). Because the streak increments by one per day, each milestone value
  * occurs on exactly one calendar day, so a once-per-day dedup is sufficient.
- * Additive to — and independent of — the evening "streak at risk" cron alert;
+ * Additive to - and independent of - the evening "streak at risk" cron alert;
  * both share the "streak" preference toggle.
  */
 export async function checkAndSendLoginStreakNotification(userId: string): Promise<void> {

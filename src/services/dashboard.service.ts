@@ -72,13 +72,6 @@ function classifyStudyTaskType(task: { title?: string | null; description?: stri
   return "Reading";
 }
 
-function getDailyDummyRank(): number {
-  const now = new Date();
-  const daySeed = now.getUTCFullYear() * 10000 + (now.getUTCMonth() + 1) * 100 + now.getUTCDate();
-  const hash = ((daySeed * 9301 + 49297) % 233280) / 233280;
-  return Math.floor(670 + hash * (810 - 670 + 1));
-}
-
 const PRELIMS_DATES: Record<string, Date> = {
   "2026": new Date(2026, 5, 2),   // June 2, 2026
   "2027": new Date(2027, 4, 25),  // May 25, 2027
@@ -272,7 +265,6 @@ export async function getPerformance(userId: string) {
   const mainsQuestions = raw.mainsCount + raw.mockMainsCount + raw.pyqMainsCount;
   const questionsAttempted = mcqQuestions + mockPrelimsQuestions + seriesQuestions + mainsQuestions;
 
-  const rank = raw.mcqAgg._max.rank ?? getDailyDummyRank();
   const rankPercentile = raw.mcqAgg._max.percentile ?? null;
 
   const totalCovered = raw.syllabusCoverage.reduce((s, c) => s + c.coveredTopics, 0);
@@ -287,7 +279,10 @@ export async function getPerformance(userId: string) {
     studyTimeToday,
     testsTaken,
     questionsAttempted,
-    rank,
+    // Ranking is owned by /leaderboard and follows the canonical MCQ/Mains
+    // scoring and eligibility rules. Keep this field for API compatibility,
+    // but never return the former attempt-level/dummy rank here.
+    rank: null,
     rankPercentile,
     syllabusCoverage,
     polityCoverage,

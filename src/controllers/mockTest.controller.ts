@@ -78,7 +78,7 @@ type MainsPoolQuestion = {
 // Product decision: Mock Test Mains only ever uses 10-mark questions. A
 // 10-mark answer is ~150 words, which is materially cheaper to auto-evaluate
 // (shorter transcription, grading prompt and model answer) than a 15/20-marker,
-// so every generated mains question — including Full Length — is a 10-marker.
+// so every generated mains question - including Full Length - is a 10-marker.
 const MOCK_MAINS_MARKS = 10;
 // Full Length mains = a 20-question paper, all 10-markers (200 marks).
 const MAINS_FULL_LENGTH_COUNT = 20;
@@ -199,7 +199,7 @@ async function buildMainsPool(params: {
     });
   }
 
-  // "mixed" — even split across the three pools.
+  // "mixed" - even split across the three pools.
   const perPool = Math.ceil(count / 3);
   const [dailyRows, bankRows] = await Promise.all([
     mockTestRepo.findDailyMainsHistory(subject, paperType, Math.max(perPool * 4, 20)),

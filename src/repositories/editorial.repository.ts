@@ -1,5 +1,5 @@
 /**
- * EditorialRepository — seam between business logic and database.
+ * EditorialRepository - seam between business logic and database.
  *
  * Callers depend on this interface, never on Prisma directly.
  * Swap adapters (Prisma, in-memory mock) at the seam for testing.

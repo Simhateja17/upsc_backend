@@ -249,7 +249,7 @@ export async function scrapeIndianExpressIndia(): Promise<ScrapedEditorial[]> {
 }
 
 /**
- * Run the full scraping pipeline — scrape + deduplicate + categorize + store
+ * Run the full scraping pipeline - scrape + deduplicate + categorize + store
  */
 export async function runEditorialScraper(): Promise<number> {
   console.log("[Scraper] Starting editorial scrape...");

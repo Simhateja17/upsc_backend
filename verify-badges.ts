@@ -15,7 +15,7 @@ async function main() {
   );
   console.log("totalsByCategory:", first.totalsByCategory);
 
-  console.log("\n=== Second call (idempotent — newlyAwarded should be empty) ===");
+  console.log("\n=== Second call (idempotent - newlyAwarded should be empty) ===");
   const second = await getAchievements(USER_ID);
   console.log("newlyAwarded:", second.newlyAwarded);
   console.log("earnedTotal:", second.earnedTotal);

@@ -23,62 +23,62 @@ import { supabaseAdmin } from "../config/supabase";
 export function initScheduler() {
   console.log("[Scheduler] Initializing cron jobs...");
 
-  // 6:00 AM IST (00:30 UTC) — Scrape editorials
+  // 6:00 AM IST (00:30 UTC) - Scrape editorials
   cron.schedule("30 0 * * *", () => {
     fireAndForget(() => runEditorialScraper(), { name: "editorial-scraper" });
   });
 
-  // 6:30 AM IST (01:00 UTC) — AI summarize new editorials
+  // 6:30 AM IST (01:00 UTC) - AI summarize new editorials
   cron.schedule("0 1 * * *", () => {
     fireAndForget(() => runEditorialSummarization(), { name: "editorial-summarization" });
   });
 
-  // 12:00 AM IST (18:30 UTC previous day) — Create daily MCQ set
+  // 12:00 AM IST (18:30 UTC previous day) - Create daily MCQ set
   cron.schedule("30 18 * * *", () => {
     fireAndForget(() => rotateDailyMCQ(), { name: "daily-mcq-rotation" });
   });
 
-  // 12:00 AM IST — Create daily mains question
+  // 12:00 AM IST - Create daily mains question
   cron.schedule("31 18 * * *", () => {
     fireAndForget(() => createDailyMainsQuestion(), { name: "daily-mains-question" });
   });
 
-  // Every 3 hours — fetch latest UPSC-relevant news from RSS feeds + auto-summarize
+  // Every 3 hours - fetch latest UPSC-relevant news from RSS feeds + auto-summarize
   cron.schedule("0 */3 * * *", () => {
     fireAndForget(() => runLatestNewsJob(), { name: "rss-news-fetch" });
   });
 
-  // 8:00 AM IST (02:30 UTC) — Send spaced repetition reminders for due items
+  // 8:00 AM IST (02:30 UTC) - Send spaced repetition reminders for due items
   cron.schedule("30 2 * * *", () => {
     fireAndForget(() => sendSpacedRepReminders(), { name: "spaced-rep-reminders" });
   });
 
-  // 9:00 AM IST (03:30 UTC) — Morning editorial / current affairs digest
+  // 9:00 AM IST (03:30 UTC) - Morning editorial / current affairs digest
   cron.schedule("30 3 * * *", () => {
     fireAndForget(() => sendMorningDigestNotifications(), { name: "morning-digest" });
   });
 
-  // 8:05 AM IST (02:35 UTC) — Daily MCQ reminder (staggered after spaced-rep)
+  // 8:05 AM IST (02:35 UTC) - Daily MCQ reminder (staggered after spaced-rep)
   cron.schedule("35 2 * * *", () => {
     fireAndForget(() => sendDailyMcqReminders(), { name: "daily-mcq-reminder" });
   });
 
-  // 8:10 AM IST (02:40 UTC) — Daily Trio attempt reminder (staggered after spaced-rep/MCQ reminder)
+  // 8:10 AM IST (02:40 UTC) - Daily Trio attempt reminder (staggered after spaced-rep/MCQ reminder)
   cron.schedule("40 2 * * *", () => {
     fireAndForget(() => sendDailyTrioReminders(), { name: "daily-trio-reminder" });
   });
 
-  // 7:00 PM IST (13:30 UTC) — Streak at risk alert
+  // 7:00 PM IST (13:30 UTC) - Streak at risk alert
   cron.schedule("30 13 * * *", () => {
     fireAndForget(() => sendStreakAlerts(), { name: "streak-alert" });
   });
 
-  // Sunday 9:00 AM IST (03:30 UTC) — Weekly progress summary
+  // Sunday 9:00 AM IST (03:30 UTC) - Weekly progress summary
   cron.schedule("30 3 * * 0", () => {
     fireAndForget(() => sendWeeklyProgressEmails(), { name: "weekly-progress" });
   });
 
-  // 12:00 PM IST (06:30 UTC) — New mock test available
+  // 12:00 PM IST (06:30 UTC) - New mock test available
   cron.schedule("30 6 * * *", () => {
     fireAndForget(() => sendMockTestAvailableNotifications(), { name: "mock-test-available" });
   });

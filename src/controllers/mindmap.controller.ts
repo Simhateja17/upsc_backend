@@ -42,7 +42,7 @@ export const getSubjects = async (
   try {
     const userId = req.user?.id;
 
-    // Always list every subject with real totals — limited plans see locked
+    // Always list every subject with real totals - limited plans see locked
     // subjects blurred in the UI rather than hidden. Content access is gated
     // per-subject in getMindmaps/getMindmap.
     const subjects = await prisma.mindmapSubject.findMany({

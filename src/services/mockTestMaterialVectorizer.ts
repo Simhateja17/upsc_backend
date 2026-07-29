@@ -24,7 +24,7 @@ export async function vectorizeMockTestMaterial(
       .single();
 
     if (uploadErr || !upload) {
-      console.error(`${LOG} Upload ${uploadId} not found — skipping`);
+      console.error(`${LOG} Upload ${uploadId} not found - skipping`);
       return;
     }
 

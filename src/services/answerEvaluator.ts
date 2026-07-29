@@ -105,7 +105,7 @@ export interface EvaluationUpdate {
 
 /**
  * dbOps lets the generic evaluator work against any (attempt, evaluation)
- * table pair — MainsAttempt/MainsEvaluation, PyqMainsAttempt/PyqMainsEvaluation,
+ * table pair - MainsAttempt/MainsEvaluation, PyqMainsAttempt/PyqMainsEvaluation,
  * or MockTestMainsAttempt/MockTestMainsEvaluation. Callers inject the four
  * operations below and the engine stays schema-agnostic.
  */
@@ -146,9 +146,9 @@ async function runAzureEvaluation(
   const wordStatus = wordCountStatus(wordCount, question.marks);
   const wordCountVerdict =
     wordStatus === "over"
-      ? `OVER THE WORD LIMIT — the student wrote ${wordCount} words against a ${expectedWords}-word limit (${Math.round((wordCount / expectedWords - 1) * 100)}% over). This is a real exam penalty: in the actual UPSC Mains the extra words would go unread and the extra time would be stolen from other questions.`
+      ? `OVER THE WORD LIMIT - the student wrote ${wordCount} words against a ${expectedWords}-word limit (${Math.round((wordCount / expectedWords - 1) * 100)}% over). This is a real exam penalty: in the actual UPSC Mains the extra words would go unread and the extra time would be stolen from other questions.`
       : wordStatus === "under"
-        ? `UNDER LENGTH — the student wrote ${wordCount} words against a ${expectedWords}-word limit. The answer cannot have covered the demand at this length.`
+        ? `UNDER LENGTH - the student wrote ${wordCount} words against a ${expectedWords}-word limit. The answer cannot have covered the demand at this length.`
         : `Within the acceptable band (${wordRange.min}-${wordRange.max} words for a ${expectedWords}-word limit).`;
   const readablePages = (answerPages || [])
     .filter((page) => page.studentAnswerText.trim().length > 0)
@@ -165,12 +165,12 @@ async function runAzureEvaluation(
   const messages: BedrockMessage[] = [
     {
       role: "user",
-      content: `You are grading a UPSC Civil Services Mains answer. Be strict — UPSC marks are notoriously tight.
+      content: `You are grading a UPSC Civil Services Mains answer. Be strict - UPSC marks are notoriously tight.
 
 QUESTION (${question.paper} · ${question.subject} · ${question.marks} marks · STRICT WORD LIMIT ${expectedWords} words):
 "${question.questionText}"
 
-WORD-LIMIT CHECK (already computed — do not recount, treat as fact):
+WORD-LIMIT CHECK (already computed - do not recount, treat as fact):
 - Student word count: ${wordCount}
 - Prescribed limit for a ${question.marks}-marker: ${expectedWords} words
 - Acceptable band: ${wordRange.min}-${wordRange.max} words
@@ -197,11 +197,11 @@ ${modelAnswerContext.modelAnswerText}
 PRE-COMPUTED ALIGNMENT TO PLATFORM MODEL ANSWER:
 - Cosine similarity: ${modelAnswerContext.alignment.cosineSimilarity} (band: ${modelAnswerContext.alignment.band})
 - Key-term overlap: ${modelAnswerContext.alignment.keyTermOverlap}
-- Covered key terms: ${modelAnswerContext.alignment.coveredKeyTerms.join(", ") || "—"}
-- Missing key terms: ${modelAnswerContext.alignment.missingKeyTerms.join(", ") || "—"}
+- Covered key terms: ${modelAnswerContext.alignment.coveredKeyTerms.join(", ") || "-"}
+- Missing key terms: ${modelAnswerContext.alignment.missingKeyTerms.join(", ") || "-"}
 - Auto reason: ${modelAnswerContext.alignment.reason}
 
-` : ""}${uploadTranscriptionNote ? "NOTE: This text was transcribed from uploaded handwritten page image(s). Grade content rigorously but forgive minor transcription artifacts.\n\n" : ""}GRADING RULES — follow precisely:
+` : ""}${uploadTranscriptionNote ? "NOTE: This text was transcribed from uploaded handwritten page image(s). Grade content rigorously but forgive minor transcription artifacts.\n\n" : ""}GRADING RULES - follow precisely:
 - Empty / single-line / gibberish / off-topic answers → score 0-1. Do not reward effort.
 - Answer that rephrases the question without substance → 2-4 out of ${question.marks}.
 - Answer with some valid points but missing core demand, no examples, no structure → 5-7 out of ${question.marks}.
@@ -210,18 +210,18 @@ PRE-COMPUTED ALIGNMENT TO PLATFORM MODEL ANSWER:
 - Reserve 14-${question.marks} ONLY for exceptional answers: precise directive (examine/discuss/critically analyze) addressed, original insight, contemporary linkage, committee/data references, crisp conclusion. A topper-level answer.
 - WORD LIMIT IS BINDING. The prescribed limit is ${expectedWords} words for this ${question.marks}-marker (10 marks→150, 15 marks→250, 20 marks→250). Apply it as follows:
   • Within ${wordRange.min}-${wordRange.max} words: no word-count penalty.
-  • Over ${wordRange.max} words: deduct 1 mark, or 2 marks if more than 40% over. Say so explicitly in "improvements" and name the exact target ("Cut to ~${expectedWords} words"). Long answers are NOT rewarded — extra length usually means padding, repetition, or bullet-dumping instead of analysis. Never let a long answer score higher because it "covered more".
+  • Over ${wordRange.max} words: deduct 1 mark, or 2 marks if more than 40% over. Say so explicitly in "improvements" and name the exact target ("Cut to ~${expectedWords} words"). Long answers are NOT rewarded - extra length usually means padding, repetition, or bullet-dumping instead of analysis. Never let a long answer score higher because it "covered more".
   • Under ${wordRange.min} words: deduct 1-2 marks for insufficient development of the demand, and say so in "improvements".
   • Whatever the length, the "Presentation" parameter score must reflect the word-limit breach.
 - Penalize factual errors heavily. If a claim is wrong, call it out in "improvements".
 - NEVER give pity marks. A blank or one-sentence answer should not get more than 1/${question.marks}.
-- "keyTerms" IS MANDATORY. You MUST always populate it with 6-10 specific terms (a mix of found and missing) an examiner would expect for this question — never omit it or return an empty array, regardless of how much other output you've already produced.
+- "keyTerms" IS MANDATORY. You MUST always populate it with 6-10 specific terms (a mix of found and missing) an examiner would expect for this question - never omit it or return an empty array, regardless of how much other output you've already produced.
 - RAG calibration is binding: treat retrieved checked topper/evaluator copies as scoring anchors, not as automatic marks. If a retrieved answer scored 7/15, award 7/15 only when the student's answer is genuinely at that same standard. If the student's answer is weaker than the retrieved 7/15 answer in demand coverage, specificity, evidence, structure, or balance, award less. Do not award more than the best relevant retrieved example unless the student's answer is clearly and specifically superior, and explain that exact superiority in detailedFeedback. Generic polish is not enough.${modelAnswerContext ? `
 - PYQ MODEL-ANSWER ALIGNMENT IS BINDING: when a platform model answer was supplied above, treat it as the canonical reference. The pre-computed alignment band ("${modelAnswerContext.alignment.band}") is informative but NOT decisive; you decide the band based on your own examiner judgement of demand-coverage against the model answer. You MUST:
   • If the band is "excellent": treat missing key terms as minor gaps unless fundamental to the demand; lock at no less than the equivalent RAG anchor or 11/${question.marks}, whichever applies for the question demand.
   • If "strong": reward alignment but cap 2 below the model answer unless the student adds genuinely superior evidence.
   • If "moderate" or "weak": penalise missing key terms from the model answer explicitly; do not exceed the equivalent RAG anchor minus 2.
-  • If "off": judge against the model answer directly; the answer either missed the demand or went off-topic — apply the corresponding rubric floor (0-4/${question.marks}).
+  • If "off": judge against the model answer directly; the answer either missed the demand or went off-topic - apply the corresponding rubric floor (0-4/${question.marks}).
   • Echo back via "modelAnswerAlignment" with your final band, coverage (0-1), gaps (substantive missing terms/phrases you found), and a 1-2 sentence examiner comment.` : ""}
 - Build annotationPlan as semantic examiner intent, not exact coordinates. The SVG renderer will decide final placement.
 - Use annotationPlan version 2. Split detailed markups, light markups, and correctness ticks.
@@ -238,7 +238,7 @@ ${pagePlanRule}
 Rubric weights (for your internal reasoning; surface in metrics):
 1. Relevance to directive & question demand (30%)
 2. Content depth, accuracy, and factual correctness (25%)
-3. Structure & organization — intro, body with sub-headings/points, conclusion (15%)
+3. Structure & organization - intro, body with sub-headings/points, conclusion (15%)
 4. Examples, data, committees, schemes, case studies (15%)
 5. Balance of perspectives / multi-dimensional analysis (10%)
 6. Language clarity & concision (5%)
@@ -256,9 +256,9 @@ Return ONLY a JSON object (no prose, no markdown fences):
     "body": {"status": "good|weak|missing", "feedback": "specific feedback"},
     "conclusion": {"status": "good|weak|missing", "feedback": "specific feedback"}
   },
-  "strengths": ["specific strength tied to the answer — no generic praise"],
+  "strengths": ["specific strength tied to the answer - no generic praise"],
   "weaknesses": ["specific weakness or missing demand"],
-  "improvements": ["concrete, actionable — name the missing dimension/fact/structure"],
+  "improvements": ["concrete, actionable - name the missing dimension/fact/structure"],
   "suggestions": ["specific source/report/scheme the student should read to improve"],
   "overallFeedback": "short examiner-style overall comment",
   "modelAnswer": "concise model answer of NO MORE THAN ${expectedWords} words (the prescribed limit for this ${question.marks}-marker). Do not exceed it.",
@@ -332,14 +332,14 @@ Return ONLY a JSON object (no prose, no markdown fences):
   }` : ""}
 }
 
-"keyTerms" is a REQUIRED field — list 6-10 terms (mix of found and missing). Never omit it or leave it empty. For "parameterScores", the seven maxScore values must sum to exactly ${question.marks} and the seven score values must sum to exactly the overall "score" value above.
+"keyTerms" is a REQUIRED field - list 6-10 terms (mix of found and missing). Never omit it or leave it empty. For "parameterScores", the seven maxScore values must sum to exactly ${question.marks} and the seven score values must sum to exactly the overall "score" value above.
 
 Both "modelAnswer", "modelAnswerContent", and all prose across "modelAnswerStructure" must be at most ${expectedWords} words. Count before you emit them.`,
     },
   ];
 
   const system =
-    "You are a senior UPSC Mains evaluator. You grade strictly — like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. You enforce the UPSC word limit (10 marks→150 words, 15 marks→250 words, 20 marks→250 words): an over-length answer is penalised for padding, never rewarded for covering more, and every model answer you write stays inside that limit. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, return semantic marking intent for an SVG checked-copy renderer: use exact targetText from the student's answer, never target printed question/header text, use detailed teacher-style margin comments, and separate visual marks from comments. Do not invent targetText that is not present in the answer.";
+    "You are a senior UPSC Mains evaluator. You grade strictly - like a UPSC examiner whose average mark is ~40%. You never give sympathy marks. You always return valid JSON only, with integer scores. You detect and penalize gibberish, off-topic answers, and factual errors. You enforce the UPSC word limit (10 marks→150 words, 15 marks→250 words, 20 marks→250 words): an over-length answer is penalised for padding, never rewarded for covering more, and every model answer you write stays inside that limit. Your feedback is specific, pointed, and cites exactly what is missing. For annotationPlan, return semantic marking intent for an SVG checked-copy renderer: use exact targetText from the student's answer, never target printed question/header text, use detailed teacher-style margin comments, and separate visual marks from comments. Do not invent targetText that is not present in the answer.";
 
   const result = await invokeModelJSON<EvaluationResult>(messages, {
     system,
@@ -599,7 +599,7 @@ function computeRagScoreCap(
  * Short-circuit grader for obvious non-answers. Saves an Azure call and
  * prevents the model from accidentally rewarding gibberish or empty input.
  * Returns null when the answer looks legitimate and should be sent to the LLM.
- * Exported for testability — pure function, no dependencies.
+ * Exported for testability - pure function, no dependencies.
  */
 export function triviallyBadAnswer(
   answerText: string,
@@ -612,7 +612,7 @@ export function triviallyBadAnswer(
   const tooShort = wordCount < 15;
   const mostlyNonAlpha = text.replace(/[^A-Za-z]/g, "").length < Math.max(20, text.length * 0.4);
 
-  // Keyword overlap with the question — if the answer shares almost no content
+  // Keyword overlap with the question - if the answer shares almost no content
   // words with the question, it's almost certainly off-topic.
   const stop = new Set([
     "the", "a", "an", "and", "or", "of", "to", "in", "on", "is", "are", "was", "were",
@@ -636,7 +636,7 @@ export function triviallyBadAnswer(
     ? `Answer is too short (${wordCount} words). UPSC mains answers for ${question.marks} marks need roughly ${wordLimit} words.`
     : mostlyNonAlpha
       ? "Answer is unreadable or contains mostly non-text characters."
-      : "Answer does not address the question — it does not engage with any of the key terms in the directive.";
+      : "Answer does not address the question - it does not engage with any of the key terms in the directive.";
 
   return {
     score: tooShort && wordCount >= 10 ? 1 : 0,
@@ -650,7 +650,7 @@ export function triviallyBadAnswer(
       "Revise the relevant chapter before re-attempting.",
       "Practise a topic-based answer first with bullet-pointed structure to build muscle memory.",
     ],
-    detailedFeedback: reason + " No further grading was possible — please resubmit a full answer that directly addresses the question.",
+    detailedFeedback: reason + " No further grading was possible - please resubmit a full answer that directly addresses the question.",
   };
 }
 
@@ -673,7 +673,7 @@ ${question.questionText}
 
 Write a model answer a UPSC Mains topper would submit for this question.
 
-STRICT WORD LIMIT: ${wordLimit} words (UPSC pattern — 10 marks→150 words, 15 marks→250 words, 20 marks→250 words). A topper's answer fits the limit; going over is a fault, not a virtue. Both "modelAnswer" and "modelAnswerContent" must be at most ${wordLimit} words.
+STRICT WORD LIMIT: ${wordLimit} words (UPSC pattern - 10 marks→150 words, 15 marks→250 words, 20 marks→250 words). A topper's answer fits the limit; going over is a fault, not a virtue. Both "modelAnswer" and "modelAnswerContent" must be at most ${wordLimit} words.
 
 Return ONLY a JSON object (no prose, no markdown fences):
 {
@@ -691,7 +691,7 @@ Return ONLY a JSON object (no prose, no markdown fences):
 
   const result = await invokeModelJSON<EvaluationResult>(messages, {
     system:
-      "You are a senior UPSC Mains examiner writing a reference model answer. You always respect the UPSC word limit (10 marks→150 words, 15 marks→250 words, 20 marks→250 words) — a model answer that exceeds its limit is not a model answer. Return valid JSON only.",
+      "You are a senior UPSC Mains examiner writing a reference model answer. You always respect the UPSC word limit (10 marks→150 words, 15 marks→250 words, 20 marks→250 words) - a model answer that exceeds its limit is not a model answer. Return valid JSON only.",
     maxTokens: 2600,
     temperature: 0.3,
     serviceName: "answerEvaluator.modelAnswerOnly",
@@ -861,7 +861,7 @@ export async function evaluateAnswerGeneric(params: {
             "Alternatively, type your answer directly for an instant evaluation.",
           ],
           detailedFeedback:
-            "Your uploaded file was received, but the answer transcription could not extract a readable response from it. This usually happens with blurry photos, low light, very faint pencil marks, or pages where the answer is not visible. Please retake the photo with good lighting and clear handwriting, then resubmit — or type the answer directly.",
+            "Your uploaded file was received, but the answer transcription could not extract a readable response from it. This usually happens with blurry photos, low light, very faint pencil marks, or pages where the answer is not visible. Please retake the photo with good lighting and clear handwriting, then resubmit - or type the answer directly.",
           modelAnswer: unreadableModelAnswerFields.modelAnswer || null,
           modelAnswerKeyPoints: unreadableModelAnswerFields.modelAnswerKeyPoints || null,
           modelAnswerContent: unreadableModelAnswerFields.modelAnswerContent || null,
@@ -1286,7 +1286,7 @@ export async function evaluateAnswerGeneric(params: {
       stack: error instanceof Error ? error.stack : undefined,
     });
 
-    // Record the failure honestly — do NOT award sympathy marks. The user
+    // Record the failure honestly - do NOT award sympathy marks. The user
     // should see that the evaluator failed and be offered a resubmit, rather
     // than a silent 50% that masks the real problem.
     try {
@@ -1295,7 +1295,7 @@ export async function evaluateAnswerGeneric(params: {
         maxScore: question.marks,
         status: "failed",
         strengths: [],
-        improvements: ["AI evaluation could not complete — please resubmit."],
+        improvements: ["AI evaluation could not complete - please resubmit."],
         suggestions: ["If the issue persists, type the answer directly instead of uploading a file."],
         detailedFeedback: `Evaluation failed: ${errMsg}. Your answer was received but not graded. Please resubmit.`,
         evaluatedAt: new Date(),
@@ -1307,7 +1307,7 @@ export async function evaluateAnswerGeneric(params: {
 }
 
 /**
- * Daily Answer wrapper — the existing callsite. Wires up Prisma's
+ * Daily Answer wrapper - the existing callsite. Wires up Prisma's
  * mainsAttempt / mainsEvaluation tables as the dbOps target.
  */
 export async function evaluateAnswer(

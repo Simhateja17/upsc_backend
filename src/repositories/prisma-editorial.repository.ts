@@ -10,7 +10,7 @@ import type {
 
 /**
  * Prisma adapter for EditorialRepository.
- * Production implementation — all database access for editorials through this module.
+ * Production implementation - all database access for editorials through this module.
  */
 export function createPrismaEditorialRepository(): EditorialRepository {
   return {

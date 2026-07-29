@@ -38,7 +38,7 @@ async function sendEmail(options: EmailOptions): Promise<boolean> {
 export async function sendPhoneOtpEmail(to: string, phone: string, otp: string): Promise<boolean> {
   return sendEmail({
     to,
-    subject: "Verify your phone number — RiseWithJeet",
+    subject: "Verify your phone number - RiseWithJeet",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; text-align: center; padding: 40px 24px;">
         <h2 style="color: #1a365d; margin-bottom: 8px;">Verify your phone number</h2>
@@ -85,14 +85,14 @@ export async function sendWelcomeEmail(
         <h1 style="color: #1a365d;">Welcome, ${firstName || "Aspirant"}!</h1>
         <p>Your UPSC preparation journey starts now. Here's what you can do:</p>
         <ul>
-          <li><strong>Daily MCQ Practice</strong> — 10 new questions every day</li>
-          <li><strong>Answer Writing</strong> — AI-evaluated mains practice</li>
-          <li><strong>Editorial Analysis</strong> — Daily newspaper analysis</li>
-          <li><strong>Mock Tests</strong> — Full-length and subject-wise tests</li>
+          <li><strong>Daily MCQ Practice</strong> - 10 new questions every day</li>
+          <li><strong>Answer Writing</strong> - AI-evaluated mains practice</li>
+          <li><strong>Editorial Analysis</strong> - Daily newspaper analysis</li>
+          <li><strong>Mock Tests</strong> - Full-length and subject-wise tests</li>
         </ul>
         <p>Start your preparation today!</p>
         <a href="${config.cors.origins[0]}/dashboard" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">Go to Dashboard</a>
-        <p style="color: #666; margin-top: 24px;">— Team Rise with Jeet</p>
+        <p style="color: #666; margin-top: 24px;">- Team Rise with Jeet</p>
       </div>
     `,
   });
@@ -121,7 +121,7 @@ export async function sendMorningDigest(
           ${editorialList || "<li>No editorials were available for yesterday.</li>"}
         </ul>
         <a href="${config.cors.origins[0]}/dashboard/daily-editorial" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px;">Read Editorials</a>
-        <p style="color: #666; margin-top: 24px;">— Team Rise with Jeet</p>
+        <p style="color: #666; margin-top: 24px;">- Team Rise with Jeet</p>
       </div>
     `,
   });
@@ -171,7 +171,7 @@ export async function sendEvaluationComplete(
 ): Promise<boolean> {
   return sendEmail({
     to,
-    subject: `Your answer has been evaluated — Score: ${score}/${maxScore} ✅`,
+    subject: `Your answer has been evaluated - Score: ${score}/${maxScore} ✅`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>Evaluation Complete!</h2>
@@ -203,7 +203,7 @@ export async function sendWeeklyProgress(
     subject: "Your Weekly Progress Summary 📊",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Weekly Progress — ${firstName || "Aspirant"}</h2>
+        <h2>Weekly Progress - ${firstName || "Aspirant"}</h2>
         <table style="width: 100%; border-collapse: collapse;">
           <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">Daily MCQs Completed</td><td style="text-align: right; font-weight: bold;">${stats.mcqsCompleted}/7</td></tr>
           <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">Answers Written</td><td style="text-align: right; font-weight: bold;">${stats.answersWritten}</td></tr>
@@ -242,8 +242,8 @@ export async function sendBookingConfirmation(
         </div>
         ${phone ? `<p><strong>Your phone:</strong> ${phone}</p>` : ""}
         ${message ? `<p><strong>Your message:</strong> ${message}</p>` : ""}
-        <p style="color: #666; margin-top: 24px;">No hard sell, no commitment — just an honest conversation about your UPSC journey.</p>
-        <p style="color: #666;">— Team Rise with Jeet</p>
+        <p style="color: #666; margin-top: 24px;">No hard sell, no commitment - just an honest conversation about your UPSC journey.</p>
+        <p style="color: #666;">- Team Rise with Jeet</p>
       </div>
     `,
   });
@@ -261,7 +261,7 @@ export async function sendFeedbackNotification(
 ): Promise<boolean> {
   return sendEmail({
     to,
-    subject: `New Feedback Received — ${feedback.category} (${feedback.rating}/5)`,
+    subject: `New Feedback Received - ${feedback.category} (${feedback.rating}/5)`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1a365d;">New User Feedback</h2>
@@ -272,7 +272,7 @@ export async function sendFeedbackNotification(
           <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; vertical-align: top;">What's Working</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${feedback.workingWell}</td></tr>
           <tr><td style="padding: 8px; font-weight: bold; vertical-align: top;">Could Be Better</td><td style="padding: 8px;">${feedback.couldBeBetter}</td></tr>
         </table>
-        <p style="color: #666; margin-top: 24px;">— Rise with Jeet Feedback System</p>
+        <p style="color: #666; margin-top: 24px;">- Rise with Jeet Feedback System</p>
       </div>
     `,
   });
@@ -300,7 +300,7 @@ export async function sendContactNotification(
           <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Subject</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contact.subject}</td></tr>
           <tr><td style="padding: 8px; font-weight: bold; vertical-align: top;">Message</td><td style="padding: 8px;">${contact.message.replace(/\n/g, "<br>")}</td></tr>
         </table>
-        <p style="color: #666; margin-top: 24px;">— Rise with Jeet Contact System</p>
+        <p style="color: #666; margin-top: 24px;">- Rise with Jeet Contact System</p>
       </div>
     `,
   });

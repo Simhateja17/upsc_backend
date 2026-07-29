@@ -52,7 +52,7 @@ export interface ModelAnswerAlignment {
  * [0, 1] for banding). Additionally extracts substantive key terms (from the
  * model answer only) and reports how many the student's answer used.
  *
- * This is a Python-free, deterministic reviewer-only signal — it does NOT
+ * This is a Python-free, deterministic reviewer-only signal - it does NOT
  * substitute the rubric, only feeds an extra binding input into the evaluator
  * prompt and is surfaced in ragDiagnostics so the result UI can show it.
  */

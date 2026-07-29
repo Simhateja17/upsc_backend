@@ -88,7 +88,7 @@ router.get("/health/deep", async (req: Request, res: Response) => {
 // Auth routes
 router.use("/auth", authRoutes);
 
-// User routes (dashboard, profile, settings, notifications, subscription — merged)
+// User routes (dashboard, profile, settings, notifications, subscription - merged)
 router.use("/user", userRoutes);
 
 // Entitlement and usage summary routes
@@ -163,7 +163,7 @@ router.get("/cms/:slug", cmsPublicCtrl.getPageContent);
 // Public FAQs
 router.get("/faqs", cmsPublicCtrl.getFaqsPublic);
 
-// Study Room stats (public — active student count)
+// Study Room stats (public - active student count)
 router.get("/study-room/stats", async (_req: Request, res: Response) => {
   try {
     // In production, query active_sessions table for real-time count

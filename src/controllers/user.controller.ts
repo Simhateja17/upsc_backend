@@ -426,7 +426,7 @@ export const getSessions = async (req: Request, res: Response, next: NextFunctio
     const meta = (data?.active_session_meta as Record<string, any> | null) ?? null;
 
     if (!activeId) {
-      // Not registered yet (e.g. logged in before this feature shipped) — describe
+      // Not registered yet (e.g. logged in before this feature shipped) - describe
       // the current request so the panel still shows something meaningful.
       const ua = (req.headers["user-agent"] as string) || "Unknown";
       return res.json({

@@ -9,7 +9,7 @@ import {
 
 const router = Router();
 
-// Mindmaps are premium content — require authentication for all access
+// Mindmaps are premium content - require authentication for all access
 router.get("/subjects", authenticate, getSubjects);
 router.get("/:subjectId", authenticate, getMindmaps);
 router.get("/:subjectId/:mindmapId", authenticate, getMindmap);

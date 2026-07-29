@@ -1,5 +1,5 @@
 -- ============================================================
--- PYQ RAG Pipeline — Run these in Supabase SQL Editor
+-- PYQ RAG Pipeline - Run these in Supabase SQL Editor
 -- ============================================================
 
 -- Step 1: Enable pgvector extension

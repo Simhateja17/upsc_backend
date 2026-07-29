@@ -182,7 +182,7 @@ function splitEssayModelAnswer(value) {
     };
   }
 
-  const part1 = /(^|\n)#{1,6}\s*Part\s*-?\s*1\s*[-:–—]?\s*Topic\s*Decoding\b[^\n]*/i.exec(text);
+  const part1 = /(^|\n)#{1,6}\s*Part\s*-?\s*1\s*[-:–-]?\s*Topic\s*Decoding\b[^\n]*/i.exec(text);
   const part2 = /(^|\n)#{1,6}\s*Part\s*-?\s*2\b[^\n]*/i.exec(text);
   const part3 = /(^|\n)#{1,6}\s*Part\s*-?\s*3\b[^\n]*/i.exec(text);
 

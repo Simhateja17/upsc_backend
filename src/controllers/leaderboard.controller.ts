@@ -105,7 +105,7 @@ function rankMetrics(item: LeaderboardRow) {
 /**
  * Tie-Breaking Rules (spec): higher Mains avg, then higher MCQ avg, then
  * more total attempts, then user ID as the final deterministic tie-breaker.
- * Because userId is unique, this always produces a strict total order —
+ * Because userId is unique, this always produces a strict total order -
  * no two rows can ever land on the same rank.
  */
 function compareRows(a: LeaderboardRow, b: LeaderboardRow, tab: string): number {
@@ -172,7 +172,7 @@ function buildLeaderboardQuery(range: string, includeInactiveUsers: boolean) {
         WHERE 1=1 ${mcqFilter}
       ),
       pyq_prelims_raw AS (
-        -- Each row is a single PYQ question — one MCQ "attempt" worth 1 question.
+        -- Each row is a single PYQ question - one MCQ "attempt" worth 1 question.
         SELECT ppa.user_id,
                CASE WHEN ppa.is_correct THEN 10 ELSE 0 END AS score,
                1 AS questions

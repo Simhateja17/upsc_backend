@@ -31,7 +31,7 @@ router.use(authenticate, requireAccess("live_study_room", ["full"]));
 router.get("/", getGroups);
 router.post("/", createGroup);
 router.get("/my-groups", getMyGroups);
-// Static path — must be registered before the "/:id" param route below.
+// Static path - must be registered before the "/:id" param route below.
 router.get("/join-requests", getJoinRequests);
 router.get("/:id", getGroup);
 

@@ -17,7 +17,7 @@ export type ValidUpscSubject = (typeof VALID_UPSC_SUBJECTS)[number];
 export const VALID_SUBJECT_SET = new Set(VALID_UPSC_SUBJECTS);
 
 /**
- * UPSC Mains optional subjects — the full list candidates can choose from.
+ * UPSC Mains optional subjects - the full list candidates can choose from.
  * Used to validate the optionalSubject field on user profiles.
  */
 export const VALID_OPTIONAL_SUBJECTS = [
@@ -110,7 +110,7 @@ export function normalizeSubject(subject: string): string {
     return "Science & Technology";
   }
 
-  // History aliases — per the Prelims syllabus, History is the parent subject
+  // History aliases - per the Prelims syllabus, History is the parent subject
   // for the Ancient/Medieval/Modern eras and Art & Culture. The question bank
   // tags these as separate subjects, so roll them up to canonical "History".
   if (

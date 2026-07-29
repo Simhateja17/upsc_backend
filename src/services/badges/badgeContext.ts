@@ -12,7 +12,7 @@ import { getPerformance } from "../dashboard.service";
  *
  * Signals that the platform does not yet track (video-lecture watch progress,
  * study-material reads, analytics-view events, per-feature daily streaks, etc.)
- * are intentionally absent — the badges that would need them are registered in
+ * are intentionally absent - the badges that would need them are registered in
  * the catalog with `supported: false` and never read this context.
  */
 export interface BadgeContext {

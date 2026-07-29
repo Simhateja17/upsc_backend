@@ -25,13 +25,13 @@ async function getOrCreateTodayMCQ() {
     const validQuestionCount = questions.filter((q: any) => isValidSubject(normalizeSubject(q.category || ""))).length;
     if (validQuestionCount < DAILY_MCQ_QUESTION_COUNT || mcq.questionCount !== DAILY_MCQ_QUESTION_COUNT) {
       console.log(
-        `[Daily MCQ] Today's set has ${validQuestionCount}/${DAILY_MCQ_QUESTION_COUNT} valid questions — attempting repair...`
+        `[Daily MCQ] Today's set has ${validQuestionCount}/${DAILY_MCQ_QUESTION_COUNT} valid questions - attempting repair...`
       );
       await dailyMcqRepo.createTodayMCQ();
       mcq = await dailyMcqRepo.findTodayMCQ();
     }
   } else {
-    console.log("[Daily MCQ] No MCQ for today — generating on the fly...");
+    console.log("[Daily MCQ] No MCQ for today - generating on the fly...");
     await dailyMcqRepo.createTodayMCQ();
     mcq = await dailyMcqRepo.findTodayMCQ();
   }

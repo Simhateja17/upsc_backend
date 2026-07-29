@@ -25,21 +25,21 @@ import {
 
 const router = Router();
 
-// Public — stats for hero section
+// Public - stats for hero section
 router.get("/stats", getSeriesStats);
 
-// Public — list all active series
+// Public - list all active series
 router.get("/", listSeries);
 router.get("/catalog", optionalAuth, listSeriesCatalog); // mobile app catalog shape
 
-// Auth required — test level. These must be registered before `/:id`.
+// Auth required - test level. These must be registered before `/:id`.
 router.get("/tests/:testId/questions", authenticate, getTestQuestions);
 router.post("/tests/:testId/submit", authenticate, submitTest);
 router.get("/tests/:testId/result", authenticate, getTestResult);
 router.get("/tests/:testId/report", authenticate, getTestReport);
 router.get("/tests/:testId/intelligence", authenticate, getTestIntelligence);
 
-// Auth required — series level
+// Auth required - series level
 router.get("/enrolled", authenticate, getEnrolledSeries);
 router.post("/:id/enroll", authenticate, enrollInSeries);
 router.delete("/:id/enroll", authenticate, unenrollFromSeries);
@@ -51,7 +51,7 @@ router.post("/", authenticate, requireAdmin, createSeries);
 router.put("/:id", authenticate, requireAdmin, updateSeries);
 router.delete("/:id", authenticate, requireAdmin, deleteSeries);
 
-// Public — single series detail. Keep last so fixed routes are not captured as ids.
+// Public - single series detail. Keep last so fixed routes are not captured as ids.
 router.get("/:id", getSeriesDetail);
 
 export default router;

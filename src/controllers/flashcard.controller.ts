@@ -54,7 +54,7 @@ export const getSubjects = async (
       include: { cards: true },
     });
 
-    // List every subject with real stats — limited plans see locked subjects
+    // List every subject with real stats - limited plans see locked subjects
     // blurred in the UI rather than hidden. Content access is gated per-subject
     // in getTopics/getCards.
     const deckData = await Promise.all(

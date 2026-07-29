@@ -1,7 +1,7 @@
 // One-off migration: replaces Prelims and Mains syllabus content with the
 // client's spreadsheet data. Optional subjects are never touched. Progress
 // reset for Prelims/Mains was explicitly approved, so this is a clean
-// delete-and-recreate rather than a position-preserving merge — existing
+// delete-and-recreate rather than a position-preserving merge - existing
 // SyllabusTrackerState.states entries for these stages become orphaned but
 // harmless (silently ignored by the coverage-counting code).
 //

@@ -14,7 +14,7 @@ export const chatDeployment =
 
 if (!endpoint || !apiKey) {
   console.warn(
-    "[Azure] AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_API_KEY is not set — Azure AI features will be unavailable."
+    "[Azure] AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_API_KEY is not set - Azure AI features will be unavailable."
   );
 }
 

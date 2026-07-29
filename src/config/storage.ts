@@ -53,7 +53,7 @@ function sleep(ms: number) {
  */
 export async function initStorageBuckets() {
   if (!supabaseAdminStorage) {
-    console.warn("Supabase admin client not available — skipping storage bucket init");
+    console.warn("Supabase admin client not available - skipping storage bucket init");
     return;
   }
 

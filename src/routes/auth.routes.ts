@@ -28,10 +28,12 @@ router.post("/login", authLimiter, validate({ body: loginBody }), login);
 router.post("/refresh", authLimiter, refreshToken);
 router.get("/google", googleAuth);
 router.post("/callback", authLimiter, authCallback);
-router.post("/phone/send-login-otp", authLimiter, validate({ body: phoneOtpSendBody }), sendPhoneLoginOtp);
-router.post("/phone/send-signup-otp", authLimiter, validate({ body: phoneOtpSendBody }), sendPhoneSignupOtp);
-router.post("/phone/send-link-otp", authLimiter, authenticate, validate({ body: phoneOtpSendBody }), sendPhoneLinkOtp);
-router.post("/phone/verify", authLimiter, validate({ body: phoneOtpVerifyBody }), verifyPhoneOtp);
+// Phone OTP has provider-side abuse protection; do not apply the generic
+// auth-attempt limiter here, since it blocks legitimate OTP retries by IP.
+router.post("/phone/send-login-otp", validate({ body: phoneOtpSendBody }), sendPhoneLoginOtp);
+router.post("/phone/send-signup-otp", validate({ body: phoneOtpSendBody }), sendPhoneSignupOtp);
+router.post("/phone/send-link-otp", authenticate, validate({ body: phoneOtpSendBody }), sendPhoneLinkOtp);
+router.post("/phone/verify", validate({ body: phoneOtpVerifyBody }), verifyPhoneOtp);
 router.post("/hooks/send-sms", sendSmsHook);
 
 // Protected routes

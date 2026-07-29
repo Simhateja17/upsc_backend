@@ -11,7 +11,7 @@ import { deriveKeyPointsFromMarkdown } from "../utils/modelAnswer";
 /**
  * Curated model answer lookup for a mains question pulled from the PYQ bank
  * (either directly, or via a past Daily Answer Writing question). Display
- * only — mirrors Daily Answer Writing, which shows the curated answer as a
+ * only - mirrors Daily Answer Writing, which shows the curated answer as a
  * reference without binding it into the grading prompt.
  */
 async function findCuratedModelAnswer(sourceQuestionBankId: string | null): Promise<string | null> {
@@ -282,7 +282,7 @@ export const getMockTestMainsEvaluationStatus = async (
       data: {
         attemptId: attempt.id,
         evaluationStatus: status,
-        // "completed" and "failed" are both terminal — the client should stop polling in either case.
+        // "completed" and "failed" are both terminal - the client should stop polling in either case.
         isComplete: status === "completed" || status === "failed",
       },
     });

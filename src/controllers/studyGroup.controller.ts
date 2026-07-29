@@ -56,7 +56,7 @@ function studyingCutoff(): Date {
 }
 
 /**
- * Returns a Map<groupId, studyingCount> for the given group ids — the number of
+ * Returns a Map<groupId, studyingCount> for the given group ids - the number of
  * active members currently in a live study session (fresh heartbeat).
  */
 async function getStudyingCounts(groupIds: string[]): Promise<Map<string, number>> {
@@ -206,7 +206,7 @@ export const getGroup = async (req: Request, res: Response, next: NextFunction) 
       (m) => m.isStudyingNow && m.lastActiveAt && m.lastActiveAt > cutoff
     ).length;
 
-    // Extra admin/request context — cheap follow-up queries, only when relevant.
+    // Extra admin/request context - cheap follow-up queries, only when relevant.
     const [pendingRequestCount, myRequest] = await Promise.all([
       isAdmin
         ? prisma.studyGroupJoinRequest.count({ where: { groupId: group.id, status: "pending" } })
@@ -331,7 +331,7 @@ export const joinGroup = async (req: Request, res: Response, next: NextFunction)
       return;
     }
 
-    // The room creator (admin) always joins directly — no self-approval needed.
+    // The room creator (admin) always joins directly - no self-approval needed.
     if (group.createdById === userId) {
       await prisma.studyGroupMember.upsert({
         where: { groupId_userId: { groupId, userId } },
@@ -695,7 +695,7 @@ export const getMemberTimes = async (req: Request, res: Response, next: NextFunc
 /**
  * POST /api/study-groups/:id/focus-time
  * Upsert the current user's cumulative room-scoped focus seconds for today.
- * Body: { seconds: number } — always the full cumulative total, not a delta.
+ * Body: { seconds: number } - always the full cumulative total, not a delta.
  */
 export const postFocusTime = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -739,7 +739,7 @@ export const postFocusTime = async (req: Request, res: Response, next: NextFunct
 
 /**
  * POST /api/study-groups/:id/studying
- * Explicit "Start Studying" — flips the caller's live presence on immediately
+ * Explicit "Start Studying" - flips the caller's live presence on immediately
  * (before the first focus-time heartbeat) so others see them right away.
  */
 export const startStudying = async (req: Request, res: Response, next: NextFunction) => {
@@ -768,7 +768,7 @@ export const startStudying = async (req: Request, res: Response, next: NextFunct
 
 /**
  * POST /api/study-groups/:id/stop-studying
- * Pause / leave — clears the caller's live presence so they drop out of the
+ * Pause / leave - clears the caller's live presence so they drop out of the
  * "studying now" count.
  */
 export const stopStudying = async (req: Request, res: Response, next: NextFunction) => {

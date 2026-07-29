@@ -176,7 +176,7 @@ function sectionBody(markdown: string, sectionTitle: string): string {
     .join("|");
   const match = markdown.match(
     new RegExp(
-      `(?:^|\\n)\\s*\\d*\\.?\\s*(?:\\*\\*)?${escaped}(?:\\*\\*)?\\s*(?:[-—:]\\s*)?([\\s\\S]*?)(?=\\n\\s*\\d+\\.?\\s*(?:\\*\\*)?(?:${headings})(?:\\*\\*)?|$)`,
+      `(?:^|\\n)\\s*\\d*\\.?\\s*(?:\\*\\*)?${escaped}(?:\\*\\*)?\\s*(?:[--:]\\s*)?([\\s\\S]*?)(?=\\n\\s*\\d+\\.?\\s*(?:\\*\\*)?(?:${headings})(?:\\*\\*)?|$)`,
       "i"
     )
   );

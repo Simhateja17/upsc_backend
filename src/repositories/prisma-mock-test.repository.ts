@@ -62,7 +62,7 @@ function toMockQuestionFromBank(row: any) {
 // "GS-I".."GS-IV", daily_mains_questions uses the display form
 // "GS Paper I".."GS Paper IV", and the frontend sends "gs1".."gs4".
 // Normalize once here so callers can match exactly instead of pattern-matching
-// (roman numerals share suffixes — "I"/"II"/"III" all end in "I" — so a LIKE
+// (roman numerals share suffixes - "I"/"II"/"III" all end in "I" - so a LIKE
 // match on a suffix would silently over-match).
 function mainsPaperCode(paperType?: string): string | null {
   const raw = String(paperType || "").trim().toLowerCase();
@@ -238,7 +238,7 @@ export function createPrismaMockTestRepository(): MockTestRepository {
     },
 
     /**
-     * "Previous Year Questions" mains source — pulls directly from the
+     * "Previous Year Questions" mains source - pulls directly from the
      * curated PYQ Mains bank (same table Daily Answer Writing and PYQ Mains
      * practice use), so every question carries a real marks value and a
      * `sourceQuestionBankId` that the results page can resolve back to a
@@ -268,7 +268,7 @@ export function createPrismaMockTestRepository(): MockTestRepository {
     },
 
     /**
-     * "Daily Answer Writing" mains source — pulls from the questions that
+     * "Daily Answer Writing" mains source - pulls from the questions that
      * have actually been served as a past Daily Answer Writing question.
      * Restricted to rows with a linked `pyq_question_id` (i.e. drawn from
      * the curated bank, not the rare AI-fallback day), which guarantees a

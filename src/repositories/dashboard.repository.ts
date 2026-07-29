@@ -1,5 +1,5 @@
 /**
- * DashboardRepository — seam for dashboard data access.
+ * DashboardRepository - seam for dashboard data access.
  * Abstracts all Prisma + Supabase queries used by the dashboard.
  */
 export interface DashboardSnapshot {

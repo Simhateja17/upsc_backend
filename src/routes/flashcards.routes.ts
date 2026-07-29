@@ -12,7 +12,7 @@ import {
 
 const router = Router();
 
-// Flashcards are premium content — require authentication for all access
+// Flashcards are premium content - require authentication for all access
 router.get("/subjects", authenticate, getSubjects);
 router.get("/:subjectId/topics", authenticate, getTopics);
 router.get("/:subjectId/:topicId", authenticate, getCards);

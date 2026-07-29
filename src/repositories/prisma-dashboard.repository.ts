@@ -69,7 +69,7 @@ export function createPrismaDashboardRepository(): DashboardRepository {
     },
 
     async getPerformanceRaw(userId, today) {
-      // See getTodaySnapshot above — same-day range instead of exact match,
+      // See getTodaySnapshot above - same-day range instead of exact match,
       // to catch study-plan tasks dated at either local midnight or noon UTC.
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);

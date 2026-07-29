@@ -17,7 +17,7 @@ export interface AchievementsResponse {
   totalsByCategory: Record<string, { earned: number; total: number }>;
   earnedTotal: number;
   totalBadges: number;
-  /** Keys earned for the first time in *this* request — the frontend toasts these. */
+  /** Keys earned for the first time in *this* request - the frontend toasts these. */
   newlyAwarded: string[];
   heroStats: { dayStreak: number; syllabusDone: number };
 }
@@ -35,7 +35,7 @@ function humanizeKey(key: string): string {
  * earned badges (once), fire a notification per new badge, and return the full
  * board with per-category totals and hero stats.
  *
- * This is the single evaluate-on-read entry point: calling it is idempotent —
+ * This is the single evaluate-on-read entry point: calling it is idempotent -
  * a badge is inserted at most once and only surfaces in `newlyAwarded` on the
  * request that first earns it.
  */

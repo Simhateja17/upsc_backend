@@ -13,7 +13,7 @@ function computeDaysRemaining(): number {
   return Math.max(0, Math.ceil((prelimsDate.getTime() - Date.now()) / 86400000));
 }
 
-describe('dashboard.service — computeDaysRemaining', () => {
+describe('dashboard.service - computeDaysRemaining', () => {
   it('returns a positive number before June 2 2026', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 4, 20));

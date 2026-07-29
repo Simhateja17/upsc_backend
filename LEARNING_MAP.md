@@ -1,38 +1,38 @@
-# RiseWithJeet Backend — 10-Week Learning Map
+# RiseWithJeet Backend - 10-Week Learning Map
 
 **For:** Manasa & Suri  
 **Rule:** Each person reads DIFFERENT files each week. Read independently. Then meet and teach each other what you found.
 
 ---
 
-## WEEK 1 — How the Internet Works + HTTP
+## WEEK 1 - How the Internet Works + HTTP
 
 **Concepts before code:** HTTP methods (GET reads, POST creates, PUT updates, DELETE removes), status codes (200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Internal Server Error), request/response headers, JSON body, URL paths and query params.
 
-### Manasa — Read these files
+### Manasa - Read these files
 
 | File | What to look for |
 |---|---|
 | `src/index.ts` | See how Express is created (`express()`), how `app.use(express.json())` parses JSON bodies, how `app.use(cors(...))` sets CORS headers, how `app.get("/health", ...)` returns a 200 JSON object. The HTTP basics are all right here. |
-| `src/routes/index.ts` | Look at lines 38-52. See `res.json({ status, message, timestamp })` — this IS an HTTP response. See `res.status(200)` and `res.status(503)`. See every `router.use("/auth", authRoutes)` line — this is URL path mounting. |
+| `src/routes/index.ts` | Look at lines 38-52. See `res.json({ status, message, timestamp })` - this IS an HTTP response. See `res.status(200)` and `res.status(503)`. See every `router.use("/auth", authRoutes)` line - this is URL path mounting. |
 
-### Suri — Read these files
+### Suri - Read these files
 
 | File | What to look for |
 |---|---|
 | `src/routes/dailyMcq.routes.ts` | See different HTTP methods: `router.get(...)`, `router.post(...)`. See route paths like `/today`, `/submit`, `/results`. See how `authenticate` middleware is applied to protect routes. |
-| `src/controllers/dailyMcq.controller.ts` | Look at `getTodayMcq` — see `req` (request comes in with user info from middleware), see `res.json({ data: ... })` (response goes out). Look at `submitAnswers` — see `req.body` (the JSON the client sent), see `res.json({ score, percentile, rank })`. |
+| `src/controllers/dailyMcq.controller.ts` | Look at `getTodayMcq` - see `req` (request comes in with user info from middleware), see `res.json({ data: ... })` (response goes out). Look at `submitAnswers` - see `req.body` (the JSON the client sent), see `res.json({ score, percentile, rank })`. |
 
 ### Discussion topic
 "I found a GET and a POST. What's the difference? What status codes did we each see?"
 
 ---
 
-## WEEK 2 — How a Request Flows Through Your Code
+## WEEK 2 - How a Request Flows Through Your Code
 
 **Concepts:** Route → middleware chain → controller → service/repository → database → response. Follow one request's entire life.
 
-### Manasa — Trace this request
+### Manasa - Trace this request
 
 **Trace:** `POST /api/daily-mcq/submit` with a JWT token and MCQ answers in the body.
 
@@ -42,14 +42,14 @@
 | 2. Middleware runs: CORS, JSON parse, requestId, pino-http | `src/index.ts` | See the `app.use` calls |
 | 3. Route matched: `/api/daily-mcq` | `src/routes/index.ts` | Line 91: `router.use("/daily-mcq", dailyMcqRoutes)` |
 | 4. Specific route: POST `/submit` | `src/routes/dailyMcq.routes.ts` | Find `router.post("/submit", authenticate, validate, ...)` |
-| 5. Auth middleware fires | `src/middleware/auth.middleware.ts` | `authenticate` function — verifies JWT, attaches `req.user` |
+| 5. Auth middleware fires | `src/middleware/auth.middleware.ts` | `authenticate` function - verifies JWT, attaches `req.user` |
 | 6. Validation middleware fires | `src/middleware/validate.ts` | Validates `req.body` against Zod schema |
 | 7. Controller runs | `src/controllers/dailyMcq.controller.ts` | `submitAnswers` function |
 | 8. Repository queries DB | `src/repositories/prisma-daily-mcq.repository.ts` | Find attempt creation + scoring logic |
 | 9. Database responds | `src/config/database.ts` | The Prisma client that actually sends SQL |
 | 10. Controller returns JSON | `src/controllers/dailyMcq.controller.ts` | `res.json({...})` |
 
-### Suri — Trace this request
+### Suri - Trace this request
 
 **Trace:** `GET /api/editorials/today` with a JWT token.
 
@@ -58,7 +58,7 @@
 | 1. Request arrives | `src/index.ts` | Express setup |
 | 2. Route matched: `/api/editorials` | `src/routes/index.ts` | Line 97: `router.use("/editorials", editorialRoutes)` |
 | 3. Specific route: GET `/today` | `src/routes/editorial.routes.ts` | Find the route definition |
-| 4. Auth middleware (optionalAuth) | `src/middleware/auth.middleware.ts` | `optionalAuth` — attaches user if token present, continues if not |
+| 4. Auth middleware (optionalAuth) | `src/middleware/auth.middleware.ts` | `optionalAuth` - attaches user if token present, continues if not |
 | 5. Controller runs | `src/controllers/editorial.controller.ts` | Fetches today's editorials |
 | 6. Repository queries DB | `src/repositories/prisma-editorial.repository.ts` | Prisma queries for editorials |
 | 7. Response | `src/controllers/editorial.controller.ts` | JSON array of editorials |
@@ -68,11 +68,11 @@
 
 ---
 
-## WEEK 3 — Express Middleware + Routing + Error Handling
+## WEEK 3 - Express Middleware + Routing + Error Handling
 
 **Concepts:** What middleware does (transform request, block request, log, attach data). How errors propagate through Express. Global vs route-level middleware.
 
-### Manasa — Read these files
+### Manasa - Read these files
 
 | File | Focus |
 |---|---|
@@ -80,7 +80,7 @@
 | `src/middleware/validate.ts` | The Zod factory. How does `validate(schema)` return a middleware? What happens when validation fails? |
 | `src/middleware/rateLimit.ts` | How are the 4 rate limiters configured? What's the difference between the general limiter and the AI limiter? Why is AI tighter? |
 
-### Suri — Read these files
+### Suri - Read these files
 
 | File | Focus |
 |---|---|
@@ -94,18 +94,18 @@
 
 ---
 
-## WEEK 4 — Authentication (JWT, Supabase Auth)
+## WEEK 4 - Authentication (JWT, Supabase Auth)
 
 **Concepts:** JWT structure (header.payload.signature), how Supabase signs tokens, JWKS (JSON Web Key Sets) for verification, token expiry and refresh, OAuth flow.
 
-### Manasa — Read these files
+### Manasa - Read these files
 
 | File | Focus |
 |---|---|
-| `src/controllers/auth.controller.ts` | **Read every line.** `signup` — what does it send to Supabase? What gets created in Prisma? `login` — what comes back from Supabase? `googleAuth` — how does the OAuth redirect work? `refreshToken` — when and why? `getMe` — how does it know who you are? |
+| `src/controllers/auth.controller.ts` | **Read every line.** `signup` - what does it send to Supabase? What gets created in Prisma? `login` - what comes back from Supabase? `googleAuth` - how does the OAuth redirect work? `refreshToken` - when and why? `getMe` - how does it know who you are? |
 | `src/validators/auth.validators.ts` | Simple Zod schemas. What's the minimum password length? How is email validated? |
 
-### Suri — Read these files
+### Suri - Read these files
 
 | File | Focus |
 |---|---|
@@ -117,18 +117,18 @@
 
 ---
 
-## WEEK 5 — Databases (SQL, Prisma, Relations)
+## WEEK 5 - Databases (SQL, Prisma, Relations)
 
 **Concepts:** Tables, rows, columns. Primary keys vs foreign keys. One-to-many vs many-to-many. What Prisma generates as SQL. What a JOIN does.
 
-### Manasa — Read these files (models 1-30)
+### Manasa - Read these files (models 1-30)
 
 | File | Focus |
 |---|---|
 | `prisma/schema.prisma` lines 1-700 | Read `User`, `DailyMCQ`, `MCQQuestion`, `MCQAttempt`, `MCQResponse`, `DailyMainsQuestion`, `MainsAttempt`, `MainsEvaluation`, `Editorial`, `MockTest`, `TestSeries`. For each: identify the foreign keys and relations. |
 | `src/config/database.ts` | How Prisma client is created. What is `$queryRaw`? |
 
-### Suri — Read these files (models 31-60)
+### Suri - Read these files (models 31-60)
 
 | File | Focus |
 |---|---|
@@ -140,18 +140,18 @@
 
 ---
 
-## WEEK 6 — Transactions, ACID, Race Conditions
+## WEEK 6 - Transactions, ACID, Race Conditions
 
 **Concepts:** What ACID means. What `prisma.$transaction` does. What happens when two people buy the last seat. What happens when a payment webhook and frontend callback arrive simultaneously.
 
-### Manasa — Read these files
+### Manasa - Read these files
 
 | File | Focus |
 |---|---|
-| `src/controllers/billing.controller.ts` | **Search for `$transaction`.** In `verifyPayment`: see how Payment creation + Subscription creation happen in ONE transaction. What happens if one fails? Find `initiatePayment` — is order creation also in a transaction? |
+| `src/controllers/billing.controller.ts` | **Search for `$transaction`.** In `verifyPayment`: see how Payment creation + Subscription creation happen in ONE transaction. What happens if one fails? Find `initiatePayment` - is order creation also in a transaction? |
 | `src/controllers/subscription.controller.ts` | Find the trial creation logic. If two API calls try to activate a trial at the same time, what stops them both from succeeding? (Hint: look for unique constraints.) |
 
-### Suri — Read these files
+### Suri - Read these files
 
 | File | Focus |
 |---|---|
@@ -160,22 +160,22 @@
 | `src/jobs/dailyContentJob.ts` | In `rotateDailyMCQ`: what if the cron job runs twice? How does the `@@unique([date])` on `DailyMCQ` prevent duplicate daily sets? |
 
 ### Discussion topic
-"You explain how the MCQ submission prevents double-counting. I'll explain how payment verification prevents double-charging. Both are race condition protections — what pattern do they share?"
+"You explain how the MCQ submission prevents double-counting. I'll explain how payment verification prevents double-charging. Both are race condition protections - what pattern do they share?"
 
 ---
 
-## WEEK 7 — Payments (Razorpay, Subscriptions, Idempotency)
+## WEEK 7 - Payments (Razorpay, Subscriptions, Idempotency)
 
 **Concepts:** Payment gateway flow (client → server → Razorpay → callback). Idempotency keys. HMAC signature verification. Subscription lifecycle.
 
-### Manasa — Read these files
+### Manasa - Read these files
 
 | File | Focus |
 |---|---|
-| `src/controllers/billing.controller.ts` | **All 881 lines.** Start at `CHECKOUT_PLAN_CATALOG` (line 27) — where prices live. Then `initiatePayment` — creates Razorpay order + DB Order. Then `verifyPayment` — the most important money function: verifies HMAC, creates Payment + Subscription atomically. |
-| `src/services/razorpayGateway.service.ts` | Raw Razorpay API calls. `createRazorpayOrder` — what does it POST to Razorpay? `verifyRazorpaySignature` — how does the HMAC check work? |
+| `src/controllers/billing.controller.ts` | **All 881 lines.** Start at `CHECKOUT_PLAN_CATALOG` (line 27) - where prices live. Then `initiatePayment` - creates Razorpay order + DB Order. Then `verifyPayment` - the most important money function: verifies HMAC, creates Payment + Subscription atomically. |
+| `src/services/razorpayGateway.service.ts` | Raw Razorpay API calls. `createRazorpayOrder` - what does it POST to Razorpay? `verifyRazorpaySignature` - how does the HMAC check work? |
 
-### Suri — Read these files
+### Suri - Read these files
 
 | File | Focus |
 |---|---|
@@ -203,50 +203,50 @@ User clicks "Buy Rise Monthly" on frontend
 
 ---
 
-## WEEK 8 — Real-Time (WebSockets, Polling, Push Notifications)
+## WEEK 8 - Real-Time (WebSockets, Polling, Push Notifications)
 
 **Important context:** The RiseWithJeet backend has **no WebSocket server**. There is no `ws://`, `socket.io`, or Supabase Realtime server-side code. Instead, the platform uses **polling** and **Firebase push notifications**.
 
 **Concepts:** Why persistent connections (WebSockets) vs polling (repeated HTTP requests). When polling is good enough. How push notifications work as a real-time alternative.
 
-### Manasa — Read these files
+### Manasa - Read these files
 
 | File | Focus |
 |---|---|
-| `src/routes/index.ts` lines 157-171 | `/api/study-room/stats` — returns a "active student count" based on time of day. This is a polling endpoint. The frontend calls it every N seconds. Why polling? |
+| `src/routes/index.ts` lines 157-171 | `/api/study-room/stats` - returns a "active student count" based on time of day. This is a polling endpoint. The frontend calls it every N seconds. Why polling? |
 | `src/controllers/dailyAnswer.controller.ts` | Find `getEvaluationStatus`. After a student submits an answer, evaluation runs asynchronously (AI takes seconds). The frontend polls this endpoint until `status` changes from `"pending"` → `"completed"`. |
 | Research task | Spend 30 min reading about WebSockets vs polling. Write down: 3 reasons to use WebSockets, 3 reasons polling was chosen here. |
 
-### Suri — Read these files
+### Suri - Read these files
 
 | File | Focus |
 |---|---|
 | `src/lib/pushNotifications.js` | Firebase Cloud Messaging. How does the server send a push to a mobile device? What data goes in the payload? |
 | `src/lib/pushDevices.js` | How are device tokens stored? How does the server know which device belongs to which user? |
 | `src/controllers/pyqMains.controller.ts` | Find evaluation status polling. Same pattern as daily-answer. |
-| `src/controllers/mockTestMains.controller.ts` | Same — find the evaluation status polling. |
+| `src/controllers/mockTestMains.controller.ts` | Same - find the evaluation status polling. |
 | Research task | Spend 30 min reading about Firebase Cloud Messaging. Write down: how does FCM replace WebSockets for "telling the user something happened"? |
 
 ### Discussion topic
-"I'll explain polling — how the frontend keeps asking 'is my evaluation done yet?'. You explain push notifications — how Firebase wakes up the app. Together: which is better for a real-time location tracker? Why wasn't it needed here?"
+"I'll explain polling - how the frontend keeps asking 'is my evaluation done yet?'. You explain push notifications - how Firebase wakes up the app. Together: which is better for a real-time location tracker? Why wasn't it needed here?"
 
 ---
 
-## WEEK 9 — AI Integration (RAG, Embeddings, Gemini, Prompts)
+## WEEK 9 - AI Integration (RAG, Embeddings, Gemini, Prompts)
 
 **Concepts:** What a vector embedding is (text → array of 1536 numbers). What cosine similarity does. How RAG works (Retrieve → Augment → Generate). How system prompts control AI behavior. The full pipeline: PDF upload → chunk → embed → store → search → inject into prompt → generate.
 
-### Manasa — Read these files (the EVALUATION side)
+### Manasa - Read these files (the EVALUATION side)
 
 | File | Focus |
 |---|---|
 | `src/config/llm.ts` | **Read first.** This is the gateway. Every AI call goes through `invokeModel()` or `invokeModelJSON()`. See how model names map to Azure endpoints. See cost logging to `aiUsageLog`. |
-| `src/services/answerEvaluator.ts` | **All 419 lines.** The most complex AI file. Read the `EvaluationResult` interface (line 9-23) — what the AI returns. Read `evaluateAnswer` — builds prompt with question + answer + topper context + rubric. How does it call `invokeModelJSON`? |
+| `src/services/answerEvaluator.ts` | **All 419 lines.** The most complex AI file. Read the `EvaluationResult` interface (line 9-23) - what the AI returns. Read `evaluateAnswer` - builds prompt with question + answer + topper context + rubric. How does it call `invokeModelJSON`? |
 | `src/services/checkedCopyPlanner.ts` | How evaluation scores get converted into annotation JSON for image generation. |
 | `src/services/checkedCopyGenerator.ts` | How Gemini image model draws teacher marks on answer sheets. |
 | `src/services/checkedCopyValidator.ts` | Sanity check: is the generated image actually bigger than 15% of original? |
 
-### Suri — Read these files (the RAG + RETRIEVAL side)
+### Suri - Read these files (the RAG + RETRIEVAL side)
 
 | File | Focus |
 |---|---|
@@ -279,39 +279,39 @@ User clicks "Buy Rise Monthly" on frontend
 ```
 
 ### Discussion topic
-"I'll explain how an answer gets evaluated by AI. You explain how a study PDF becomes searchable vectors. Together, draw the FULL RAG cycle on a whiteboard — from admin uploading a PDF to a student asking Jeet AI Mentor a question and getting a grounded answer. Label every step with the file and function that handles it."
+"I'll explain how an answer gets evaluated by AI. You explain how a study PDF becomes searchable vectors. Together, draw the FULL RAG cycle on a whiteboard - from admin uploading a PDF to a student asking Jeet AI Mentor a question and getting a grounded answer. Label every step with the file and function that handles it."
 
 ---
 
-## WEEK 10 — Security (CORS, Rate Limiting, Helmet, Encryption)
+## WEEK 10 - Security (CORS, Rate Limiting, Helmet, Encryption)
 
 **Concepts:** Why CORS exists. Why rate limiting protects your API. What Helmet headers do (XSS protection, CSP, HSTS, clickjacking). Why errors should never leak stack traces. How PII is protected. Why minimum password length matters.
 
-### Manasa — Read these files
+### Manasa - Read these files
 
 | File | Focus |
 |---|---|
-| `src/index.ts` | Find `app.use(helmet(...))` — what headers does Helmet set? Find `app.use(cors(...))` in `src/config/index.ts` — what origins are allowed? Why not `*`? |
+| `src/index.ts` | Find `app.use(helmet(...))` - what headers does Helmet set? Find `app.use(cors(...))` in `src/config/index.ts` - what origins are allowed? Why not `*`? |
 | `src/middleware/rateLimit.ts` | **Read every line.** Why 4 different limiters? Why is the AI limiter (10/15min) so much tighter than the general limiter (50K/15min)? What does Redis add vs in-memory? |
 | `src/config/redis.ts` | How Redis backs the rate limiter. What happens if Redis is down? |
 | `src/validators/auth.validators.ts` | Minimum password length = 8. Why? What other validations should exist? |
 
-### Suri — Read these files
+### Suri - Read these files
 
 | File | Focus |
 |---|---|
 | `src/middleware/errorHandler.ts` | In production, the error handler returns `"Internal server error"` without the actual error message. Why? What would an attacker do with a stack trace? |
 | `src/middleware/upload.ts` | File size limits (10MB single, 50MB PDF). MIME type checking. Magic byte verification. Why can't you trust the file extension? |
 | `src/middleware/auth.middleware.ts` | Security review: how does the JWT get verified? What happens if someone sends a tampered token? What happens if the token is from a different Supabase project? |
-| `src/config/supabase.ts` | Row Level Security (RLS). The `supabaseAnon` client respects RLS — the database itself blocks unauthorized access. The `supabaseAdmin` client bypasses RLS — only used in trusted server code. Why the separation? |
-| `prisma/schema.prisma` | Find the `CalendarSyncSetting` model (line 499-519). See `googleAccessTokenEncrypted` — why is it stored encrypted? What happens if the database gets dumped? |
+| `src/config/supabase.ts` | Row Level Security (RLS). The `supabaseAnon` client respects RLS - the database itself blocks unauthorized access. The `supabaseAdmin` client bypasses RLS - only used in trusted server code. Why the separation? |
+| `prisma/schema.prisma` | Find the `CalendarSyncSetting` model (line 499-519). See `googleAccessTokenEncrypted` - why is it stored encrypted? What happens if the database gets dumped? |
 
 ### Discussion topic
-"I'll explain rate limiting — how it stops abuse. You explain why errors don't leak details. Together: list every security layer in the app. What would you add?"
+"I'll explain rate limiting - how it stops abuse. You explain why errors don't leak details. Together: list every security layer in the app. What would you add?"
 
 ---
 
-## QUICK REFERENCE — Who Reads What Each Week
+## QUICK REFERENCE - Who Reads What Each Week
 
 | Week | Topic | Manasa reads | Suri reads |
 |---|---|---|---|

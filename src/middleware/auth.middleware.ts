@@ -36,7 +36,7 @@ async function sessionRecency(
   }
 }
 
-// ── Dynamic JWKS — fetches keys from Supabase, cached in-memory ────────────
+// ── Dynamic JWKS - fetches keys from Supabase, cached in-memory ────────────
 // Survives key rotation: on kid mismatch, re-fetches automatically.
 const SUPABASE_URL = process.env.SUPABASE_URL;
 if (!SUPABASE_URL) throw new Error("Missing SUPABASE_URL env var");
@@ -83,7 +83,7 @@ interface SupabaseJwtPayload {
 }
 
 /**
- * Look up user by supabase ID via REST API (HTTPS — reliable)
+ * Look up user by supabase ID via REST API (HTTPS - reliable)
  */
 async function findUserBySupabaseId(supabaseId: string) {
   const { data, error } = await supabaseAdmin
@@ -109,7 +109,7 @@ async function findUserBySupabaseId(supabaseId: string) {
 }
 
 /**
- * Create user via REST API (HTTPS — reliable)
+ * Create user via REST API (HTTPS - reliable)
  */
 async function createUser(authUser: {
   id: string;
@@ -164,7 +164,7 @@ async function createUser(authUser: {
 
 /**
  * Middleware to authenticate requests using Supabase JWT (fully local verification)
- * Database queries use Supabase REST API (HTTPS) — no direct Postgres connection needed.
+ * Database queries use Supabase REST API (HTTPS) - no direct Postgres connection needed.
  */
 export const authenticate = async (
   req: Request,
@@ -186,7 +186,7 @@ export const authenticate = async (
 
     const token = authHeader.split(" ")[1];
 
-    // Verify token using embedded public key — zero network calls
+    // Verify token using embedded public key - zero network calls
     let payload: SupabaseJwtPayload;
     try {
       const { payload: jwtPayload } = await jwtVerify(token, JWKS);
@@ -228,7 +228,7 @@ export const authenticate = async (
     // On a session mismatch, decide by recency: the more recently created
     // Supabase session wins. A newer login takes over the active slot; an older
     // (superseded) session is rejected. Because the decision is based on
-    // auth.sessions.created_at — not on which request happens to arrive first —
+    // auth.sessions.created_at - not on which request happens to arrive first -
     // the device that just logged in is never the one that gets barred.
     // Skipped for admins and when enforcement is off. A user with no active
     // session registered yet is never blocked (bootstrap case).
@@ -241,7 +241,7 @@ export const authenticate = async (
     ) {
       const recency = await sessionRecency(payload.session_id, user.activeSessionId, user.supabaseId);
       if (recency === "newer") {
-        // This device logged in more recently — hand it the active slot.
+        // This device logged in more recently - hand it the active slot.
         await supabaseAdmin
           .from("users")
           .update({ active_session_id: payload.session_id })

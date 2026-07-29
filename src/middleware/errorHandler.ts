@@ -40,7 +40,7 @@ export const errorHandler = (
     stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
   });
 
-  // Never expose stack traces in API responses — log them server-side only
+  // Never expose stack traces in API responses - log them server-side only
   const maxMb = process.env.ANSWER_UPLOAD_MAX_MB || "50";
   const message = isPayloadTooLarge || isBodyTooLarge
     ? `Uploaded file is too large. Please upload an image below ${maxMb}MB.`

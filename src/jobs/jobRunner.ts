@@ -1,5 +1,5 @@
 /**
- * JobRunner — reliable cron job execution with retry and structured logging.
+ * JobRunner - reliable cron job execution with retry and structured logging.
  *
  * Every cron job wraps its logic in `runWithRetry()` instead of raw try/catch.
  * The runner handles: retry with exponential backoff, structured error logging,

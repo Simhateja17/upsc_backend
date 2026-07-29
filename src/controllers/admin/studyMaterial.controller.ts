@@ -22,7 +22,7 @@ function logError(step: string, msg: string, error: any) {
 /**
  * POST /api/admin/study-materials/upload
  * Upload a study material PDF (notes, chapters, textbooks) for RAG vectorization.
- * Uses Supabase REST API (HTTPS) — no direct Postgres connection needed.
+ * Uses Supabase REST API (HTTPS) - no direct Postgres connection needed.
  */
 export const uploadStudyMaterial = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -96,7 +96,7 @@ export const uploadStudyMaterial = async (req: Request, res: Response, next: Nex
     res.status(201).json({
       status: "success",
       data: { uploadId: upload.id, status: "processing" },
-      message: "PDF uploaded. Vectorization started — chunks will be ready in a few minutes.",
+      message: "PDF uploaded. Vectorization started - chunks will be ready in a few minutes.",
     });
   } catch (error) {
     next(error);

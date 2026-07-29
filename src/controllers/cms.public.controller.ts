@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../config/database";
 
-// GET /cms/:slug — Returns published page sections (no auth)
+// GET /cms/:slug - Returns published page sections (no auth)
 export const getPageContent = async (req: Request, res: Response) => {
   try {
     const slug = String(req.params.slug);
@@ -44,7 +44,7 @@ export const getPageContent = async (req: Request, res: Response) => {
   }
 };
 
-// GET /faqs — Returns active FAQs grouped by category (no auth)
+// GET /faqs - Returns active FAQs grouped by category (no auth)
 export const getFaqsPublic = async (_req: Request, res: Response) => {
   try {
     const faqs = await prisma.faq.findMany({

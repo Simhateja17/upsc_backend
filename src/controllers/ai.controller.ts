@@ -92,7 +92,7 @@ function getResponseLengthPolicy(mode: ResponseMode): string {
 
 function normalizeAssistantReply(reply: string): string {
   return reply
-    .replace(/[—–]/g, "-")
+    .replace(/[-–]/g, "-")
     .replace(/[ \t]*\n[ \t]*/g, "\n")
     .trim();
 }

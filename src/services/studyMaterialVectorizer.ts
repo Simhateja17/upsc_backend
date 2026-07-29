@@ -25,7 +25,7 @@ function logError(step: string, msg: string, error: any) {
 /**
  * Vectorization pipeline for study material PDFs (notes, chapters, textbooks).
  * Chunks the PDF, embeds each chunk with Gemini Embedding 2, stores via Supabase REST API.
- * Uses HTTPS (port 443) — reliable even when direct Postgres (port 5432) is blocked.
+ * Uses HTTPS (port 443) - reliable even when direct Postgres (port 5432) is blocked.
  */
 export async function vectorizeStudyMaterial(
   uploadId: string,
@@ -45,7 +45,7 @@ export async function vectorizeStudyMaterial(
       .single();
 
     if (uploadErr || !upload) {
-      logError("METADATA", `Upload ${uploadId} not found — skipping`, uploadErr);
+      logError("METADATA", `Upload ${uploadId} not found - skipping`, uploadErr);
       return;
     }
 
@@ -71,7 +71,7 @@ export async function vectorizeStudyMaterial(
     console.log("─".repeat(50));
 
     if (chunks.length === 0) {
-      logError("CHUNK", "No chunks extracted — marking upload as failed", null);
+      logError("CHUNK", "No chunks extracted - marking upload as failed", null);
       await supabaseAdmin
         .from("study_material_uploads")
         .update({ status: "failed" })

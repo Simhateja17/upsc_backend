@@ -20,7 +20,7 @@ dist
 *.log
 npm-debug.log*
 
-# Database dumps / data exports — never commit (contain user PII)
+# Database dumps / data exports - never commit (contain user PII)
 *.csv
 *.dump
 *.backup

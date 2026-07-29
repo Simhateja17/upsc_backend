@@ -271,7 +271,7 @@ export async function sendMockTestAvailableNotifications(): Promise<void> {
 
   const title =
     newTests.length === 1
-      ? `New Mock Test Available — ${newTests[0].title} 📌`
+      ? `New Mock Test Available - ${newTests[0].title} 📌`
       : `${newTests.length} New Mock Tests Available 📌`;
   const body =
     newTests.length === 1

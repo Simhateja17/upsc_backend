@@ -9,7 +9,7 @@ interface NamedTopic<TSub extends NamedSubTopic> {
 
 const dedupeBase = (s: string): string =>
   s
-    .split(/\s*[—–]\s*/)[0]
+    .split(/\s*[-–]\s*/)[0]
     .toLowerCase()
     .replace(/isation\b/g, "ization")
     .replace(/\s+/g, " ")
@@ -35,7 +35,7 @@ function dedupeSubTopics<TSub extends NamedSubTopic>(subTopics: TSub[]): TSub[] 
 
 /**
  * Merges topics (and their sub-topics) whose names are near-duplicates
- * (differing only by spelling variant or a "— detail" suffix), preserving
+ * (differing only by spelling variant or a "- detail" suffix), preserving
  * first-occurrence order. Mirrors the Syllabus Tracker page's client-side
  * normalizeSyllabusData() dedup exactly, so the resulting index positions
  * match what users' saved tracker progress is already keyed against.

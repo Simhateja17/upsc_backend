@@ -211,7 +211,7 @@ async function main() {
         { name: "Indian Economy", description: "Planning, Budgets, Banking, Trade, Infrastructure, Agriculture", order: 3, videoCount: 0 },
         { name: "Environment & Ecology", description: "Biodiversity, Climate Change, Pollution, Conventions & Acts", order: 4, videoCount: 0 },
         { name: "Science & Technology", description: "Space, Defence, Biotechnology, IT, Current Developments", order: 5, videoCount: 0 },
-        { name: "Ethics, Integrity & Aptitude", description: "GS Paper IV — Ethics, Case Studies, Thinkers", order: 6, videoCount: 0 },
+        { name: "Ethics, Integrity & Aptitude", description: "GS Paper IV - Ethics, Case Studies, Thinkers", order: 6, videoCount: 0 },
         { name: "Current Affairs", description: "Monthly compilations, International Relations, Schemes & Policies", order: 7, videoCount: 0 },
       ],
     });
