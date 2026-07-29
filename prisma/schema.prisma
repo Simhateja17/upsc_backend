@@ -65,6 +65,8 @@ model User {
   studyStreak             StudyStreak?
   subscriptions           Subscription[]
   couponRedemptions       SubscriptionCouponRedemption[]
+  billingAddress          BillingAddress?
+  cancellationFeedback    SubscriptionCancellationFeedback[]
   supportTickets          SupportTicket[]
   syllabusCoverage        SyllabusCoverage[]
   syllabusTrackerState    SyllabusTrackerState?
@@ -1633,6 +1635,7 @@ model Subscription {
   updatedAt                  DateTime                       @updatedAt @map("updated_at")
   payments                   Payment[]
   couponRedemptions          SubscriptionCouponRedemption[]
+  cancellationFeedback       SubscriptionCancellationFeedback[]
   plan                       PricingPlan                    @relation(fields: [planId], references: [id])
   user                       User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1640,6 +1643,35 @@ model Subscription {
   @@index([razorpaySubscriptionId])
   @@index([razorpayStatus])
   @@map("subscriptions")
+}
+
+model BillingAddress {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  fullName  String   @map("full_name")
+  email     String
+  phone     String?
+  city      String?
+  state     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("billing_addresses")
+}
+
+model SubscriptionCancellationFeedback {
+  id             String       @id @default(uuid())
+  subscriptionId String       @map("subscription_id")
+  userId         String       @map("user_id")
+  reason         String
+  wantsSupport   Boolean      @default(false) @map("wants_support")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@map("subscription_cancellation_feedback")
 }
 
 model RazorpayWebhookEvent {
