@@ -3,6 +3,8 @@ import { randomUUID } from "crypto";
 import { mockTestRepo } from "../repositories/prisma-mock-test.repository";
 import { generateMainsQuestions } from "../services/questionGenerator";
 import { mainsTimeLimit } from "../utils/mainsPattern";
+import { computeAttemptedTodayCount } from "../utils/attemptedToday";
+import { MOCK_TEST_CHECKPOINTS } from "../utils/attemptedTodayCheckpoints";
 
 export const getSubjects = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -19,7 +21,8 @@ export const getSubjects = async (req: Request, res: Response, next: NextFunctio
 export const getPlatformStats = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await mockTestRepo.getPlatformStats();
-    res.json({ status: "success", data: stats });
+    const studentsAttemptedTodayCount = computeAttemptedTodayCount(new Date(), stats.testsTakenTodayCount, MOCK_TEST_CHECKPOINTS);
+    res.json({ status: "success", data: { ...stats, studentsAttemptedTodayCount } });
   } catch (error) { next(error); }
 };
 

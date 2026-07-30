@@ -119,15 +119,24 @@ export function createPrismaMockTestRepository(): MockTestRepository {
     },
 
     async getPlatformStats() {
-      const [questionsRes, attemptsRes, usersRes] = await Promise.all([
+      const todayStartIso = (() => {
+        const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+        const ist = new Date(Date.now() + IST_OFFSET_MS);
+        ist.setUTCHours(0, 0, 0, 0);
+        return new Date(ist.getTime() - IST_OFFSET_MS).toISOString();
+      })();
+
+      const [questionsRes, attemptsRes, usersRes, attemptsTodayRes] = await Promise.all([
         supabaseAdmin.from("pyq_question_bank").select("id", { count: "exact", head: true }).eq("exam", "prelims").eq("status", "approved").eq("paper", "GS-I"),
         supabaseAdmin.from("mock_test_attempts").select("id", { count: "exact", head: true }),
         supabaseAdmin.from("users").select("id", { count: "exact", head: true }),
+        supabaseAdmin.from("mock_test_attempts").select("id", { count: "exact", head: true }).gte("created_at", todayStartIso),
       ]);
       return {
         questionsCount: questionsRes.count || 0,
         testsCount: attemptsRes.count || 0,
         usersCount: usersRes.count || 0,
+        testsTakenTodayCount: attemptsTodayRes.count || 0,
       };
     },
 

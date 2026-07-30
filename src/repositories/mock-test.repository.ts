@@ -1,6 +1,6 @@
 export interface MockTestRepository {
   getSubjectCounts(): Promise<Map<string, number>>;
-  getPlatformStats(): Promise<{ questionsCount: number; testsCount: number; usersCount: number }>;
+  getPlatformStats(): Promise<{ questionsCount: number; testsCount: number; usersCount: number; testsTakenTodayCount: number }>;
   createTest(data: any): Promise<any>;
   deleteTest(id: string): Promise<void>;
   insertQuestions(questions: any[]): Promise<void>;

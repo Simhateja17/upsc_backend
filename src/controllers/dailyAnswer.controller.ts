@@ -5,6 +5,8 @@ import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../
 import { ensureTodayMainsQuestion, getTodayInAppTimeZone } from "../jobs/dailyContentJob";
 import { notifyAnswerEvaluated } from "../utils/notifications";
 import { deriveKeyPointsFromMarkdown } from "../utils/modelAnswer";
+import { computeAttemptedTodayCount } from "../utils/attemptedToday";
+import { DAILY_ANSWER_CHECKPOINTS } from "../utils/attemptedTodayCheckpoints";
 
 function getToday(): Date {
   return getTodayInAppTimeZone();
@@ -82,8 +84,9 @@ export const getTodayQuestion = async (req: Request, res: Response, next: NextFu
       attempted = !!attempt?.submittedAt;
     }
     attemptCount = await prisma.mainsAttempt.count({ where: { questionId: question.id } });
+    const studentsAttemptedTodayCount = computeAttemptedTodayCount(new Date(), attemptCount, DAILY_ANSWER_CHECKPOINTS);
 
-    res.json({ status: "success", data: { ...question, attempted, attemptCount } });
+    res.json({ status: "success", data: { ...question, attempted, attemptCount, studentsAttemptedTodayCount } });
   } catch (error) {
     next(error);
   }
