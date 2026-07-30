@@ -350,9 +350,6 @@ export async function getEffectiveEntitlements(userId: string) {
     }
   }
 
-  // Aspire is now the free, always-on entry tier (no purchase/subscription required) — see billing redesign.
-  if (tier === "free") tier = "aspire";
-
   if (override?.planTierOverride) {
     const overrideTier = normalizePlanTier(override.planTierOverride);
     const isAdminPlanSimulation = user?.role === "admin" && override.reason === ADMIN_PLAN_SIMULATION_REASON;
