@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import {
-  isValidStudyPlannerSubject,
-  normalizeStudyPlannerSubject,
-  VALID_STUDY_PLANNER_SUBJECTS,
+  isValidStudyPlannerTaskSubject,
+  normalizeStudyPlannerTaskSubject,
 } from "../constants/subjects";
 import {
   deleteStudyPlanTaskFromGoogle,
@@ -69,12 +68,20 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
       return res.status(400).json({ status: "error", message: "Title is required" });
     }
 
+    let normalizedSubject = subject;
     if (subject) {
-      const normalized = normalizeStudyPlannerSubject(subject);
-      if (!isValidStudyPlannerSubject(normalized)) {
+      if (typeof subject !== "string") {
         return res.status(400).json({
           status: "error",
-          message: `Invalid subject "${subject}". Must be one of: ${VALID_STUDY_PLANNER_SUBJECTS.join(", ")}`,
+          message: "Subject must be text",
+        });
+      }
+
+      normalizedSubject = normalizeStudyPlannerTaskSubject(subject);
+      if (!isValidStudyPlannerTaskSubject(normalizedSubject)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Subject must contain 1 to 50 characters",
         });
       }
     }
@@ -86,7 +93,7 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
         userId,
         title,
         description,
-        subject: subject ? normalizeStudyPlannerSubject(subject) : subject,
+        subject: normalizedSubject,
         type: type || "study",
         date: taskDate,
         startTime,
@@ -124,11 +131,18 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (subject !== undefined) {
-      const normalized = normalizeStudyPlannerSubject(subject);
-      if (!isValidStudyPlannerSubject(normalized)) {
+      if (typeof subject !== "string") {
         return res.status(400).json({
           status: "error",
-          message: `Invalid subject "${subject}". Must be one of: ${VALID_STUDY_PLANNER_SUBJECTS.join(", ")}`,
+          message: "Subject must be text",
+        });
+      }
+
+      const normalized = normalizeStudyPlannerTaskSubject(subject);
+      if (!isValidStudyPlannerTaskSubject(normalized)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Subject must contain 1 to 50 characters",
         });
       }
       updateData.subject = normalized;

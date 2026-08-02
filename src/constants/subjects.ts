@@ -85,6 +85,11 @@ export type ValidStudyPlannerSubject = (typeof VALID_STUDY_PLANNER_SUBJECTS)[num
 
 export const VALID_STUDY_PLANNER_SUBJECT_SET = new Set(VALID_STUDY_PLANNER_SUBJECTS);
 
+// Study planner tasks may also use a user-defined subject. Keep the same limit
+// used by the dashboard custom-subject input so free-form labels remain safe
+// to display in task cards and calendar events.
+export const MAX_STUDY_PLANNER_SUBJECT_LENGTH = 50;
+
 /**
  * Check if a subject string is one of the 6 canonical subjects.
  */
@@ -158,6 +163,24 @@ export function normalizeStudyPlannerSubject(subject: string): string {
   if (exact) return exact;
 
   return s;
+}
+
+/**
+ * Normalize a subject entered directly by a user in the study planner.
+ * Known planner subjects still resolve to their canonical labels; custom
+ * labels keep their text with collapsed internal whitespace.
+ */
+export function normalizeStudyPlannerTaskSubject(subject: string): string {
+  return normalizeStudyPlannerSubject(subject).replace(/\s+/g, " ");
+}
+
+/**
+ * Study planner subjects are free-form, unlike subjects used by canonical
+ * question-bank features. This validates the task-specific contract.
+ */
+export function isValidStudyPlannerTaskSubject(subject: string | null | undefined): boolean {
+  if (!subject) return false;
+  return subject.length <= MAX_STUDY_PLANNER_SUBJECT_LENGTH;
 }
 
 export function isValidStudyPlannerSubject(subject: string | null | undefined): boolean {
