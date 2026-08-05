@@ -1,6 +1,6 @@
 export interface MockTestRepository {
   getSubjectCounts(): Promise<Map<string, number>>;
-  getPlatformStats(): Promise<{ questionsCount: number; testsCount: number; usersCount: number }>;
+  getPlatformStats(): Promise<{ questionsCount: number; testsCount: number; usersCount: number; testsTakenTodayCount: number }>;
   createTest(data: any): Promise<any>;
   deleteTest(id: string): Promise<void>;
   insertQuestions(questions: any[]): Promise<void>;
@@ -13,5 +13,15 @@ export interface MockTestRepository {
   getStreak(userId: string): Promise<number>;
   countUserAttemptsToday(userId: string): Promise<number>;
   findPYQMains(subject?: string, paperType?: string, limit?: number): Promise<any[]>;
+  findPYQBankMains(subject?: string, paperType?: string, limit?: number): Promise<any[]>;
+  findDailyMainsHistory(subject?: string, paperType?: string, limit?: number): Promise<any[]>;
   findPYQQuestions(subject?: string, excludeSubjects?: string[], limit?: number): Promise<any[]>;
+  findQuestionBankQuestions(params: {
+    source: string;
+    userId: string;
+    subject?: string;
+    difficulty: string;
+    count: number;
+    excludeAttempted?: boolean;
+  }): Promise<any[]>;
 }

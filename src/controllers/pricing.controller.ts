@@ -13,72 +13,8 @@ export const getPlans = async (_req: Request, res: Response, next: NextFunction)
       orderBy: { order: "asc" },
     });
 
-    // Return defaults if empty
-    if (plans.length === 0) {
-      return res.json({
-        status: "success",
-        data: [
-          {
-            id: "1",
-            name: "3 Month Plan",
-            price: 4999,
-            duration: "3 months",
-            features: [
-              "All Daily MCQs & Answer Writing",
-              "Basic Mock Tests",
-              "Editorial Analysis",
-              "Study Planner",
-              "Email Support",
-            ],
-            isPopular: false,
-          },
-          {
-            id: "2",
-            name: "6 Month Plan",
-            price: 7999,
-            duration: "6 months",
-            features: [
-              "Everything in 3 Month Plan",
-              "Unlimited Mock Tests",
-              "AI Answer Evaluation",
-              "Video Lectures Access",
-              "Personal Mentor Support",
-              "Priority Support",
-            ],
-            isPopular: true,
-          },
-          {
-            id: "3",
-            name: "12 Month Plan",
-            price: 11999,
-            duration: "12 months",
-            features: [
-              "Everything in 6 Month Plan",
-              "1-on-1 Mentorship Sessions",
-              "Complete Study Material Library",
-              "Interview Preparation",
-              "Lifetime Community Access",
-              "Dedicated Study Manager",
-            ],
-            isPopular: false,
-          },
-        ],
-      });
-    }
-
     res.json({ status: "success", data: plans });
-  } catch (error: any) {
-    // If the table doesn't exist yet, return defaults instead of 500
-    if (error?.code === "P2021" || error?.code === "P2010" || error?.message?.includes("does not exist")) {
-      return res.json({
-        status: "success",
-        data: [
-          { id: "1", name: "3 Month Plan", price: 4999, duration: "3 months", features: ["All Daily MCQs & Answer Writing", "Basic Mock Tests", "Editorial Analysis", "Study Planner", "Email Support"], isPopular: false },
-          { id: "2", name: "6 Month Plan", price: 7999, duration: "6 months", features: ["Everything in 3 Month Plan", "Unlimited Mock Tests", "AI Answer Evaluation", "Video Lectures Access", "Personal Mentor Support", "Priority Support"], isPopular: true },
-          { id: "3", name: "12 Month Plan", price: 11999, duration: "12 months", features: ["Everything in 6 Month Plan", "1-on-1 Mentorship Sessions", "Complete Study Material Library", "Interview Preparation", "Lifetime Community Access", "Dedicated Study Manager"], isPopular: false },
-        ],
-      });
-    }
+  } catch (error) {
     next(error);
   }
 };
@@ -123,36 +59,6 @@ export const getTestimonials = async (_req: Request, res: Response, next: NextFu
       orderBy: { order: "asc" },
     });
 
-    // Return defaults if empty
-    if (testimonials.length === 0) {
-      return res.json({
-        status: "success",
-        data: [
-          {
-            id: "1",
-            name: "Priya Sharma",
-            title: "IAS 2024 - AIR 45",
-            content: "The daily MCQ practice and personalized study planner were game-changers for my preparation. Jeet Sir's mentorship made all the difference.",
-            rating: 5,
-          },
-          {
-            id: "2",
-            name: "Rahul Verma",
-            title: "IAS 2024 - AIR 112",
-            content: "The AI-powered answer evaluation helped me improve my mains writing significantly. I saw a 30% improvement in my scores within 2 months.",
-            rating: 5,
-          },
-          {
-            id: "3",
-            name: "Anita Patel",
-            title: "IPS 2023 - AIR 89",
-            content: "The mock test analytics and subject-wise breakdown helped me identify and fix my weak areas systematically.",
-            rating: 5,
-          },
-        ],
-      });
-    }
-
     res.json({ status: "success", data: testimonials });
   } catch (error) {
     next(error);
@@ -163,29 +69,11 @@ export const getTestimonials = async (_req: Request, res: Response, next: NextFu
  * POST /api/pricing/orders
  * Create a purchase order
  */
-export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const userId = req.user!.id;
-    const { planId } = req.body;
-
-    if (!planId) {
-      return res.status(400).json({ status: "error", message: "planId is required" });
-    }
-
-    const plan = await prisma.pricingPlan.findUnique({ where: { id: planId } });
-    if (!plan || !plan.isActive) {
-      return res.status(404).json({ status: "error", message: "Plan not found or inactive" });
-    }
-
-    const order = await prisma.order.create({
-      data: { userId, planId, amount: plan.price, status: "pending" },
-      include: { plan: true },
-    });
-
-    res.status(201).json({ status: "success", data: order });
-  } catch (error) {
-    next(error);
-  }
+export const createOrder = async (_req: Request, res: Response) => {
+  return res.status(410).json({
+    status: "error",
+    message: "Paid plan checkout now uses Razorpay Subscriptions. Use /api/billing/subscriptions/create.",
+  });
 };
 
 /**
@@ -200,6 +88,100 @@ export const getOrders = async (req: Request, res: Response, next: NextFunction)
       orderBy: { createdAt: "desc" },
     });
     res.json({ status: "success", data: orders });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/pricing/plans
+ * Admin: Create a new pricing plan
+ */
+export const createPlan = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, price, duration, durationDays, features, isPopular, order, tier, billingCycle, originalPrice, entitlements } = req.body;
+
+    if (!name || price === undefined || !duration) {
+      return res.status(400).json({ status: "error", message: "name, price, and duration are required" });
+    }
+
+    const plan = await prisma.pricingPlan.create({
+      data: {
+        name,
+        price: Number(price),
+        duration,
+        durationDays: durationDays !== undefined && durationDays !== null ? Number(durationDays) : undefined,
+        features: features || [],
+        isPopular: isPopular || false,
+        order: order || 0,
+        isActive: true,
+        tier: tier || undefined,
+        billingCycle: billingCycle || undefined,
+        originalPrice: originalPrice !== undefined && originalPrice !== null ? Number(originalPrice) : undefined,
+        entitlements: entitlements ?? undefined,
+      },
+    });
+
+    res.status(201).json({ status: "success", data: plan });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/admin/pricing/plans/:id
+ * Admin: Update a pricing plan
+ */
+export const updatePlan = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      return res.status(400).json({ status: "error", message: "id is required" });
+    }
+    const { name, price, duration, durationDays, features, isPopular, order, isActive, tier, billingCycle, originalPrice, entitlements } = req.body;
+
+    const updates: Record<string, any> = {};
+    if (name !== undefined) updates.name = name;
+    if (price !== undefined) updates.price = Number(price);
+    if (duration !== undefined) updates.duration = duration;
+    if (durationDays !== undefined && durationDays !== null) updates.durationDays = Number(durationDays);
+    if (features !== undefined) updates.features = features;
+    if (isPopular !== undefined) updates.isPopular = isPopular;
+    if (order !== undefined) updates.order = Number(order);
+    if (isActive !== undefined) updates.isActive = isActive;
+    if (tier !== undefined) updates.tier = tier;
+    if (billingCycle !== undefined) updates.billingCycle = billingCycle;
+    if (originalPrice !== undefined) updates.originalPrice = originalPrice === null ? null : Number(originalPrice);
+    if (entitlements !== undefined) updates.entitlements = entitlements;
+
+    const plan = await prisma.pricingPlan.update({
+      where: { id },
+      data: updates,
+    });
+
+    res.json({ status: "success", data: plan });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/admin/pricing/plans/:id
+ * Admin: Delete a pricing plan (soft delete by setting isActive to false)
+ */
+export const deletePlan = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      return res.status(400).json({ status: "error", message: "id is required" });
+    }
+
+    await prisma.pricingPlan.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    res.json({ status: "success", message: "Plan deactivated" });
   } catch (error) {
     next(error);
   }

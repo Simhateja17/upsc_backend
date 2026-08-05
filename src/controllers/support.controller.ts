@@ -182,6 +182,6 @@ export const getFaqByCategory = async (req: Request, res: Response, next: NextFu
 // ── POST /api/support/faq/:id/helpful ───────────────────────────────────────
 
 export const markFaqHelpful = async (req: Request, res: Response, next: NextFunction) => {
-  // Best-effort tracking — no schema field yet, just acknowledge
+  // Best-effort tracking - no schema field yet, just acknowledge
   res.json({ status: "success", message: "Thank you for your feedback" });
 };

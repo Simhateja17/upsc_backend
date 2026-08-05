@@ -19,6 +19,7 @@ import pinoHttp from "pino-http";
 import { initStorageBuckets } from "./config/storage";
 import { initScheduler } from "./jobs/scheduler";
 import { runLatestNewsJob } from "./jobs/latestNewsJob";
+import { sendSmsHook } from "./controllers/phoneAuth.controller";
 
 const app: Application = express();
 
@@ -38,29 +39,38 @@ app.use(pinoHttp({
 
 // Middleware
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
-    if (!origin) return callback(null, true);
-    // Allow only the exact Next.js dev port
-    if (config.nodeEnv === "development" && /^http:\/\/localhost(:\d+)?$/.test(origin)) {
-      return callback(null, true);
-    }
-    if (config.cors.origins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error(`CORS: origin ${origin} not allowed`));
-  },
+  origin: true,
   credentials: true,
 }));
 app.use(helmet());
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+
+app.use((req, _res, next) => {
+  if (req.method === "POST" && /^\/api\/pyq\/mains\/[^/]+\/submit$/.test(req.path)) {
+    console.log("[PYQ Upload] Incoming submit request", {
+      requestId: req.id,
+      origin: req.headers.origin || null,
+      contentType: req.headers["content-type"] || null,
+      contentLength: req.headers["content-length"] || null,
+      userAgent: req.headers["user-agent"] || null,
+    });
+  }
+  next();
+});
+
+app.use(express.json({
+  limit: process.env.JSON_BODY_LIMIT || "25mb",
+  verify: (req, _res, buf) => {
+    (req as any).rawBody = buf.toString("utf8");
+  },
+}));
+app.use(express.urlencoded({ extended: false, limit: process.env.URLENCODED_BODY_LIMIT || "5mb" }));
 
 // Apply general rate limiter to all API routes
 app.use("/api", generalLimiter);
 console.log("[Server] Rate limiter applied");
 
 // Routes
+app.post("/auth/hooks/send-sms", generalLimiter, sendSmsHook);
 app.use("/api", routes);
 console.log("[Server] API routes mounted");
 
@@ -87,12 +97,15 @@ app.listen(PORT, async () => {
   // Initialize cron scheduler
   initScheduler();
 
-  // Populate editorials immediately on startup — critical for Render free tier
-  // which spins down between requests, killing cron jobs. This ensures the DB
-  // always has fresh articles after every cold start. Fire-and-forget.
-  runLatestNewsJob().catch((err) =>
-    console.warn("[Startup] RSS fetch failed (non-fatal):", err?.message)
-  );
+  // Optional startup RSS sync. Keep disabled by default in production so a
+  // PM2 memory restart does not immediately launch another AI summarization job.
+  if (process.env.RUN_LATEST_NEWS_ON_STARTUP === "true") {
+    runLatestNewsJob().catch((err) =>
+      console.warn("[Startup] RSS fetch failed (non-fatal):", err?.message)
+    );
+  } else {
+    console.log("[Startup] RSS fetch skipped; set RUN_LATEST_NEWS_ON_STARTUP=true to enable.");
+  }
 });
 
 export default app;

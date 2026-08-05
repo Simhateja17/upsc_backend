@@ -4,11 +4,62 @@ import {
   evaluateAnswerGeneric,
   EvaluationDbOps,
 } from "../services/answerEvaluator";
-import { uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { notifyAnswerEvaluated } from "../utils/notifications";
+import { deriveKeyPointsFromMarkdown } from "../utils/modelAnswer";
 
-// PYQMainsQuestion has no `marks` column, so use the UPSC Mains convention:
-// 15-mark answers ≈ 250 words, 10-mark answers ≈ 150 words. Default to 15.
 const DEFAULT_MARKS = 15;
+
+async function findMainsBankQuestion(questionId: string) {
+  const rows = await prisma.$queryRawUnsafe<Array<{
+    id: string;
+    year: number;
+    paper: string;
+    questionText: string;
+    modelAnswer: string | null;
+    subject: string;
+    subSubject: string | null;
+    theme: string | null;
+    topic: string | null;
+    difficulty: string;
+    marks: number | null;
+  }>>(
+    `select
+       id,
+       year,
+       paper,
+       question_text as "questionText",
+       model_answer as "modelAnswer",
+       subject,
+       coalesce(nullif(sub_subject, ''), nullif(theme, '')) as "subSubject",
+       theme,
+       topic,
+       difficulty,
+       marks
+     from public.pyq_mains_question_bank
+     where id = $1 and status = 'approved'
+     limit 1`,
+    questionId
+  );
+  return rows[0] || null;
+}
+
+async function signedCheckedCopyUrl(path: string | null | undefined): Promise<string | null> {
+  if (!path) return null;
+  return getSignedUrl(STORAGE_BUCKETS.CHECKED_COPIES, path, 3600);
+}
+
+async function signedCheckedCopyPages(pages: unknown): Promise<any[]> {
+  if (!Array.isArray(pages)) return [];
+  return Promise.all(
+    pages.map(async (page: any) => ({
+      ...page,
+      checkedCopyUrl: page?.storagePath
+        ? await signedCheckedCopyUrl(String(page.storagePath))
+        : null,
+    }))
+  );
+}
 
 function buildDbOps(attemptId: string): EvaluationDbOps {
   return {
@@ -47,6 +98,24 @@ function buildDbOps(attemptId: string): EvaluationDbOps {
         where: { attemptId },
         data: update,
       });
+
+      if (update.status === "completed") {
+        try {
+          const attempt = await prisma.pyqMainsAttempt.findUnique({
+            where: { id: attemptId },
+            include: { user: true },
+          });
+          if (attempt?.user) {
+            await notifyAnswerEvaluated({
+              userId: attempt.user.id,
+              score: update.score,
+              maxScore: update.maxScore,
+            });
+          }
+        } catch (err) {
+          // Notification failure is non-critical
+        }
+      }
     },
   };
 }
@@ -55,8 +124,10 @@ async function kickoffEvaluation(
   attemptId: string,
   answerText: string | null,
   fileUrl: string | null,
-  question: { questionText: string; subject: string; paper: string }
+  question: { questionText: string; subject: string; paper: string; marks?: number | null },
+  modelAnswer?: string | null
 ) {
+  const marks = Number.isInteger(question.marks) && Number(question.marks) > 0 ? Number(question.marks) : DEFAULT_MARKS;
   evaluateAnswerGeneric({
     attemptId,
     answerText,
@@ -65,9 +136,11 @@ async function kickoffEvaluation(
       questionText: question.questionText,
       subject: question.subject,
       paper: question.paper,
-      marks: DEFAULT_MARKS,
+      marks,
     },
     dbOps: buildDbOps(attemptId),
+    evaluationMode: "pyq",
+    modelAnswer: modelAnswer || null,
   });
 }
 
@@ -84,9 +157,22 @@ export const submitPyqMainsAnswer = async (
     const userId = req.user!.id;
     const questionId = req.params.questionId as string;
 
-    const question = await prisma.pYQMainsQuestion.findUnique({
+    console.log("[PYQ Submit] Handling mains answer submission", {
+      requestId: req.id,
+      userId,
+      questionId,
+      hasFile: Boolean(req.file),
+      fileName: req.file?.originalname || null,
+      mimeType: req.file?.mimetype || null,
+      fileSize: req.file?.size || null,
+      answerTextChars: typeof req.body?.answerText === "string" ? req.body.answerText.length : 0,
+    });
+
+    const bankQuestion = await findMainsBankQuestion(questionId);
+    const legacyQuestion = bankQuestion ? null : await prisma.pYQMainsQuestion.findUnique({
       where: { id: questionId },
     });
+    const question = bankQuestion || legacyQuestion;
     if (!question) {
       return res
         .status(404)
@@ -97,16 +183,47 @@ export const submitPyqMainsAnswer = async (
     const answerText: string | undefined =
       typeof rawAnswer === "string" ? rawAnswer : undefined;
     let fileUrl: string | null = null;
+    const filesByField = (req.files || {}) as Record<string, Express.Multer.File[]>;
+    const uploadedFiles = [
+      ...(filesByField.file || []),
+      ...(filesByField.files || []),
+    ];
 
-    if (req.file) {
-      const fileName = `${userId}/pyq/${Date.now()}_${req.file.originalname}`;
+    if (uploadedFiles.length > 0) {
+      if (uploadedFiles.length > 1 && uploadedFiles.some((file) => file.mimetype === "application/pdf")) {
+        return res.status(400).json({
+          status: "error",
+          message: "Upload either one PDF or multiple image pages, not multiple PDFs.",
+        });
+      }
+
+      const storedPaths: string[] = [];
+      for (const [index, file] of uploadedFiles.entries()) {
+        const fileName = buildStoragePath(userId, "pyq", `${Date.now()}_${String(index + 1).padStart(2, "0")}_${file.originalname}`);
+      console.log("[PYQ Submit] Uploading answer file to storage", {
+        requestId: req.id,
+        questionId,
+        fileName,
+          originalFileName: file.originalname,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+          pageIndex: index + 1,
+      });
       await uploadFile(
         STORAGE_BUCKETS.ANSWER_UPLOADS,
         fileName,
-        req.file.buffer,
-        req.file.mimetype
+          file.buffer,
+          file.mimetype
       );
-      fileUrl = fileName;
+        storedPaths.push(fileName);
+      }
+      fileUrl = storedPaths.length === 1 ? storedPaths[0] : JSON.stringify(storedPaths);
+      console.log("[PYQ Submit] Stored answer file", {
+        requestId: req.id,
+        questionId,
+        fileUrl,
+        fileCount: storedPaths.length,
+      });
     }
 
     if (!fileUrl && (!answerText || answerText.trim().length === 0)) {
@@ -123,12 +240,20 @@ export const submitPyqMainsAnswer = async (
     const attempt = await prisma.pyqMainsAttempt.create({
       data: {
         userId,
-        pyqMainsQuestionId: questionId,
+        pyqMainsQuestionId: bankQuestion ? null : questionId,
+        pyqMainsBankQuestionId: bankQuestion ? questionId : null,
         answerText: answerText || null,
         fileUrl,
         wordCount,
         submittedAt: new Date(),
       },
+    });
+    console.log("[PYQ Submit] Created PYQ mains attempt", {
+      requestId: req.id,
+      attemptId: attempt.id,
+      questionId,
+      hasFile: Boolean(fileUrl),
+      wordCount,
     });
 
     // Fire-and-forget
@@ -136,7 +261,8 @@ export const submitPyqMainsAnswer = async (
       questionText: question.questionText,
       subject: question.subject,
       paper: question.paper,
-    });
+      marks: bankQuestion?.marks ?? DEFAULT_MARKS,
+    }, bankQuestion?.modelAnswer ?? null);
 
     await prisma.userActivity.create({
       data: {
@@ -152,6 +278,11 @@ export const submitPyqMainsAnswer = async (
       data: { attemptId: attempt.id, status: "evaluating" },
     });
   } catch (error) {
+    console.error("[PYQ Submit] Failed to submit mains answer", {
+      requestId: req.id,
+      questionId: req.params.questionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     next(error);
   }
 };
@@ -183,12 +314,13 @@ export const getPyqMainsEvaluationStatus = async (
     }
 
     const status = attempt.evaluation?.status || "pending";
+
     res.json({
       status: "success",
       data: {
         attemptId: attempt.id,
         evaluationStatus: status,
-        // "completed" and "failed" are both terminal — the client should stop polling in either case.
+        // "completed" and "failed" are both terminal - the client should stop polling in either case.
         isComplete: status === "completed" || status === "failed",
       },
     });
@@ -228,6 +360,39 @@ export const getPyqMainsResults = async (
         .json({ status: "error", message: "No evaluation results found" });
     }
 
+    const checkedCopyUrl = await signedCheckedCopyUrl(attempt.evaluation.checkedCopyUrl);
+    const checkedCopyPages = await signedCheckedCopyPages(attempt.evaluation.checkedCopyPages);
+    const bankQuestion = attempt.pyqMainsBankQuestionId
+      ? await findMainsBankQuestion(attempt.pyqMainsBankQuestionId)
+      : null;
+    const responseQuestion = bankQuestion
+      ? {
+          id: bankQuestion.id,
+          questionText: bankQuestion.questionText,
+          paper: bankQuestion.paper,
+          subject: bankQuestion.subject,
+          subSubject: bankQuestion.subSubject,
+          theme: bankQuestion.theme,
+          topic: bankQuestion.topic,
+          year: bankQuestion.year,
+          marks: bankQuestion.marks ?? attempt.evaluation.maxScore,
+          modelAnswer: bankQuestion.modelAnswer,
+        }
+      : attempt.mainsQuestion ? {
+          id: attempt.mainsQuestion.id,
+          questionText: attempt.mainsQuestion.questionText,
+          paper: attempt.mainsQuestion.paper,
+          subject: attempt.mainsQuestion.subject,
+          year: attempt.mainsQuestion.year,
+          marks: attempt.evaluation.maxScore,
+        } : null;
+
+    // Curated (human-authored) model answer from the question bank, when
+    // present - same shape the Daily Answer results endpoint returns so the
+    // shared results UI can render it identically.
+    const curatedModelAnswer = bankQuestion?.modelAnswer?.trim() || null;
+    const curatedKeyPoints = deriveKeyPointsFromMarkdown(curatedModelAnswer);
+
     res.json({
       status: "success",
       data: {
@@ -237,16 +402,32 @@ export const getPyqMainsResults = async (
         improvements: attempt.evaluation.improvements,
         suggestions: attempt.evaluation.suggestions,
         detailedFeedback: attempt.evaluation.detailedFeedback,
+        metrics: attempt.evaluation.metrics,
+        demandCoverage: attempt.evaluation.demandCoverage,
+        sectionFeedback: attempt.evaluation.sectionFeedback,
+        annotationPlan: attempt.evaluation.annotationPlan,
+        checkedCopyUrl,
+        checkedCopyPages,
+        checkedCopyPath: attempt.evaluation.checkedCopyUrl,
+        checkedCopyStatus: attempt.evaluation.checkedCopyStatus,
+        ragDiagnostics: attempt.evaluation.ragDiagnostics,
+        modelAnswerAlignment:
+          (attempt.evaluation.ragDiagnostics as any)?.modelAnswerAlignment ?? null,
+        modelAnswer: attempt.evaluation.modelAnswer,
+        keyTerms: attempt.evaluation.keyTerms,
+        nextAttemptFocus: attempt.evaluation.nextAttemptFocus,
+        evaluatorConclusion: attempt.evaluation.evaluatorConclusion,
+        modelAnswerKeyPoints: attempt.evaluation.modelAnswerKeyPoints,
+        modelAnswerContent: attempt.evaluation.modelAnswerContent,
+        modelAnswerStructure: attempt.evaluation.modelAnswerStructure,
+        parameterScores: attempt.evaluation.parameterScores,
+        curatedModelAnswer,
+        curatedModelAnswerFormat: curatedModelAnswer ? "markdown" : null,
+        curatedModelAnswerKeyPoints: curatedKeyPoints,
         wordCount: attempt.wordCount,
         submittedAt: attempt.submittedAt,
         answerText: attempt.answerText,
-        question: attempt.mainsQuestion ? {
-          id: attempt.mainsQuestion!.id,
-          questionText: attempt.mainsQuestion!.questionText,
-          paper: attempt.mainsQuestion!.paper,
-          subject: attempt.mainsQuestion!.subject,
-          year: attempt.mainsQuestion!.year,
-        } : null,
+        question: responseQuestion,
       },
     });
   } catch (error) {

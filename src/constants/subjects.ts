@@ -17,6 +17,43 @@ export type ValidUpscSubject = (typeof VALID_UPSC_SUBJECTS)[number];
 export const VALID_SUBJECT_SET = new Set(VALID_UPSC_SUBJECTS);
 
 /**
+ * UPSC Mains optional subjects - the full list candidates can choose from.
+ * Used to validate the optionalSubject field on user profiles.
+ */
+export const VALID_OPTIONAL_SUBJECTS = [
+  "Agriculture",
+  "Animal Husbandry and Veterinary Science",
+  "Anthropology",
+  "Botany",
+  "Chemistry",
+  "Civil Engineering",
+  "Commerce and Accountancy",
+  "Economics",
+  "Electrical Engineering",
+  "Geography",
+  "Geology",
+  "History",
+  "Law",
+  "Management",
+  "Mathematics",
+  "Mechanical Engineering",
+  "Medical Science",
+  "Philosophy",
+  "Physics",
+  "Political Science and International Relations",
+  "Psychology",
+  "Public Administration",
+  "Sociology",
+  "Statistics",
+  "Zoology",
+  "Literature",
+] as const;
+
+export type ValidOptionalSubject = (typeof VALID_OPTIONAL_SUBJECTS)[number];
+
+export const VALID_OPTIONAL_SUBJECT_SET = new Set<string>(VALID_OPTIONAL_SUBJECTS);
+
+/**
  * Study planner subject options (matches dashboard quick-add UX).
  * Keep this intentionally broader than VALID_UPSC_SUBJECTS.
  */
@@ -32,7 +69,6 @@ export const VALID_STUDY_PLANNER_SUBJECTS = [
   "Governance",
   "International Relations",
   "Social Justice",
-  "Agriculture",
   "Internal Security",
   "Disaster Management",
   "Ethics",
@@ -48,6 +84,11 @@ export const VALID_STUDY_PLANNER_SUBJECTS = [
 export type ValidStudyPlannerSubject = (typeof VALID_STUDY_PLANNER_SUBJECTS)[number];
 
 export const VALID_STUDY_PLANNER_SUBJECT_SET = new Set(VALID_STUDY_PLANNER_SUBJECTS);
+
+// Study planner tasks may also use a user-defined subject. Keep the same limit
+// used by the dashboard custom-subject input so free-form labels remain safe
+// to display in task cards and calendar events.
+export const MAX_STUDY_PLANNER_SUBJECT_LENGTH = 50;
 
 /**
  * Check if a subject string is one of the 6 canonical subjects.
@@ -72,6 +113,23 @@ export function normalizeSubject(subject: string): string {
   // Science & Tech aliases
   if (lower === "science & tech" || lower === "science and tech" || lower === "science and technology" || lower === "s&t" || lower === "sci-tech") {
     return "Science & Technology";
+  }
+
+  // History aliases - per the Prelims syllabus, History is the parent subject
+  // for the Ancient/Medieval/Modern eras and Art & Culture. The question bank
+  // tags these as separate subjects, so roll them up to canonical "History".
+  if (
+    lower === "modern history" ||
+    lower === "modern" ||
+    lower === "ancient history" ||
+    lower === "ancient india" ||
+    lower === "medieval india" ||
+    lower === "medieval history" ||
+    lower === "art & culture" ||
+    lower === "art and culture" ||
+    lower === "culture"
+  ) {
+    return "History";
   }
 
   // Direct match
@@ -105,6 +163,24 @@ export function normalizeStudyPlannerSubject(subject: string): string {
   if (exact) return exact;
 
   return s;
+}
+
+/**
+ * Normalize a subject entered directly by a user in the study planner.
+ * Known planner subjects still resolve to their canonical labels; custom
+ * labels keep their text with collapsed internal whitespace.
+ */
+export function normalizeStudyPlannerTaskSubject(subject: string): string {
+  return normalizeStudyPlannerSubject(subject).replace(/\s+/g, " ");
+}
+
+/**
+ * Study planner subjects are free-form, unlike subjects used by canonical
+ * question-bank features. This validates the task-specific contract.
+ */
+export function isValidStudyPlannerTaskSubject(subject: string | null | undefined): boolean {
+  if (!subject) return false;
+  return subject.length <= MAX_STUDY_PLANNER_SUBJECT_LENGTH;
 }
 
 export function isValidStudyPlannerSubject(subject: string | null | undefined): boolean {

@@ -10,7 +10,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 if (!supabaseServiceKey) {
-  throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY — required for database operations");
+  throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY - required for database operations");
 }
 
 // Force IPv4 for all Supabase REST API calls.
@@ -37,7 +37,7 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   global: { fetch: ipv4Fetch },
 });
 
-// Storage-only admin client — uses default fetch (no custom IPv4 agent).
+// Storage-only admin client - uses default fetch (no custom IPv4 agent).
 // The ipv4Agent breaks resumable (TUS) uploads for files >6 MB because
 // @supabase/storage-js switches to a streaming TUS protocol that is
 // incompatible with the undici Agent's connect.family:4 override.

@@ -3,11 +3,10 @@ import prisma from "../config/database";
 import {
   createRazorpayOrder,
   fetchRazorpayOrder,
+  fetchRazorpayPayment,
   verifyRazorpaySignature,
 } from "../services/razorpayGateway.service";
 
-type BillingCycle = "monthly" | "quarterly" | "yearly";
-type CheckoutPlanKey = "rise" | "ascent";
 type TestSeriesCheckoutRow = {
   id: string;
   title: string;
@@ -24,66 +23,8 @@ type TestSeriesPaymentMetadata = {
   itemName?: string;
 };
 
-const CHECKOUT_PLAN_CATALOG: Record<CheckoutPlanKey, Record<BillingCycle, { amount: number; durationDays: number; duration: string }>> = {
-  rise: {
-    monthly: { amount: 499, durationDays: 30, duration: "1 month" },
-    quarterly: { amount: 1197, durationDays: 90, duration: "3 months" },
-    yearly: { amount: 3588, durationDays: 365, duration: "12 months" },
-  },
-  ascent: {
-    monthly: { amount: 999, durationDays: 30, duration: "1 month" },
-    quarterly: { amount: 2397, durationDays: 90, duration: "3 months" },
-    yearly: { amount: 7188, durationDays: 365, duration: "12 months" },
-  },
-};
-
-function normalizeCycle(value: unknown): BillingCycle {
-  return value === "quarterly" || value === "yearly" ? value : "monthly";
-}
-
-function normalizePlanKey(value: unknown): CheckoutPlanKey | null {
-  return value === "rise" || value === "ascent" ? value : null;
-}
-
 function normalizePlanAmountInRupees(amount: number) {
   return amount >= 10000 ? Math.round(amount / 100) : amount;
-}
-
-async function findOrCreateCheckoutPlan(planKey: CheckoutPlanKey, cycle: BillingCycle) {
-  const expected = CHECKOUT_PLAN_CATALOG[planKey][cycle];
-  const checkoutPlanName = `${planKey === "rise" ? "Rise" : "Ascent"} ${cycle.charAt(0).toUpperCase()}${cycle.slice(1)}`;
-  const plans = await prisma.pricingPlan.findMany({
-    where: { isActive: true },
-    orderBy: { order: "asc" },
-  });
-
-  const matchingPlan = plans.find((plan) => {
-    const exactGeneratedName = plan.name.toLowerCase() === checkoutPlanName.toLowerCase();
-    const amountMatches = normalizePlanAmountInRupees(plan.price) === expected.amount;
-    return exactGeneratedName && amountMatches;
-  }) || plans.find((plan) => {
-    const nameMatches = plan.name.toLowerCase().includes(planKey);
-    const durationMatches = plan.durationDays === expected.durationDays || plan.duration.toLowerCase().includes(cycle);
-    const amountMatches = normalizePlanAmountInRupees(plan.price) === expected.amount;
-    return nameMatches && durationMatches && amountMatches;
-  });
-
-  if (matchingPlan) return matchingPlan;
-
-  return prisma.pricingPlan.create({
-    data: {
-      name: checkoutPlanName,
-      price: expected.amount,
-      duration: expected.duration,
-      durationDays: expected.durationDays,
-      features: planKey === "rise"
-        ? ["AI evaluations", "Mock tests", "Revision suite", "Jeet AI"]
-        : ["Unlimited evaluations", "Weekly mentorship", "Personalised roadmap", "Priority support"],
-      isPopular: planKey === "rise",
-      order: planKey === "rise" ? 20 : 30,
-      isActive: true,
-    },
-  });
 }
 
 function getRazorpayErrorStatus(error: unknown) {
@@ -153,16 +94,21 @@ async function hasTestSeriesEnrollment(userSupabaseId: string, seriesId: string)
 export const getSubscription = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
+    const now = new Date();
 
-    const subscription = await prisma.subscription.findFirst({
+    const subscriptions = await prisma.subscription.findMany({
       where: {
         userId,
-        status: { in: ["active", "pending"] },
-        endDate: { gte: new Date() },
+        status: { in: ["active", "pending", "cancelled", "paused", "past_due", "halted", "failed"] },
       },
       orderBy: { createdAt: "desc" },
       include: { plan: true },
     });
+    const subscription =
+      subscriptions.find((sub) => ["active", "cancelled", "paused"].includes(sub.status) && sub.endDate >= now) ||
+      subscriptions.find((sub) => ["past_due", "halted"].includes(sub.status) && sub.graceEndsAt && sub.graceEndsAt >= now) ||
+      subscriptions[0] ||
+      null;
 
     res.json({ status: "success", data: subscription });
   } catch (error) {
@@ -211,48 +157,11 @@ export const getBillingHistory = async (req: Request, res: Response, next: NextF
  * POST /api/billing/order
  * Create a new order for a plan
  */
-export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const userId = req.user!.id;
-    const { planId } = req.body;
-
-    if (!planId) {
-      return res.status(400).json({ status: "error", message: "planId is required" });
-    }
-
-    const plan = await prisma.pricingPlan.findUnique({ where: { id: planId } });
-    if (!plan || !plan.isActive) {
-      return res.status(404).json({ status: "error", message: "Plan not found or inactive" });
-    }
-
-    // Check if user already has an active subscription for this plan
-    const existingSub = await prisma.subscription.findFirst({
-      where: {
-        userId,
-        planId,
-        status: "active",
-        endDate: { gte: new Date() },
-      },
-    });
-
-    if (existingSub) {
-      return res.status(400).json({ status: "error", message: "You already have an active subscription for this plan" });
-    }
-
-    const order = await prisma.order.create({
-      data: {
-        userId,
-        planId,
-        amount: normalizePlanAmountInRupees(plan.price),
-        status: "pending",
-      },
-      include: { plan: true },
-    });
-
-    res.status(201).json({ status: "success", data: order });
-  } catch (error) {
-    next(error);
-  }
+export const createOrder = async (_req: Request, res: Response) => {
+  return res.status(410).json({
+    status: "error",
+    message: "Paid plan checkout now uses Razorpay Subscriptions. Use /api/billing/subscriptions/create.",
+  });
 };
 
 /**
@@ -262,7 +171,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
 export const initiatePayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { orderId, planId, planKey: rawPlanKey, cycle: rawCycle, itemType, itemId } = req.body;
+    const { orderId, planId, planKey, cycle, itemType, itemId } = req.body;
 
     if (itemType === "test_series") {
       if (!itemId || typeof itemId !== "string") {
@@ -404,6 +313,13 @@ export const initiatePayment = async (req: Request, res: Response, next: NextFun
       });
     }
 
+    if (!itemType || itemType !== "test_series") {
+      return res.status(410).json({
+        status: "error",
+        message: "Paid plan checkout now uses Razorpay Subscriptions. Use /api/billing/subscriptions/create.",
+      });
+    }
+
     let order = orderId
       ? await prisma.order.findFirst({
           where: { id: orderId, userId },
@@ -412,12 +328,17 @@ export const initiatePayment = async (req: Request, res: Response, next: NextFun
       : null;
 
     if (!order) {
-      const cycle = normalizeCycle(rawCycle);
-      const planKey = normalizePlanKey(rawPlanKey);
       const plan = planId
         ? await prisma.pricingPlan.findFirst({ where: { id: planId, isActive: true } })
-        : planKey
-          ? await findOrCreateCheckoutPlan(planKey, cycle)
+        : planKey && cycle
+          ? await prisma.pricingPlan.findFirst({
+              where: {
+                tier: String(planKey).toLowerCase(),
+                billingCycle: String(cycle).toLowerCase(),
+                isActive: true,
+              },
+              orderBy: { order: "asc" },
+            })
           : null;
 
       if (!plan) {
@@ -605,7 +526,10 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
       return res.status(400).json({ status: "error", message: "Invalid payment signature" });
     }
 
-    const razorpayOrder = await fetchRazorpayOrder(razorpay_order_id);
+    const [razorpayOrder, razorpayPayment] = await Promise.all([
+      fetchRazorpayOrder(razorpay_order_id),
+      fetchRazorpayPayment(razorpay_payment_id),
+    ]);
     if (
       razorpayOrder.receipt !== payment.id ||
       Number(razorpayOrder.amount) !== payment.amount * 100 ||
@@ -613,6 +537,14 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
       (payment.providerOrderId && razorpayOrder.id !== payment.providerOrderId)
     ) {
       return res.status(400).json({ status: "error", message: "Payment order details do not match" });
+    }
+    if (
+      razorpayPayment.order_id !== razorpay_order_id ||
+      Number(razorpayPayment.amount) !== payment.amount * 100 ||
+      razorpayPayment.currency !== payment.currency ||
+      !["authorized", "captured"].includes(razorpayPayment.status)
+    ) {
+      return res.status(400).json({ status: "error", message: "Payment details do not match or payment is not authorized" });
     }
 
     const testSeriesMetadata = getTestSeriesPaymentMetadata(payment);
@@ -737,6 +669,73 @@ export const cancelSubscription = async (req: Request, res: Response, next: Next
     });
 
     res.json({ status: "success", message: "Subscription cancelled. You will have access until the end date." });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/billing/address
+ * Get the current user's saved billing address (for GST invoicing)
+ */
+export const getBillingAddress = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const address = await prisma.billingAddress.findUnique({ where: { userId } });
+    res.json({ status: "success", data: address });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/billing/address
+ * Create or update the current user's billing address
+ */
+export const saveBillingAddress = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const { fullName, email, phone, city, state } = req.body;
+
+    if (!fullName || !email) {
+      return res.status(400).json({ status: "error", message: "fullName and email are required" });
+    }
+
+    const address = await prisma.billingAddress.upsert({
+      where: { userId },
+      create: { userId, fullName, email, phone, city, state },
+      update: { fullName, email, phone, city, state },
+    });
+
+    res.json({ status: "success", data: address });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/billing/subscriptions/:id/cancel-feedback
+ * Record why a user is cancelling before the cancellation itself is processed
+ */
+export const submitCancellationFeedback = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const id = String(req.params.id || "");
+    const { reason, wantsSupport } = req.body;
+
+    if (!id) return res.status(400).json({ status: "error", message: "Subscription id is required" });
+    if (!reason || typeof reason !== "string" || !reason.trim()) {
+      return res.status(400).json({ status: "error", message: "reason is required" });
+    }
+
+    const subscription = await prisma.subscription.findFirst({ where: { id, userId } });
+    if (!subscription) return res.status(404).json({ status: "error", message: "Subscription not found" });
+
+    const feedback = await prisma.subscriptionCancellationFeedback.create({
+      data: { subscriptionId: id, userId, reason: reason.trim(), wantsSupport: !!wantsSupport },
+    });
+
+    res.json({ status: "success", data: feedback });
   } catch (error) {
     next(error);
   }

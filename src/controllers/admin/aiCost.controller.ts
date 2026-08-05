@@ -5,8 +5,8 @@ import prisma from "../../config/database";
  * GET /api/admin/ai-cost
  *
  * Query params:
- *   from  — start date (YYYY-MM-DD), defaults to first day of current month
- *   to    — end date   (YYYY-MM-DD), defaults to today
+ *   from  - start date (YYYY-MM-DD), defaults to first day of current month
+ *   to    - end date   (YYYY-MM-DD), defaults to today
  *
  * Returns aggregated AI usage + cost broken down by service and by day.
  */

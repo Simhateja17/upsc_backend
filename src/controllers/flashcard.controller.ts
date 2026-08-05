@@ -1,10 +1,41 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import { isValidSubject, normalizeSubject } from "../constants/subjects";
+import { getEffectiveEntitlements } from "../services/entitlements.service";
 
 function param(req: Request, key: string): string {
   const v = req.params[key];
   return Array.isArray(v) ? v[0] : (v ?? "");
+}
+
+function isVisibleFlashcardSubject(subject: string | null | undefined): boolean {
+  if (!subject) return false;
+  if (subject === "Current Affairs") return true;
+  if (isValidSubject(subject)) return true;
+  // Accept "Indian X" variants used in admin-seeded decks (e.g. "Indian Polity" → "Polity")
+  const stripped = subject.replace(/^Indian\s+/i, '');
+  return isValidSubject(stripped);
+}
+
+// Free/Aspire plans keep full access to these subjects; every other subject
+// stays visible in the UI (blurred + locked) but its content is gated.
+function isFreeFlashcardSubject(subjectId: string, subject?: string | null) {
+  const label = `${subjectId} ${subject || ""}`.toLowerCase();
+  return label.includes("polity") || label.includes("economy");
+}
+
+/** Returns null when the user has full access; otherwise the Set of unlocked subject ids. */
+async function limitedFlashcardSubjectIds(userId?: string) {
+  if (!userId) return null;
+  const effective = await getEffectiveEntitlements(userId);
+  if (effective.policy.access.flashcards === "full") return null;
+  const decks = await prisma.flashcardDeck.findMany({ orderBy: { createdAt: "asc" } });
+  return new Set(
+    decks
+      .filter((deck) => isVisibleFlashcardSubject(deck.subject))
+      .filter((deck) => isFreeFlashcardSubject(deck.subjectId, deck.subject))
+      .map((deck) => deck.subjectId)
+  );
 }
 
 /**
@@ -17,14 +48,18 @@ export const getSubjects = async (
 ) => {
   try {
     const userId = req.user?.id;
+    const allowedSubjectIds = await limitedFlashcardSubjectIds(userId);
 
     const decks = await prisma.flashcardDeck.findMany({
       include: { cards: true },
     });
 
+    // List every subject with real stats - limited plans see locked subjects
+    // blurred in the UI rather than hidden. Content access is gated per-subject
+    // in getTopics/getCards.
     const deckData = await Promise.all(
       decks
-        .filter((deck) => isValidSubject(deck.subject))
+        .filter((deck) => isVisibleFlashcardSubject(deck.subject))
         .map(async (deck) => {
           const totalCards = deck.cards.length;
           let masteredCards = 0;
@@ -54,7 +89,11 @@ export const getSubjects = async (
         })
     );
 
-    res.json({ status: "success", data: deckData });
+    res.json({
+      status: "success",
+      data: deckData,
+      access: allowedSubjectIds ? { mode: "limited", upgradeRequired: true, visibleItemsLimit: allowedSubjectIds.size } : { mode: "full" },
+    });
   } catch (error) {
     next(error);
   }
@@ -71,6 +110,17 @@ export const getTopics = async (
   try {
     const subjectId = param(req, "subjectId");
     const userId = req.user?.id;
+    const allowedSubjectIds = await limitedFlashcardSubjectIds(userId);
+    if (allowedSubjectIds && !allowedSubjectIds.has(subjectId)) {
+      res.status(403).json({
+        status: "error",
+        code: "FEATURE_ACCESS_REQUIRED",
+        feature: "flashcards",
+        message: "Upgrade to Rise to unlock the full flashcard library.",
+        upgrade: { recommendedTier: "rise", message: "Upgrade to Rise to unlock the full flashcard library." },
+      });
+      return;
+    }
 
     const deck = await prisma.flashcardDeck.findUnique({
       where: { subjectId },
@@ -91,21 +141,32 @@ export const getTopics = async (
       topicMap[card.topicId].cardIds.push(card.id);
     }
 
+    let hiddenTopicIds = new Set<string>();
+    if (userId) {
+      const hidden = await prisma.userHiddenFlashcardTopic.findMany({
+        where: { userId, deckId: deck.id },
+        select: { topicId: true },
+      });
+      hiddenTopicIds = new Set(hidden.map((h) => h.topicId));
+    }
+
     const topics = await Promise.all(
-      Object.values(topicMap).map(async (t) => {
-        let mastered = 0;
-        if (userId && t.cardIds.length > 0) {
-          mastered = await prisma.userFlashcardProgress.count({
-            where: { userId, mastered: true, cardId: { in: t.cardIds } },
-          });
-        }
-        return {
-          id: t.topicId,
-          name: t.name,
-          cards: t.cardIds.length,
-          mastery: t.cardIds.length > 0 ? Math.round((mastered / t.cardIds.length) * 100) : 0,
-        };
-      })
+      Object.values(topicMap)
+        .filter((t) => !hiddenTopicIds.has(t.topicId))
+        .map(async (t) => {
+          let mastered = 0;
+          if (userId && t.cardIds.length > 0) {
+            mastered = await prisma.userFlashcardProgress.count({
+              where: { userId, mastered: true, cardId: { in: t.cardIds } },
+            });
+          }
+          return {
+            id: t.topicId,
+            name: t.name,
+            cards: t.cardIds.length,
+            mastery: t.cardIds.length > 0 ? Math.round((mastered / t.cardIds.length) * 100) : 0,
+          };
+        })
     );
 
     res.json({
@@ -129,6 +190,17 @@ export const getCards = async (
     const subjectId = param(req, "subjectId");
     const topicId = param(req, "topicId");
     const userId = req.user?.id;
+    const allowedSubjectIds = await limitedFlashcardSubjectIds(userId);
+    if (allowedSubjectIds && !allowedSubjectIds.has(subjectId)) {
+      res.status(403).json({
+        status: "error",
+        code: "FEATURE_ACCESS_REQUIRED",
+        feature: "flashcards",
+        message: "Upgrade to Rise to unlock the full flashcard library.",
+        upgrade: { recommendedTier: "rise", message: "Upgrade to Rise to unlock the full flashcard library." },
+      });
+      return;
+    }
 
     const deck = await prisma.flashcardDeck.findUnique({ where: { subjectId } });
     if (!deck) {
@@ -182,10 +254,25 @@ export const createCard = async (
       return;
     }
 
+    // Creating subjects/topics/flashcards is a Rise/Ascent capability.
+    if (req.user?.id) {
+      const effective = await getEffectiveEntitlements(req.user.id);
+      if (effective.policy.access.flashcards !== "full") {
+        res.status(403).json({
+          status: "error",
+          code: "FEATURE_ACCESS_REQUIRED",
+          feature: "flashcards",
+          message: "Upgrade to Rise to create your own subjects, topics and flashcards.",
+          upgrade: { recommendedTier: "rise", message: "Upgrade to Rise to create your own subjects, topics and flashcards." },
+        });
+        return;
+      }
+    }
+
     let deck = await prisma.flashcardDeck.findUnique({ where: { subjectId } });
     if (!deck) {
       deck = await prisma.flashcardDeck.create({
-        data: { subjectId, subject: subject || subjectId },
+        data: { subjectId, subject: subject || subjectId, icon: '📚' },
       });
     }
 
@@ -348,6 +435,50 @@ export const adminDeleteCard = async (req: Request, res: Response, next: NextFun
     const id = param(req, "id");
     await prisma.flashcard.delete({ where: { id } });
     res.json({ status: "success", message: "Card deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/flashcards/:subjectId/:topicId
+ * Hides the given topic from the requesting user only. The underlying
+ * flashcards remain intact for other users.
+ */
+export const deleteTopic = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const subjectId = param(req, "subjectId");
+    const topicId = param(req, "topicId");
+    const userId = req.user?.id;
+
+    if (!userId) {
+      res.status(401).json({ status: "error", message: "Authentication required" });
+      return;
+    }
+
+    const deck = await prisma.flashcardDeck.findUnique({ where: { subjectId } });
+    if (!deck) {
+      res.status(404).json({ status: "error", message: "Deck not found" });
+      return;
+    }
+
+    const cardCount = await prisma.flashcard.count({ where: { deckId: deck.id, topicId } });
+    if (cardCount === 0) {
+      res.status(404).json({ status: "error", message: "Topic not found" });
+      return;
+    }
+
+    await prisma.userHiddenFlashcardTopic.upsert({
+      where: { userId_deckId_topicId: { userId, deckId: deck.id, topicId } },
+      update: {},
+      create: { userId, deckId: deck.id, topicId },
+    });
+
+    res.json({ status: "success", message: "Topic removed" });
   } catch (error) {
     next(error);
   }

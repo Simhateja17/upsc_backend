@@ -6,11 +6,13 @@ import {
   updateItem,
   deleteItem,
   getSeeds,
+  getSubjectSummaries,
 } from "../controllers/spacedRepetition.controller";
 
 const router = Router();
 
 router.get("/seeds", authenticate, getSeeds);
+router.get("/subjects", authenticate, getSubjectSummaries);
 router.get("/", authenticate, getItems);
 router.post("/", authenticate, addItem);
 router.patch("/:id", authenticate, updateItem);

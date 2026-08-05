@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-07-08T10:26:19.419Z",
+  "csvDirectory": "/Users/teja/Desktop/Projects/upsc/mains_pyq",
+  "files": [
+    {
+      "file": "PYQ - Essay_Final.csv",
+      "normalized": 96,
+      "failed": 0,
+      "warned": 0
+    }
+  ],
+  "totals": {
+    "files": 1,
+    "parsedRows": 96,
+    "imported": 96,
+    "skipped": 0,
+    "warned": 0,
+    "inserted": 96,
+    "updated": 0,
+    "archived": 0
+  },
+  "failures": [],
+  "warnings": []
+}

@@ -1,12 +1,12 @@
 -- ============================================================
--- mock_test_chunks_01 — Universal chunk table for ALL PDFs
+-- mock_test_chunks_01 - Universal chunk table for ALL PDFs
 -- Run this in Supabase SQL Editor
 -- ============================================================
 
 -- Enable pgvector extension (idempotent)
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- Create unified chunk table (no FK — upload_id can reference either upload table)
+-- Create unified chunk table (no FK - upload_id can reference either upload table)
 CREATE TABLE IF NOT EXISTS "mock_test_chunks_01" (
   "id"           TEXT        NOT NULL PRIMARY KEY,
   "upload_id"    TEXT        NOT NULL,

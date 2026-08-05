@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
-import { getSignedUrl, STORAGE_BUCKETS } from "../config/storage";
+import { downloadFile, getSignedUrl, getSignedUrls, listFiles, uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { renderPdfPagesToImages } from "../config/gemini";
 
 function hasAccess(userPlan: string, accessLevel: string): boolean {
   if (accessLevel === "free") return true;
@@ -172,12 +173,109 @@ export const getMaterialDownloadUrl = async (req: Request, res: Response, next: 
       return res.status(403).json({ status: "error", message: "Upgrade required to access this PDF" });
     }
 
-    let downloadUrl = material.fileUrl;
+    let viewUrl = material.fileUrl;
     if (material.fileUrl && !material.fileUrl.startsWith("http")) {
-      downloadUrl = await getSignedUrl(STORAGE_BUCKETS.STUDY_MATERIALS, material.fileUrl, 3600);
+      // inline=true → Content-Disposition: inline so the browser renders it in the iframe
+      viewUrl = await getSignedUrl(STORAGE_BUCKETS.STUDY_MATERIALS, material.fileUrl, 3600, true);
     }
 
-    res.json({ status: "success", data: { id: material.id, title: material.title, fileUrl: downloadUrl, downloadUrl } });
+    res.json({ status: "success", data: { id: material.id, title: material.title, fileUrl: viewUrl, downloadUrl: viewUrl } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/library/view/material/:materialId/pages
+ * Protected in-app reader pages. Returns rendered PNG pages instead of the raw PDF.
+ */
+export const getMaterialViewPages = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const materialId = req.params.materialId as string;
+    const maxPages = Math.min(Math.max(Number(req.query.maxPages || 20), 1), 50);
+
+    const material = await prisma.studyMaterial.findUnique({
+      where: { id: materialId },
+    });
+
+    if (!material || !material.isPublished) {
+      return res.status(404).json({ status: "error", message: "Material not found" });
+    }
+
+    const userPlan = await getUserPlan(req.user!.id);
+    if (!hasAccess(userPlan, material.accessLevel || "free")) {
+      return res.status(403).json({ status: "error", message: "Upgrade required to access this PDF" });
+    }
+
+    // Rendering a PDF to page images is the expensive part of this endpoint
+    // (CPU-heavy at scale:2, plus a full PDF download). Cache the rendered
+    // pages in storage on first open so every later "Read" just fetches
+    // already-rendered images instead of re-rendering the whole document.
+    const cachePrefix = `rendered-pages/${materialId}`;
+    const cachedNames = await listFiles(STORAGE_BUCKETS.STUDY_MATERIALS, cachePrefix).catch(() => []);
+    const cachedPageNumbers = cachedNames
+      .map((name) => Number(name.replace(/^page-/, "").replace(/\.png$/, "")))
+      .filter((n) => Number.isFinite(n) && n > 0)
+      .sort((a, b) => a - b);
+
+    if (cachedPageNumbers.length > 0) {
+      const pageNumbers = cachedPageNumbers.slice(0, maxPages);
+      const paths = pageNumbers.map((n) => `${cachePrefix}/page-${n}.png`);
+      const urls = await getSignedUrls(STORAGE_BUCKETS.STUDY_MATERIALS, paths, 3600, true);
+
+      return res.json({
+        status: "success",
+        data: {
+          id: material.id,
+          title: material.title,
+          totalPages: material.pageCount || cachedPageNumbers.length,
+          renderedPages: pageNumbers.length,
+          pages: pageNumbers.map((pageNumber, index) => ({
+            pageNumber,
+            mimeType: "image/png",
+            url: urls[index],
+          })),
+        },
+      });
+    }
+
+    let pdfBuffer: Buffer;
+    if (material.fileUrl?.startsWith("http")) {
+      const response = await fetch(material.fileUrl);
+      if (!response.ok) throw new Error(`Failed to fetch PDF: ${response.status}`);
+      pdfBuffer = Buffer.from(await response.arrayBuffer());
+    } else if (material.fileUrl) {
+      const file = await downloadFile(STORAGE_BUCKETS.STUDY_MATERIALS, material.fileUrl);
+      pdfBuffer = file.buffer;
+    } else {
+      return res.status(404).json({ status: "error", message: "PDF file not found" });
+    }
+
+    const images = await renderPdfPagesToImages(pdfBuffer, maxPages);
+
+    await Promise.all(
+      images.map((buffer, index) =>
+        uploadFile(STORAGE_BUCKETS.STUDY_MATERIALS, `${cachePrefix}/page-${index + 1}.png`, buffer, "image/png")
+      )
+    ).catch((err) => console.warn("[LIBRARY] Failed to cache rendered pages:", err.message));
+
+    const freshPaths = images.map((_, index) => `${cachePrefix}/page-${index + 1}.png`);
+    const freshUrls = await getSignedUrls(STORAGE_BUCKETS.STUDY_MATERIALS, freshPaths, 3600, true);
+
+    res.json({
+      status: "success",
+      data: {
+        id: material.id,
+        title: material.title,
+        totalPages: material.pageCount || images.length,
+        renderedPages: images.length,
+        pages: images.map((_, index) => ({
+          pageNumber: index + 1,
+          mimeType: "image/png",
+          url: freshUrls[index] || `data:image/png;base64,${images[index].toString("base64")}`,
+        })),
+      },
+    });
   } catch (error) {
     next(error);
   }

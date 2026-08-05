@@ -110,21 +110,21 @@ export async function generateMockTestFromRAG(params: {
   const results: StudyChunkResult[] = allChunks.slice(0, fetchCount);
 
   if (results.length === 0) {
-    return []; // No study material uploaded for this subject — caller handles fallback
+    return []; // No study material uploaded for this subject - caller handles fallback
   }
 
   // Step 3: Build context from retrieved chunks
   const context = results
     .map(
       (c, i) =>
-        `[Excerpt ${i + 1} — ${c.metadata.subject}${c.metadata.topic ? ` / ${c.metadata.topic}` : ""}${c.metadata.source ? ` (${c.metadata.source})` : ""}]\n${c.chunk_text}`
+        `[Excerpt ${i + 1} - ${c.metadata.subject}${c.metadata.topic ? ` / ${c.metadata.topic}` : ""}${c.metadata.source ? ` (${c.metadata.source})` : ""}]\n${c.chunk_text}`
     )
     .join("\n\n");
 
   // Step 4: Generate questions via Claude
-  const system = `You are a UPSC exam question creator. Generate MCQ questions ONLY from the provided study material excerpts. Every question must test factual knowledge from the actual content — NOT about the structure, layout, table of contents, chapter titles, or meta-information of the study material itself. Return only valid JSON.`;
+  const system = `You are a UPSC exam question creator. Generate MCQ questions ONLY from the provided study material excerpts. Every question must test factual knowledge from the actual content - NOT about the structure, layout, table of contents, chapter titles, or meta-information of the study material itself. Return only valid JSON.`;
 
-  const prompt = `Using ONLY the study material excerpts below, generate ${questionCount} UPSC ${examMode} MCQ questions on the topic of "${subject}${topic ? ` — ${topic}` : ""}".
+  const prompt = `Using ONLY the study material excerpts below, generate ${questionCount} UPSC ${examMode} MCQ questions on the topic of "${subject}${topic ? ` - ${topic}` : ""}".
 
 Difficulty level: ${difficulty}
 
@@ -174,7 +174,7 @@ export async function hasStudyMaterial(subject: string): Promise<boolean> {
   if ((count || 0) > 0) return true;
 
   // Also check upload tables (for subjects that may have been marked vectorized
-  // but chunks written to old tables — graceful fallback)
+  // but chunks written to old tables - graceful fallback)
   const [studyResult, mockResult] = await Promise.all([
     supabaseAdmin
       .from("study_material_uploads")

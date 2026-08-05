@@ -3,7 +3,7 @@ import { AzureOpenAI } from "openai";
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
 const apiKey = process.env.AZURE_OPENAI_API_KEY;
 const rawApiVersion = process.env.AZURE_OPENAI_API_VERSION;
-// Older Azure API versions often fail with newer params/models used in this codebase.
+// Older Azure API versions often fail  with newer params/models used in this codebase.
 const apiVersion =
   rawApiVersion && rawApiVersion.trim() === "2023-05-15"
     ? "2024-02-01"
@@ -14,7 +14,7 @@ export const chatDeployment =
 
 if (!endpoint || !apiKey) {
   console.warn(
-    "[Azure] AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_API_KEY is not set — Azure AI features will be unavailable."
+    "[Azure] AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_API_KEY is not set - Azure AI features will be unavailable."
   );
 }
 

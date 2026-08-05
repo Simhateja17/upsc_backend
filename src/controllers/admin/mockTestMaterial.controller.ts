@@ -58,7 +58,7 @@ export const uploadMockTestMaterial = async (req: Request, res: Response, next: 
     res.status(201).json({
       status: "success",
       data: { uploadId: upload.id, status: "processing" },
-      message: "PDF uploaded. Vectorization started — chunks will be ready in a few minutes.",
+      message: "PDF uploaded. Vectorization started - chunks will be ready in a few minutes.",
     });
   } catch (error) {
     next(error);

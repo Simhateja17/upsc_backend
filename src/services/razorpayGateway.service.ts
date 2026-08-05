@@ -48,6 +48,10 @@ export async function fetchRazorpayOrder(orderId: string) {
   return getClient().orders.fetch(orderId);
 }
 
+export async function fetchRazorpayPayment(paymentId: string) {
+  return getClient().payments.fetch(paymentId);
+}
+
 export function verifyRazorpaySignature(params: {
   orderId: string;
   paymentId: string;

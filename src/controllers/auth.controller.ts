@@ -236,7 +236,7 @@ export const signup = async (
     console.log(`[Signup] Attempt for email: ${normalizedEmail}`);
 
     // Zod validation middleware guarantees email + password are present and valid.
-    // Direct to Supabase — avoids user enumeration via timing discrimination.
+    // Direct to Supabase - avoids user enumeration via timing discrimination.
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
@@ -514,7 +514,7 @@ export const verifyPhoneOtp = async (
  * Get current authenticated user
  * GET /api/auth/me
  * The auth middleware already verified the JWT and looked up the user.
- * This endpoint just returns the user data — no additional network calls needed.
+ * This endpoint just returns the user data - no additional network calls needed.
  */
 export const getMe = async (
   req: Request,
@@ -542,7 +542,7 @@ export const getMe = async (
       data: {
         user: {
           id: user.id,
-          email: user.email,
+          email: user.email || "",
           firstName: user.first_name,
           lastName: user.last_name,
           phone: user.phone,

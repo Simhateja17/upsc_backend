@@ -128,7 +128,7 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 
   let text = "";
   try {
-    // Primary extractor path (pdfjs-dist legacy build — works in Node without
+    // Primary extractor path (pdfjs-dist legacy build - works in Node without
     // the DOMMatrix/browser globals that pdf-parse v2 requires).
     const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
     const uint8 = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);

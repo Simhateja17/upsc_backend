@@ -13,17 +13,23 @@ function computeDaysRemaining(): number {
   return Math.max(0, Math.ceil((prelimsDate.getTime() - Date.now()) / 86400000));
 }
 
-describe('dashboard.service — computeDaysRemaining', () => {
+describe('dashboard.service - computeDaysRemaining', () => {
   it('returns a positive number before June 2 2026', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 20));
     const days = computeDaysRemaining();
     expect(days).toBeGreaterThan(0);
+    vi.useRealTimers();
   });
 
   it('does not exceed the maximum possible days', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 20));
     const days = computeDaysRemaining();
     const today = new Date();
     const maxDays = Math.ceil((prelimsDate.getTime() - today.getTime()) / 86400000);
     expect(days).toBeLessThanOrEqual(maxDays);
+    vi.useRealTimers();
   });
 
   it('returns a non-negative number', () => {

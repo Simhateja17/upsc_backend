@@ -9,7 +9,11 @@ export const getSubjects = async (_req: Request, res: Response, next: NextFuncti
   try {
     const subjects = await prisma.videoSubject.findMany({
       orderBy: { order: "asc" },
-      include: { _count: { select: { videos: true } } },
+      include: {
+        _count: {
+          select: { videos: { where: { isPublished: true } } },
+        },
+      },
     });
 
     const data = subjects.map(s => ({
@@ -19,21 +23,6 @@ export const getSubjects = async (_req: Request, res: Response, next: NextFuncti
       iconUrl: s.iconUrl,
       videoCount: s._count.videos,
     }));
-
-    // If no subjects exist, return defaults
-    if (data.length === 0) {
-      return res.json({
-        status: "success",
-        data: [
-          { id: "1", name: "History", description: "Ancient, Medieval, Modern", videoCount: 62 },
-          { id: "2", name: "Geography", description: "Physical, Human, Indian", videoCount: 38 },
-          { id: "3", name: "Polity", description: "Constitution, Governance", videoCount: 45 },
-          { id: "4", name: "Economy", description: "Macro, Micro, Indian Economy", videoCount: 41 },
-          { id: "5", name: "Environment & Ecology", description: "Ecology, Biodiversity", videoCount: 22 },
-          { id: "6", name: "Science & Technology", description: "Current developments", videoCount: 28 },
-        ],
-      });
-    }
 
     res.json({ status: "success", data });
   } catch (error) {
@@ -75,17 +64,21 @@ export const getVideosBySubject = async (req: Request, res: Response, next: Next
  */
 export const getStats = async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const [totalVideos, totalSubjects] = await Promise.all([
+    const [totalVideos, totalSubjects, duration] = await Promise.all([
       prisma.video.count({ where: { isPublished: true } }),
       prisma.videoSubject.count(),
+      prisma.video.aggregate({
+        where: { isPublished: true },
+        _sum: { duration: true },
+      }),
     ]);
 
     res.json({
       status: "success",
       data: {
-        totalLectures: totalVideos || 500,
-        totalSubjects: totalSubjects || 12,
-        totalHours: Math.round((totalVideos || 500) * 0.75), // ~45 min avg
+        totalLectures: totalVideos,
+        totalSubjects,
+        totalHours: Math.round((duration._sum.duration ?? 0) / 3600),
       },
     });
   } catch (error) {
@@ -161,6 +154,61 @@ export const askMentor = async (req: Request, res: Response, next: NextFunction)
     console.log(`[Mentor] Question submitted by user: ${userId}`);
 
     res.status(201).json({ status: "success", data: mentorQuestion });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/videos/mentor/questions  (admin only)
+ * List all mentor questions with user info, latest first
+ */
+export const listMentorQuestions = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+    const status = req.query.status as string | undefined;
+
+    const where = status ? { status } : {};
+
+    const [questions, total] = await Promise.all([
+      prisma.mentorQuestion.findMany({
+        where,
+        include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.mentorQuestion.count({ where }),
+    ]);
+
+    res.json({ status: "success", data: { questions, total, page, limit } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PATCH /api/videos/mentor/questions/:id  (admin only)
+ * Update answer/status of a mentor question
+ */
+export const updateMentorQuestion = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      return res.status(400).json({ status: "error", message: "id is required" });
+    }
+    const { answer, status } = req.body;
+
+    const updated = await prisma.mentorQuestion.update({
+      where: { id },
+      data: {
+        ...(answer !== undefined && { answer: answer.trim() }),
+        ...(status !== undefined && { status }),
+      },
+    });
+
+    res.json({ status: "success", data: updated });
   } catch (error) {
     next(error);
   }

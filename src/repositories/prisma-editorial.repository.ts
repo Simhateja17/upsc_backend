@@ -1,4 +1,5 @@
 import prisma from "../config/database";
+import { getDerivedStudyStreak } from "../services/streak.service";
 import type {
   EditorialRepository,
   EditorialRow,
@@ -9,7 +10,7 @@ import type {
 
 /**
  * Prisma adapter for EditorialRepository.
- * Production implementation — all database access for editorials through this module.
+ * Production implementation - all database access for editorials through this module.
  */
 export function createPrismaEditorialRepository(): EditorialRepository {
   return {
@@ -85,15 +86,40 @@ export function createPrismaEditorialRepository(): EditorialRepository {
 
       const totalSaved = await prisma.editorialBookmark.count({ where: { userId } });
 
+      // Monday as the first day of the current week (local server time).
       const weekStart = new Date();
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+      const dow = weekStart.getDay(); // 0 = Sun, 1 = Mon, ...
+      weekStart.setDate(weekStart.getDate() - ((dow + 6) % 7));
       weekStart.setHours(0, 0, 0, 0);
 
       const weeklyRead = await prisma.editorialProgress.count({
         where: { userId, isRead: true, readAt: { gte: weekStart } },
       });
 
-      const streakRow = await prisma.userStreak.findUnique({ where: { userId } });
+      // Editorials read since local midnight today.
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const readToday = await prisma.editorialProgress.count({
+        where: { userId, isRead: true, readAt: { gte: todayStart } },
+      });
+
+      // Real per-day activity strip for the current week (Mon..Sun).
+      const weekRows = await prisma.editorialProgress.findMany({
+        where: { userId, isRead: true, readAt: { gte: weekStart } },
+        select: { readAt: true },
+      });
+      const weekChecks = Array.from({ length: 7 }, () => false);
+      for (const row of weekRows) {
+        if (!row.readAt) continue;
+        const dayIndex = Math.floor(
+          (row.readAt.getTime() - weekStart.getTime()) / (24 * 60 * 60 * 1000),
+        );
+        if (dayIndex >= 0 && dayIndex < 7) weekChecks[dayIndex] = true;
+      }
+
+      // Use the derived streak so an editorial read contributes immediately,
+      // instead of relying on the legacy user_streaks snapshot.
+      const derivedStreak = await getDerivedStudyStreak(userId);
 
       const [hindu, express, ai, read] = await Promise.all([
         prisma.editorial.count({ where: { source: "The Hindu", publishedAt: { gte: recentSince } } }),
@@ -102,12 +128,33 @@ export function createPrismaEditorialRepository(): EditorialRepository {
         prisma.editorialProgress.count({ where: { userId, isRead: true, readAt: { gte: recentSince } } }),
       ]);
 
+      // Get saved items with editorial details
+      const savedBookmarks = await prisma.editorialBookmark.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        include: { editorial: true },
+      });
+
+      const savedItems = savedBookmarks.map((b) => ({
+        id: b.editorialId,
+        title: b.editorial.title,
+        summary: b.editorial.summary,
+        source: b.editorial.source,
+        category: b.editorial.category || "General",
+        tags: b.editorial.tags || [],
+        savedAt: b.createdAt.toISOString(),
+      }));
+
       return {
         totalRead,
         totalSaved,
         weeklyRead,
-        streak: streakRow?.currentStreak || 0,
+        streak: derivedStreak.currentStreak,
+        readToday,
+        dailyTarget: 7,
+        weekChecks,
         todayCounts: { hindu, express, aiSummarized: ai, userRead: read },
+        savedItems,
       };
     },
 
@@ -134,7 +181,7 @@ export function createPrismaEditorialRepository(): EditorialRepository {
     },
 
     async create(row) {
-      const created = await prisma.editorial.create({ data: row });
+      const created = await prisma.editorial.create({ data: row as any });
       return created as EditorialRow;
     },
   };

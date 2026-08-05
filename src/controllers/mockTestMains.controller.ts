@@ -4,7 +4,50 @@ import {
   evaluateAnswerGeneric,
   EvaluationDbOps,
 } from "../services/answerEvaluator";
-import { uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { buildStoragePath, getSignedUrl, uploadFile, STORAGE_BUCKETS } from "../config/storage";
+import { notifyAnswerEvaluated } from "../utils/notifications";
+import { deriveKeyPointsFromMarkdown } from "../utils/modelAnswer";
+
+/**
+ * Curated model answer lookup for a mains question pulled from the PYQ bank
+ * (either directly, or via a past Daily Answer Writing question). Display
+ * only - mirrors Daily Answer Writing, which shows the curated answer as a
+ * reference without binding it into the grading prompt.
+ */
+async function findCuratedModelAnswer(sourceQuestionBankId: string | null): Promise<string | null> {
+  if (!sourceQuestionBankId) return null;
+  const rows = await prisma.$queryRawUnsafe<Array<{ modelAnswer: string | null }>>(
+    `select model_answer as "modelAnswer" from public.pyq_mains_question_bank where id = $1 limit 1`,
+    sourceQuestionBankId
+  );
+  return rows[0]?.modelAnswer?.trim() || null;
+}
+
+async function signedCheckedCopyUrl(path: string | null | undefined): Promise<string | null> {
+  if (!path) return null;
+  return getSignedUrl(STORAGE_BUCKETS.CHECKED_COPIES, path, 3600);
+}
+
+async function signedCheckedCopyPages(pages: unknown): Promise<any[]> {
+  if (!Array.isArray(pages)) return [];
+  return Promise.all(
+    pages.map(async (page: any) => ({
+      ...page,
+      checkedCopyUrl: page?.storagePath
+        ? await signedCheckedCopyUrl(String(page.storagePath))
+        : null,
+    }))
+  );
+}
+
+function getUploadedAnswerFiles(req: Request): Express.Multer.File[] {
+  const filesByField = (req.files || {}) as Record<string, Express.Multer.File[]>;
+  return [
+    ...(req.file ? [req.file] : []),
+    ...(filesByField.file || []),
+    ...(filesByField.files || []),
+  ];
+}
 
 function buildDbOps(attemptId: string): EvaluationDbOps {
   return {
@@ -34,6 +77,24 @@ function buildDbOps(attemptId: string): EvaluationDbOps {
         where: { attemptId },
         data: update,
       });
+
+      if (update.status === "completed") {
+        try {
+          const attempt = await prisma.mockTestMainsAttempt.findUnique({
+            where: { id: attemptId },
+            include: { user: true },
+          });
+          if (attempt?.user) {
+            await notifyAnswerEvaluated({
+              userId: attempt.user.id,
+              score: update.score,
+              maxScore: update.maxScore,
+            });
+          }
+        } catch (err) {
+          // Notification failure is non-critical
+        }
+      }
     },
   };
 }
@@ -62,6 +123,7 @@ async function kickoffEvaluation(
       marks,
     },
     dbOps: buildDbOps(attemptId),
+    evaluationMode: "mock",
   });
 }
 
@@ -111,15 +173,27 @@ export const submitMockTestMainsAnswer = async (
       typeof rawAnswer === "string" ? rawAnswer : undefined;
     let fileUrl: string | null = null;
 
-    if (req.file) {
-      const fileName = `${userId}/mock-test/${Date.now()}_${req.file.originalname}`;
-      await uploadFile(
-        STORAGE_BUCKETS.ANSWER_UPLOADS,
-        fileName,
-        req.file.buffer,
-        req.file.mimetype
-      );
-      fileUrl = fileName;
+    const uploadedFiles = getUploadedAnswerFiles(req);
+    if (uploadedFiles.length > 0) {
+      const storedPaths: string[] = [];
+      for (let index = 0; index < uploadedFiles.length; index++) {
+        const file = uploadedFiles[index];
+        const fileName = buildStoragePath(
+          userId,
+          "mock-test",
+          testId,
+          mockTestQuestionId,
+          `${Date.now()}_${String(index + 1).padStart(2, "0")}_${file.originalname}`
+        );
+        await uploadFile(
+          STORAGE_BUCKETS.ANSWER_UPLOADS,
+          fileName,
+          file.buffer,
+          file.mimetype
+        );
+        storedPaths.push(fileName);
+      }
+      fileUrl = storedPaths.length === 1 ? storedPaths[0] : JSON.stringify(storedPaths);
     }
 
     if (!fileUrl && (!answerText || answerText.trim().length === 0)) {
@@ -145,7 +219,7 @@ export const submitMockTestMainsAnswer = async (
       },
     });
 
-    const marks = deriveMarks(mockTest.totalMarks, mockTest.questionCount);
+    const marks = question.marks || deriveMarks(mockTest.totalMarks, mockTest.questionCount);
     const paper = mockTest.paperType || "GS";
 
     kickoffEvaluation(
@@ -202,12 +276,13 @@ export const getMockTestMainsEvaluationStatus = async (
     }
 
     const status = attempt.evaluation?.status || "pending";
+
     res.json({
       status: "success",
       data: {
         attemptId: attempt.id,
         evaluationStatus: status,
-        // "completed" and "failed" are both terminal — the client should stop polling in either case.
+        // "completed" and "failed" are both terminal - the client should stop polling in either case.
         isComplete: status === "completed" || status === "failed",
       },
     });
@@ -247,15 +322,40 @@ export const getMockTestMainsResults = async (
         .json({ status: "error", message: "No evaluation results found" });
     }
 
+    const checkedCopyUrl = await signedCheckedCopyUrl(attempt.evaluation.checkedCopyUrl);
+    const checkedCopyPages = await signedCheckedCopyPages(attempt.evaluation.checkedCopyPages);
+    const curatedModelAnswer = await findCuratedModelAnswer(attempt.question.sourceQuestionBankId);
+    const curatedKeyPoints = deriveKeyPointsFromMarkdown(curatedModelAnswer);
+
     res.json({
       status: "success",
       data: {
         score: attempt.evaluation.score,
         maxScore: attempt.evaluation.maxScore,
+        metrics: attempt.evaluation.metrics,
         strengths: attempt.evaluation.strengths,
         improvements: attempt.evaluation.improvements,
         suggestions: attempt.evaluation.suggestions,
         detailedFeedback: attempt.evaluation.detailedFeedback,
+        demandCoverage: attempt.evaluation.demandCoverage,
+        sectionFeedback: attempt.evaluation.sectionFeedback,
+        annotationPlan: attempt.evaluation.annotationPlan,
+        checkedCopyUrl,
+        checkedCopyPages,
+        checkedCopyPath: attempt.evaluation.checkedCopyUrl,
+        checkedCopyStatus: attempt.evaluation.checkedCopyStatus,
+        ragDiagnostics: attempt.evaluation.ragDiagnostics,
+        modelAnswer: attempt.evaluation.modelAnswer,
+        keyTerms: attempt.evaluation.keyTerms,
+        nextAttemptFocus: attempt.evaluation.nextAttemptFocus,
+        evaluatorConclusion: attempt.evaluation.evaluatorConclusion,
+        modelAnswerKeyPoints: attempt.evaluation.modelAnswerKeyPoints,
+        modelAnswerContent: attempt.evaluation.modelAnswerContent,
+        modelAnswerStructure: attempt.evaluation.modelAnswerStructure,
+        parameterScores: attempt.evaluation.parameterScores,
+        curatedModelAnswer,
+        curatedModelAnswerFormat: curatedModelAnswer ? "markdown" : null,
+        curatedModelAnswerKeyPoints: curatedKeyPoints,
         wordCount: attempt.wordCount,
         submittedAt: attempt.submittedAt,
         answerText: attempt.answerText,
@@ -263,6 +363,8 @@ export const getMockTestMainsResults = async (
           id: attempt.question.id,
           questionText: attempt.question.questionText,
           subject: attempt.question.subject,
+          paper: attempt.mockTest.paperType,
+          marks: attempt.question.marks || attempt.evaluation.maxScore,
         },
         mockTest: {
           id: attempt.mockTest.id,
@@ -271,6 +373,44 @@ export const getMockTestMainsResults = async (
         },
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/mock-tests/mains-history?limit=...
+ */
+export const getMainsHistory = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 30);
+
+    const attempts = await prisma.mockTestMainsAttempt.findMany({
+      where: { userId, submittedAt: { not: null } },
+      orderBy: { submittedAt: "desc" },
+      take: limit,
+      include: {
+        question: { select: { questionText: true, subject: true } },
+        mockTest: { select: { title: true, paperType: true } },
+        evaluation: { select: { score: true, maxScore: true, status: true } },
+      },
+    });
+
+    const history = attempts
+      .filter((attempt) => attempt.evaluation?.status === "completed")
+      .map((attempt) => ({
+        attemptId: attempt.id,
+        date: attempt.submittedAt,
+        questionText: attempt.question.questionText,
+        subject: attempt.question.subject,
+        paper: attempt.mockTest.paperType,
+        score: attempt.evaluation!.score,
+        maxScore: attempt.evaluation!.maxScore,
+        wordCount: attempt.wordCount,
+      }));
+
+    res.json({ status: "success", data: { attempts: history } });
   } catch (error) {
     next(error);
   }

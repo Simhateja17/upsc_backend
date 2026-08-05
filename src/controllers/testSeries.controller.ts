@@ -2,6 +2,59 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import { supabaseAdmin } from "../config/supabase";
 
+function seriesCategory(series: { examMode: string; subject: string | null; difficulty: string }) {
+  return series.subject || series.examMode || series.difficulty || "general";
+}
+
+function seriesFeatures(series: { examMode: string; totalTests: number; questionsPerTest: number }) {
+  return [
+    `${series.totalTests} tests`,
+    `${series.questionsPerTest} questions per test`,
+    series.examMode === "mains" ? "AI answer evaluation" : "Performance analytics",
+  ];
+}
+
+function toMobileSeries(
+  series: {
+    id: string;
+    title: string;
+    description: string;
+    examMode: string;
+    subject: string | null;
+    difficulty: string;
+    totalTests: number;
+    questionsPerTest: number;
+    price: number;
+    _count?: { enrollments?: number };
+  },
+  enrollment?: { testsCompleted: number } | null
+) {
+  const completedTests = enrollment?.testsCompleted ?? 0;
+  const progress = series.totalTests > 0 ? completedTests / series.totalTests : 0;
+
+  return {
+    id: series.id,
+    title: series.title,
+    description: series.description,
+    category: seriesCategory(series),
+    testCount: series.totalTests,
+    duration: `${series.totalTests} tests`,
+    enrolledCount: series._count?.enrollments ?? 0,
+    enrollmentCount: series._count?.enrollments ?? 0,
+    rating: 4.8,
+    price: series.price,
+    oldPrice: series.price > 0 ? Math.round(series.price * 1.25) : null,
+    features: seriesFeatures(series),
+    isEnrolled: Boolean(enrollment),
+    progress,
+    examMode: series.examMode,
+    subject: series.subject,
+    difficulty: series.difficulty,
+    totalTests: series.totalTests,
+    questionsPerTest: series.questionsPerTest,
+  };
+}
+
 /**
  * GET /api/test-series/stats
  * Public stats for the hero section
@@ -50,6 +103,10 @@ export const getSeriesDetail = async (req: Request, res: Response, next: NextFun
     const series = await prisma.testSeries.findUnique({
       where: { id: seriesId, isActive: true },
       include: {
+        tests: {
+          where: { isPublished: true },
+          orderBy: { testNumber: "asc" },
+        },
         _count: { select: { enrollments: true } },
       },
     });
@@ -61,6 +118,20 @@ export const getSeriesDetail = async (req: Request, res: Response, next: NextFun
     res.json({
       status: "success",
       data: {
+        ...toMobileSeries(series),
+        series: toMobileSeries(series),
+        reviews: [],
+        faqs: [],
+        tests: series.tests.map((t) => ({
+          id: t.id,
+          title: t.title,
+          description: t.description,
+          questionCount: t.questionCount,
+          duration: t.duration,
+          status: "pending",
+          score: null,
+          completedAt: null,
+        })),
         id: series.id,
         title: series.title,
         description: series.description,
@@ -72,6 +143,62 @@ export const getSeriesDetail = async (req: Request, res: Response, next: NextFun
         price: series.price,
         enrollmentCount: series._count.enrollments,
         createdAt: series.createdAt,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/test-series/catalog
+ * Mobile app catalog shape: enrolled + available buckets.
+ */
+export const listSeriesCatalog = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+
+    const [series, enrollments] = await Promise.all([
+      prisma.testSeries.findMany({
+        where: { isActive: true },
+        include: {
+          _count: { select: { enrollments: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      userId
+        ? prisma.userSeriesEnrollment.findMany({
+            where: { userId },
+            include: { series: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const enrollmentBySeriesId = new Map(enrollments.map((e) => [e.seriesId, e]));
+    const available = series.map((s) => toMobileSeries(s, enrollmentBySeriesId.get(s.id)));
+    const enrolled = enrollments
+      .filter((e) => e.series?.isActive)
+      .map((e) => ({
+        id: e.series.id,
+        title: e.series.title,
+        icon: "📝",
+        completedTests: e.testsCompleted,
+        totalTests: e.series.totalTests,
+        nextTest:
+          e.testsCompleted < e.series.totalTests
+            ? `Test ${e.testsCompleted + 1}`
+            : null,
+        progress: e.series.totalTests > 0 ? e.testsCompleted / e.series.totalTests : 0,
+      }));
+
+    const categories = Array.from(new Set(available.map((s) => s.category).filter(Boolean)));
+
+    res.json({
+      status: "success",
+      data: {
+        enrolled,
+        available,
+        categories,
       },
     });
   } catch (error) {

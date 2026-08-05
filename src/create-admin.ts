@@ -31,7 +31,7 @@ async function createAdminUser() {
     });
 
     // Step 1: Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.user.findFirst({
       where: { email: email.toLowerCase() },
     });
 
@@ -40,7 +40,7 @@ async function createAdminUser() {
 
       // Update existing user to admin
       await prisma.user.update({
-        where: { email: email.toLowerCase() },
+        where: { id: existingUser.id },
         data: { role: "admin" },
       });
 
@@ -120,7 +120,7 @@ async function createAdminUser() {
     console.log("✅ Admin account created successfully!");
     console.log("\n📝 Login credentials:");
     console.log(`   Email: ${email}`);
-    console.log("   Password: [SAVE THIS — it will not be displayed again]");
+    console.log("   Password: [SAVE THIS - it will not be displayed again]");
     console.log("\n⚠️  IMPORTANT: Change this password after first login!");
     console.log("\n🚀 You can now login at: http://localhost:3000/login");
 
@@ -129,7 +129,7 @@ async function createAdminUser() {
 
     // Try to clean up if partial creation
     try {
-      await prisma.user.delete({
+      await prisma.user.deleteMany({
         where: { email: email.toLowerCase() },
       }).catch(() => {});
     } catch {}

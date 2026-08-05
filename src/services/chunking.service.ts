@@ -1,6 +1,6 @@
 import { QUESTION_BOUNDARY_RE } from "./pyqParser";
 
-const CHUNK_SIZE = 1000; // characters (~250 tokens — Gemini embedding sweet spot)
+const CHUNK_SIZE = 1000; // characters (~250 tokens - Gemini embedding sweet spot)
 const OVERLAP = 150; // ~15% overlap
 const MIN_CHUNK_LENGTH = 50; // skip tiny fragments
 const PAGE_LEVEL_THRESHOLD = 1200; // use full page as chunk if page ≤ this size
@@ -74,7 +74,7 @@ function splitTextIntoChunks(
 
     let splitPos: number;
     if (end === text.length) {
-      // Last segment — take everything remaining
+      // Last segment - take everything remaining
       splitPos = end;
     } else {
       const windowStart = end - WINDOW;
@@ -160,7 +160,7 @@ function splitPageText(pageText: string): string[] {
     let current = "";
     for (const unit of units) {
       if (unit.length > CHUNK_SIZE) {
-        // Oversized single question — fall through to generic splitter
+        // Oversized single question - fall through to generic splitter
         if (current.length > 0) {
           chunks.push(current.trim());
           current = "";

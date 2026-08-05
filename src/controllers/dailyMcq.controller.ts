@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { dailyMcqRepo } from "../repositories/prisma-daily-mcq.repository";
 import { isValidSubject, normalizeSubject } from "../constants/subjects";
+import { computeAttemptedTodayCount } from "../utils/attemptedToday";
+import { DAILY_MCQ_CHECKPOINTS } from "../utils/attemptedTodayCheckpoints";
 
 const DAILY_MCQ_QUESTION_COUNT = 10;
 
@@ -25,13 +27,13 @@ async function getOrCreateTodayMCQ() {
     const validQuestionCount = questions.filter((q: any) => isValidSubject(normalizeSubject(q.category || ""))).length;
     if (validQuestionCount < DAILY_MCQ_QUESTION_COUNT || mcq.questionCount !== DAILY_MCQ_QUESTION_COUNT) {
       console.log(
-        `[Daily MCQ] Today's set has ${validQuestionCount}/${DAILY_MCQ_QUESTION_COUNT} valid questions — attempting repair...`
+        `[Daily MCQ] Today's set has ${validQuestionCount}/${DAILY_MCQ_QUESTION_COUNT} valid questions - attempting repair...`
       );
       await dailyMcqRepo.createTodayMCQ();
       mcq = await dailyMcqRepo.findTodayMCQ();
     }
   } else {
-    console.log("[Daily MCQ] No MCQ for today — generating on the fly...");
+    console.log("[Daily MCQ] No MCQ for today - generating on the fly...");
     await dailyMcqRepo.createTodayMCQ();
     mcq = await dailyMcqRepo.findTodayMCQ();
   }
@@ -46,8 +48,10 @@ export const getTodayMCQ = async (req: Request, res: Response, next: NextFunctio
     const attempt = await dailyMcqRepo.checkUserAttempt(req.user!.id, mcq.id);
     const attempted = !!attempt?.completedAt;
     const { id, title, topic, tags, questionCount, timeLimit, totalMarks } = mcq;
+    const attemptedCount = await dailyMcqRepo.countTotalAttempts(mcq.id);
+    const studentsAttemptedTodayCount = computeAttemptedTodayCount(new Date(), attemptedCount, DAILY_MCQ_CHECKPOINTS);
 
-    res.json({ status: "success", data: { id, title, topic, tags, questionCount, timeLimit, totalMarks, attempted } });
+    res.json({ status: "success", data: { id, title, topic, tags, questionCount, timeLimit, totalMarks, attempted, attemptedCount, studentsAttemptedTodayCount } });
   } catch (error) {
     next(error);
   }
@@ -59,10 +63,15 @@ export const getTodayQuestions = async (req: Request, res: Response, next: NextF
     if (!mcq) return res.status(404).json({ status: "error", message: "No MCQ challenge available for today" });
 
     const allQuestions = await dailyMcqRepo.findQuestions(mcq.id, true);
-    // Normalize category before filtering — allows aliases like "Environment" → "Environment & Ecology"
+    // Normalize category and ensure options are valid before returning
     const questions = allQuestions.filter((q: any) => {
       const normalized = normalizeSubject(q.category || "");
-      return isValidSubject(normalized);
+      if (!isValidSubject(normalized)) return false;
+      const opts = q.options;
+      if (!opts) return false;
+      if (Array.isArray(opts)) return opts.length >= 2;
+      if (typeof opts === "object") return Object.keys(opts).length >= 2;
+      return false;
     }).map((q: any) => ({ ...q, category: normalizeSubject(q.category || "") }));
     console.log(`[Daily MCQ] Returning ${questions.length} of ${allQuestions.length} questions after subject filter`);
     if (questions.length !== DAILY_MCQ_QUESTION_COUNT) {
@@ -80,7 +89,7 @@ export const getTodayQuestions = async (req: Request, res: Response, next: NextF
 export const submitMCQ = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { answers, timeTaken } = req.body;
+    const { answers, timeTaken, retake } = req.body;
 
     const mcq = await dailyMcqRepo.findTodayWithQuestions();
     if (!mcq) return res.status(404).json({ status: "error", message: "No MCQ challenge available for today" });
@@ -95,8 +104,11 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
       });
     }
 
+    // A retake intentionally overwrites the existing attempt (upsertAttempt /
+    // upsertResponse are keyed on the same user+MCQ, so the row is updated in
+    // place). Only block a duplicate submit when it is NOT a retake.
     const existing = await dailyMcqRepo.checkUserAttempt(userId, mcq.id);
-    if (existing?.completedAt) return res.status(400).json({ status: "error", message: "You have already submitted today's MCQ" });
+    if (existing?.completedAt && !retake) return res.status(400).json({ status: "error", message: "You have already submitted today's MCQ" });
 
     // Score answers
     let correctCount = 0, wrongCount = 0, skippedCount = 0;
@@ -138,10 +150,14 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
       await dailyMcqRepo.upsertResponse({ attemptId: attempt.id, ...r });
     }
 
-    await dailyMcqRepo.createActivity({
-      userId, type: "mcq", title: "Completed Daily MCQ",
-      description: `Scored ${correctCount}/${DAILY_MCQ_QUESTION_COUNT} (${Math.round(accuracy)}%)`,
-    });
+    // Only log the activity feed entry on the first completion; a retake updates
+    // the same attempt and shouldn't spawn a second "Completed Daily MCQ" entry.
+    if (!existing?.completedAt) {
+      await dailyMcqRepo.createActivity({
+        userId, type: "mcq", title: "Completed Daily MCQ",
+        description: `Scored ${correctCount}/${DAILY_MCQ_QUESTION_COUNT} (${Math.round(accuracy)}%)`,
+      });
+    }
 
     await dailyMcqRepo.getOrCreateStreak(userId, getWeekActivity(new Date()));
 
@@ -157,11 +173,15 @@ export const submitMCQ = async (req: Request, res: Response, next: NextFunction)
 export const getTodayResults = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const mcq = await dailyMcqRepo.findTodayMCQ();
-    if (!mcq) return res.status(404).json({ status: "error", message: "No MCQ challenge for today" });
+    const attemptId = typeof req.query.attemptId === "string" ? req.query.attemptId : null;
+    const todayMcq = attemptId ? null : await dailyMcqRepo.findTodayMCQ();
+    if (!attemptId && !todayMcq) return res.status(404).json({ status: "error", message: "No MCQ challenge for today" });
 
-    const attempt = await dailyMcqRepo.findAttempt(userId, mcq.id);
-    if (!attempt) return res.status(404).json({ status: "error", message: "No attempt found for today" });
+    const attempt = attemptId
+      ? await dailyMcqRepo.findAttemptById(userId, attemptId)
+      : await dailyMcqRepo.findAttempt(userId, todayMcq!.id);
+    if (!attempt) return res.status(404).json({ status: "error", message: "No matching attempt found" });
+    const mcq = attempt.dailyMcq ?? todayMcq;
 
     const higherCount = await dailyMcqRepo.countHigherScores(mcq.id, attempt.score);
     const totalAttempts = await dailyMcqRepo.countTotalAttempts(mcq.id);
@@ -180,11 +200,17 @@ export const getTodayResults = async (req: Request, res: Response, next: NextFun
 export const getTodayReview = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const mcq = await dailyMcqRepo.findTodayWithQuestions();
-    if (!mcq) return res.status(404).json({ status: "error", message: "No MCQ challenge for today" });
+    const attemptId = typeof req.query.attemptId === "string" ? req.query.attemptId : null;
+    const todayMcq = attemptId ? null : await dailyMcqRepo.findTodayWithQuestions();
+    if (!attemptId && !todayMcq) return res.status(404).json({ status: "error", message: "No MCQ challenge for today" });
 
-    const attempt = await dailyMcqRepo.findAttemptWithResponses(userId, mcq.id);
+    const attempt = attemptId
+      ? await dailyMcqRepo.findAttemptById(userId, attemptId, true)
+      : await dailyMcqRepo.findAttemptWithResponses(userId, todayMcq!.id);
     if (!attempt) return res.status(404).json({ status: "error", message: "No attempt found" });
+    const mcq = attemptId
+      ? { ...attempt.dailyMcq, questions: await dailyMcqRepo.findQuestions(attempt.dailyMcqId, true) }
+      : todayMcq!;
 
     const responseMap = new Map<string, any>(attempt.responses.map((r: any) => [r.questionId, r]));
     const reviewData = mcq.questions
@@ -211,8 +237,7 @@ export const getTodayRecommendations = async (req: Request, res: Response, next:
 
     if (attempt) {
       if (attempt.weakTopics.length > 0) {
-        const topicsParam = encodeURIComponent(attempt.weakTopics.join(","));
-        recommendations.push({ type: "study", title: "Review Weak Areas", description: `Focus on: ${attempt.weakTopics.join(", ")}`, action: "Practice Weak Areas", link: `/dashboard/daily-mcq/practice?topics=${topicsParam}` });
+        recommendations.push({ type: "study", title: "Review Weak Areas", description: `Focus on: ${attempt.weakTopics.join(", ")}`, action: "Do this first", link: `/dashboard/daily-mcq/review` });
       }
       if (attempt.accuracy < 60) {
         recommendations.push({ type: "practice", title: "Practice More MCQs", description: "Build your accuracy with subject-wise practice", action: "Start Mock Test", link: "/dashboard/mock-tests" });
@@ -222,6 +247,30 @@ export const getTodayRecommendations = async (req: Request, res: Response, next:
     }
 
     res.json({ status: "success", data: { recommendations } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getHistory = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 30);
+
+    const attempts = await dailyMcqRepo.findUserHistory(userId, limit);
+    const history = attempts.map((attempt: any) => ({
+      attemptId: attempt.id,
+      date: attempt.dailyMcq.date,
+      title: attempt.dailyMcq.title,
+      topic: attempt.dailyMcq.topic,
+      score: attempt.score,
+      totalMarks: attempt.totalMarks,
+      correctCount: attempt.correctCount,
+      questionCount: attempt.dailyMcq.questionCount,
+      accuracy: attempt.accuracy,
+    }));
+
+    res.json({ status: "success", data: { attempts: history } });
   } catch (error) {
     next(error);
   }

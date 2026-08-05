@@ -1,4 +1,7 @@
 import { dashboardRepo } from "../repositories/prisma-dashboard.repository";
+import { supabaseAdmin } from "../config/supabase";
+import { getDerivedStudyStreak } from "./streak.service";
+import { istDateKey } from "../utils/istDate";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const ORDERED_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -22,6 +25,18 @@ function avg(arr: number[]): number {
   return arr.reduce((s, v) => s + v, 0) / arr.length;
 }
 
+/** Format a duration in minutes to a compact, human-readable string. */
+function formatStudyDuration(minutes: number): string {
+  const totalSeconds = Math.round(minutes * 60);
+  if (totalSeconds <= 0) return "0h 0m";
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  return `${s}s`;
+}
+
 function parseTimeToMinutes(t?: string | null): number | null {
   if (!t) return null;
   const [hRaw, mRaw] = t.split(":");
@@ -32,10 +47,13 @@ function parseTimeToMinutes(t?: string | null): number | null {
 }
 
 function getTaskDurationMinutes(task: {
+  actualDuration?: number | null;
   duration?: number | null;
   startTime?: string | null;
   endTime?: string | null;
 }): number {
+  // Prefer the actual time tracked by the focus timer (stored in seconds).
+  if (task.actualDuration && task.actualDuration > 0) return task.actualDuration / 60;
   if (task.duration && task.duration > 0) return task.duration;
   const start = parseTimeToMinutes(task.startTime);
   const end = parseTimeToMinutes(task.endTime);
@@ -54,17 +72,101 @@ function classifyStudyTaskType(task: { title?: string | null; description?: stri
   return "Reading";
 }
 
-function getDailyDummyRank(): number {
-  const now = new Date();
-  const daySeed = now.getUTCFullYear() * 10000 + (now.getUTCMonth() + 1) * 100 + now.getUTCDate();
-  const hash = ((daySeed * 9301 + 49297) % 233280) / 233280;
-  return Math.floor(670 + hash * (810 - 670 + 1));
+const PRELIMS_DATES: Record<string, Date> = {
+  "2026": new Date(2026, 5, 2),   // June 2, 2026
+  "2027": new Date(2027, 4, 25),  // May 25, 2027
+  "2028": new Date(2028, 4, 28),  // May 28, 2028
+};
+
+function getDefaultTargetYear(): string {
+  const now = Date.now();
+  const years = Object.keys(PRELIMS_DATES).sort();
+  return years.find((y) => PRELIMS_DATES[y].getTime() >= now) ?? years[years.length - 1];
 }
 
-/** Compute days remaining until UPSC Prelims 2026 (June 2). */
-export function computeDaysRemaining(): number {
-  const prelimsDate = new Date(2026, 5, 2);
+export function computeDaysRemaining(targetYear?: string): number {
+  const prelimsDate = PRELIMS_DATES[targetYear || ""] || PRELIMS_DATES[getDefaultTargetYear()];
   return Math.max(0, Math.ceil((prelimsDate.getTime() - Date.now()) / 86400000));
+}
+
+/** Build a real, per-day activity calendar for the current month (no synthetic days). */
+export async function getStreakCalendar(userId: string) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 1);
+
+  const [raw, streak] = await Promise.all([
+    dashboardRepo.getMonthlyActivityRaw(userId, monthStart, monthEnd),
+    getDerivedStudyStreak(userId),
+  ]);
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const perDay = Array.from({ length: daysInMonth }, () => ({
+    activityCount: 0,
+    mcqAttempts: 0,
+    mainsAttempts: 0,
+    mockAttempts: 0,
+    editorialsRead: 0,
+    editorialsTotal: 0,
+    studyMinutes: 0,
+  }));
+
+  const bump = (dates: Date[], key: "activityCount" | "mcqAttempts" | "mainsAttempts" | "mockAttempts") => {
+    for (const d of dates) {
+      const entry = perDay[new Date(d).getDate() - 1];
+      if (entry) entry[key]++;
+    }
+  };
+
+  bump(raw.activityDates, "activityCount");
+  bump(raw.mcqDates, "mcqAttempts");
+  bump(raw.mainsDates, "mainsAttempts");
+  bump(raw.mockDates, "mockAttempts");
+  bump(raw.mockMainsDates, "mainsAttempts");
+  bump(raw.pyqMainsDates, "mainsAttempts");
+
+  for (const editorial of raw.editorials) {
+    const entry = perDay[new Date(editorial.publishedAt).getDate() - 1];
+    if (!entry) continue;
+    entry.editorialsTotal++;
+    if (editorial.readByUser) entry.editorialsRead++;
+  }
+
+  for (const task of raw.completedTasks) {
+    if (!task.completedAt) continue;
+    const entry = perDay[new Date(task.completedAt).getDate() - 1];
+    if (!entry) continue;
+    entry.studyMinutes += getTaskDurationMinutes(task);
+  }
+
+  const days = perDay.map((entry, i) => {
+    const day = i + 1;
+    // Intensity = how many of the 3 Daily Trio activities (MCQ, Mains, News) were done that day.
+    const trioCount = (entry.mcqAttempts > 0 ? 1 : 0) + (entry.mainsAttempts > 0 ? 1 : 0) + (entry.editorialsRead > 0 ? 1 : 0);
+    const intensity = trioCount;
+    return {
+      day,
+      intensity,
+      studyTime: formatStudyDuration(entry.studyMinutes),
+      mcqAttempts: entry.mcqAttempts,
+      mainsAttempts: entry.mainsAttempts,
+      mockAttempts: entry.mockAttempts,
+      editorialsRead: entry.editorialsRead,
+      editorialsTotal: entry.editorialsTotal,
+    };
+  });
+
+  return {
+    year,
+    month: month + 1,
+    monthLabel: monthStart.toLocaleString("en-US", { month: "long" }),
+    today: now.getDate(),
+    currentStreak: streak.currentStreak,
+    longestStreak: streak.longestStreak,
+    days,
+  };
 }
 
 /** Build the dashboard today snapshot response. */
@@ -72,8 +174,14 @@ export async function getDashboard(userId: string) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const snap = await dashboardRepo.getTodaySnapshot(userId, today);
-  const daysRemaining = computeDaysRemaining();
+  const [snap, userRes] = await Promise.all([
+    dashboardRepo.getTodaySnapshot(userId, today),
+    supabaseAdmin.from("users").select("settings").eq("id", userId).single(),
+  ]);
+
+  const settings = (userRes.data?.settings as Record<string, any>) || {};
+  const targetYear = settings.profile?.targetYear || getDefaultTargetYear();
+  const daysRemaining = computeDaysRemaining(targetYear);
 
   const trio = {
     mcq: {
@@ -93,6 +201,7 @@ export async function getDashboard(userId: string) {
 
   return {
     daysRemaining,
+    targetYear,
     trio,
     todayTasksCount: snap.todayTasksCount,
     recentActivity: snap.recentActivity,
@@ -129,9 +238,20 @@ export async function getPerformance(userId: string) {
   const strongTopics = sortedTopics.slice(0, 5);
   const weakTopics = sortedTopics.slice(-5).reverse();
 
-  const estimatedMinutes = raw.todayActivitiesCount * 15;
-  const studyHours = Math.floor(estimatedMinutes / 60);
-  const studyMinutes = estimatedMinutes % 60;
+  const totalStudySeconds = (raw.todayCompletedTasks ?? []).reduce((sum: number, task: any) => {
+    if (task.actualDuration != null && task.actualDuration > 0) {
+      return sum + task.actualDuration;
+    }
+    if (task.startTime && task.endTime) {
+      const [sh, sm] = task.startTime.split(':').map(Number);
+      const [eh, em] = task.endTime.split(':').map(Number);
+      const diffMin = (eh * 60 + em) - (sh * 60 + sm);
+      if (diffMin > 0) return sum + diffMin * 60;
+    }
+    return sum;
+  }, 0);
+  const studyHours = Math.floor(totalStudySeconds / 3600);
+  const studyMinutes = Math.floor((totalStudySeconds % 3600) / 60);
   const studyTimeToday = `${studyHours}h ${studyMinutes}m`;
 
   const testsTaken =
@@ -145,21 +265,27 @@ export async function getPerformance(userId: string) {
   const mainsQuestions = raw.mainsCount + raw.mockMainsCount + raw.pyqMainsCount;
   const questionsAttempted = mcqQuestions + mockPrelimsQuestions + seriesQuestions + mainsQuestions;
 
-  const rank = raw.mcqAgg._max.rank ?? getDailyDummyRank();
   const rankPercentile = raw.mcqAgg._max.percentile ?? null;
 
   const totalCovered = raw.syllabusCoverage.reduce((s, c) => s + c.coveredTopics, 0);
   const totalTopics = raw.syllabusCoverage.reduce((s, c) => s + c.totalTopics, 0);
   const syllabusCoverage = totalTopics > 0 ? Math.round((totalCovered / totalTopics) * 100) : 0;
+  const polity = raw.syllabusCoverage.find((entry) => entry.subject.toLowerCase().includes("polity"));
+  const polityCoverage = polity && polity.totalTopics > 0
+    ? Math.round((polity.coveredTopics / polity.totalTopics) * 100)
+    : 0;
 
   return {
     studyTimeToday,
     testsTaken,
     questionsAttempted,
-    rank,
+    // Ranking is owned by /leaderboard and follows the canonical MCQ/Mains
+    // scoring and eligibility rules. Keep this field for API compatibility,
+    // but never return the former attempt-level/dummy rank here.
+    rank: null,
     rankPercentile,
-    jeetCoins: 0,
     syllabusCoverage,
+    polityCoverage,
     mcq: {
       totalAttempts: raw.mcqAgg._count.id,
       totalCorrect: raw.mcqAgg._sum.correctCount ?? 0,
@@ -177,15 +303,65 @@ export async function getPerformance(userId: string) {
     },
     mockTests: { totalAttempts: raw.mockCount },
     testSeries: { totalAttempts: raw.seriesAttempts.count },
-    streak: raw.streak || { currentStreak: 0, longestStreak: 0 },
+    streak: await getDerivedStudyStreak(userId),
     strongTopics,
     weakTopics,
+  };
+}
+
+export interface BadgeInfo {
+  key: string;
+  title: string;
+  note: string;
+  status: "earned" | "in-progress" | "locked";
+}
+
+/** Build the achievement-badges response, mirroring the thresholds the dashboard widget used to compute client-side. */
+export async function getBadges(userId: string): Promise<{ badges: BadgeInfo[] }> {
+  const perf = await getPerformance(userId);
+
+  const currentStreak = perf.streak?.currentStreak ?? 0;
+  const testsTaken = perf.testsTaken;
+  const syllabusCoverage = perf.syllabusCoverage;
+  const avgAccuracy = perf.mcq.avgAccuracy;
+  const questionsAttempted = perf.questionsAttempted;
+
+  const hasAnyProgress = currentStreak > 0 || testsTaken > 0 || syllabusCoverage > 0;
+  const isFirstTimeUser = !hasAnyProgress && questionsAttempted === 0;
+
+  const badgeStatus = {
+    streak: { earned: currentStreak >= 30, progress: currentStreak > 0 },
+    learner: { earned: testsTaken >= 10, progress: testsTaken > 0 },
+    accuracy: { earned: testsTaken > 0 && avgAccuracy >= 95, progress: testsTaken > 0 },
+    polity: { earned: perf.polityCoverage >= 60, progress: perf.polityCoverage > 0 },
+    allRounder: { earned: currentStreak >= 7 && testsTaken >= 5 && syllabusCoverage >= 40, progress: hasAnyProgress },
+    centurion: { earned: questionsAttempted >= 100, progress: questionsAttempted > 0 },
+  };
+
+  const statusFor = (b: { earned: boolean; progress: boolean }): BadgeInfo["status"] =>
+    isFirstTimeUser ? "locked" : b.earned ? "earned" : b.progress ? "in-progress" : "locked";
+
+  return {
+    badges: [
+      { key: "streak", title: "30-Day Streak", note: `${currentStreak} day streak`, status: statusFor(badgeStatus.streak) },
+      { key: "learner", title: "Quick Learner", note: `${testsTaken} tests done`, status: statusFor(badgeStatus.learner) },
+      { key: "accuracy", title: "95% Accuracy", note: avgAccuracy > 0 ? `${avgAccuracy}% accuracy` : "Build accuracy", status: statusFor(badgeStatus.accuracy) },
+      { key: "polity", title: "Polity Pro", note: `${perf.polityCoverage}% coverage`, status: statusFor(badgeStatus.polity) },
+      { key: "all-rounder", title: "All-Rounder", note: "Consistency badge", status: statusFor(badgeStatus.allRounder) },
+      { key: "centurion", title: "Centurion", note: `${Math.min(questionsAttempted, 100)}/100 questions`, status: statusFor(badgeStatus.centurion) },
+    ],
   };
 }
 
 /** Build the comprehensive test analytics response. */
 export async function getTestAnalytics(userId: string) {
   const raw = await dashboardRepo.getTestAnalyticsRaw(userId);
+  const lastSevenIstDateKeys = new Set(
+    Array.from({ length: 7 }, (_, index) => istDateKey(new Date(), index - 6)),
+  );
+  const countDistinctActiveDays = (dates: Date[]) => new Set(
+    dates.map((date) => istDateKey(date)).filter((key) => lastSevenIstDateKeys.has(key)),
+  ).size;
 
   // Resolve test-series metadata
   const seriesAttempts = raw.seriesAttempts.data;
@@ -252,13 +428,13 @@ export async function getTestAnalytics(userId: string) {
   const dailyActivity = ORDERED_DAYS.map((day) => ({
     day,
     questionsAttempted: dailyMap[day].questions,
-    hours: Math.round((studyTimeByDayHours[day] ?? 0) * 10) / 10,
+    hours: studyTimeByDayHours[day] ?? 0,
   }));
 
   const totalStudyTypeMinutes = Object.values(studyTypeMinutes).reduce((s, v) => s + v, 0);
   const studyTypeDistribution = (Object.keys(studyTypeMinutes) as Array<keyof typeof studyTypeMinutes>).map((label) => {
     const minutes = studyTypeMinutes[label];
-    const hours = Math.round((minutes / 60) * 10) / 10;
+    const hours = minutes / 60;
     return {
       label,
       hours,
@@ -352,11 +528,26 @@ export async function getTestAnalytics(userId: string) {
 
   const mainsTrend = mainsPoints.map((p, i) => ({
     attempt: `T${i + 1}`,
+    date: p.createdAt.toISOString(),
     score: Math.round(p.scorePct * 10) / 10,
     rawScore: p.score,
     maxScore: p.maxScore,
     source: p.source,
   }));
+  const mainsAttemptTimeline = [
+    ...raw.mainsAttempts.map((attempt: any) => ({
+      date: new Date(attempt.createdAt).toISOString(),
+      score: attempt.evaluation?.status === "completed" ? attempt.evaluation.score : null,
+    })),
+    ...raw.mockTestMainsAttempts.map((attempt: any) => ({
+      date: new Date(attempt.createdAt).toISOString(),
+      score: attempt.evaluation?.status === "completed" ? attempt.evaluation.score : null,
+    })),
+    ...raw.pyqMainsAttempts.map((attempt: any) => ({
+      date: new Date(attempt.createdAt).toISOString(),
+      score: attempt.evaluation?.status === "completed" ? attempt.evaluation.score : null,
+    })),
+  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const mainsScores = mainsTrend.map((t) => t.score);
   const mainsRawScores = mainsPoints.map((p) => p.score);
   const mainsStats = {
@@ -379,7 +570,41 @@ export async function getTestAnalytics(userId: string) {
     return { day, avgSeconds: avgSec };
   });
 
-  // Test history (merged across 6 sources)
+  // Period-aware time metrics: today, the current Monday-Sunday week, and the
+  // current calendar month. Values remain weighted by question count.
+  const timeByDate: Record<string, { time: number; questions: number }> = {};
+  for (const attempt of raw.recentMcq) {
+    const questions = (attempt.correctCount ?? 0) + (attempt.wrongCount ?? 0) + (attempt.skippedCount ?? 0);
+    if (questions <= 0 || !attempt.createdAt) continue;
+    const dateKey = istDateKey(new Date(attempt.createdAt));
+    timeByDate[dateKey] ??= { time: 0, questions: 0 };
+    timeByDate[dateKey].time += attempt.timeTaken ?? 0;
+    timeByDate[dateKey].questions += questions;
+  }
+  const todayKey = istDateKey(now);
+  const shiftedNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+  const daysSinceMonday = (shiftedNow.getUTCDay() + 6) % 7;
+  const weekStartKey = istDateKey(now, -daysSinceMonday);
+  const monthKey = todayKey.slice(0, 7);
+  const averageTime = (bucket?: { time: number; questions: number }) =>
+    bucket && bucket.questions > 0 ? Math.round(bucket.time / bucket.questions) : 0;
+  const periodEntries = (startKey: string) =>
+    Object.entries(timeByDate)
+      .filter(([key]) => key >= startKey && key <= todayKey)
+      .sort(([a], [b]) => a.localeCompare(b));
+  const timePerQuestionTrend = {
+    day: [{ label: "Today", avgSeconds: averageTime(timeByDate[todayKey]) }],
+    week: periodEntries(weekStartKey).map(([key, bucket]) => ({
+      label: new Date(`${key}T00:00:00+05:30`).toLocaleDateString("en-US", { weekday: "short" }),
+      avgSeconds: averageTime(bucket),
+    })),
+    month: periodEntries(`${monthKey}-01`).map(([key, bucket]) => ({
+      label: new Date(`${key}T00:00:00+05:30`).toLocaleDateString("en-US", { day: "numeric", month: "short" }),
+      avgSeconds: averageTime(bucket),
+    })),
+  };
+
+  // Test history (merged across every attempt surface)
   const relDate = (d: Date) => {
     const diff = Math.floor((now.getTime() - d.getTime()) / 86400000);
     return diff === 0 ? "Today" : diff === 1 ? "Yesterday" : `${diff}d ago`;
@@ -431,12 +656,33 @@ export async function getTestAnalytics(userId: string) {
     });
   }
 
+  for (const a of raw.pyqPrelimsAttempts) {
+    const completedAt = new Date(a.completedAt ?? a.createdAt);
+    const q = a.question;
+    historyRows.push({
+      id: a.id, name: q ? `PYQ ${q.year} · ${q.subject}` : "PYQ Prelims",
+      series: q?.paper ? `PYQ · ${q.paper}` : "PYQ · Prelims",
+      date: relDate(completedAt), score: `${a.score}/${a.totalMarks}`,
+      accuracy: Math.round(a.accuracy), sortAt: completedAt.getTime(), rank: null,
+      type: "pyq-prelims", routeParams: { questionId: a.pyqQuestionId },
+    });
+  }
+
   for (const a of raw.pyqMainsAttempts) {
     if (!a.evaluation || a.evaluation.status !== "completed") continue;
     const createdAt = new Date(a.createdAt);
     const max = a.evaluation.maxScore || 15;
     const pct = max > 0 ? Math.round((a.evaluation.score / max) * 100) : 0;
     const q = a.mainsQuestion;
+    if (q?.status === "custom" && q.sourceFile === "mains-answer-evaluator") {
+      historyRows.push({
+        id: a.id, name: "Mains Answer Evaluator", series: "Mains Answer Evaluator",
+        date: relDate(createdAt), score: `${a.evaluation.score}/${max}`, accuracy: pct,
+        sortAt: createdAt.getTime(), rank: null, type: "mains-evaluator",
+        routeParams: { attemptId: a.id },
+      });
+      continue;
+    }
     historyRows.push({
       id: a.id, name: q ? `PYQ ${q.year} · ${q.subject}` : "PYQ Mains",
       series: q?.paper ? `PYQ · ${q.paper}` : "PYQ · Mains",
@@ -467,12 +713,21 @@ export async function getTestAnalytics(userId: string) {
   const mockPrelimsQ = raw.mockAttempts.reduce((s: number, a: any) => s + (a.correctCount ?? 0) + (a.wrongCount ?? 0) + (a.skippedCount ?? 0), 0);
   const seriesQ = (seriesAttempts as any[]).reduce((s: number, a: any) => s + (a.total ?? 0), 0);
   const mainsQ = raw.mainsAttempts.length + raw.mockTestMainsAttempts.length + raw.pyqMainsAttempts.length;
-  const totalQuestions = mcqQuestions + mockPrelimsQ + seriesQ + mainsQ;
+  const totalQuestions = mcqQuestions + mockPrelimsQ + seriesQ + raw.pyqPrelimsAttempts.length + mainsQ;
+  const dailyTrio = {
+    mcqDays: countDistinctActiveDays(raw.recentMcq.map((attempt: any) => new Date(attempt.createdAt))),
+    mainsDays: countDistinctActiveDays([
+      ...raw.mainsAttempts.map((attempt: any) => new Date(attempt.createdAt)),
+      ...raw.mockTestMainsAttempts.map((attempt: any) => new Date(attempt.createdAt)),
+      ...raw.pyqMainsAttempts.map((attempt: any) => new Date(attempt.createdAt)),
+    ]),
+    editorialDays: countDistinctActiveDays(raw.editorialReadDatesLast7Days),
+  };
 
   return {
     summary: {
       totalTests:
-        raw.mockAttempts.length + raw.mockTestMainsAttempts.length + raw.pyqMainsAttempts.length +
+        raw.mockAttempts.length + raw.mockTestMainsAttempts.length + raw.pyqPrelimsAttempts.length + raw.pyqMainsAttempts.length +
         seriesAttempts.length + (raw.mcqAgg._count.id ?? 0) + raw.mainsAttempts.length,
       avgAccuracy: Math.round((raw.mcqAgg._avg.accuracy ?? 0) * 10) / 10,
       avgScore: mainsStats.avgScore,
@@ -488,6 +743,7 @@ export async function getTestAnalytics(userId: string) {
         dailyAnswer: raw.mainsAttempts.length,
         mockPrelims: raw.mockAttempts.length,
         mockMains: raw.mockTestMainsAttempts.length,
+        pyqPrelims: raw.pyqPrelimsAttempts.length,
         pyqMains: raw.pyqMainsAttempts.length,
         testSeries: seriesAttempts.length,
       },
@@ -497,8 +753,12 @@ export async function getTestAnalytics(userId: string) {
     dailyActivity,
     studyTypeDistribution,
     mainsTrend,
+    mainsAttemptTimeline,
     mainsStats,
     timePerQuestion,
+    timePerQuestionTrend,
     testHistory,
+    dailyTrio,
+    editorialDaysThisWeek: dailyTrio.editorialDays,
   };
 }

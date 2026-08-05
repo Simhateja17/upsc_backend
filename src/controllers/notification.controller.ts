@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { supabaseAdmin } from "../config/supabase";
+import { checkAndSendLoginStreakNotification } from "../utils/notifications";
 
 export const getNotifications = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    await checkAndSendLoginStreakNotification(req.user!.id);
+
     const { data: notifications } = await supabaseAdmin
       .from("notifications")
       .select("id, title, body, type, read, created_at")
@@ -80,6 +83,24 @@ export const markAllRead = async (req: Request, res: Response, next: NextFunctio
     }
 
     res.json({ status: "success", message: "All notifications marked as read" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const clearAllNotifications = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { error } = await supabaseAdmin
+      .from("notifications")
+      .delete()
+      .eq("user_id", req.user!.id);
+
+    if (error) {
+      console.error("[Notification] clearAll error:", error.message);
+      return res.status(500).json({ status: "error", message: "Failed to clear notifications" });
+    }
+
+    res.json({ status: "success", message: "All notifications cleared" });
   } catch (error) {
     next(error);
   }

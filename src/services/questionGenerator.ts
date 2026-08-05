@@ -1,4 +1,5 @@
 import { generateJSON } from "../config/azure";
+import { mainsWordLimit } from "../utils/mainsPattern";
 
 function coerceToArray<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
@@ -33,10 +34,10 @@ export async function generateMCQQuestions(params: {
 
   const difficultyGuide =
     difficulty === "easy"
-      ? "Foundation level — straightforward factual questions"
+      ? "Foundation level - straightforward factual questions"
       : difficulty === "hard"
-      ? "Advanced — requires deep conceptual understanding, multi-layered analysis"
-      : "Standard UPSC exam difficulty — requires good conceptual clarity";
+      ? "Advanced - requires deep conceptual understanding, multi-layered analysis"
+      : "Standard UPSC exam difficulty - requires good conceptual clarity";
 
   const prompt = `Generate ${count} unique UPSC ${examMode === "prelims" ? "Prelims" : "Mains"} MCQ questions on "${subject}".
 
@@ -88,7 +89,7 @@ interface GeneratedMainsQuestion {
 
 /**
  * Generate UPSC Mains open-ended questions.
- * No options, no correct answer — mains questions require written answers
+ * No options, no correct answer - mains questions require written answers
  * that are evaluated by the AI evaluator after submission.
  */
 export async function generateMainsQuestions(params: {
@@ -102,13 +103,12 @@ export async function generateMainsQuestions(params: {
 
   const difficultyGuide =
     difficulty === "easy"
-      ? "Foundation level — direct, single-dimension questions focused on core concepts"
+      ? "Foundation level - direct, single-dimension questions focused on core concepts"
       : difficulty === "hard"
-      ? "Advanced — multi-dimensional, analytical, requires critical thinking, inter-linkages and case-based application"
-      : "Standard UPSC Mains difficulty — balanced analysis, examples and contemporary relevance expected";
+      ? "Advanced - multi-dimensional, analytical, requires critical thinking, inter-linkages and case-based application"
+      : "Standard UPSC Mains difficulty - balanced analysis, examples and contemporary relevance expected";
 
-  const wordLimitHint =
-    marksPerQuestion >= 15 ? "250 words" : marksPerQuestion >= 10 ? "150 words" : "100 words";
+  const wordLimitHint = `${mainsWordLimit(marksPerQuestion)} words`;
 
   const paperHint = paperType ? `Target paper: ${paperType}.` : "";
 
@@ -124,7 +124,7 @@ Requirements:
 - Each question must test a distinct theme or sub-topic within ${subject}
 - Questions should demand structured answers with introduction, body, conclusion
 - Avoid yes/no or purely factual recall questions
-- Do NOT include any options, answer, or model answer — only the question text
+- Do NOT include any options, answer, or model answer - only the question text
 - Keep each question self-contained (no "refer to the passage above" style)
 
 Return a JSON array of objects, each with:
@@ -141,7 +141,7 @@ Return a JSON array of objects, each with:
 
   try {
     console.log(
-      `[MainsGen] subject="${subject}" difficulty="${difficulty}" count=${count} paper=${paperType || "—"}`
+      `[MainsGen] subject="${subject}" difficulty="${difficulty}" count=${count} paper=${paperType || "-"}`
     );
     const result = await generateJSON<unknown>(prompt, system, 0.7);
     const arr = coerceToArray<GeneratedMainsQuestion>(result);

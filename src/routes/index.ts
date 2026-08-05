@@ -5,6 +5,7 @@ import authRoutes from "./auth.routes";
 import aiRoutes from "./ai.routes";
 import dailyMcqRoutes from "./dailyMcq.routes";
 import dailyAnswerRoutes from "./dailyAnswer.routes";
+import mainsEvaluatorRoutes from "./mainsEvaluator.routes";
 import editorialRoutes from "./editorial.routes";
 import mockTestRoutes from "./mockTest.routes";
 import studyPlannerRoutes from "./studyPlanner.routes";
@@ -25,10 +26,13 @@ import contactRoutes from "./contact.routes";
 import forumRoutes from "./forum.routes";
 import studyGroupRoutes from "./studyGroup.routes";
 import bookmarkRoutes from "./bookmark.routes";
+import flagRoutes from "./flag.routes";
 import supportRoutes from "./support.routes";
 import billingRoutes from "./billing.routes";
 import mentalHealthRoutes from "./mentalHealth.routes";
+import entitlementsRoutes from "./entitlements.routes";
 import { initiatePayment, verifyPayment } from "../controllers/billing.controller";
+import { handleRazorpayWebhook } from "../controllers/razorpaySubscriptions.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import * as cmsPublicCtrl from "../controllers/cms.public.controller";
 import { getSyllabus } from "../controllers/syllabus.controller";
@@ -84,14 +88,20 @@ router.get("/health/deep", async (req: Request, res: Response) => {
 // Auth routes
 router.use("/auth", authRoutes);
 
-// User routes (dashboard, profile, settings, notifications, subscription — merged)
+// User routes (dashboard, profile, settings, notifications, subscription - merged)
 router.use("/user", userRoutes);
+
+// Entitlement and usage summary routes
+router.use("/entitlements", entitlementsRoutes);
 
 // Daily MCQ routes
 router.use("/daily-mcq", dailyMcqRoutes);
 
 // Daily Answer Writing routes
 router.use("/daily-answer", dailyAnswerRoutes);
+
+// Standalone Mains Answer Evaluator routes
+router.use("/mains-evaluator", mainsEvaluatorRoutes);
 
 // Editorial routes
 router.use("/editorials", editorialRoutes);
@@ -153,7 +163,7 @@ router.get("/cms/:slug", cmsPublicCtrl.getPageContent);
 // Public FAQs
 router.get("/faqs", cmsPublicCtrl.getFaqsPublic);
 
-// Study Room stats (public — active student count)
+// Study Room stats (public - active student count)
 router.get("/study-room/stats", async (_req: Request, res: Response) => {
   try {
     // In production, query active_sessions table for real-time count
@@ -176,17 +186,23 @@ router.use("/study-groups", studyGroupRoutes);
 // Bookmarks routes
 router.use("/bookmarks", bookmarkRoutes);
 
+// Question flag routes
+router.use("/flags", flagRoutes);
+
 // Support routes
 router.use("/support", supportRoutes);
 
 // Billing routes
 router.use("/billing", billingRoutes);
 
+// Razorpay webhooks
+router.post("/webhooks/razorpay", handleRazorpayWebhook);
+
 // Razorpay Standard Checkout aliases
 router.post("/create-order", authenticate, initiatePayment);
 router.post("/verify-payment", authenticate, verifyPayment);
 
-// Jeet AI chat routes
+// Jeet AI Mentor chat routes
 router.use("/ai", aiRoutes);
 
 // Mental Health Buddy routes

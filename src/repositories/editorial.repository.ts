@@ -1,5 +1,5 @@
 /**
- * EditorialRepository — seam between business logic and database.
+ * EditorialRepository - seam between business logic and database.
  *
  * Callers depend on this interface, never on Prisma directly.
  * Swap adapters (Prisma, in-memory mock) at the seam for testing.
@@ -13,6 +13,10 @@ export interface EditorialRow {
   summary: string | null;
   content: string | null;
   tags: string[];
+  primarySyllabusPath?: unknown | null;
+  secondarySyllabusPaths?: unknown | null;
+  syllabusMappingSource?: string | null;
+  syllabusMappingOverridden?: boolean;
   aiSummary: string | null;
   publishedAt: Date;
   createdAt: Date;
@@ -33,12 +37,29 @@ export interface EditorialStats {
   totalSaved: number;
   weeklyRead: number;
   streak: number;
+  /** Editorials the user has read since local midnight today. */
+  readToday: number;
+  /** Daily reading goal (articles/day). */
+  dailyTarget: number;
+  /** Real per-day activity for the current week (Mon..Sun); true = read >=1 editorial that day. */
+  weekChecks: boolean[];
   todayCounts: {
     hindu: number;
     express: number;
     aiSummarized: number;
     userRead: number;
   };
+  savedItems: SavedEditorialItem[];
+}
+
+export interface SavedEditorialItem {
+  id: string;
+  title: string;
+  summary: string | null;
+  source: string;
+  category: string;
+  tags: string[];
+  savedAt: string;
 }
 
 export interface EditorialAvailabilityRow {

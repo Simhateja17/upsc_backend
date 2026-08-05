@@ -1,22 +1,24 @@
 import { Request, Response, NextFunction } from "express";
 import { editorialRepo } from "../repositories/prisma-editorial.repository";
-import { summarizeEditorial } from "../services/editorialSummarizer";
+import { summarizeEditorialStructured } from "../services/editorialSummarizer";
 import { getNewsArticlesBySource, syncNewsToEditorials } from "../services/newsApi";
 import { runRssFetch } from "../services/rssFetcher";
 import { categorize, extractTags, relevanceScore, isValidCategory, isDailyEditorialWorthy } from "../services/categorizer";
+import { mapEditorialToSyllabus, mappingDisplayTags, type EditorialSyllabusMapping, type SyllabusPath } from "../services/editorialSyllabusMapper";
+import { istDateKey, istDayWindow, istMonthWindow } from "../utils/istDate";
 
 function parseMonthWindow(month: unknown): { since: Date; until: Date; monthPrefix: string } | null {
   if (typeof month !== "string" || !/^\d{4}-\d{2}$/.test(month)) {
     return null;
   }
 
-  const [yearRaw, monthRaw] = month.split("-");
-  const year = Number(yearRaw);
+  const [, monthRaw] = month.split("-");
   const monthIndex = Number(monthRaw) - 1;
   if (monthIndex < 0 || monthIndex > 11) return null;
 
-  const since = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0, 0));
-  const until = new Date(Date.UTC(year, monthIndex + 1, 0, 23, 59, 59, 999));
+  // Availability is shown by edition date, so include the previous day's
+  // content at the start of the month and exclude the next month's content.
+  const { since, until } = istMonthWindow(month, 0, -1);
   return { since, until, monthPrefix: month };
 }
 
@@ -25,22 +27,30 @@ function displayCategoryForEditorial(editorial: { title: string; summary?: strin
   return isValidCategory(computed) ? computed : editorial.category;
 }
 
+function storedSyllabusMapping(editorial: { primarySyllabusPath?: unknown; secondarySyllabusPaths?: unknown; syllabusMappingSource?: string | null }): EditorialSyllabusMapping | null {
+  const primary = editorial.primarySyllabusPath as SyllabusPath | null | undefined;
+  const secondary = editorial.secondarySyllabusPaths as SyllabusPath[] | null | undefined;
+  if (!primary || typeof primary.subject !== "string" || typeof primary.subTopic !== "string") return null;
+  return {
+    primary,
+    secondary: Array.isArray(secondary) ? secondary.filter((path) => path && typeof path.subTopic === "string").slice(0, 2) : [],
+    source: editorial.syllabusMappingSource === "ai" ? "ai" : "deterministic",
+    confidence: 1,
+  };
+}
+
 /**
  * GET /api/editorials/today
- * Today's editorial list, ranked by UPSC relevance.
+ * Daily editorial edition, ranked by UPSC relevance. Defaults to yesterday in IST.
  */
 export const getTodayEditorials = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { source, limit, date } = req.query;
 
-    let since: Date;
-    let until: Date | undefined;
-    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      since = new Date(`${date}T00:00:00.000Z`);
-      until = new Date(`${date}T23:59:59.999Z`);
-    } else {
-      since = new Date(Date.now() - 48 * 60 * 60 * 1000);
-    }
+    const editionDate = typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
+      ? date
+      : istDateKey(new Date(), -1);
+    const { since, until } = istDayWindow(editionDate);
 
     const rawEditorials = await editorialRepo.getRecent(
       since,
@@ -55,10 +65,13 @@ export const getTodayEditorials = async (req: Request, res: Response, next: Next
     const editorials = rawEditorials
       .filter((e) => isDailyEditorialWorthy(e.title, e.summary, e.content))
       .map((e) => {
-        const category = displayCategoryForEditorial(e);
-        const tags = [category, ...extractTags(e.title, e.summary, e.content)]
+        const mapping = storedSyllabusMapping(e);
+        const category = mapping?.primary?.subject || displayCategoryForEditorial(e);
+        const tags = mapping?.primary
+          ? mappingDisplayTags(mapping)
+          : [category, ...extractTags(e.title, e.summary, e.content)]
           .filter((tag, index, all) => all.indexOf(tag) === index);
-        return { ...e, category, tags };
+        return { ...e, category, tags, primarySyllabusPath: mapping?.primary || null, secondarySyllabusPaths: mapping?.secondary || [] };
       })
       .filter((e) => isValidCategory(e.category))
       .map((e) => ({
@@ -98,7 +111,7 @@ export const getTodayEditorials = async (req: Request, res: Response, next: Next
 
 /**
  * GET /api/editorials/availability?source=The%20Hindu&month=2026-03
- * Source-specific dates with at least one visible UPSC-relevant editorial.
+ * Source-specific edition dates with at least one visible UPSC-relevant editorial.
  */
 export const getEditorialAvailability = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -121,7 +134,7 @@ export const getEditorialAvailability = async (req: Request, res: Response, next
     rows
       .filter((row) => isValidCategory(row.category) && isDailyEditorialWorthy(row.title, row.summary, row.content))
       .forEach((row) => {
-        const date = row.publishedAt.toISOString().slice(0, 10);
+        const date = istDateKey(row.publishedAt, 1);
         if (date.startsWith(window.monthPrefix)) dates.add(date);
       });
 
@@ -199,9 +212,16 @@ export const summarize = async (req: Request, res: Response, next: NextFunction)
       return res.status(404).json({ status: "error", message: "Editorial not found" });
     }
 
-    const summary = await summarizeEditorial(editorial.id);
-    res.json({ status: "success", data: { summary } });
-  } catch (error) {
+    const result = await summarizeEditorialStructured(editorial.id);
+    res.json({ status: "success", data: result });
+  } catch (error: any) {
+    if (error?.message === "NO_CONTENT") {
+      return res.status(422).json({
+        status: "error",
+        code: "NO_CONTENT",
+        message: "Full article text isn't available yet for this item.",
+      });
+    }
     next(error);
   }
 };
@@ -224,10 +244,14 @@ export const getStats = async (req: Request, res: Response, next: NextFunction) 
         weeklyRead: stats.weeklyRead,
         weeklyTarget: 7,
         streak: stats.streak,
+        readToday: stats.readToday,
+        dailyTarget: stats.dailyTarget,
+        weekChecks: stats.weekChecks,
         todayHinduCount: stats.todayCounts.hindu,
         todayExpressCount: stats.todayCounts.express,
         todayAiCount: stats.todayCounts.aiSummarized,
         todayReadCount: stats.todayCounts.userRead,
+        savedItems: stats.savedItems,
       },
     });
   } catch (error) {
@@ -249,20 +273,24 @@ export const getLiveNews = async (req: Request, res: Response, next: NextFunctio
 
     const articles = await getNewsArticlesBySource(sourceType);
 
-    const transformedArticles = articles
-      .map((article) => ({
+    const transformedArticles = (await Promise.all(articles.map(async (article) => {
+      const mapping = await mapEditorialToSyllabus(article.title, article.description, article.content);
+      return {
         id: Buffer.from(article.url).toString("base64").slice(0, 16),
         title: article.title,
         source: article.source.name || sourceType,
         sourceUrl: article.url,
-        category: categorize(article.title, article.description, article.content),
+        category: mapping.primary?.subject || categorize(article.title, article.description, article.content),
         summary: article.description || null,
         content: article.content || null,
-        tags: extractTags(article.title, article.description, article.content),
+        tags: mapping.primary ? mappingDisplayTags(mapping) : extractTags(article.title, article.description, article.content),
+        primarySyllabusPath: mapping.primary,
+        secondarySyllabusPaths: mapping.secondary,
         publishedAt: article.publishedAt,
         isRead: false,
         isSaved: false,
-      }))
+      };
+    })))
       .filter((a) => isValidCategory(a.category) && isDailyEditorialWorthy(a.title, a.summary, a.content));
 
     res.json({ status: "success", data: transformedArticles });

@@ -5,6 +5,7 @@ import { summarizeEditorial } from "../../services/editorialSummarizer";
 import { runRssFetch } from "../../services/rssFetcher";
 import { runEditorialSummarization } from "../../jobs/dailyEditorialJob";
 import { isValidSubject, normalizeSubject } from "../../constants/subjects";
+import { getEditorialSyllabusPaths as listEditorialSyllabusPaths, resolveEditorialSyllabusPaths } from "../../services/editorialSyllabusMapper";
 
 function qs(val: string | string[] | undefined): string | undefined {
   return Array.isArray(val) ? val[0] : val;
@@ -62,13 +63,22 @@ export const getEditorials = async (req: Request, res: Response, next: NextFunct
   }
 };
 
+/** Backend taxonomy for the editorial override control. */
+export const getEditorialSyllabusPaths = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.json({ status: "success", data: await listEditorialSyllabusPaths() });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * POST /api/admin/editorials
  * Manually add an editorial
  */
 export const createEditorial = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { title, source, sourceUrl, category, summary, content, tags } = req.body;
+    const { title, source, sourceUrl, category, summary, content, tags, primarySubTopicId, secondarySubTopicIds } = req.body;
 
     if (!title || !source || !category) {
       return res.status(400).json({
@@ -85,15 +95,23 @@ export const createEditorial = async (req: Request, res: Response, next: NextFun
       });
     }
 
+    const mapping = primarySubTopicId
+      ? await resolveEditorialSyllabusPaths(String(primarySubTopicId), Array.isArray(secondarySubTopicIds) ? secondarySubTopicIds.map(String) : [])
+      : null;
+    if (primarySubTopicId && !mapping) return res.status(400).json({ status: "error", message: "Invalid primary syllabus path" });
     const editorial = await prisma.editorial.create({
       data: {
         title,
         source,
         sourceUrl,
-        category: normalizedCategory,
+        category: mapping?.primary.subject || normalizedCategory,
         summary,
         content,
-        tags: tags || [normalizedCategory, source],
+        tags: mapping ? [mapping.primary.subject, mapping.primary.subTopic, ...mapping.secondary.map((path) => path.subTopic)] : (tags || [normalizedCategory, source]),
+        primarySyllabusPath: mapping?.primary as any,
+        secondarySyllabusPaths: mapping?.secondary as any,
+        syllabusMappingSource: mapping ? "admin" : null,
+        syllabusMappingOverridden: !!mapping,
         publishedAt: new Date(),
       },
     });
@@ -111,7 +129,7 @@ export const createEditorial = async (req: Request, res: Response, next: NextFun
 export const updateEditorial = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = req.params.id as string;
-    const { title, source, sourceUrl, category, summary, content, tags } = req.body;
+    const { title, source, sourceUrl, category, summary, content, tags, primarySubTopicId, secondarySubTopicIds } = req.body;
 
     const updateData: any = {};
     if (title !== undefined) updateData.title = title;
@@ -130,6 +148,16 @@ export const updateEditorial = async (req: Request, res: Response, next: NextFun
     if (summary !== undefined) updateData.summary = summary;
     if (content !== undefined) updateData.content = content;
     if (tags !== undefined) updateData.tags = tags;
+    if (primarySubTopicId !== undefined) {
+      const mapping = await resolveEditorialSyllabusPaths(String(primarySubTopicId), Array.isArray(secondarySubTopicIds) ? secondarySubTopicIds.map(String) : []);
+      if (!mapping) return res.status(400).json({ status: "error", message: "Invalid primary syllabus path" });
+      updateData.category = mapping.primary.subject;
+      updateData.tags = [mapping.primary.subject, mapping.primary.subTopic, ...mapping.secondary.map((path) => path.subTopic)];
+      updateData.primarySyllabusPath = mapping.primary;
+      updateData.secondarySyllabusPaths = mapping.secondary;
+      updateData.syllabusMappingSource = "admin";
+      updateData.syllabusMappingOverridden = true;
+    }
 
     const editorial = await prisma.editorial.update({
       where: { id },

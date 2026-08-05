@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
-// Force ALL dns.lookup calls to IPv4 — affects pg/net module connections
+// Force ALL dns.lookup calls to IPv4 - affects pg/net module connections
 dns.setDefaultResultOrder("ipv4first");
 const originalLookup = dns.lookup;
 dns.lookup = function (
@@ -24,14 +24,14 @@ dns.lookup = function (
 
 // Use DIRECT_URL (session mode pooler, no pgbouncer flag) for the pg pool.
 // DATABASE_URL has ?pgbouncer=true which causes Prisma v7 to look for a direct
-// Supabase connection (db.<ref>.supabase.co) — using DIRECT_URL avoids this.
+// Supabase connection (db.<ref>.supabase.co) - using DIRECT_URL avoids this.
 const databaseUrl = process.env.DIRECT_URL || process.env.DATABASE_URL!;
 
 function resolveToIPv4AndConnect(): pg.Pool {
   const parsedUrl = new URL(databaseUrl);
   const hostname = parsedUrl.hostname;
 
-  // Create pool — connections are lazy, dns.lookup override above ensures IPv4
+  // Create pool - connections are lazy, dns.lookup override above ensures IPv4
   const pool = new pg.Pool({
     connectionString: databaseUrl,
     ssl: { rejectUnauthorized: false },

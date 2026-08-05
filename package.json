@@ -14,7 +14,12 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "seed:cms": "npx tsx prisma/seed-cms.ts"
+    "seed:cms": "npx tsx prisma/seed-cms.ts",
+    "editorials:backfill-syllabus": "npx tsx scripts/backfill-editorial-syllabus-mappings.ts",
+    "pyq:import-csvs": "node scripts/import-pyq-csvs.mjs",
+    "pyq:mains:import-csvs": "node scripts/import-mains-pyq-csvs.mjs",
+    "pyq:essay:import-csv": "node scripts/import-mains-pyq-csvs.mjs --essay-only",
+    "billing:sync-razorpay-plans": "tsx scripts/sync-razorpay-plans.ts"
   },
   "keywords": [
     "upsc",
@@ -60,6 +65,7 @@
     "razorpay": "^2.9.6",
     "resend": "^6.9.3",
     "rss-parser": "^3.13.0",
+    "standardwebhooks": "^1.0.0",
     "string-similarity": "^4.0.4",
     "undici": "^7.24.4",
     "zod": "^4.3.6"

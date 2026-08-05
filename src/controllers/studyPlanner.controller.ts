@@ -1,14 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
 import {
-  isValidStudyPlannerSubject,
-  normalizeStudyPlannerSubject,
-  VALID_STUDY_PLANNER_SUBJECTS,
+  isValidStudyPlannerTaskSubject,
+  normalizeStudyPlannerTaskSubject,
 } from "../constants/subjects";
 import {
   deleteStudyPlanTaskFromGoogle,
   syncStudyPlanTaskToGoogle,
 } from "../services/googleCalendarSync.service";
+import { computeSyllabusCoverage } from "../utils/syllabusDedup";
 
 function getToday(): Date {
   const d = new Date();
@@ -61,19 +61,27 @@ export const getTodayTasks = async (req: Request, res: Response, next: NextFunct
 export const createTask = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { title, description, subject, type, date, startTime, endTime, duration } = req.body;
+    const { title, description, subject, type, date, startTime, endTime, duration, actualDuration } = req.body;
     console.log(`[Study Plan] Create task: user=${userId}, title="${title}", subject=${subject}`);
 
     if (!title) {
       return res.status(400).json({ status: "error", message: "Title is required" });
     }
 
+    let normalizedSubject = subject;
     if (subject) {
-      const normalized = normalizeStudyPlannerSubject(subject);
-      if (!isValidStudyPlannerSubject(normalized)) {
+      if (typeof subject !== "string") {
         return res.status(400).json({
           status: "error",
-          message: `Invalid subject "${subject}". Must be one of: ${VALID_STUDY_PLANNER_SUBJECTS.join(", ")}`,
+          message: "Subject must be text",
+        });
+      }
+
+      normalizedSubject = normalizeStudyPlannerTaskSubject(subject);
+      if (!isValidStudyPlannerTaskSubject(normalizedSubject)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Subject must contain 1 to 50 characters",
         });
       }
     }
@@ -85,12 +93,13 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
         userId,
         title,
         description,
-        subject: subject ? normalizeStudyPlannerSubject(subject) : subject,
+        subject: normalizedSubject,
         type: type || "study",
         date: taskDate,
         startTime,
         endTime,
         duration,
+        actualDuration,
       },
     });
 
@@ -110,7 +119,7 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
   try {
     const userId = req.user!.id;
     const id = req.params.id as string;
-    const { title, description, subject, type, date, startTime, endTime, duration, isCompleted } = req.body;
+    const { title, description, subject, type, date, startTime, endTime, duration, actualDuration, isCompleted } = req.body;
     console.log(`[Study Plan] Update task: id=${id}, user=${userId}, isCompleted=${isCompleted}`);
 
     const existing = await prisma.studyPlanTask.findFirst({ where: { id, userId } });
@@ -122,11 +131,18 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (subject !== undefined) {
-      const normalized = normalizeStudyPlannerSubject(subject);
-      if (!isValidStudyPlannerSubject(normalized)) {
+      if (typeof subject !== "string") {
         return res.status(400).json({
           status: "error",
-          message: `Invalid subject "${subject}". Must be one of: ${VALID_STUDY_PLANNER_SUBJECTS.join(", ")}`,
+          message: "Subject must be text",
+        });
+      }
+
+      const normalized = normalizeStudyPlannerTaskSubject(subject);
+      if (!isValidStudyPlannerTaskSubject(normalized)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Subject must contain 1 to 50 characters",
         });
       }
       updateData.subject = normalized;
@@ -136,6 +152,7 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
     if (startTime !== undefined) updateData.startTime = startTime;
     if (endTime !== undefined) updateData.endTime = endTime;
     if (duration !== undefined) updateData.duration = duration;
+    if (typeof actualDuration === 'number' && actualDuration >= 0) updateData.actualDuration = actualDuration;
     if (isCompleted !== undefined) {
       updateData.isCompleted = isCompleted;
       updateData.completedAt = isCompleted ? new Date() : null;
@@ -205,12 +222,6 @@ export const getWeeklyGoals = async (req: Request, res: Response, next: NextFunc
   try {
     const userId = req.user!.id;
     const weekStart = getWeekStart();
-
-    // One-time cleanup: wipe ALL existing weekly goals for this user
-    const existingCount = await prisma.weeklyGoal.count({ where: { userId } });
-    if (existingCount > 0) {
-      await prisma.weeklyGoal.deleteMany({ where: { userId } });
-    }
 
     const goals = await prisma.weeklyGoal.findMany({
       where: { userId, weekStart },
@@ -290,19 +301,15 @@ export const getSyllabusCoverage = async (req: Request, res: Response, next: Nex
 
     const stateMap = (tracker?.states ?? {}) as Record<string, { status?: string }>;
 
+    // Dedup topics/sub-topics the same way the Syllabus Tracker page does
+    // before counting, so this matches what the tracker page shows for the
+    // same saved state (see src/utils/syllabusDedup.ts).
     const data = subjects.map((subject) => {
-      let totalTopics = 0;
-      let completedTopics = 0;
-
-      subject.topics.forEach((topic, topicIndex) => {
-        topic.subTopics.forEach((_, subTopicIndex) => {
-          totalTopics += 1;
-          const key = `${subject.id}__${topicIndex}__${subTopicIndex}`;
-          if (stateMap[key]?.status === "done") {
-            completedTopics += 1;
-          }
-        });
-      });
+      const { totalTopics, coveredTopics: completedTopics } = computeSyllabusCoverage(
+        subject.topics,
+        subject.id,
+        stateMap
+      );
 
       const percentage = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
 

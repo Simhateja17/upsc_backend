@@ -5,7 +5,7 @@ import { uploadPDF } from "../middleware/upload";
 import { uploadSingle } from "../middleware/upload";
 import { aiLimiter } from "../middleware/rateLimit";
 
-// Admin controllers — split by domain
+// Admin controllers - split by domain
 import * as pyqCtrl from "../controllers/admin/pyq.controller";
 import * as editorialCtrl from "../controllers/admin/editorial.controller";
 import * as dailyMcqCtrl from "../controllers/admin/daily-mcq.controller";
@@ -22,6 +22,9 @@ import * as aiCostCtrl from "../controllers/admin/aiCost.controller";
 import * as cmsCtrl from "../controllers/admin/cms.controller";
 import * as studyMaterialCtrl from "../controllers/admin/studyMaterial.controller";
 import * as mockTestMaterialCtrl from "../controllers/admin/mockTestMaterial.controller";
+import * as entitlementCtrl from "../controllers/admin/entitlements.controller";
+import * as contactCtrl from "../controllers/admin/contact.controller";
+import * as feedbackCtrl from "../controllers/admin/feedback.controller";
 
 const router = Router();
 
@@ -40,6 +43,7 @@ router.post("/pyq/vectorize", pyqCtrl.triggerPYQVectorization);
 
 // ==================== Editorial Management ====================
 router.get("/editorials", editorialCtrl.getEditorials);
+router.get("/editorial-syllabus-paths", editorialCtrl.getEditorialSyllabusPaths);
 router.post("/editorials", editorialCtrl.createEditorial);
 router.put("/editorials/:id", editorialCtrl.updateEditorial);
 router.delete("/editorials/:id", editorialCtrl.deleteEditorial);
@@ -97,6 +101,11 @@ router.delete("/syllabus/sub-topics/:id", syllabusCtrl.deleteSyllabusSubTopic);
 // ==================== User Management ====================
 router.get("/users", usersCtrl.getUsers);
 router.put("/users/:id", usersCtrl.updateUser);
+router.post("/me/plan-simulation", entitlementCtrl.setMyPlanSimulation);
+router.delete("/me/plan-simulation", entitlementCtrl.clearMyPlanSimulation);
+router.get("/users/:userId/entitlement-overrides", entitlementCtrl.getUserEntitlementOverrides);
+router.post("/users/:userId/entitlement-overrides", entitlementCtrl.createUserEntitlementOverride);
+router.delete("/entitlement-overrides/:id", entitlementCtrl.deleteUserEntitlementOverride);
 
 // ==================== Video Management ====================
 router.get("/videos/subjects", videoCtrl.getVideoSubjects);
@@ -127,6 +136,13 @@ router.get("/faqs", faqCtrl.getFaqsAdmin);
 router.post("/faqs", faqCtrl.createFaq);
 router.put("/faqs/:id", faqCtrl.updateFaq);
 router.delete("/faqs/:id", faqCtrl.deleteFaq);
+
+// ==================== Contact Submissions ====================
+router.get("/contact-submissions", contactCtrl.getContactSubmissionsAdmin);
+router.patch("/contact-submissions/:id/status", contactCtrl.updateContactSubmissionStatus);
+
+// ==================== User Feedback ====================
+router.get("/feedback", feedbackCtrl.getFeedbackAdmin);
 
 // ==================== Analytics ====================
 router.get("/analytics", analyticsCtrl.getAnalytics);

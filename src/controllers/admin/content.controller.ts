@@ -1,5 +1,5 @@
 /**
- * DEPRECATED — this file has been split into domain-specific controllers.
+ * DEPRECATED - this file has been split into domain-specific controllers.
  * Import from the individual files instead:
  *   admin/daily-mcq.controller.ts
  *   admin/daily-mains.controller.ts

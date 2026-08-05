@@ -23,7 +23,7 @@ function createLimiter(opts: Partial<Options>) {
 const isDev = process.env.NODE_ENV !== "production";
 
 /**
- * General API rate limiter — 50,000 req/15min in production, 1000 in dev.
+ * General API rate limiter - 50,000 req/15min in production, 1000 in dev.
  * Skips preflight OPTIONS requests so CORS handshakes don't count against the limit.
  */
 export const generalLimiter = createLimiter({
@@ -34,7 +34,7 @@ export const generalLimiter = createLimiter({
 });
 
 /**
- * Auth rate limiter — 20 requests per 15 minutes
+ * Auth rate limiter - 20 requests per 15 minutes
  */
 export const authLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
@@ -43,7 +43,7 @@ export const authLimiter = createLimiter({
 });
 
 /**
- * Submission rate limiter — 30 requests per 15 minutes
+ * Submission rate limiter - 30 requests per 15 minutes
  */
 export const submissionLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
@@ -52,7 +52,7 @@ export const submissionLimiter = createLimiter({
 });
 
 /**
- * AI rate limiter — 10 requests per 15 minutes (expensive operations)
+ * AI rate limiter - 10 requests per 15 minutes (expensive operations)
  */
 export const aiLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,

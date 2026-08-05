@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
-import { submissionLimiter, aiLimiter } from "../middleware/rateLimit";
-import { uploadSingle } from "../middleware/upload";
+import { submissionLimiter } from "../middleware/rateLimit";
+import { uploadAnswerFiles } from "../middleware/upload";
+import { enforceUsage } from "../middleware/entitlements.middleware";
 import {
   getSubjects,
   getConfig,
@@ -18,6 +19,7 @@ import {
   submitMockTestMainsAnswer,
   getMockTestMainsEvaluationStatus,
   getMockTestMainsResults,
+  getMainsHistory,
 } from "../controllers/mockTestMains.controller";
 
 const router = Router();
@@ -25,7 +27,8 @@ const router = Router();
 router.get("/subjects", getSubjects);
 router.get("/config", getConfig);
 router.get("/platform-stats", getPlatformStats);
-router.post("/generate", authenticate, aiLimiter, generateTest);
+router.get("/mains-history", authenticate, getMainsHistory);
+router.post("/generate", authenticate, enforceUsage("prelims_mock_attempt", "mock_test"), generateTest);
 router.get("/:testId/questions", authenticate, getTestQuestions);
 router.post("/:testId/submit", authenticate, submitTest);
 router.put("/:testId/save-progress", authenticate, saveProgress);
@@ -37,7 +40,8 @@ router.post(
   "/:testId/mains-submit",
   authenticate,
   submissionLimiter,
-  uploadSingle("file"),
+  enforceUsage("mains_evaluation", "mock_test_mains"),
+  uploadAnswerFiles(),
   submitMockTestMainsAnswer
 );
 router.get(

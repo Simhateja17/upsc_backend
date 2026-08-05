@@ -236,27 +236,27 @@ export const getDailyContent = async (req: Request, res: Response, next: NextFun
 
     const tips: Record<string, string[]> = {
       Low: [
-        "Take a 10-minute walk outside — sunlight boosts serotonin naturally.",
+        "Take a 10-minute walk outside - sunlight boosts serotonin naturally.",
         "Write down three small wins from today, no matter how minor.",
-        "Reach out to a friend or mentor — connection heals isolation.",
+        "Reach out to a friend or mentor - connection heals isolation.",
       ],
       Anxious: [
         "Try 4-7-8 breathing: inhale 4s, hold 7s, exhale 8s. Repeat 4 times.",
-        "Limit caffeine for the next 6 hours — it amplifies anxiety loops.",
+        "Limit caffeine for the next 6 hours - it amplifies anxiety loops.",
         "Break your next task into a 5-minute micro-step to reduce overwhelm.",
       ],
       Okay: [
         "Take 5 minutes of box breathing before your study session.",
-        "Spend 10 min outside — sunlight resets cortisol naturally.",
-        "Write tomorrow's 3 tasks tonight — reduces morning anxiety.",
+        "Spend 10 min outside - sunlight resets cortisol naturally.",
+        "Write tomorrow's 3 tasks tonight - reduces morning anxiety.",
       ],
       Good: [
-        "Channel this energy into your hardest topic — momentum is everything.",
-        "Help a peer with a doubt — teaching deepens your own clarity.",
+        "Channel this energy into your hardest topic - momentum is everything.",
+        "Help a peer with a doubt - teaching deepens your own clarity.",
         "Log this feeling so you can recall what habits created it.",
       ],
       Great: [
-        "You're in flow — protect this time. Silence notifications for 90 min.",
+        "You're in flow - protect this time. Silence notifications for 90 min.",
         "Set a stretch goal for today while confidence is high.",
         "Celebrate properly: a good meal, music, or a short walk.",
       ],
@@ -391,20 +391,20 @@ export const getStressIndex = async (req: Request, res: Response, next: NextFunc
     const tips: Record<string, string[]> = {
       Low: [
         "You're in a great mental space. Use this stability to tackle difficult topics.",
-        "Maintain your sleep and exercise rhythm — prevention is easier than recovery.",
+        "Maintain your sleep and exercise rhythm - prevention is easier than recovery.",
       ],
       Moderate: [
         "You're managing well. A few mindful practices will keep you steady.",
         "Take 5 minutes of box breathing before your study session.",
-        "Spend 10 min outside — sunlight resets cortisol naturally.",
+        "Spend 10 min outside - sunlight resets cortisol naturally.",
       ],
       High: [
         "Your stress levels are elevated. Prioritize one recovery activity today.",
         "Consider cutting study time by 30 min to make room for a walk or meditation.",
-        "Talk to someone — peer support or a mentor can reframe pressure into purpose.",
+        "Talk to someone - peer support or a mentor can reframe pressure into purpose.",
       ],
       "Very High": [
-        "Your body is asking for a pause. This is not weakness — it's wisdom.",
+        "Your body is asking for a pause. This is not weakness - it's wisdom.",
         "Do a 10-minute grounding exercise before opening any book.",
         "If stress persists, consider speaking to a counselor. iCall: 9152987821.",
       ],

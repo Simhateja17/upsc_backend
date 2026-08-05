@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
+import { requireAccess } from "../middleware/entitlements.middleware";
 import {
   saveCheckIn,
   getCheckIns,
@@ -15,15 +16,17 @@ import {
 
 const router = Router();
 
-router.post("/check-in", authenticate, saveCheckIn);
-router.get("/check-ins", authenticate, getCheckIns);
-router.get("/streak", authenticate, getStreak);
-router.post("/tool-session", authenticate, saveToolSession);
-router.get("/tool-stats", authenticate, getToolStats);
-router.get("/daily-content", authenticate, getDailyContent);
-router.get("/stress-index", authenticate, getStressIndex);
-router.post("/journal", authenticate, saveJournalEntry);
-router.get("/journal", authenticate, getJournalEntries);
-router.delete("/journal/:id", authenticate, deleteJournalEntry);
+router.use(authenticate, requireAccess("mental_health_buddy", ["full"]));
+
+router.post("/check-in", saveCheckIn);
+router.get("/check-ins", getCheckIns);
+router.get("/streak", getStreak);
+router.post("/tool-session", saveToolSession);
+router.get("/tool-stats", getToolStats);
+router.get("/daily-content", getDailyContent);
+router.get("/stress-index", getStressIndex);
+router.post("/journal", saveJournalEntry);
+router.get("/journal", getJournalEntries);
+router.delete("/journal/:id", deleteJournalEntry);
 
 export default router;
