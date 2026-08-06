@@ -4,12 +4,15 @@
  *   10 marker → ~150 words → ~7 min
  *   15 marker → ~250 words → ~11 min
  *   20 marker → ~250 words → ~14 min
+ *   Essay (125 marker) → 1000–1200 words → 90 min
  *
  * This is surfaced to the student on the test-builder screen, used to
  * constrain the AI-generated model answer's length, and used by the evaluator
  * to penalise answers that fall outside the band. Every consumer must read
  * these helpers rather than re-deriving the numbers, so the number the student
  * is shown is always the number the examiner grades against.
+ *
+ * Keep in sync with the frontend copy at lib/mainsPattern.ts.
  */
 
 export interface MainsPatternRow {
@@ -22,10 +25,15 @@ export const MAINS_PATTERN: MainsPatternRow[] = [
   { marks: 10, words: 150, minutes: 7 },
   { marks: 15, words: 250, minutes: 11 },
   { marks: 20, words: 250, minutes: 14 },
+  { marks: 125, words: 1100, minutes: 90 },
 ];
+
+/** Marks threshold at and above which a question is treated as an Essay, not a GS answer. */
+const ESSAY_MARKS_THRESHOLD = 100;
 
 /** Expected answer length, in words, for a question worth `marks`. */
 export function mainsWordLimit(marks: number): number {
+  if (marks >= ESSAY_MARKS_THRESHOLD) return 1100;
   if (marks >= 15) return 250;
   if (marks >= 10) return 150;
   // Sub-10-mark questions aren't part of the official pattern; scale down
@@ -35,6 +43,7 @@ export function mainsWordLimit(marks: number): number {
 
 /** Suggested time budget, in minutes, for a question worth `marks`. */
 export function mainsTimeLimit(marks: number): number {
+  if (marks >= ESSAY_MARKS_THRESHOLD) return 90;
   if (marks >= 20) return 14;
   if (marks >= 15) return 11;
   if (marks >= 10) return 7;
@@ -62,6 +71,9 @@ export function wordCountStatus(wordCount: number, marks: number): WordCountStat
 /** Inclusive acceptable word range for a question worth `marks`. */
 export function mainsWordRange(marks: number): { limit: number; min: number; max: number } {
   const limit = mainsWordLimit(marks);
+  if (marks >= ESSAY_MARKS_THRESHOLD) {
+    return { limit, min: 1000, max: 1200 };
+  }
   return {
     limit,
     min: Math.round(limit * WORD_LIMIT_UNDER_TOLERANCE),
