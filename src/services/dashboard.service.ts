@@ -11,6 +11,18 @@ const STUDY_TYPE_COLORS: Record<string, string> = {
   Practice: "#E8C363",
 };
 
+// MockTest.source stores the internal question-pool strategy used to generate
+// the test (e.g. "daily_mcq" = built from the daily MCQ bank), not a display
+// name — map it to the same labels shown in the mock test creation UI so the
+// Test History "Series" badge doesn't leak the raw enum value.
+const MOCK_TEST_SOURCE_LABELS: Record<string, string> = {
+  daily_mcq: "Daily MCQ",
+  pyq: "Practice PYQ",
+  subject_wise: "Subject-wise",
+  mixed: "Mixed Bag",
+  full_length: "Full Length Test",
+};
+
 function getIsoWeekKey(d: Date): string {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dayNum = date.getUTCDay() || 7;
@@ -637,7 +649,8 @@ export async function getTestAnalytics(userId: string) {
   for (const a of raw.mockAttempts) {
     const createdAt = new Date(a.createdAt);
     historyRows.push({
-      id: a.id, name: a.mockTest.title, series: a.mockTest.source ?? "Full Mock",
+      id: a.id, name: a.mockTest.title,
+      series: MOCK_TEST_SOURCE_LABELS[a.mockTest.source] ?? "Full Mock",
       date: relDate(createdAt), score: `${a.score}/${a.totalMarks}`,
       accuracy: Math.round(a.accuracy), sortAt: createdAt.getTime(), rank: null,
       type: "mock-prelims", routeParams: { testId: a.mockTest.id },
