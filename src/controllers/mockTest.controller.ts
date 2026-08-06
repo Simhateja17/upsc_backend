@@ -86,10 +86,13 @@ const MOCK_MAINS_MARKS = 10;
 // Full Length mains = a 20-question paper, all 10-markers (200 marks).
 const MAINS_FULL_LENGTH_COUNT = 20;
 const MAINS_FULL_LENGTH_TOTAL_MARKS = MAINS_FULL_LENGTH_COUNT * MOCK_MAINS_MARKS;
-// Essay Paper: exactly 2 essays (one per section, mirroring the real exam),
-// each a 125-marker with a 90-minute writing window - never a 10-marker.
+// Essay Paper: 1 or 2 essays (the real exam has 2, one per section, but the
+// user can choose to practice with just one) - each a 125-marker with a
+// 90-minute writing window, never a 10-marker.
 const ESSAY_MARKS = 125;
 const ESSAY_QUESTION_COUNT = 2;
+const ESSAY_MIN_QUESTION_COUNT = 1;
+const ESSAY_MAX_QUESTION_COUNT = 2;
 
 function isEssayPaper(paperType: unknown): boolean {
   return String(paperType || "").trim().toLowerCase() === "essay";
@@ -247,7 +250,7 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
     const isFullLength = source === "full_length";
     const isEssay = isMainsMode && isEssayPaper(paperType);
     const count = isEssay
-      ? ESSAY_QUESTION_COUNT
+      ? Math.min(Math.max(Number(questionCount) || ESSAY_QUESTION_COUNT, ESSAY_MIN_QUESTION_COUNT), ESSAY_MAX_QUESTION_COUNT)
       : isFullLength
       ? (isMainsMode ? MAINS_FULL_LENGTH_COUNT : 100)
       : Math.min(questionCount || 10, 100);
