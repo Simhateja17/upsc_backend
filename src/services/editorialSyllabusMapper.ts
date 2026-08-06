@@ -191,7 +191,21 @@ export async function mapEditorialToSyllabus(
   return { primary: null, secondary: [], source: "unmapped", confidence: 0 };
 }
 
+// A subTopic name that just restates the subject (e.g. subject "Environment
+// & Ecology" with subTopic "Environment", or subject "Science & Technology"
+// with subTopic "Technology") isn't a second piece of information - it's the
+// same syllabus tag showing twice with different punctuation. Drop it rather
+// than displaying both.
+function isRedundantWithSubject(subject: string, label: string): boolean {
+  const subjectNorm = normalize(subject);
+  const labelNorm = normalize(label);
+  return subjectNorm === labelNorm || subjectNorm.includes(labelNorm) || labelNorm.includes(subjectNorm);
+}
+
 export function mappingDisplayTags(mapping: EditorialSyllabusMapping): string[] {
   if (!mapping.primary) return [];
-  return [mapping.primary.subject, mapping.primary.subTopic, ...mapping.secondary.map((path) => path.subTopic)];
+  const subject = mapping.primary.subject;
+  const subTopics = [mapping.primary.subTopic, ...mapping.secondary.map((path) => path.subTopic)]
+    .filter((label) => !isRedundantWithSubject(subject, label));
+  return [subject, ...subTopics];
 }

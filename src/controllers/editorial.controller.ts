@@ -3,7 +3,7 @@ import { editorialRepo } from "../repositories/prisma-editorial.repository";
 import { summarizeEditorialStructured } from "../services/editorialSummarizer";
 import { getNewsArticlesBySource, syncNewsToEditorials } from "../services/newsApi";
 import { runRssFetch } from "../services/rssFetcher";
-import { categorize, extractTags, relevanceScore, isValidCategory, isDailyEditorialWorthy } from "../services/categorizer";
+import { categorize, extractTags, relevanceScore, isValidCategory, isDailyEditorialWorthy, isRedundantWithCategory } from "../services/categorizer";
 import { mapEditorialToSyllabus, mappingDisplayTags, type EditorialSyllabusMapping, type SyllabusPath } from "../services/editorialSyllabusMapper";
 import { istDateKey, istDayWindow, istMonthWindow } from "../utils/istDate";
 
@@ -69,7 +69,7 @@ export const getTodayEditorials = async (req: Request, res: Response, next: Next
         const category = mapping?.primary?.subject || displayCategoryForEditorial(e);
         const tags = mapping?.primary
           ? mappingDisplayTags(mapping)
-          : [category, ...extractTags(e.title, e.summary, e.content)]
+          : [category, ...extractTags(e.title, e.summary, e.content).filter((tag) => !isRedundantWithCategory(category, tag))]
           .filter((tag, index, all) => all.indexOf(tag) === index);
         return { ...e, category, tags, primarySyllabusPath: mapping?.primary || null, secondarySyllabusPaths: mapping?.secondary || [] };
       })

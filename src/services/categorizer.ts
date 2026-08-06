@@ -198,6 +198,18 @@ export function extractTags(title: string, summary?: string | null, content?: st
 }
 
 /**
+ * True if `label` just restates `category` under different punctuation
+ * (e.g. "Technology" vs "Science & Technology"). Used to stop a keyword tag
+ * from re-showing the article's own category as a second badge.
+ */
+export function isRedundantWithCategory(category: string, label: string): boolean {
+  const norm = (v: string) => v.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, " ").trim();
+  const categoryNorm = norm(category);
+  const labelNorm = norm(label);
+  return categoryNorm === labelNorm || categoryNorm.includes(labelNorm) || labelNorm.includes(categoryNorm);
+}
+
+/**
  * One-call convenience: returns category, tags, and relevance score.
  * Category is guaranteed to be one of the 6 canonical subjects or the fallback.
  */

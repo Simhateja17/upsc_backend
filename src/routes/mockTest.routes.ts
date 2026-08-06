@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Request, Response, NextFunction, Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
 import { submissionLimiter } from "../middleware/rateLimit";
 import { uploadAnswerFiles } from "../middleware/upload";
@@ -24,11 +24,21 @@ import {
 
 const router = Router();
 
+// Generating a Mains paper only hands out the questions - the actual cost
+// (AI evaluation) is charged separately and correctly at /mains-submit below.
+// Only Prelims generation should ever spend a prelims_mock_attempt credit;
+// gating it unconditionally here was blocking Mains generation for anyone
+// who'd exhausted their Prelims attempts, even with Mains evaluations left.
+const enforcePrelimsAttemptForPrelims = (req: Request, res: Response, next: NextFunction) => {
+  if (req.body?.examMode === "mains") return next();
+  return enforceUsage("prelims_mock_attempt", "mock_test")(req, res, next);
+};
+
 router.get("/subjects", getSubjects);
 router.get("/config", getConfig);
 router.get("/platform-stats", getPlatformStats);
 router.get("/mains-history", authenticate, getMainsHistory);
-router.post("/generate", authenticate, enforceUsage("prelims_mock_attempt", "mock_test"), generateTest);
+router.post("/generate", authenticate, enforcePrelimsAttemptForPrelims, generateTest);
 router.get("/:testId/questions", authenticate, getTestQuestions);
 router.post("/:testId/submit", authenticate, submitTest);
 router.put("/:testId/save-progress", authenticate, saveProgress);
