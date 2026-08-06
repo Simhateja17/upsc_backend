@@ -86,6 +86,14 @@ const MOCK_MAINS_MARKS = 10;
 // Full Length mains = a 20-question paper, all 10-markers (200 marks).
 const MAINS_FULL_LENGTH_COUNT = 20;
 const MAINS_FULL_LENGTH_TOTAL_MARKS = MAINS_FULL_LENGTH_COUNT * MOCK_MAINS_MARKS;
+// Essay Paper: exactly 2 essays (one per section, mirroring the real exam),
+// each a 125-marker with a 90-minute writing window - never a 10-marker.
+const ESSAY_MARKS = 125;
+const ESSAY_QUESTION_COUNT = 2;
+
+function isEssayPaper(paperType: unknown): boolean {
+  return String(paperType || "").trim().toLowerCase() === "essay";
+}
 
 function dedupeBySourceId(rows: MainsPoolQuestion[]): MainsPoolQuestion[] {
   const seen = new Set<string>();
@@ -168,6 +176,15 @@ async function buildMainsPool(params: {
   const { source, subject, paperType, difficulty, count, targetSubject } = params;
   const poolLimit = Math.max(count * 4, 40);
 
+  // Essay Paper always draws from the curated 125-mark Essay bank, regardless
+  // of the requested source/subject/difficulty - those filters don't apply to
+  // essay content (there's no subject-wise or difficulty-tagged essay pool),
+  // and we deliberately never AI-generate an essay topic (see ESSAY_MARKS).
+  if (isEssayPaper(paperType)) {
+    const rows = await mockTestRepo.findEssayBank(Math.max(count * 4, 40));
+    return dedupeBySourceId(shuffle([...rows])).slice(0, count);
+  }
+
   if (source === "daily_mains") {
     return curatedMainsPool({
       fetch: () => mockTestRepo.findDailyMainsHistory(subject, paperType, poolLimit),
@@ -228,14 +245,22 @@ export const generateTest = async (req: Request, res: Response, next: NextFuncti
     const source = normalizeSource(req.body.source);
     const isMainsMode = (examMode || "prelims") === "mains";
     const isFullLength = source === "full_length";
-    const count = isFullLength
+    const isEssay = isMainsMode && isEssayPaper(paperType);
+    const count = isEssay
+      ? ESSAY_QUESTION_COUNT
+      : isFullLength
       ? (isMainsMode ? MAINS_FULL_LENGTH_COUNT : 100)
       : Math.min(questionCount || 10, 100);
-    // Every mains question is a 10-marker → ~7 min each (see mainsPattern).
-    const duration = isMainsMode
+    // Every mains question is a 10-marker → ~7 min each (see mainsPattern) -
+    // except Essay, which is always a 125-marker with a 90-minute window.
+    const duration = isEssay
+      ? count * mainsTimeLimit(ESSAY_MARKS)
+      : isMainsMode
       ? count * mainsTimeLimit(MOCK_MAINS_MARKS)
       : Math.round(count * 1.2);
-    const total_marks = isMainsMode
+    const total_marks = isEssay
+      ? count * ESSAY_MARKS
+      : isMainsMode
       ? (isFullLength ? MAINS_FULL_LENGTH_TOTAL_MARKS : count * MOCK_MAINS_MARKS)
       : count * 2;
     const selectedSubject = subject === "All Subjects" ? null : subject;

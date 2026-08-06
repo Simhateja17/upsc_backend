@@ -277,6 +277,31 @@ export function createPrismaMockTestRepository(): MockTestRepository {
     },
 
     /**
+     * Essay paper source - pulls from the curated Essay bank (same table the
+     * standalone PYQ Essay feature uses). Essay questions are not tagged to a
+     * real GS subject (they're all `subject: "Essay"`), so there's no subject
+     * filter here, and every row is already a 125-mark essay - no marks filter
+     * either, unlike the GS mains pools which are pinned to 10-markers.
+     */
+    async findEssayBank(limit = 40) {
+      const { data } = await supabaseAdmin
+        .from("pyq_mains_question_bank")
+        .select("id, question_text, subject, marks, difficulty")
+        .eq("status", "approved")
+        .eq("paper", "Essay")
+        .limit(limit);
+      return (data || []).map((row: any) =>
+        toMockMainsQuestion({
+          sourceQuestionBankId: row.id,
+          questionText: row.question_text,
+          subject: row.subject,
+          marks: row.marks,
+          difficulty: row.difficulty,
+        })
+      );
+    },
+
+    /**
      * "Daily Answer Writing" mains source - pulls from the questions that
      * have actually been served as a past Daily Answer Writing question.
      * Restricted to rows with a linked `pyq_question_id` (i.e. drawn from
